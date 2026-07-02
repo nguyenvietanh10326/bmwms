@@ -1,0 +1,6 @@
+@BMWMS.API_HostAddress = http://localhost:5076
+
+GET {{BMWMS.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
