@@ -1,6 +1,38 @@
-﻿namespace BMWMS.API.wwwroot
-{
-    public class index
-    {
-    }
-}
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BMWMS - Categories</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Categories</h1>
+        
+        <div id="loading" style="display:none;">
+            <p>Loading...</p>
+        </div>
+
+        <table class="table" id="categoriesTable" style="display:none;">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Category Name</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody id="categoriesBody">
+            </tbody>
+        </table>
+
+        <div id="errorMessage" style="display:none;">
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/api-client.js"></script>
+    <script src="js/categories.js"></script>
+</body>
+</html>
