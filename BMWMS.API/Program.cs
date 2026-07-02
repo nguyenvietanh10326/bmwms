@@ -23,7 +23,7 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddAutoMapper(cfg =>
 {
-    cfg.AddProfile<BMWMS.Business.Mapping.AutoMapperProfile>();
+    cfg.AddProfile<BMWMS.Business.Mapping.CategoryMapperProfile>();
 });
 
 builder.Services.AddDbContext<BMWMSDbContext>(options =>

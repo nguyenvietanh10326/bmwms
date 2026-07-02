@@ -4,9 +4,9 @@ using BMWMS.Business.DTOs;
 
 namespace BMWMS.Business.Mapping
 {
-    public class AutoMapperProfile : Profile
+    public class CategoryMapperProfile : Profile
     {
-        public AutoMapperProfile()
+        public CategoryMapperProfile()
         {
             CreateMap<Category, CategoryDto>();
         }
