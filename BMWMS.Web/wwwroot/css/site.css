@@ -1,0 +1,48 @@
+/* site.css — Custom styles cho BMWMS.Web */
+
+body {
+    background-color: #f4f6f9;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+main {
+    flex: 1;
+}
+
+/* Navbar */
+.navbar-brand {
+    font-size: 1.25rem;
+    letter-spacing: 0.5px;
+}
+
+/* Cards */
+.card {
+    border: none;
+    border-radius: 0.5rem;
+}
+
+/* Table */
+.table th {
+    font-weight: 600;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+/* Loading overlay */
+#loadingOverlay {
+    background-color: rgba(255, 255, 255, 0.8);
+}
+
+/* Smooth fade cho opacity */
+.opacity-50 {
+    opacity: 0.5;
+    transition: opacity 0.2s;
+}
+
+/* Badge count */
+.badge.fs-6 {
+    font-weight: 500;
+}

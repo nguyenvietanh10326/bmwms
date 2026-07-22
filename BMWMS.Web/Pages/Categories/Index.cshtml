@@ -1,0 +1,95 @@
+@page
+@model BMWMS.Web.Pages.Categories.IndexModel
+@{
+    ViewData["Title"] = "Quan ly Categories";
+    ViewData["ActivePage"] = "Categories";
+}
+
+<div class="container-fluid mt-4">
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-1">Danh sach Categories</h1>
+            <p class="text-muted mb-0">Quan ly danh muc he thong</p>
+        </div>
+        <button id="btnRefresh" class="btn btn-outline-primary">
+            <span id="refreshIcon">&#8635;</span> Lam moi
+        </button>
+    </div>
+
+    <!-- Server-side: Thong bao loi ket noi (render luc page load) -->
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <strong>Loi ket noi API:</strong> @Model.ErrorMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- Client-side: Thong bao loi AJAX (an mac dinh) -->
+    <div id="ajaxError" class="alert alert-warning alert-dismissible fade show d-none" role="alert">
+        <strong>Canh bao:</strong> <span id="ajaxErrorMsg"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <!-- Summary bar -->
+    <div class="d-flex gap-3 mb-3">
+        <span class="badge bg-primary fs-6 px-3 py-2">
+            Tong: <strong id="totalCount">@Model.Categories.Count</strong>
+        </span>
+        <span class="badge bg-success fs-6 px-3 py-2" id="loadStatus">
+            @(Model.ErrorMessage == null ? "Da tai du lieu" : "Load tu AJAX")
+        </span>
+    </div>
+
+    <!-- Bang du lieu -->
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <!-- Loading overlay -->
+            <div id="loadingOverlay" class="text-center py-4 d-none">
+                <div class="spinner-border text-primary me-2" role="status">
+                    <span class="visually-hidden">Dang tai...</span>
+                </div>
+                <span class="text-muted">Dang tai du lieu...</span>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover table-striped mb-0" id="categoriesTable">
+                    <thead class="table-dark">
+                        <tr>
+                            <th style="width:80px">ID</th>
+                            <th>Ten Category</th>
+                            <th>Mo ta</th>
+                        </tr>
+                    </thead>
+                    <tbody id="categoriesBody">
+                        @* Server-side render du lieu load tu API (lan dau) *@
+                        @if (Model.Categories.Count > 0)
+                        {
+                            @foreach (var cat in Model.Categories)
+                            {
+                                <tr>
+                                    <td><span class="badge bg-secondary">@cat.CategoryId</span></td>
+                                    <td><strong>@cat.CategoryName</strong></td>
+                                    <td class="text-muted">@(cat.Description ?? "-")</td>
+                                </tr>
+                            }
+                        }
+                        else if (Model.ErrorMessage == null)
+                        {
+                            <tr id="emptyRow">
+                                <td colspan="3" class="text-center text-muted py-4">
+                                    Khong co du lieu
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer text-muted small" id="lastUpdated">
+            Du lieu duoc tai luc khoi dong server
+        </div>
+    </div>
+</div>
