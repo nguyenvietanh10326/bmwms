@@ -10,4 +10,7 @@ public interface IUserRepository
     Task AddSessionAsync(UserSession session);
     Task AddAuditLogAsync(AuditLog log);
     Task RevokeActiveSessionsAsync(long userId);
+    Task RevokeSessionAsync(Guid sessionId);
+    Task<List<string>> GetRecentPasswordsAsync(long userId, int count);
+    Task<bool> CheckEmailExistsAsync(string email, long excludeUserId);
 }

@@ -8,4 +8,5 @@ public interface IAuthService
     /// Xác thực đăng nhập. Ném exception nếu thất bại.
     /// </summary>
     Task<LoginResponseDto> LoginAsync(LoginRequestDto dto, string? ipAddress, string? userAgent);
+    Task LogoutAsync(Guid sessionId, long userId, string? ipAddress);
 }

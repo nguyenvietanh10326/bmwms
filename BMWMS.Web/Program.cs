@@ -28,6 +28,7 @@ builder.Services.AddHttpClient("ApiClient", client =>
 // Đăng ký services
 builder.Services.AddScoped<CategoryApiService>();
 builder.Services.AddScoped<AuthApiService>();
+builder.Services.AddScoped<UserApiService>();
 
 var app = builder.Build();
 

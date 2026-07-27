@@ -5,15 +5,35 @@ namespace BMWMS.Web.Pages.Auth;
 
 public class LogoutModel : PageModel
 {
-    public IActionResult OnGet()
+    private readonly BMWMS.Web.Services.AuthApiService _authApiService;
+
+    public LogoutModel(BMWMS.Web.Services.AuthApiService authApiService)
     {
-        HttpContext.Session.Clear();
+        _authApiService = authApiService;
+    }
+
+    public async Task<IActionResult> OnGetAsync()
+    {
+        await ProcessLogout();
         return RedirectToPage("/Auth/Login");
     }
 
-    public IActionResult OnPost()
+    public async Task<IActionResult> OnPostAsync()
     {
-        HttpContext.Session.Clear();
+        await ProcessLogout();
         return RedirectToPage("/Auth/Login");
+    }
+
+    private async Task ProcessLogout()
+    {
+        var sessionId = HttpContext.Session.GetString("SessionId");
+        var userId = HttpContext.Session.GetString("UserId");
+
+        if (!string.IsNullOrEmpty(sessionId) && !string.IsNullOrEmpty(userId))
+        {
+            await _authApiService.LogoutAsync(sessionId, userId);
+        }
+
+        HttpContext.Session.Clear();
     }
 }

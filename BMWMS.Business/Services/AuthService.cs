@@ -132,7 +132,23 @@ public class AuthService : IAuthService
             RoleCode = user.Role.RoleCode,
             RoleName = user.Role.RoleName,
             AvatarUrl = user.AvatarUrl,
-            LoginAt = DateTime.UtcNow
+            LoginAt = DateTime.UtcNow,
+            SessionId = session.SessionId
         };
+    }
+
+    public async Task LogoutAsync(Guid sessionId, long userId, string? ipAddress)
+    {
+        await _userRepository.RevokeSessionAsync(sessionId);
+
+        await _userRepository.AddAuditLogAsync(new AuditLog
+        {
+            UserId = userId,
+            ActionType = "LOGOUT_SUCCESS",
+            EntityName = "UserSession",
+            EntityId = sessionId.ToString(),
+            IpAddress = ipAddress,
+            CreatedAt = DateTime.UtcNow
+        });
     }
 }

@@ -87,6 +87,22 @@ public class AuthApiService
             return new LoginResult(false, null, "Lỗi không xác định.", "server", null);
         }
     }
+
+    public async Task LogoutAsync(string sessionId, string userId)
+    {
+        try
+        {
+            var request = new HttpRequestMessage(HttpMethod.Post, "api/auth/logout");
+            request.Headers.Add("X-Session-Id", sessionId);
+            request.Headers.Add("X-User-Id", userId);
+
+            await _httpClient.SendAsync(request);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi gọi Logout API");
+        }
+    }
 }
 
 /// <summary>Thông tin user lưu vào Session sau login</summary>
@@ -99,5 +115,7 @@ public class UserSessionInfo
     public string RoleCode { get; set; } = null!;
     public string RoleName { get; set; } = null!;
     public string? AvatarUrl { get; set; }
+    public string? PhoneNumber { get; set; }
     public DateTime LoginAt { get; set; }
+    public Guid SessionId { get; set; }
 }

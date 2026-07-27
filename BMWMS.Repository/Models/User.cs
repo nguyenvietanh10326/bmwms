@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace BMWMS.Repository.Models;
@@ -106,4 +106,6 @@ public partial class User
     public virtual ICollection<TransferOrderDetail> TransferOrderDetails { get; set; } = new List<TransferOrderDetail>();
 
     public virtual ICollection<UserSession> UserSessions { get; set; } = new List<UserSession>();
+
+    public virtual ICollection<UserPasswordHistory> UserPasswordHistories { get; set; } = new List<UserPasswordHistory>();
 }

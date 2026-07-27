@@ -70,4 +70,34 @@ public class AuthController : ControllerBase
                 new { message = "Lỗi hệ thống.", detail = ex.Message });
         }
     }
+
+    /// <summary>
+    /// Đăng xuất hệ thống (UC-62)
+    /// </summary>
+    [HttpPost("logout")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> Logout()
+    {
+        if (!Request.Headers.TryGetValue("X-Session-Id", out var sessionIdStr) || !Guid.TryParse(sessionIdStr, out var sessionId))
+        {
+            return BadRequest("Session ID is missing or invalid.");
+        }
+        
+        if (!Request.Headers.TryGetValue("X-User-Id", out var userIdStr) || !long.TryParse(userIdStr, out var userId))
+        {
+            return BadRequest("User ID is missing.");
+        }
+
+        try
+        {
+            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+            await _authService.LogoutAsync(sessionId, userId, ipAddress);
+            return Ok(new { message = "Đăng xuất thành công" });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                new { message = "Lỗi hệ thống.", detail = ex.Message });
+        }
+    }
 }

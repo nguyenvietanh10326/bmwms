@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 
@@ -98,6 +98,8 @@ public partial class BmwmsContext : DbContext
     public virtual DbSet<User> Users { get; set; }
 
     public virtual DbSet<UserSession> UserSessions { get; set; }
+
+    public virtual DbSet<UserPasswordHistory> UserPasswordHistories { get; set; }
 
     public virtual DbSet<VwExpiringLotAlert> VwExpiringLotAlerts { get; set; }
 
@@ -1579,6 +1581,24 @@ public partial class BmwmsContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_UserSessions_User");
+        });
+
+        modelBuilder.Entity<UserPasswordHistory>(entity =>
+        {
+            entity.HasKey(e => e.HistoryId).HasName("PK__UserPass__4D7B4ADD5A11F68C");
+
+            entity.ToTable("UserPasswordHistories");
+
+            entity.Property(e => e.CreatedAt)
+                .HasPrecision(0)
+                .HasDefaultValueSql("(sysutcdatetime())");
+            entity.Property(e => e.PasswordHash).HasMaxLength(255);
+            entity.Property(e => e.UserId).HasColumnName("UserID");
+
+            entity.HasOne(d => d.User).WithMany(p => p.UserPasswordHistories)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_UserPasswordHistories_User");
         });
 
         modelBuilder.Entity<VwExpiringLotAlert>(entity =>

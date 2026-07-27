@@ -62,6 +62,7 @@ public class LoginModel : PageModel
         HttpContext.Session.SetString("RoleCode",  user.RoleCode);
         HttpContext.Session.SetString("RoleName",  user.RoleName);
         HttpContext.Session.SetString("LoginAt",   user.LoginAt.ToString("o"));
+        HttpContext.Session.SetString("SessionId", user.SessionId.ToString());
         if (!string.IsNullOrEmpty(user.AvatarUrl))
             HttpContext.Session.SetString("AvatarUrl", user.AvatarUrl);
 

@@ -27,22 +27,37 @@
     <div class="page-tag">@(isPasswordTab ? "Bảo mật" : "Cá nhân")</div>
 </div>
 
+@if (!string.IsNullOrEmpty(Model.SuccessMessage))
+{
+    <div class="info-alert" style="background: #ecfdf5; border-color: #d1fae5; color: #065f46; margin-bottom: 20px;">
+        <span style="font-size: 16px;">✓</span>
+        <div>@Model.SuccessMessage</div>
+    </div>
+}
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="info-alert" style="background: #fef2f2; border-color: #fee2e2; color: #b91c1c; margin-bottom: 20px;">
+        <span style="font-size: 16px;">!</span>
+        <div>@Model.ErrorMessage</div>
+    </div>
+}
+
 @if (!isPasswordTab)
 {
-    <form class="form-card">
+    <form class="form-card" method="post" asp-page-handler="UpdateProfile" id="profileForm">
         <div class="form-card-title">Hồ sơ cá nhân</div>
         <div class="form-grid">
             <div class="form-group">
                 <label class="form-label">Họ và tên</label>
-                <input type="text" class="form-control" value="@Model.FullName" readonly />
+                <input type="text" class="form-control" asp-for="UpdateFullName" />
             </div>
             <div class="form-group">
                 <label class="form-label">Email</label>
-                <input type="email" class="form-control" value="@Model.Email" readonly />
+                <input type="email" class="form-control" asp-for="UpdateEmail" />
             </div>
             <div class="form-group">
                 <label class="form-label">Số điện thoại</label>
-                <input type="text" class="form-control" value="@Model.PhoneNumber" readonly />
+                <input type="text" class="form-control" asp-for="UpdatePhoneNumber" />
             </div>
             <div class="form-group">
                 <label class="form-label">Vai trò</label>
@@ -122,41 +137,43 @@
     </div>
 
     <div class="form-actions">
-        <button type="button" class="btn btn-ghost">Hủy</button>
-        <button type="button" class="btn btn-secondary">Lưu nháp</button>
-        <button type="button" class="btn btn-primary" style="background: #111827;">Cập nhật hồ sơ</button>
+        <a href="/Admin/Profile" class="btn btn-ghost">Hủy</a>
+        <button type="submit" form="profileForm" class="btn btn-primary" style="background: #111827;">Cập nhật hồ sơ</button>
     </div>
 }
 else
 {
-    <form class="form-card">
+    <form class="form-card" method="post" asp-page-handler="ChangePassword" id="passwordForm">
         <div class="form-card-title">Đổi mật khẩu</div>
         <div class="form-grid" style="margin-bottom: 24px;">
             <div class="form-group">
                 <label class="form-label">Mật khẩu hiện tại *</label>
                 <div style="position: relative;">
-                    <input type="password" class="form-control" value="••••••••" style="width: 100%;" />
-                    <i class="ri-eye-off-line" style="position: absolute; right: 10px; top: 10px; color: #9ca3af; cursor: pointer;"></i>
+                    <input type="password" class="form-control" asp-for="CurrentPassword" style="width: 100%;" required />
+                    <i class="ri-eye-off-line" onclick="togglePassword(this)" style="position: absolute; right: 10px; top: 10px; color: #9ca3af; cursor: pointer;"></i>
                 </div>
             </div>
             <div class="form-group">
                 <label class="form-label">Mật khẩu mới *</label>
                 <div style="position: relative;">
-                    <input type="password" class="form-control" value="••••••••" style="width: 100%;" />
-                    <i class="ri-eye-off-line" style="position: absolute; right: 10px; top: 10px; color: #9ca3af; cursor: pointer;"></i>
+                    <input type="password" class="form-control" asp-for="NewPassword" style="width: 100%;" required />
+                    <i class="ri-eye-off-line" onclick="togglePassword(this)" style="position: absolute; right: 10px; top: 10px; color: #9ca3af; cursor: pointer;"></i>
                 </div>
             </div>
             <div class="form-group">
                 <label class="form-label">Xác nhận mật khẩu mới *</label>
                 <div style="position: relative;">
-                    <input type="password" class="form-control" value="••••••••" style="width: 100%;" />
-                    <i class="ri-eye-off-line" style="position: absolute; right: 10px; top: 10px; color: #9ca3af; cursor: pointer;"></i>
+                    <input type="password" class="form-control" asp-for="ConfirmNewPassword" style="width: 100%;" required />
+                    <i class="ri-eye-off-line" onclick="togglePassword(this)" style="position: absolute; right: 10px; top: 10px; color: #9ca3af; cursor: pointer;"></i>
                 </div>
             </div>
             <div class="form-group">
                 <label class="form-label">Độ mạnh mật khẩu</label>
-                <select class="form-control form-control-select" disabled>
-                    <option selected>Mạnh</option>
+                <select class="form-control form-control-select" disabled id="passwordStrength">
+                    <option selected>Chưa có</option>
+                    <option>Yếu</option>
+                    <option>Trung bình</option>
+                    <option>Mạnh</option>
                 </select>
             </div>
 
@@ -185,7 +202,9 @@ else
         <div style="border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; margin-top: 20px;">
             <div style="padding: 14px 16px; border-bottom: 1px solid #e5e7eb; background: #fafafa; font-weight: 600; font-size: 14px; display: flex; justify-content: space-between; align-items: center;">
                 Yêu cầu bảo mật
-                <button type="button" class="btn btn-secondary" style="height: 28px; padding: 0 12px; font-size: 12px;">Đăng xuất phiên khác</button>
+                <label style="display: flex; align-items: center; gap: 8px; font-weight: normal; font-size: 13px; cursor: pointer;">
+                    <input type="checkbox" asp-for="SignOutOtherSessions" style="cursor: pointer;" /> Đăng xuất khỏi các thiết bị khác
+                </label>
             </div>
             <table class="activity-table">
                 <thead>
@@ -201,7 +220,7 @@ else
                 <tbody>
                     <tr>
                         <td style="color: #2563b8; font-weight: 500;">Độ dài</td>
-                        <td>Tối thiểu 10 ký tự</td>
+                        <td>Tối thiểu 12 ký tự</td>
                         <td>12 ký tự</td>
                         <td>Có</td>
                         <td>12-16 ký tự</td>
@@ -230,8 +249,49 @@ else
     </div>
 
     <div class="form-actions">
-        <button type="button" class="btn btn-ghost">Hủy</button>
-        <button type="button" class="btn btn-secondary">Lưu nháp</button>
-        <button type="button" class="btn btn-primary" style="background: #111827;">Đổi mật khẩu</button>
+        <a href="/Admin/Profile?tab=password" class="btn btn-ghost">Hủy</a>
+        <button type="submit" form="passwordForm" class="btn btn-primary" style="background: #111827;">Đổi mật khẩu</button>
     </div>
+}
+
+@section Scripts {
+    <script>
+        function togglePassword(icon) {
+            var input = icon.previousElementSibling;
+            if (input.type === "password") {
+                input.type = "text";
+                icon.classList.remove("ri-eye-off-line");
+                icon.classList.add("ri-eye-line");
+            } else {
+                input.type = "password";
+                icon.classList.remove("ri-eye-line");
+                icon.classList.add("ri-eye-off-line");
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", function() {
+            var newPassInput = document.getElementById("NewPassword");
+            var strengthSelect = document.getElementById("passwordStrength");
+
+            if (newPassInput && strengthSelect) {
+                newPassInput.addEventListener("input", function() {
+                    var val = this.value;
+                    if (!val) {
+                        strengthSelect.value = "Chưa có";
+                        return;
+                    }
+                    var score = 0;
+                    if (val.length >= 12) score++;
+                    if (/[a-z]/.test(val)) score++;
+                    if (/[A-Z]/.test(val)) score++;
+                    if (/[0-9]/.test(val)) score++;
+                    if (/[^a-zA-Z0-9]/.test(val)) score++;
+
+                    if (score <= 2) strengthSelect.value = "Yếu";
+                    else if (score <= 4) strengthSelect.value = "Trung bình";
+                    else strengthSelect.value = "Mạnh";
+                });
+            }
+        });
+    </script>
 }

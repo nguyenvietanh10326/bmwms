@@ -61,4 +61,31 @@ public class UserRepository : IUserRepository
 
         await _context.SaveChangesAsync();
     }
+
+    public async Task RevokeSessionAsync(Guid sessionId)
+    {
+        var session = await _context.UserSessions.FirstOrDefaultAsync(s => s.SessionId == sessionId);
+        if (session != null && session.RevokedAt == null)
+        {
+            session.RevokedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+        }
+    }
+
+    public async Task<List<string>> GetRecentPasswordsAsync(long userId, int count)
+    {
+        return await _context.UserPasswordHistories
+            .Where(h => h.UserId == userId)
+            .OrderByDescending(h => h.CreatedAt)
+            .Take(count)
+            .Select(h => h.PasswordHash)
+            .ToListAsync();
+    }
+
+    public async Task<bool> CheckEmailExistsAsync(string email, long excludeUserId)
+    {
+        var lowerEmail = email.Trim().ToLower();
+        return await _context.Users
+            .AnyAsync(u => u.UserId != excludeUserId && u.Email.ToLower() == lowerEmail);
+    }
 }
