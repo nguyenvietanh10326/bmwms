@@ -25,6 +25,16 @@
     </p>
 
     <!-- Alerts -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="auth-alert auth-alert-warning" role="alert" style="background-color: #ecfdf5; color: #065f46; border-color: #d1fae5;">
+            <span>✓</span>
+            <div>
+                <strong>@TempData["SuccessMessage"]</strong>
+            </div>
+        </div>
+    }
+
     @if (Model.ErrorType == "locked")
     {
         <div class="auth-alert auth-alert-warning" role="alert">

@@ -100,4 +100,44 @@ public class AuthController : ControllerBase
                 new { message = "Lỗi hệ thống.", detail = ex.Message });
         }
     }
+
+    [HttpPost("forgot-password")]
+    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto dto)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        try
+        {
+            await _authService.ForgotPasswordAsync(dto);
+            return Ok(new { message = "Nếu email hợp lệ, một mã xác thực đã được gửi đến email của bạn." });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                new { message = "Lỗi hệ thống.", detail = ex.Message });
+        }
+    }
+
+    [HttpPost("reset-password")]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto dto)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        try
+        {
+            await _authService.ResetPasswordAsync(dto);
+            return Ok(new { message = "Đặt lại mật khẩu thành công." });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                new { message = "Lỗi hệ thống.", detail = ex.Message });
+        }
+    }
 }

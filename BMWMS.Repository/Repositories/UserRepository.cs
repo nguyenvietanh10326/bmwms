@@ -88,4 +88,34 @@ public class UserRepository : IUserRepository
         return await _context.Users
             .AnyAsync(u => u.UserId != excludeUserId && u.Email.ToLower() == lowerEmail);
     }
+
+    public async Task AddPasswordResetTokenAsync(PasswordResetToken token)
+    {
+        await _context.PasswordResetTokens.AddAsync(token);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task<PasswordResetToken?> GetValidPasswordResetTokenAsync(long userId, byte[] tokenHash)
+    {
+        var now = DateTime.UtcNow;
+        return await _context.PasswordResetTokens
+            .Where(t => t.UserId == userId 
+                     && t.TokenHash == tokenHash 
+                     && t.ExpiresAt > now 
+                     && t.UsedAt == null)
+            .OrderByDescending(t => t.RequestedAt)
+            .FirstOrDefaultAsync();
+    }
+
+    public async Task UpdatePasswordResetTokenAsync(PasswordResetToken token)
+    {
+        _context.PasswordResetTokens.Update(token);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task AddPasswordHistoryAsync(UserPasswordHistory history)
+    {
+        await _context.UserPasswordHistories.AddAsync(history);
+        await _context.SaveChangesAsync();
+    }
 }

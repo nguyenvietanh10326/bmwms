@@ -9,4 +9,6 @@ public interface IAuthService
     /// </summary>
     Task<LoginResponseDto> LoginAsync(LoginRequestDto dto, string? ipAddress, string? userAgent);
     Task LogoutAsync(Guid sessionId, long userId, string? ipAddress);
+    Task ForgotPasswordAsync(ForgotPasswordDto request);
+    Task ResetPasswordAsync(ResetPasswordDto request);
 }

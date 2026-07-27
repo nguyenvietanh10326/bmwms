@@ -13,4 +13,8 @@ public interface IUserRepository
     Task RevokeSessionAsync(Guid sessionId);
     Task<List<string>> GetRecentPasswordsAsync(long userId, int count);
     Task<bool> CheckEmailExistsAsync(string email, long excludeUserId);
+    Task AddPasswordResetTokenAsync(PasswordResetToken token);
+    Task<PasswordResetToken?> GetValidPasswordResetTokenAsync(long userId, byte[] tokenHash);
+    Task UpdatePasswordResetTokenAsync(PasswordResetToken token);
+    Task AddPasswordHistoryAsync(UserPasswordHistory history);
 }

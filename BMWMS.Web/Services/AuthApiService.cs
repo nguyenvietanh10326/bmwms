@@ -103,6 +103,56 @@ public class AuthApiService
             _logger.LogError(ex, "Lỗi khi gọi Logout API");
         }
     }
+
+    public async Task<string?> ForgotPasswordAsync(string email)
+    {
+        try
+        {
+            var payload = JsonSerializer.Serialize(new { Email = email });
+            var content = new StringContent(payload, Encoding.UTF8, "application/json");
+            var response = await _httpClient.PostAsync("api/auth/forgot-password", content);
+
+            if (response.IsSuccessStatusCode)
+                return null; // success
+
+            var body = await response.Content.ReadAsStringAsync();
+            var error = JsonSerializer.Deserialize<JsonElement>(body, _json);
+            return error.TryGetProperty("message", out var m) ? m.GetString() : "Có lỗi xảy ra.";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi gọi ForgotPassword");
+            return "Không thể kết nối đến máy chủ.";
+        }
+    }
+
+    public async Task<string?> ResetPasswordAsync(string email, string token, string newPassword, string confirmNewPassword)
+    {
+        try
+        {
+            var payload = JsonSerializer.Serialize(new 
+            { 
+                Email = email,
+                Token = token,
+                NewPassword = newPassword,
+                ConfirmNewPassword = confirmNewPassword
+            });
+            var content = new StringContent(payload, Encoding.UTF8, "application/json");
+            var response = await _httpClient.PostAsync("api/auth/reset-password", content);
+
+            if (response.IsSuccessStatusCode)
+                return null; // success
+
+            var body = await response.Content.ReadAsStringAsync();
+            var error = JsonSerializer.Deserialize<JsonElement>(body, _json);
+            return error.TryGetProperty("message", out var m) ? m.GetString() : "Có lỗi xảy ra.";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi gọi ResetPassword");
+            return "Không thể kết nối đến máy chủ.";
+        }
+    }
 }
 
 /// <summary>Thông tin user lưu vào Session sau login</summary>
