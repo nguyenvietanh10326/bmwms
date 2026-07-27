@@ -47,6 +47,8 @@ namespace BMWMS.Business.DTOs.Warehouse
         public string? PhoneNumber { get; set; }
         public bool IsPrimary { get; set; }
         public string Status { get; set; } = string.Empty;
+        public string? ManagerName { get; set; }
+        public int TotalLocations { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
     }

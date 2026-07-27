@@ -6,8 +6,4 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
-  <ItemGroup>
-    <!-- Không reference Business/Repository — giao tiếp qua HTTP -->
-  </ItemGroup>
-
 </Project>

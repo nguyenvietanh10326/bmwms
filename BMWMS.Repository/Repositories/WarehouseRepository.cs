@@ -33,15 +33,18 @@ namespace BMWMS.Repository.Repositories
         }
 
         public async Task<(List<Warehouse> Items, int TotalCount)> GetPagedListAsync(
-            string? keyword,
-            string? status,
-            bool? isPrimary,
-            int pageIndex,
-            int pageSize)
+      string? keyword,
+      string? status,
+      bool? isPrimary,
+      int pageIndex,
+      int pageSize)
         {
-            var query = _context.Warehouses.AsNoTracking().AsQueryable();
+            var query = _context.Warehouses
+                .AsNoTracking()
+                .Include(w => w.StorageLocations)
+                .AsQueryable();
 
-            // Lọc theo từ khóa (Code hoặc Name)
+            // Lọc theo từ khóa
             if (!string.IsNullOrWhiteSpace(keyword))
             {
                 var trimmedKeyword = keyword.Trim().ToLower();
@@ -64,7 +67,7 @@ namespace BMWMS.Repository.Repositories
             // Đếm tổng số bản ghi
             var totalCount = await query.CountAsync();
 
-            // Sắp xếp và phân trang
+            // Sắp xếp và lấy dữ liệu
             var items = await query
                 .OrderByDescending(w => w.IsPrimary)
                 .ThenBy(w => w.WarehouseCode)
