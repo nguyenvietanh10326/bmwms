@@ -1,0 +1,132 @@
+@page
+@model BMWMS.Web.Pages.Admin.DashboardModel
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard Admin | BMWMS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', sans-serif; background: #f1f5f9; min-height: 100vh; }
+
+        .topbar {
+            background: linear-gradient(135deg, #1e3a6e, #2563b8);
+            color: white;
+            padding: 0 32px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 12px rgba(30,58,110,0.3);
+        }
+
+        .topbar-brand { font-size: 18px; font-weight: 700; letter-spacing: 0.5px; }
+        .topbar-user { display: flex; align-items: center; gap: 12px; font-size: 14px; }
+
+        .role-badge {
+            background: rgba(255,255,255,0.2);
+            border-radius: 6px;
+            padding: 3px 10px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .logout-btn {
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 6px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-family: 'Inter', sans-serif;
+            text-decoration: none;
+            transition: background 0.2s;
+        }
+
+        .logout-btn:hover { background: rgba(255,255,255,0.25); }
+        .main { padding: 40px 32px; max-width: 900px; margin: 0 auto; }
+
+        .welcome-card {
+            background: white;
+            border-radius: 16px;
+            padding: 36px 40px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            margin-bottom: 24px;
+            border-left: 5px solid #2563b8;
+        }
+
+        .welcome-title { font-size: 24px; font-weight: 700; color: #1e3a6e; margin-bottom: 8px; }
+        .welcome-sub { font-size: 14px; color: #6b7280; }
+        .info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 28px; }
+
+        .info-item {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .info-label { font-size: 11px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+        .info-value { font-size: 15px; font-weight: 600; color: #334155; }
+
+        .success-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #f0fdf4;
+            color: #16a34a;
+            border: 1px solid #bbf7d0;
+            border-radius: 8px;
+            padding: 10px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 24px;
+        }
+    </style>
+</head>
+<body>
+    <div class="topbar">
+        <span class="topbar-brand">🏭 BMWMS</span>
+        <div class="topbar-user">
+            <span>@Model.FullName</span>
+            <span class="role-badge">@Model.RoleName</span>
+            <a href="/Auth/Logout" class="logout-btn">Đăng xuất</a>
+        </div>
+    </div>
+
+    <div class="main">
+        <div class="success-badge">
+            ✅ Đăng nhập thành công!
+        </div>
+
+        <div class="welcome-card">
+            <div class="welcome-title">Xin chào, @Model.FullName 👋</div>
+            <div class="welcome-sub">Chào mừng đến BMWMS — Building Materials Warehouse Management System</div>
+
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">User ID</div>
+                    <div class="info-value">#@Model.UserId</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Vai trò</div>
+                    <div class="info-value">@Model.RoleName</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Đăng nhập lúc</div>
+                    <div class="info-value" style="font-size:13px;">
+                        @(string.IsNullOrEmpty(Model.LoginAt) ? "" :
+                          DateTime.Parse(Model.LoginAt).AddHours(7).ToString("HH:mm dd/MM/yyyy"))
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
