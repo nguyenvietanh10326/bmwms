@@ -1,132 +1,174 @@
 @page
 @model BMWMS.Web.Pages.Admin.DashboardModel
 @{
-    Layout = null;
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Tổng quan";
+    ViewData["HeaderTitle"] = "Tổng quan";
+    ViewData["FooterVersion"] = "Database aligned v3.0";
 }
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Dashboard Admin | BMWMS</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Inter', sans-serif; background: #f1f5f9; min-height: 100vh; }
 
-        .topbar {
-            background: linear-gradient(135deg, #1e3a6e, #2563b8);
-            color: white;
-            padding: 0 32px;
-            height: 60px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            box-shadow: 0 2px 12px rgba(30,58,110,0.3);
-        }
+<div class="page-header">
+    <div class="page-header-title">Chào mừng trở lại, @Model.FullName</div>
+    <div class="page-header-sub">Tổng quan hoạt động kho ngày @DateTime.Now.ToString("dd/MM/yyyy")</div>
+</div>
 
-        .topbar-brand { font-size: 18px; font-weight: 700; letter-spacing: 0.5px; }
-        .topbar-user { display: flex; align-items: center; gap: 12px; font-size: 14px; }
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-card-header">
+            <div class="stat-dot blue"></div>
+            <div class="stat-badge blue">+8 tháng này</div>
+        </div>
+        <div class="stat-number">156</div>
+        <div class="stat-label">Tổng sản phẩm</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-card-header">
+            <div class="stat-dot green"></div>
+            <div class="stat-badge green">100% sẵn sàng</div>
+        </div>
+        <div class="stat-number">5</div>
+        <div class="stat-label">Kho đang hoạt động</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-card-header">
+            <div class="stat-dot orange"></div>
+            <div class="stat-badge orange">Cần xử lý</div>
+        </div>
+        <div class="stat-number">24</div>
+        <div class="stat-label">Sắp hết hàng</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-card-header">
+            <div class="stat-dot red"></div>
+            <div class="stat-badge red">Ưu tiên cao</div>
+        </div>
+        <div class="stat-number">3</div>
+        <div class="stat-label">Hết hàng</div>
+    </div>
+</div>
 
-        .role-badge {
-            background: rgba(255,255,255,0.2);
-            border-radius: 6px;
-            padding: 3px 10px;
-            font-size: 12px;
-            font-weight: 600;
-        }
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-card-header">
+            <div class="stat-number" style="color: #7c3aed;">8</div>
+        </div>
+        <div class="stat-label">Đơn mua chờ xác nhận</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-card-header">
+            <div class="stat-number" style="color: #2563b8;">6</div>
+        </div>
+        <div class="stat-label">Đơn bán chờ giữ tồn</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-card-header">
+            <div class="stat-number" style="color: #16a34a;">4</div>
+        </div>
+        <div class="stat-label">Lệnh nhập đang xử lý</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-card-header">
+            <div class="stat-number" style="color: #d97706;">3</div>
+        </div>
+        <div class="stat-label">Lệnh xuất đang picking</div>
+    </div>
+</div>
 
-        .logout-btn {
-            background: rgba(255,255,255,0.15);
-            border: 1px solid rgba(255,255,255,0.3);
-            color: white;
-            padding: 6px 14px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 13px;
-            font-family: 'Inter', sans-serif;
-            text-decoration: none;
-            transition: background 0.2s;
-        }
-
-        .logout-btn:hover { background: rgba(255,255,255,0.25); }
-        .main { padding: 40px 32px; max-width: 900px; margin: 0 auto; }
-
-        .welcome-card {
-            background: white;
-            border-radius: 16px;
-            padding: 36px 40px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-            margin-bottom: 24px;
-            border-left: 5px solid #2563b8;
-        }
-
-        .welcome-title { font-size: 24px; font-weight: 700; color: #1e3a6e; margin-bottom: 8px; }
-        .welcome-sub { font-size: 14px; color: #6b7280; }
-        .info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 28px; }
-
-        .info-item {
-            background: #f8fafc;
-            border-radius: 12px;
-            padding: 20px;
-            border: 1px solid #e2e8f0;
-        }
-
-        .info-label { font-size: 11px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
-        .info-value { font-size: 15px; font-weight: 600; color: #334155; }
-
-        .success-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            background: #f0fdf4;
-            color: #16a34a;
-            border: 1px solid #bbf7d0;
-            border-radius: 8px;
-            padding: 10px 16px;
-            font-size: 14px;
-            font-weight: 500;
-            margin-bottom: 24px;
-        }
-    </style>
-</head>
-<body>
-    <div class="topbar">
-        <span class="topbar-brand">🏭 BMWMS</span>
-        <div class="topbar-user">
-            <span>@Model.FullName</span>
-            <span class="role-badge">@Model.RoleName</span>
-            <a href="/Auth/Logout" class="logout-btn">Đăng xuất</a>
+<div class="panels-grid">
+    <div class="panel">
+        <div class="panel-header">
+            <div class="panel-title">Cảnh báo tồn kho</div>
+            <div class="panel-sub">Theo tồn khả dụng sau khi trừ Reserved</div>
+        </div>
+        <div class="panel-body">
+            <table class="panel-table">
+                <thead>
+                    <tr>
+                        <th>Sản phẩm</th>
+                        <th>Khả dụng</th>
+                        <th>Ngưỡng</th>
+                        <th>Trạng thái</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Xi măng PCB40</td>
+                        <td style="color: #dc2626; font-weight: 500;">0 Tấn</td>
+                        <td>250</td>
+                        <td><span class="status-badge danger">Hết hàng</span></td>
+                    </tr>
+                    <tr>
+                        <td>Thép cây D16</td>
+                        <td style="color: #d97706; font-weight: 500;">120 Kg</td>
+                        <td>300</td>
+                        <td><span class="status-badge warning">Sắp hết</span></td>
+                    </tr>
+                    <tr>
+                        <td>Cát vàng xây</td>
+                        <td style="color: #d97706; font-weight: 500;">45 m³</td>
+                        <td>100</td>
+                        <td><span class="status-badge warning">Sắp hết</span></td>
+                    </tr>
+                    <tr>
+                        <td>Gạch ống 8x8x18</td>
+                        <td style="color: #d97706; font-weight: 500;">520 Viên</td>
+                        <td>800</td>
+                        <td><span class="status-badge warning">Theo dõi</span></td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
     </div>
-
-    <div class="main">
-        <div class="success-badge">
-            ✅ Đăng nhập thành công!
+    
+    <div class="panel">
+        <div class="panel-header">
+            <div class="panel-title">Hoạt động gần đây</div>
+            <div class="panel-sub">Các nghiệp vụ mới nhất trong hệ thống</div>
         </div>
-
-        <div class="welcome-card">
-            <div class="welcome-title">Xin chào, @Model.FullName 👋</div>
-            <div class="welcome-sub">Chào mừng đến BMWMS — Building Materials Warehouse Management System</div>
-
-            <div class="info-grid">
-                <div class="info-item">
-                    <div class="info-label">User ID</div>
-                    <div class="info-value">#@Model.UserId</div>
+        <div class="panel-body">
+            <div class="activity-list">
+                <div class="activity-item">
+                    <div class="activity-dot purple"></div>
+                    <div class="activity-content">
+                        <div class="activity-text">PO-2026-0078 đã được xác nhận</div>
+                        <div class="activity-meta">Trần Thị Bình • 10 phút trước</div>
+                    </div>
                 </div>
-                <div class="info-item">
-                    <div class="info-label">Vai trò</div>
-                    <div class="info-value">@Model.RoleName</div>
+                <div class="activity-item">
+                    <div class="activity-dot blue"></div>
+                    <div class="activity-content">
+                        <div class="activity-text">SO-2026-0041 đã giữ tồn thành công</div>
+                        <div class="activity-meta">Hoàng Minh • 25 phút trước</div>
+                    </div>
                 </div>
-                <div class="info-item">
-                    <div class="info-label">Đăng nhập lúc</div>
-                    <div class="info-value" style="font-size:13px;">
-                        @(string.IsNullOrEmpty(Model.LoginAt) ? "" :
-                          DateTime.Parse(Model.LoginAt).AddHours(7).ToString("HH:mm dd/MM/yyyy"))
+                <div class="activity-item">
+                    <div class="activity-dot green"></div>
+                    <div class="activity-content">
+                        <div class="activity-text">Nhận hàng PN-2026-0042 hoàn tất</div>
+                        <div class="activity-meta">Phạm Thị Cúc • 40 phút trước</div>
+                    </div>
+                </div>
+                <div class="activity-item">
+                    <div class="activity-dot orange"></div>
+                    <div class="activity-content">
+                        <div class="activity-text">Chuyển kho CK-2026-0086 đang vận chuyển</div>
+                        <div class="activity-meta">Trần Văn An • 1 giờ trước</div>
+                    </div>
+                </div>
+                <div class="activity-item">
+                    <div class="activity-dot red"></div>
+                    <div class="activity-content">
+                        <div class="activity-text">Kiểm kho Bin A-01-01 có chênh lệch</div>
+                        <div class="activity-meta">Phạm Thị Cúc • 2 giờ trước</div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-</body>
-</html>
+</div>

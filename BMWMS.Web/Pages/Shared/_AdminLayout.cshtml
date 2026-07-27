@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] | BMWMS</title>
+    <link href="~/css/dashboard.css" rel="stylesheet" />
+    <!-- Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+    @RenderSection("Styles", required: false)
+</head>
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <div class="sidebar-logo-name">BMWMS</div>
+            <div class="sidebar-logo-sub">Quản lý kho vật liệu</div>
+        </div>
+
+        <nav class="sidebar-nav">
+            <div class="nav-section">
+                <div class="nav-section-label">Tổng quan</div>
+                <a href="/Admin/Dashboard" class="nav-item @(Context.Request.Path == "/Admin/Dashboard" ? "active" : "")">
+                    <i class="ri-dashboard-line nav-item-icon"></i>
+                    Tổng quan
+                </a>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-section-label">Danh mục</div>
+                <a href="#" class="nav-item">
+                    <i class="ri-map-pin-line nav-item-icon"></i>
+                    Kho & vị trí
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="ri-box-3-line nav-item-icon"></i>
+                    Sản phẩm
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="ri-truck-line nav-item-icon"></i>
+                    Nhà cung cấp
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="ri-user-line nav-item-icon"></i>
+                    Khách hàng
+                </a>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-section-label">Đơn hàng</div>
+                <a href="#" class="nav-item">
+                    <i class="ri-shopping-cart-2-line nav-item-icon"></i>
+                    Đơn mua hàng
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="ri-file-list-3-line nav-item-icon"></i>
+                    Đơn bán hàng
+                </a>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-section-label">Nghiệp vụ kho</div>
+                <a href="#" class="nav-item">
+                    <i class="ri-download-2-line nav-item-icon"></i>
+                    Nhập kho
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="ri-upload-2-line nav-item-icon"></i>
+                    Xuất kho
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="ri-arrow-left-right-line nav-item-icon"></i>
+                    Chuyển kho
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="ri-checkbox-multiple-line nav-item-icon"></i>
+                    Kiểm kho
+                </a>
+            </div>
+            
+            <div class="nav-section">
+                <div class="nav-section-label">Báo cáo & Hệ thống</div>
+                <a href="#" class="nav-item">
+                    <i class="ri-bar-chart-box-line nav-item-icon"></i>
+                    Báo cáo
+                </a>
+                <a href="/Admin/Profile" class="nav-item @(Context.Request.Path == "/Admin/Profile" ? "active" : "")">
+                    <i class="ri-user-settings-line nav-item-icon"></i>
+                    Người dùng
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="ri-settings-3-line nav-item-icon"></i>
+                    Cấu hình
+                </a>
+            </div>
+        </nav>
+    </aside>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="header-title">
+            @ViewData["HeaderTitle"]
+        </div>
+
+        <div class="header-user" onclick="document.getElementById('userDropdown').classList.toggle('show')">
+            <div class="header-user-info">
+                <div class="header-user-name">@Context.Session.GetString("FullName")</div>
+                <div class="header-user-role">@Context.Session.GetString("RoleName")</div>
+            </div>
+            <div class="header-user-avatar">
+                @(Context.Session.GetString("FullName")?.Substring(0, 1) ?? "U")
+            </div>
+
+            <div class="user-dropdown" id="userDropdown">
+                <div class="user-dropdown-header">
+                    <div class="user-dropdown-name">@Context.Session.GetString("FullName")</div>
+                    <div class="user-dropdown-role">@Context.Session.GetString("RoleName")</div>
+                </div>
+                <a href="/Admin/Profile" class="user-dropdown-item">
+                    <i class="ri-user-line"></i> Hồ sơ cá nhân
+                </a>
+                <a href="/Admin/Profile?tab=password" class="user-dropdown-item">
+                    <i class="ri-lock-password-line"></i> Đổi mật khẩu
+                </a>
+                <hr class="user-dropdown-divider" />
+                <a href="/Auth/Logout" class="user-dropdown-item danger">
+                    <i class="ri-logout-box-line"></i> Đăng xuất
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        @RenderBody()
+    </main>
+
+    <footer class="dashboard-footer">
+        <div>© 2026 BMWMS - Hệ thống quản lý. Powered by ASP.NET Core 9</div>
+        <div>@ViewData["FooterVersion"]</div>
+    </footer>
+
+    <script>
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            var userMenu = document.querySelector('.header-user');
+            if (!userMenu.contains(event.target)) {
+                document.getElementById('userDropdown').classList.remove('show');
+            }
+        });
+    </script>
+    @RenderSection("Scripts", required: false)
+</body>
+</html>

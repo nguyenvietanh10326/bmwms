@@ -1,0 +1,237 @@
+@page
+@model BMWMS.Web.Pages.Admin.ProfileModel
+@{
+    Layout = "_AdminLayout";
+    var tab = HttpContext.Request.Query["tab"].ToString();
+    var isPasswordTab = tab == "password";
+
+    ViewData["Title"] = isPasswordTab ? "Đổi mật khẩu" : "Hồ sơ cá nhân";
+    ViewData["HeaderTitle"] = "Người dùng đã xác thực";
+    ViewData["FooterVersion"] = "Full coverage";
+}
+
+<div class="breadcrumb">
+    <a href="#">Người dùng</a>
+    <span class="breadcrumb-sep">></span>
+    <span>@(isPasswordTab ? "Đổi mật khẩu" : "Hồ sơ cá nhân")</span>
+</div>
+
+<div class="page-header" style="display: flex; justify-content: space-between; align-items: center;">
+    <div>
+        <div class="page-header-title">@(isPasswordTab ? "Đổi mật khẩu" : "Xem hồ sơ cá nhân")</div>
+        <div class="page-header-sub">
+            @(isPasswordTab ? "Đổi mật khẩu đăng nhập theo chính sách bảo mật • Actor chính: Người dùng đã xác thực" 
+                            : "Xem thông tin cá nhân, vai trò và lịch sử đăng nhập của chính mình • Actor chính: Người dùng đã xác thực")
+        </div>
+    </div>
+    <div class="page-tag">@(isPasswordTab ? "Bảo mật" : "Cá nhân")</div>
+</div>
+
+@if (!isPasswordTab)
+{
+    <form class="form-card">
+        <div class="form-card-title">Hồ sơ cá nhân</div>
+        <div class="form-grid">
+            <div class="form-group">
+                <label class="form-label">Họ và tên</label>
+                <input type="text" class="form-control" value="@Model.FullName" readonly />
+            </div>
+            <div class="form-group">
+                <label class="form-label">Email</label>
+                <input type="email" class="form-control" value="@Model.Email" readonly />
+            </div>
+            <div class="form-group">
+                <label class="form-label">Số điện thoại</label>
+                <input type="text" class="form-control" value="@Model.PhoneNumber" readonly />
+            </div>
+            <div class="form-group">
+                <label class="form-label">Vai trò</label>
+                <select class="form-control form-control-select" disabled>
+                    <option selected>@Model.RoleName</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Tên đăng nhập</label>
+                <input type="text" class="form-control" value="@Model.Username" readonly />
+            </div>
+            <div class="form-group">
+                <label class="form-label">Lần đăng nhập gần nhất</label>
+                <select class="form-control form-control-select" disabled>
+                    <option selected>@(string.IsNullOrEmpty(Model.LoginAt) ? "" : DateTime.Parse(Model.LoginAt).AddHours(7).ToString("dd/MM/yyyy HH:mm"))</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Trạng thái</label>
+                <select class="form-control form-control-select" disabled>
+                    <option selected>Đang hoạt động</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Đơn vị</label>
+                <input type="text" class="form-control" value="Kho Hà Nội" readonly />
+            </div>
+        </div>
+    </form>
+
+    <div class="form-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <div class="form-card-title" style="margin-bottom: 0;">Hoạt động tài khoản gần đây</div>
+            <button type="button" class="btn btn-secondary">Xem hoạt động</button>
+        </div>
+        
+        <table class="activity-table">
+            <thead>
+                <tr>
+                    <th>Thời điểm</th>
+                    <th>Hành động</th>
+                    <th>Thiết bị</th>
+                    <th>Địa chỉ IP</th>
+                    <th>Kết quả</th>
+                    <th>Chi tiết</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td style="color: #2563b8; font-weight: 500;">@(string.IsNullOrEmpty(Model.LoginAt) ? "" : DateTime.Parse(Model.LoginAt).AddHours(7).ToString("dd/MM/yyyy HH:mm"))</td>
+                    <td>Đăng nhập</td>
+                    <td>Chrome - Windows</td>
+                    <td>10.10.8.21</td>
+                    <td>Thành công</td>
+                    <td><a href="#">Xem</a></td>
+                </tr>
+                <tr>
+                    <td style="color: #2563b8; font-weight: 500;">26/07/2026 17:45</td>
+                    <td>Đăng xuất</td>
+                    <td>Chrome - Windows</td>
+                    <td>10.10.8.21</td>
+                    <td>Thành công</td>
+                    <td><a href="#">Xem</a></td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <div style="display: flex; justify-content: space-between; margin-top: 16px; font-size: 13px;">
+            <div style="color: var(--text-secondary);">Hồ sơ cá nhân không cho phép tự thay đổi vai trò</div>
+            <div style="font-weight: 600;">2 thông tin đã xác thực</div>
+        </div>
+    </div>
+
+    <div class="info-alert" style="background: #fdf4ff; border-color: #f5d0fe; color: #86198f;">
+        <span style="font-size: 16px;">●</span>
+        <div>Hồ sơ cá nhân chỉ hiển thị dữ liệu của người dùng đăng nhập và không cho phép tự thay đổi vai trò.</div>
+    </div>
+
+    <div class="form-actions">
+        <button type="button" class="btn btn-ghost">Hủy</button>
+        <button type="button" class="btn btn-secondary">Lưu nháp</button>
+        <button type="button" class="btn btn-primary" style="background: #111827;">Cập nhật hồ sơ</button>
+    </div>
+}
+else
+{
+    <form class="form-card">
+        <div class="form-card-title">Đổi mật khẩu</div>
+        <div class="form-grid" style="margin-bottom: 24px;">
+            <div class="form-group">
+                <label class="form-label">Mật khẩu hiện tại *</label>
+                <div style="position: relative;">
+                    <input type="password" class="form-control" value="••••••••" style="width: 100%;" />
+                    <i class="ri-eye-off-line" style="position: absolute; right: 10px; top: 10px; color: #9ca3af; cursor: pointer;"></i>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Mật khẩu mới *</label>
+                <div style="position: relative;">
+                    <input type="password" class="form-control" value="••••••••" style="width: 100%;" />
+                    <i class="ri-eye-off-line" style="position: absolute; right: 10px; top: 10px; color: #9ca3af; cursor: pointer;"></i>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Xác nhận mật khẩu mới *</label>
+                <div style="position: relative;">
+                    <input type="password" class="form-control" value="••••••••" style="width: 100%;" />
+                    <i class="ri-eye-off-line" style="position: absolute; right: 10px; top: 10px; color: #9ca3af; cursor: pointer;"></i>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Độ mạnh mật khẩu</label>
+                <select class="form-control form-control-select" disabled>
+                    <option selected>Mạnh</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Lần đổi gần nhất</label>
+                <input type="text" class="form-control" value="15/06/2026" readonly />
+            </div>
+            <div class="form-group">
+                <label class="form-label">Số lần đổi</label>
+                <select class="form-control form-control-select" disabled>
+                    <option selected>4 lần</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Phiên đang hoạt động</label>
+                <select class="form-control form-control-select" disabled>
+                    <option selected>2 phiên</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Ghi chú bảo mật</label>
+                <input type="text" class="form-control" value="Không dùng lại 5 mật khẩu gần nhất" readonly title="Không dùng lại 5 mật khẩu gần nhất"/>
+            </div>
+        </div>
+
+        <div style="border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; margin-top: 20px;">
+            <div style="padding: 14px 16px; border-bottom: 1px solid #e5e7eb; background: #fafafa; font-weight: 600; font-size: 14px; display: flex; justify-content: space-between; align-items: center;">
+                Yêu cầu bảo mật
+                <button type="button" class="btn btn-secondary" style="height: 28px; padding: 0 12px; font-size: 12px;">Đăng xuất phiên khác</button>
+            </div>
+            <table class="activity-table">
+                <thead>
+                    <tr>
+                        <th>Quy tắc</th>
+                        <th>Yêu cầu</th>
+                        <th>Hiện tại</th>
+                        <th>Đạt</th>
+                        <th>Khuyến nghị</th>
+                        <th>Trạng thái</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td style="color: #2563b8; font-weight: 500;">Độ dài</td>
+                        <td>Tối thiểu 10 ký tự</td>
+                        <td>12 ký tự</td>
+                        <td>Có</td>
+                        <td>12-16 ký tự</td>
+                        <td style="font-weight: 600;">Đạt</td>
+                    </tr>
+                    <tr>
+                        <td style="color: #2563b8; font-weight: 500;">Độ phức tạp</td>
+                        <td>Hoa, thường, số, ký tự</td>
+                        <td>Đầy đủ</td>
+                        <td>Có</td>
+                        <td>Không dùng thông tin cá nhân</td>
+                        <td style="font-weight: 600;">Đạt</td>
+                    </tr>
+                    <tr style="background: #fafafa;">
+                        <td colspan="5" style="color: #6b7280; font-size: 12px; padding: 12px 16px;">Mật khẩu mới đáp ứng đầy đủ chính sách bảo mật</td>
+                        <td style="font-weight: 700; font-size: 13px;">6/6 quy tắc đạt</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </form>
+
+    <div class="info-alert" style="background: #fdf4ff; border-color: #f5d0fe; color: #86198f;">
+        <span style="font-size: 16px;">●</span>
+        <div>Sau khi đổi mật khẩu, người dùng có thể chọn đăng xuất khỏi tất cả thiết bị khác để bảo vệ tài khoản.</div>
+    </div>
+
+    <div class="form-actions">
+        <button type="button" class="btn btn-ghost">Hủy</button>
+        <button type="button" class="btn btn-secondary">Lưu nháp</button>
+        <button type="button" class="btn btn-primary" style="background: #111827;">Đổi mật khẩu</button>
+    </div>
+}
