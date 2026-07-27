@@ -1,0 +1,150 @@
+﻿/* RESET */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* SIDEBAR */
+.sidebar {
+    width: 200px;
+    background: #1e2a3a;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    height: 100vh;
+    overflow-y: auto;
+}
+
+.sidebar-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 18px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.logo-icon {
+    width: 36px;
+    height: 36px;
+    background: #3b82f6;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+}
+
+.logo-text {
+    line-height: 1.2;
+}
+
+    .logo-text .brand {
+        font-weight: 700;
+        font-size: 15px;
+        letter-spacing: .5px;
+    }
+
+    .logo-text .sub {
+        font-size: 10px;
+        color: #94a3b8;
+    }
+
+.sidebar-nav {
+    flex: 1;
+    padding: 8px 0;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    color: #94a3b8;
+    cursor: pointer;
+    font-size: 13.5px;
+    text-decoration: none;
+    transition: .15s;
+}
+
+    .nav-item:hover {
+        background: rgba(255,255,255,.06);
+        color: #fff;
+    }
+
+    .nav-item.active-parent {
+        background: rgba(59,130,246,.12);
+        color: #fff;
+    }
+
+    .nav-item svg {
+        width: 18px;
+        height: 18px;
+        flex-shrink: 0;
+    }
+
+    .nav-item .chevron {
+        margin-left: auto;
+        width: 14px;
+        height: 14px;
+    }
+
+.nav-section-label {
+    padding: 14px 16px 4px;
+    font-size: 10px;
+    color: #64748b;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.nav-sub {
+    background: rgba(0,0,0,.15);
+}
+
+.nav-sub-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px 8px 42px;
+    color: #94a3b8;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+    .nav-sub-item:hover {
+        color: #fff;
+    }
+
+    .nav-sub-item.active {
+        color: #3b82f6;
+    }
+
+    .nav-sub-item .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: currentColor;
+        flex-shrink: 0;
+    }
+
+.sidebar-footer {
+    padding: 14px 16px;
+    border-top: 1px solid rgba(255,255,255,.08);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #94a3b8;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+    .sidebar-footer:hover {
+        color: #fff;
+    }
+
+    .sidebar-footer svg {
+        width: 16px;
+        height: 16px;
+    }

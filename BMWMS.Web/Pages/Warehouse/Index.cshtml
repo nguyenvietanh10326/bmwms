@@ -1,0 +1,253 @@
+﻿@page
+@model BMWMS.Web.Pages.Warehouse.IndexModel
+
+@{
+    Layout = "/Pages/Shared/Warehourse/_Layout.cshtml";
+    ViewData["Title"] = "Warehouse List";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/Warehouse/index.css" asp-append-version="true" />
+}
+<!-- TOPBAR -->
+<div class="topbar">
+    <div class="breadcrumb">
+        <span>Warehouse Management</span>
+        <span class="sep">›</span>
+        <span class="current">Warehouses</span>
+    </div>
+
+    <div class="topbar-right">
+        <div class="topbar-icon-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                <path d="M13.73 21a2 2 0 01-3.46 0" />
+            </svg>
+            <span class="badge">3</span>
+        </div>
+
+        <div class="topbar-icon-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3" />
+                <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+        </div>
+
+        <div class="user-info">
+            <div class="avatar">NA</div>
+
+            <div class="user-details">
+                <div class="user-name">Nguyen Van A</div>
+                <div class="user-role">Warehouse Manager</div>
+            </div>
+
+            <div class="user-chevron">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="6 9 12 15 18 9" />
+                </svg>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CONTENT -->
+<div class="content">
+
+    <div class="page-title">Warehouse List</div>
+    <div class="page-sub">
+        View and manage all warehouses in the system.
+    </div>
+
+    <!-- FILTER -->
+    <form method="get" class="filter-bar">
+        <input type="hidden" name="Filter.PageIndex" value="1" />
+
+        <div class="search-group" style="flex: 1;">
+            <div class="filter-label">Search</div>
+            <div class="search-wrap">
+                <input class="search-input" asp-for="Filter.Keyword" placeholder="Search code, name, city..." style="width: 100%;" />
+            </div>
+        </div>
+
+        <div class="filter-group">
+            <div class="filter-label">Status</div>
+            <select class="filter-select" asp-for="Filter.Status">
+                <option value="">All</option>
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+            </select>
+        </div>
+
+        <div class="filter-group">
+            <div class="filter-label">Warehouse Type</div>
+            <select class="filter-select" asp-for="Filter.IsPrimary">
+                <option value="">All Types</option>
+                <option value="true">Primary Warehouse</option>
+                <option value="false">Sub Warehouse</option>
+            </select>
+        </div>
+
+        <div style="display: flex; align-items: flex-end; gap: 8px;">
+            <button type="submit" class="btn-create" style="background: #475569;">
+                Filter
+            </button>
+        </div>
+
+        <div class="ml-auto" style="display: flex; align-items: flex-end;">
+            <a asp-page="./Create" class="btn-create" style="text-decoration: none;">
+                Create Warehouse
+            </a>
+        </div>
+    </form>
+
+    <!-- TABLE -->
+    <div class="table-card">
+
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Warehouse Code</th>
+                    <th>Warehouse Name</th>
+                    <th>Address</th>
+                    <th>City</th>
+                    <th>Manager</th>
+                    <th>Status</th>
+                    <th style="text-align: center;">Total Locations</th>
+                    <th style="text-align: center;">Actions</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                @if (Model.WarehousesResult.Items != null && Model.WarehousesResult.Items.Any())
+                {
+                    int index = (Model.Filter.PageIndex - 1) * Model.Filter.PageSize + 1;
+                    foreach (var item in Model.WarehousesResult.Items)
+                    {
+                        <tr>
+                            <td class="td-num">@(index++)</td>
+                            <td style="font-weight: 600;">
+                                @item.WarehouseCode
+                                @if (item.IsPrimary == true)
+                                {
+                                    <span style="font-size: 10px; background: #dbeafe; color: #1e40af; padding: 2px 6px; border-radius: 4px; margin-left: 4px;">
+                                        Primary
+                                    </span>
+                                }
+                            </td>
+                            <td>@item.WarehouseName</td>
+                            <td class="td-addr">@item.Address</td>
+                            <td>@item.Address</td>
+                            <td class="td-mgr">
+                                @item.ManagerName<br />
+                                <span class="phone">@item.PhoneNumber</span>
+                            </td>
+                            <td>
+                                @if (string.Equals(item.Status, "Active", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    <span class="badge-status badge-active">
+                                        Active
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge-status badge-inactive">
+                                        Inactive
+                                    </span>
+                                }
+                            </td>
+                            <td style="text-align: center;">@item.TotalLocations</td>
+                            <td>
+                                <div class="actions" style="justify-content: center;">
+                                    <a asp-page="./Details" asp-route-id="@item.WarehouseID" class="act-btn" style="text-decoration:none; text-align:center; line-height:28px;">
+                                        View
+                                    </a>
+                                    <a asp-page="./Edit" asp-route-id="@item.WarehouseID" class="act-btn" style="text-decoration:none; text-align:center; line-height:28px;">
+                                        Edit
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="9" style="text-align: center; padding: 24px; color: #64748b;">
+                            No warehouses found.
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <!-- PAGINATION FOOTER -->
+        @{
+            var totalCount = Model.WarehousesResult.TotalCount;
+            var pageSize = Model.Filter.PageSize;
+            var currentPage = Model.Filter.PageIndex;
+            var totalPages = Model.WarehousesResult.TotalPages;
+
+            var startEntry = totalCount == 0 ? 0 : (currentPage - 1) * pageSize + 1;
+            var endEntry = Math.Min(currentPage * pageSize, totalCount);
+        }
+
+        <div class="table-footer">
+            <span>
+                Showing @startEntry to @endEntry of @totalCount entries
+            </span>
+
+            <div class="pagination">
+                <!-- Nút Previous -->
+                @if (currentPage > 1)
+                {
+                    <a asp-page="./Index"
+                       asp-route-Filter.PageIndex="@(currentPage - 1)"
+                       asp-route-Filter.PageSize="@pageSize"
+                       asp-route-Filter.Keyword="@Model.Filter.Keyword"
+                       asp-route-Filter.Status="@Model.Filter.Status"
+                       asp-route-Filter.IsPrimary="@Model.Filter.IsPrimary"
+                       class="pg-btn" style="text-decoration: none; display: flex; align-items: center; justify-content: center;">
+                        &lt;
+                    </a>
+                }
+                else
+                {
+                    <button class="pg-btn" disabled style="opacity: 0.5; cursor: not-allowed;">&lt;</button>
+                }
+
+                <!-- Trang hiện tại -->
+                <div class="pg-current">
+                    @currentPage
+                </div>
+
+                <!-- Nút Next -->
+                @if (currentPage < totalPages)
+                {
+                    <a asp-page="./Index"
+                       asp-route-Filter.PageIndex="@(currentPage + 1)"
+                       asp-route-Filter.PageSize="@pageSize"
+                       asp-route-Filter.Keyword="@Model.Filter.Keyword"
+                       asp-route-Filter.Status="@Model.Filter.Status"
+                       asp-route-Filter.IsPrimary="@Model.Filter.IsPrimary"
+                       class="pg-btn" style="text-decoration: none; display: flex; align-items: center; justify-content: center;">
+                        &gt;
+                    </a>
+                }
+                else
+                {
+                    <button class="pg-btn" disabled style="opacity: 0.5; cursor: not-allowed;">&gt;</button>
+                }
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+<!-- FOOTER -->
+<div class="page-footer">
+    <span>© 2024 BMWMS. All rights reserved.</span>
+    <span>Version 1.0.0</span>
+</div>
