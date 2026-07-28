@@ -61,6 +61,12 @@
 
     <!-- FILTER -->
     <form method="get" class="filter-bar">
+        <div class="filter-header">
+            <a asp-page="./Create" class="btn-create" style="text-decoration:none;">
+                Create Warehouse
+            </a>
+        </div>
+
         <input type="hidden" name="Filter.PageIndex" value="1" />
 
         <div class="search-group" style="flex: 1;">
@@ -94,11 +100,7 @@
             </button>
         </div>
 
-        <div class="ml-auto" style="display: flex; align-items: flex-end;">
-            <a asp-page="./Create" class="btn-create" style="text-decoration: none;">
-                Create Warehouse
-            </a>
-        </div>
+       
     </form>
 
     <!-- TABLE -->
@@ -160,9 +162,13 @@
                             <td style="text-align: center;">@item.TotalLocations</td>
                             <td>
                                 <div class="actions" style="justify-content: center;">
-                                    <a asp-page="./Details" asp-route-id="@item.WarehouseID" class="act-btn" style="text-decoration:none; text-align:center; line-height:28px;">
+                                    <a asp-page="./Details"
+                                       asp-route-id="@item.WarehouseID"
+                                       class="act-btn"
+                                       style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center; padding: 4px 12px;">
                                         View
                                     </a>
+
                                     <a asp-page="./Edit" asp-route-id="@item.WarehouseID" class="act-btn" style="text-decoration:none; text-align:center; line-height:28px;">
                                         Edit
                                     </a>

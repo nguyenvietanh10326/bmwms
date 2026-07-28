@@ -21,7 +21,7 @@ namespace BMWMS.Web.Pages.Warehouse
 
         public async Task OnGetAsync()
         {
-            var client = _httpClientFactory.CreateClient("WarehouseAPI");
+            var client = _httpClientFactory.CreateClient("ApiClient");
 
             var queryParams = new List<string>
             {

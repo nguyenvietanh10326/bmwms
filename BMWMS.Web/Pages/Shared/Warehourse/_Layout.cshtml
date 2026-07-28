@@ -6,14 +6,14 @@
 
     <title>@ViewData["Title"] - BMWMS</title>
 
-    <link rel="stylesheet" href="~/css/Warehouse/index.css" />
+   @*  <link rel="stylesheet" href="~/css/Warehouse/index.css" /> *@
     <link rel="stylesheet" href="~/css/Warehouse/sidebar.css" />
-
+    @RenderSection("Styles", required: false)
 </head>
 
 <body>
 
-    @await Html.PartialAsync("_Sidebar")
+    @await Html.PartialAsync("~/Pages/Shared/Warehourse/_Sidebar.cshtml")
 
     <div class="main">
         @RenderBody()
