@@ -177,7 +177,7 @@ namespace BMWMS.Business.Services
                 CreatedAt = entity.CreatedAt,
                 UpdatedAt = entity.UpdatedAt,
                 TotalLocations = entity.StorageLocations?.Count ?? 0,
-                ManagerName = string.IsNullOrEmpty(entity.PhoneNumber) ? "N/A" : $"Manager ({entity.PhoneNumber})"
+                ManagerName = string.IsNullOrEmpty(entity.PhoneNumber) ? "N/A" : $"WAREHOUSE MANAGER"
             };
         }
         #endregion
