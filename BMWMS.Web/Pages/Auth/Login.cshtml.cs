@@ -65,13 +65,10 @@ public class LoginModel : PageModel
         HttpContext.Session.SetString("SessionId", user.SessionId.ToString());
         if (!string.IsNullOrEmpty(user.AvatarUrl))
             HttpContext.Session.SetString("AvatarUrl", user.AvatarUrl);
+        if (!string.IsNullOrEmpty(user.Token))
+            HttpContext.Session.SetString("Token", user.Token);
 
-        // Redirect theo Role (AC-01-01)
-        return user.RoleCode switch
-        {
-            "ADMIN"      => RedirectToPage("/Admin/Dashboard"),
-            "WH_MANAGER" => RedirectToPage("/Warehouse/Dashboard"),
-            _            => RedirectToPage("/Index")
-        };
+        // Tất cả Role đều vào Dashboard chung
+        return RedirectToPage("/Admin/Dashboard");
     }
 }

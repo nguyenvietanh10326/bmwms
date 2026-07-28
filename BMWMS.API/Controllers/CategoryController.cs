@@ -1,8 +1,10 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using BMWMS.Business.Interfaces;
 
 namespace BMWMS.API.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("api/categories")]
     public class CategoryController : ControllerBase

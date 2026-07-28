@@ -25,10 +25,7 @@ public class UserApiService
 
     public async Task<UserSessionInfo?> GetProfileAsync(long userId)
     {
-        var request = new HttpRequestMessage(HttpMethod.Get, "api/user/me");
-        request.Headers.Add("X-User-Id", userId.ToString());
-
-        var response = await _httpClient.SendAsync(request);
+        var response = await _httpClient.GetAsync("api/user/me");
         if (response.IsSuccessStatusCode)
         {
             var body = await response.Content.ReadAsStringAsync();
@@ -39,18 +36,15 @@ public class UserApiService
 
     public async Task<(bool Success, string Message)> UpdateProfileAsync(long userId, string fullName, string? phoneNumber, string? email)
     {
-        var request = new HttpRequestMessage(HttpMethod.Put, "api/user/me/profile");
-        request.Headers.Add("X-User-Id", userId.ToString());
-
         var payload = JsonSerializer.Serialize(new
         {
             FullName = fullName,
             PhoneNumber = phoneNumber,
             Email = email
         });
-        request.Content = new StringContent(payload, Encoding.UTF8, "application/json");
+        var content = new StringContent(payload, Encoding.UTF8, "application/json");
 
-        var response = await _httpClient.SendAsync(request);
+        var response = await _httpClient.PutAsync("api/user/me/profile", content);
         var body = await response.Content.ReadAsStringAsync();
 
         if (response.IsSuccessStatusCode)
@@ -64,9 +58,6 @@ public class UserApiService
 
     public async Task<(bool Success, string Message)> ChangePasswordAsync(long userId, string currentPassword, string newPassword, string confirmNewPassword, bool signOutOtherSessions)
     {
-        var request = new HttpRequestMessage(HttpMethod.Put, "api/user/me/password");
-        request.Headers.Add("X-User-Id", userId.ToString());
-
         var payload = JsonSerializer.Serialize(new
         {
             CurrentPassword = currentPassword,
@@ -74,9 +65,9 @@ public class UserApiService
             ConfirmNewPassword = confirmNewPassword,
             SignOutOtherSessions = signOutOtherSessions
         });
-        request.Content = new StringContent(payload, Encoding.UTF8, "application/json");
+        var content = new StringContent(payload, Encoding.UTF8, "application/json");
 
-        var response = await _httpClient.SendAsync(request);
+        var response = await _httpClient.PutAsync("api/user/me/password", content);
         var body = await response.Content.ReadAsStringAsync();
 
         if (response.IsSuccessStatusCode)

@@ -1,11 +1,13 @@
-﻿using BMWMS.Business.Common;
+using BMWMS.Business.Common;
 using BMWMS.Business.DTOs.Warehouse;
 using BMWMS.Business.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BMWMS.API.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
     [Produces("application/json")]

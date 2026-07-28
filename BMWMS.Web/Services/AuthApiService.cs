@@ -92,11 +92,7 @@ public class AuthApiService
     {
         try
         {
-            var request = new HttpRequestMessage(HttpMethod.Post, "api/auth/logout");
-            request.Headers.Add("X-Session-Id", sessionId);
-            request.Headers.Add("X-User-Id", userId);
-
-            await _httpClient.SendAsync(request);
+            await _httpClient.PostAsync("api/auth/logout", null);
         }
         catch (Exception ex)
         {
@@ -168,4 +164,5 @@ public class UserSessionInfo
     public string? PhoneNumber { get; set; }
     public DateTime LoginAt { get; set; }
     public Guid SessionId { get; set; }
+    public string? Token { get; set; }
 }

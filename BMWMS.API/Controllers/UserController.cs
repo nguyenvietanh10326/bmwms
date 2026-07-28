@@ -1,12 +1,13 @@
-using System;
-using System.Threading.Tasks;
+using System.Security.Claims;
 using BMWMS.Business.DTOs.User;
 using BMWMS.Business.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BMWMS.API.Controllers;
 
+[Authorize]
 [Route("api/[controller]")]
 [ApiController]
 public class UserController : ControllerBase
@@ -21,10 +22,10 @@ public class UserController : ControllerBase
     [HttpGet("me")]
     public async Task<IActionResult> GetProfile()
     {
-        // Lấy UserId từ header
-        if (!Request.Headers.TryGetValue("X-User-Id", out var userIdStr) || !long.TryParse(userIdStr, out var userId))
+        var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!long.TryParse(userIdStr, out var userId))
         {
-            return Unauthorized("User ID is missing from headers.");
+            return Unauthorized(new { message = "Token không hợp lệ." });
         }
 
         try
@@ -45,9 +46,10 @@ public class UserController : ControllerBase
     [HttpPut("me/profile")]
     public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequestDto dto)
     {
-        if (!Request.Headers.TryGetValue("X-User-Id", out var userIdStr) || !long.TryParse(userIdStr, out var userId))
+        var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!long.TryParse(userIdStr, out var userId))
         {
-            return Unauthorized("User ID is missing from headers.");
+            return Unauthorized(new { message = "Token không hợp lệ." });
         }
 
         try
@@ -73,9 +75,10 @@ public class UserController : ControllerBase
     [HttpPut("me/password")]
     public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequestDto dto)
     {
-        if (!Request.Headers.TryGetValue("X-User-Id", out var userIdStr) || !long.TryParse(userIdStr, out var userId))
+        var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!long.TryParse(userIdStr, out var userId))
         {
-            return Unauthorized("User ID is missing from headers.");
+            return Unauthorized(new { message = "Token không hợp lệ." });
         }
 
         try

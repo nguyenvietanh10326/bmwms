@@ -1,5 +1,7 @@
+using System.Security.Claims;
 using BMWMS.Business.DTOs.Auth;
 using BMWMS.Business.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -74,18 +76,17 @@ public class AuthController : ControllerBase
     /// <summary>
     /// Đăng xuất hệ thống (UC-62)
     /// </summary>
+    [Authorize]
     [HttpPost("logout")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> Logout()
     {
-        if (!Request.Headers.TryGetValue("X-Session-Id", out var sessionIdStr) || !Guid.TryParse(sessionIdStr, out var sessionId))
+        var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var sessionIdStr = User.FindFirstValue("SessionId");
+
+        if (!long.TryParse(userIdStr, out var userId) || !Guid.TryParse(sessionIdStr, out var sessionId))
         {
-            return BadRequest("Session ID is missing or invalid.");
-        }
-        
-        if (!Request.Headers.TryGetValue("X-User-Id", out var userIdStr) || !long.TryParse(userIdStr, out var userId))
-        {
-            return BadRequest("User ID is missing.");
+            return Unauthorized(new { message = "Token không hợp lệ." });
         }
 
         try

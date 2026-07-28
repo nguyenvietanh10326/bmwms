@@ -1,8 +1,13 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 using BCrypt.Net;
 using BMWMS.Business.DTOs.Auth;
 using BMWMS.Business.Interfaces;
 using BMWMS.Repository.Interfaces;
 using BMWMS.Repository.Models;
+using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
 
 namespace BMWMS.Business.Services;
 
@@ -13,11 +18,13 @@ public class AuthService : IAuthService
 
     private readonly IUserRepository _userRepository;
     private readonly IEmailService _emailService;
+    private readonly IConfiguration _configuration;
 
-    public AuthService(IUserRepository userRepository, IEmailService emailService)
+    public AuthService(IUserRepository userRepository, IEmailService emailService, IConfiguration configuration)
     {
         _userRepository = userRepository;
         _emailService = emailService;
+        _configuration = configuration;
     }
 
     public async Task<LoginResponseDto> LoginAsync(LoginRequestDto dto, string? ipAddress, string? userAgent)
@@ -125,6 +132,32 @@ public class AuthService : IAuthService
             CreatedAt = DateTime.UtcNow
         });
 
+        // 10. Tạo JWT Token
+        var claims = new[]
+        {
+            new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
+            new Claim(ClaimTypes.Name, user.Username),
+            new Claim(ClaimTypes.Role, user.Role.RoleCode),
+            new Claim("SessionId", session.SessionId.ToString())
+        };
+
+        var jwtKey = _configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT Key is not configured.");
+        var key = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(jwtKey));
+        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256Signature);
+
+        var tokenDescriptor = new SecurityTokenDescriptor
+        {
+            Subject = new ClaimsIdentity(claims),
+            Expires = DateTime.UtcNow.AddMinutes(double.Parse(_configuration["Jwt:ExpireMinutes"] ?? "480")),
+            Issuer = _configuration["Jwt:Issuer"],
+            Audience = _configuration["Jwt:Audience"],
+            SigningCredentials = creds
+        };
+
+        var tokenHandler = new JwtSecurityTokenHandler();
+        var jwtToken = tokenHandler.CreateToken(tokenDescriptor);
+        var tokenString = tokenHandler.WriteToken(jwtToken);
+
         return new LoginResponseDto
         {
             UserId = user.UserId,
@@ -135,7 +168,8 @@ public class AuthService : IAuthService
             RoleName = user.Role.RoleName,
             AvatarUrl = user.AvatarUrl,
             LoginAt = DateTime.UtcNow,
-            SessionId = session.SessionId
+            SessionId = session.SessionId,
+            Token = tokenString
         };
     }
 

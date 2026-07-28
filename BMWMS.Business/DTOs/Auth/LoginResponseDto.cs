@@ -12,4 +12,5 @@ public class LoginResponseDto
     public string? PhoneNumber { get; set; }
     public DateTime LoginAt { get; set; }
     public Guid SessionId { get; set; }
+    public string Token { get; set; } = null!;
 }

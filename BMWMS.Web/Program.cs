@@ -16,14 +16,19 @@ builder.Services.AddSession(options =>
     options.Cookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Strict;
 });
 
-// Named HttpClient trỏ tới BMWMS.API
+// Cần IHttpContextAccessor để TokenDelegatingHandler truy cập Session
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddTransient<TokenDelegatingHandler>();
+
+// Named HttpClient trỏ tới BMWMS.API (tự động gắn JWT Token)
 builder.Services.AddHttpClient("ApiClient", client =>
 {
     var baseUrl = builder.Configuration["ApiSettings:BaseUrl"];
     client.BaseAddress = new Uri(baseUrl!.TrimEnd('/') + "/");
     client.Timeout = TimeSpan.FromSeconds(30);
     client.DefaultRequestHeaders.Add("Accept", "application/json");
-});
+})
+.AddHttpMessageHandler<TokenDelegatingHandler>();
 
 // Đăng ký services
 builder.Services.AddScoped<CategoryApiService>();
@@ -46,3 +51,27 @@ app.MapRazorPages();
 
 app.Run();
 
+/// <summary>
+/// Tự động moi JWT Token từ Session và nhét vào header Authorization
+/// của mọi request gửi sang API. Đồng đội không cần code gì thêm.
+/// </summary>
+public class TokenDelegatingHandler : DelegatingHandler
+{
+    private readonly IHttpContextAccessor _httpContextAccessor;
+
+    public TokenDelegatingHandler(IHttpContextAccessor httpContextAccessor)
+    {
+        _httpContextAccessor = httpContextAccessor;
+    }
+
+    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        var token = _httpContextAccessor.HttpContext?.Session.GetString("Token");
+        if (!string.IsNullOrEmpty(token))
+        {
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        }
+
+        return base.SendAsync(request, cancellationToken);
+    }
+}
