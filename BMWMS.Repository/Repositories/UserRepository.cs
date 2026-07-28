@@ -118,4 +118,40 @@ public class UserRepository : IUserRepository
         await _context.UserPasswordHistories.AddAsync(history);
         await _context.SaveChangesAsync();
     }
+
+    public async Task<(List<User> Items, int TotalCount)> GetPagedListAsync(string? keyword, string? roleCode, string? status, int pageIndex, int pageSize)
+    {
+        var query = _context.Users.Include(u => u.Role).AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(keyword))
+        {
+            var kw = keyword.Trim().ToLower();
+            query = query.Where(u => 
+                u.Username.ToLower().Contains(kw) ||
+                u.FullName.ToLower().Contains(kw) ||
+                u.Email.ToLower().Contains(kw) ||
+                (u.PhoneNumber != null && u.PhoneNumber.ToLower().Contains(kw))
+            );
+        }
+
+        if (!string.IsNullOrWhiteSpace(roleCode))
+        {
+            query = query.Where(u => u.Role.RoleCode == roleCode);
+        }
+
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            query = query.Where(u => u.Status == status);
+        }
+
+        int totalCount = await query.CountAsync();
+
+        var items = await query
+            .OrderBy(u => u.FullName)
+            .Skip((pageIndex - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return (items, totalCount);
+    }
 }

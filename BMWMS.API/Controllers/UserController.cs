@@ -100,4 +100,19 @@ public class UserController : ControllerBase
             return StatusCode(500, ex.Message);
         }
     }
+
+    [Authorize(Roles = "SYSTEM_ADMIN")]
+    [HttpGet]
+    public async Task<IActionResult> GetUsers([FromQuery] UserFilterDto filter)
+    {
+        try
+        {
+            var result = await _userService.GetPagedListAsync(filter);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ex.Message);
+        }
+    }
 }

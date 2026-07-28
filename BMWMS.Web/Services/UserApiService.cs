@@ -92,4 +92,19 @@ public class UserApiService
         catch { }
         return "Đã có lỗi xảy ra từ máy chủ.";
     }
+    public async Task<BMWMS.Web.Models.PagedResult<BMWMS.Web.Models.UserListItem>?> GetUsersAsync(BMWMS.Web.Models.UserFilterModel filter)
+    {
+        var queryString = $"?pageIndex={filter.PageIndex}&pageSize={filter.PageSize}";
+        if (!string.IsNullOrWhiteSpace(filter.Keyword)) queryString += $"&keyword={Uri.EscapeDataString(filter.Keyword)}";
+        if (!string.IsNullOrWhiteSpace(filter.RoleCode)) queryString += $"&roleCode={Uri.EscapeDataString(filter.RoleCode)}";
+        if (!string.IsNullOrWhiteSpace(filter.Status)) queryString += $"&status={Uri.EscapeDataString(filter.Status)}";
+
+        var response = await _httpClient.GetAsync($"api/user{queryString}");
+        if (response.IsSuccessStatusCode)
+        {
+            var body = await response.Content.ReadAsStringAsync();
+            return JsonSerializer.Deserialize<BMWMS.Web.Models.PagedResult<BMWMS.Web.Models.UserListItem>>(body, _json);
+        }
+        return null;
+    }
 }

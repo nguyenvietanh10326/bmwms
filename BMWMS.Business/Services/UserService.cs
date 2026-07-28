@@ -168,4 +168,39 @@ public class UserService : IUserService
             await _userRepository.RevokeActiveSessionsAsync(userId);
         }
     }
+
+    public async Task<BMWMS.Business.Common.PagedResultDto<UserListResponseDto>> GetPagedListAsync(UserFilterDto filter)
+    {
+        var (items, totalCount) = await _userRepository.GetPagedListAsync(
+            filter.Keyword, 
+            filter.RoleCode, 
+            filter.Status, 
+            filter.PageIndex, 
+            filter.PageSize
+        );
+
+        var dtoItems = items.Select(u => new UserListResponseDto
+        {
+            UserId = u.UserId,
+            UserCode = "USR-" + u.UserId.ToString().PadLeft(3, '0'),
+            FullName = u.FullName,
+            Username = u.Username,
+            Email = u.Email,
+            PhoneNumber = u.PhoneNumber,
+            RoleName = u.Role?.RoleName ?? "",
+            RoleCode = u.Role?.RoleCode ?? "",
+            Status = u.Status,
+            CreatedAt = u.CreatedAt,
+            UpdatedAt = u.UpdatedAt,
+            LastLoginAt = u.LastLoginAt
+        }).ToList();
+
+        return new BMWMS.Business.Common.PagedResultDto<UserListResponseDto>
+        {
+            Items = dtoItems,
+            TotalCount = totalCount,
+            PageIndex = filter.PageIndex,
+            PageSize = filter.PageSize
+        };
+    }
 }

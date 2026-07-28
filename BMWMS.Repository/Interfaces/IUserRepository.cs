@@ -17,4 +17,5 @@ public interface IUserRepository
     Task<PasswordResetToken?> GetValidPasswordResetTokenAsync(long userId, byte[] tokenHash);
     Task UpdatePasswordResetTokenAsync(PasswordResetToken token);
     Task AddPasswordHistoryAsync(UserPasswordHistory history);
+    Task<(List<User> Items, int TotalCount)> GetPagedListAsync(string? keyword, string? roleCode, string? status, int pageIndex, int pageSize);
 }

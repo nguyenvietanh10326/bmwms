@@ -84,7 +84,7 @@
                     <i class="ri-bar-chart-box-line nav-item-icon"></i>
                     Báo cáo
                 </a>
-                <a href="/Admin/Profile" class="nav-item @(Context.Request.Path == "/Admin/Profile" ? "active" : "")">
+                <a href="/Admin/Users" class="nav-item @(Context.Request.Path.StartsWithSegments("/Admin/Users") ? "active" : "")">
                     <i class="ri-user-settings-line nav-item-icon"></i>
                     Người dùng
                 </a>
