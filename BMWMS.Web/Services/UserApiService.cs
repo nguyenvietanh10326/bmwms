@@ -118,4 +118,21 @@ public class UserApiService
         }
         return null;
     }
+
+    public async Task<(bool Success, string Message)> CreateUserAsync(BMWMS.Web.Models.CreateUserModel model)
+    {
+        var payload = JsonSerializer.Serialize(model);
+        var content = new StringContent(payload, Encoding.UTF8, "application/json");
+
+        var response = await _httpClient.PostAsync("api/user", content);
+        var body = await response.Content.ReadAsStringAsync();
+
+        if (response.IsSuccessStatusCode)
+        {
+            return (true, "Tạo người dùng thành công");
+        }
+
+        var errorMsg = ExtractErrorMessage(body);
+        return (false, errorMsg);
+    }
 }

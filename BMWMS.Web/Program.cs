@@ -34,6 +34,7 @@ builder.Services.AddHttpClient("ApiClient", client =>
 builder.Services.AddScoped<CategoryApiService>();
 builder.Services.AddScoped<AuthApiService>();
 builder.Services.AddScoped<UserApiService>();
+builder.Services.AddScoped<RoleApiService>();
 
 var app = builder.Build();
 

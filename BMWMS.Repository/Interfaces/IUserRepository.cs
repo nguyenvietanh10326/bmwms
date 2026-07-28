@@ -19,4 +19,6 @@ public interface IUserRepository
     Task AddPasswordHistoryAsync(UserPasswordHistory history);
     Task<(List<User> Items, int TotalCount)> GetPagedListAsync(string? keyword, string? roleCode, string? status, int pageIndex, int pageSize);
     Task<List<AuditLog>> GetUserActivitiesAsync(long userId, int limit = 20);
+    Task AddAsync(User user);
+    Task<bool> CheckUsernameExistsAsync(string username);
 }

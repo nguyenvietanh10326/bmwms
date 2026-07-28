@@ -12,4 +12,5 @@ public interface IUserService
     Task ChangePasswordAsync(long userId, ChangePasswordRequestDto dto, string? ipAddress);
     Task<PagedResultDto<UserListResponseDto>> GetPagedListAsync(UserFilterDto filter);
     Task<UserDetailDto?> GetUserDetailAsync(long userId);
+    Task<long> CreateUserAsync(CreateUserDto dto, string? ipAddress);
 }

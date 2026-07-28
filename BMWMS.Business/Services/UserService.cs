@@ -238,4 +238,64 @@ public class UserService : IUserService
 
         return dto;
     }
+
+    public async Task<long> CreateUserAsync(CreateUserDto dto, string? ipAddress)
+    {
+        if (await _userRepository.CheckUsernameExistsAsync(dto.Username))
+        {
+            throw new ArgumentException("Tên đăng nhập đã tồn tại.");
+        }
+
+        if (await _userRepository.CheckEmailExistsAsync(dto.Email, 0))
+        {
+            throw new ArgumentException("Email này đã được sử dụng.");
+        }
+
+        if (dto.Password.Length < 12)
+        {
+            throw new ArgumentException("Mật khẩu phải có ít nhất 12 ký tự.");
+        }
+        if (!Regex.IsMatch(dto.Password, @"[A-Z]") ||
+            !Regex.IsMatch(dto.Password, @"[a-z]") ||
+            !Regex.IsMatch(dto.Password, @"[0-9]") ||
+            !Regex.IsMatch(dto.Password, @"[^a-zA-Z0-9]"))
+        {
+            throw new ArgumentException("Mật khẩu phải bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt.");
+        }
+
+        var passwordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
+
+        var user = new User
+        {
+            Username = dto.Username,
+            Email = dto.Email,
+            PasswordHash = passwordHash,
+            FullName = dto.FullName,
+            PhoneNumber = dto.PhoneNumber,
+            RoleId = dto.RoleId,
+            Status = dto.Status,
+            CreatedAt = DateTime.UtcNow,
+            FailedLoginCount = 0
+        };
+
+        user.UserPasswordHistories.Add(new UserPasswordHistory
+        {
+            PasswordHash = passwordHash,
+            CreatedAt = DateTime.UtcNow
+        });
+
+        await _userRepository.AddAsync(user);
+
+        await _userRepository.AddAuditLogAsync(new AuditLog
+        {
+            UserId = user.UserId, // Note: This will be the new ID if EF populates it, otherwise it's 0 for the log. For accurate logging, it might need a separate SaveChanges or EF handles it if we don't save log inside AddAsync. Wait, AddAsync in repo already calls SaveChanges! So user.UserId is populated.
+            ActionType = "CREATE_USER",
+            EntityName = "User",
+            EntityId = user.UserId.ToString(),
+            IpAddress = ipAddress,
+            CreatedAt = DateTime.UtcNow
+        });
+
+        return user.UserId;
+    }
 }

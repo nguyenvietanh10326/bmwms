@@ -163,4 +163,17 @@ public class UserRepository : IUserRepository
             .Take(limit)
             .ToListAsync();
     }
+
+    public async Task AddAsync(User user)
+    {
+        await _context.Users.AddAsync(user);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task<bool> CheckUsernameExistsAsync(string username)
+    {
+        var lowerUsername = username.Trim().ToLower();
+        return await _context.Users
+            .AnyAsync(u => u.Username.ToLower() == lowerUsername);
+    }
 }
