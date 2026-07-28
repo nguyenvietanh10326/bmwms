@@ -1,0 +1,164 @@
+﻿@page "{id:long}"
+@model BMWMS.Web.Pages.Warehouse.DetailsModel
+
+@{
+    Layout = "/Pages/Shared/Warehourse/_Layout.cshtml";
+    ViewData["Title"] = "Warehouse Details";
+}
+@section Styles {
+    <link rel="stylesheet" href="~/css/Warehouse/index.css" asp-append-version="true" />
+}
+<!-- TOPBAR -->
+<div class="topbar">
+    <div class="breadcrumb">
+        <span>Warehouse Management</span>
+        <span class="sep">›</span>
+        <a asp-page="./Index" style="text-decoration: none; color: inherit;">Warehouses</a>
+        <span class="sep">›</span>
+        <span class="current">Details</span>
+    </div>
+
+    <div class="topbar-right">
+        <div class="topbar-icon-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                <path d="M13.73 21a2 2 0 01-3.46 0" />
+            </svg>
+            <span class="badge">3</span>
+        </div>
+
+        <div class="user-info">
+            <div class="avatar">NA</div>
+            <div class="user-details">
+                <div class="user-name">Nguyen Van A</div>
+                <div class="user-role">Warehouse Manager</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CONTENT -->
+<div class="content">
+
+    <!-- PAGE HEADER -->
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+        <div>
+            <div class="page-title" style="display: flex; align-items: center; gap: 10px;">
+                @Model.Warehouse.WarehouseName
+                @if (Model.Warehouse.IsPrimary)
+                {
+                    <span style="font-size: 12px; background: #dbeafe; color: #1e40af; padding: 3px 8px; border-radius: 4px; font-weight: 500;">
+                        Primary Warehouse
+                    </span>
+                }
+            </div>
+            <div class="page-sub">
+                Code: <strong>@Model.Warehouse.WarehouseCode</strong> | Created At: @Model.Warehouse.CreatedAt.ToString("dd/MM/yyyy HH:mm")
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+            <a asp-page="./Index" class="btn-create" style="background: #e2e8f0; color: #475569; text-decoration: none;">
+                Back to List
+            </a>
+            <a asp-page="./Edit" asp-route-id="@Model.Warehouse.WarehouseID" class="btn-create" style="text-decoration: none;">
+                Edit Warehouse
+            </a>
+        </div>
+    </div>
+
+    <!-- DETAIL CARD -->
+    <div class="table-card" style="padding: 24px; margin-bottom: 24px;">
+        <h3 style="font-size: 16px; font-weight: 600; margin-top: 0; margin-bottom: 20px; color: #1e293b; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px;">
+            General Information
+        </h3>
+
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px;">
+
+            <div>
+                <label style="font-size: 12px; color: #64748b; font-weight: 500; display: block; margin-bottom: 4px;">
+                    WAREHOUSE CODE
+                </label>
+                <div style="font-size: 15px; font-weight: 600; color: #0f172a;">
+                    @Model.Warehouse.WarehouseCode
+                </div>
+            </div>
+
+            <div>
+                <label style="font-size: 12px; color: #64748b; font-weight: 500; display: block; margin-bottom: 4px;">
+                    STATUS
+                </label>
+                <div>
+                    @if (string.Equals(Model.Warehouse.Status, "Active", StringComparison.OrdinalIgnoreCase))
+                    {
+                        <span class="badge-status badge-active">Active</span>
+                    }
+                    else
+                    {
+                        <span class="badge-status badge-inactive">Inactive</span>
+                    }
+                </div>
+            </div>
+
+            <div>
+                <label style="font-size: 12px; color: #64748b; font-weight: 500; display: block; margin-bottom: 4px;">
+                    WAREHOUSE NAME
+                </label>
+                <div style="font-size: 15px; color: #0f172a;">
+                    @Model.Warehouse.WarehouseName
+                </div>
+            </div>
+
+            <div>
+                <label style="font-size: 12px; color: #64748b; font-weight: 500; display: block; margin-bottom: 4px;">
+                    TOTAL STORAGE LOCATIONS
+                </label>
+                <div style="font-size: 15px; font-weight: 600; color: #2563eb;">
+                    @Model.Warehouse.TotalLocations Locations
+                </div>
+            </div>
+            <div>
+                <label style="font-size: 12px; color: #64748b; font-weight: 500; display: block; margin-bottom: 4px;">
+                    ADDRESS
+                </label>
+                <div style="font-size: 15px; color: #0f172a;">
+                    @(string.IsNullOrEmpty(Model.Warehouse.Address) ? "N/A" : Model.Warehouse.Address)
+                </div>
+            </div>
+            <div>
+                <label style="font-size: 12px; color: #64748b; font-weight: 500; display: block; margin-bottom: 4px;">
+                    ROLE
+                </label>
+                <div style="font-size: 15px; color: #0f172a;">
+                    @Model.Warehouse.ManagerName
+                </div>
+            </div>
+
+            <div>
+                <label style="font-size: 12px; color: #64748b; font-weight: 500; display: block; margin-bottom: 4px;">
+                    PHONE / CONTACT
+                </label>
+                <div style="font-size: 15px; color: #0f172a;">
+                    @(string.IsNullOrEmpty(Model.Warehouse.PhoneNumber) ? "N/A" : Model.Warehouse.PhoneNumber)
+                </div>
+            </div>
+           
+            <div>
+                <label style="font-size: 12px; color: #64748b; font-weight: 500; display: block; margin-bottom: 4px;">
+                    LAST UPDATED AT
+                </label>
+                <div style="font-size: 15px; color: #0f172a;">
+                    @(Model.Warehouse.UpdatedAt.HasValue? Model.Warehouse.UpdatedAt.Value.ToString("dd/MM/yyyy HH:mm") : "N/A")
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+<!-- FOOTER -->
+<div class="page-footer">
+    <span>© 2024 BMWMS. All rights reserved.</span>
+    <span>Version 1.0.0</span>
+</div>
