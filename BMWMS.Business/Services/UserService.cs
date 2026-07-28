@@ -203,4 +203,39 @@ public class UserService : IUserService
             PageSize = filter.PageSize
         };
     }
+
+    public async Task<UserDetailDto?> GetUserDetailAsync(long userId)
+    {
+        var user = await _userRepository.GetByIdAsync(userId);
+        if (user == null) return null;
+
+        var activities = await _userRepository.GetUserActivitiesAsync(userId, 20);
+
+        var dto = new UserDetailDto
+        {
+            UserId = user.UserId,
+            UserCode = $"USR-{user.UserId:D3}",
+            FullName = user.FullName,
+            Username = user.Username,
+            Email = user.Email,
+            PhoneNumber = user.PhoneNumber,
+            RoleName = user.Role.RoleName,
+            RoleCode = user.Role.RoleCode,
+            Status = user.Status,
+            CreatedAt = user.CreatedAt,
+            UpdatedAt = user.UpdatedAt ?? user.CreatedAt,
+            FailedLoginCount = user.FailedLoginCount,
+            LockedUntil = user.LockedUntil,
+            LastLoginAt = user.LastLoginAt,
+            Activities = activities.Select(a => new UserActivityDto
+            {
+                CreatedAt = a.CreatedAt,
+                ActionType = a.ActionType,
+                IpAddress = a.IpAddress,
+                Details = a.NewValuesJson ?? a.OldValuesJson ?? string.Empty
+            }).ToList()
+        };
+
+        return dto;
+    }
 }

@@ -115,4 +115,23 @@ public class UserController : ControllerBase
             return StatusCode(500, ex.Message);
         }
     }
+
+    [Authorize(Roles = "SYSTEM_ADMIN")]
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetUserDetail(long id)
+    {
+        try
+        {
+            var result = await _userService.GetUserDetailAsync(id);
+            if (result == null)
+            {
+                return NotFound(new { message = "Không tìm thấy người dùng." });
+            }
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ex.Message);
+        }
+    }
 }

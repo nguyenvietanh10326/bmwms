@@ -107,4 +107,15 @@ public class UserApiService
         }
         return null;
     }
+
+    public async Task<BMWMS.Web.Models.UserDetailModel?> GetUserDetailAsync(long id)
+    {
+        var response = await _httpClient.GetAsync($"api/user/{id}");
+        if (response.IsSuccessStatusCode)
+        {
+            var body = await response.Content.ReadAsStringAsync();
+            return JsonSerializer.Deserialize<BMWMS.Web.Models.UserDetailModel>(body, _json);
+        }
+        return null;
+    }
 }

@@ -154,4 +154,13 @@ public class UserRepository : IUserRepository
 
         return (items, totalCount);
     }
+
+    public async Task<List<AuditLog>> GetUserActivitiesAsync(long userId, int limit = 20)
+    {
+        return await _context.AuditLogs
+            .Where(l => l.UserId == userId)
+            .OrderByDescending(l => l.CreatedAt)
+            .Take(limit)
+            .ToListAsync();
+    }
 }
