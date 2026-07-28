@@ -1,4 +1,4 @@
-﻿using BMWMS.Repository.Context;
+
 using BMWMS.Business.Interfaces;
 using BMWMS.Business.Services;
 using BMWMS.Repository.Interfaces;
@@ -26,7 +26,7 @@ builder.Services.AddAutoMapper(cfg =>
     cfg.AddProfile<BMWMS.Business.Mapping.CategoryMapperProfile>();
 });
 
-builder.Services.AddDbContext<BMWMSDbContext>(options =>
+builder.Services.AddDbContext<BMWMS.Repository.Entities.BMWMSContext>(options =>
 {
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
 });
