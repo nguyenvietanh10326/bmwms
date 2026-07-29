@@ -2,9 +2,13 @@
 @model BMWMS.Web.Pages.Warehouse.EditModel
 
 @{
+    Layout = "/Pages/Shared/Warehourse/_Layout.cshtml";
+
     ViewData["Title"] = "Edit Warehouse";
 }
-
+@section Styles {
+    <link rel="stylesheet" href="~/css/Warehouse/index.css" asp-append-version="true" />
+}
 <!-- TOPBAR -->
 <div class="topbar">
     <div class="breadcrumb">
