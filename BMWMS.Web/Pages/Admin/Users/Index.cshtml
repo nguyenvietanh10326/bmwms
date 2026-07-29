@@ -1,0 +1,251 @@
+@page
+@model BMWMS.Web.Pages.Admin.Users.IndexModel
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Người dùng";
+    ViewData["HeaderTitle"] = "Quản trị hệ thống";
+    ViewData["FooterVersion"] = "Full coverage · UC01-UC63";
+}
+
+<div class="page-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
+    <div>
+        <div class="page-header-title">Xem danh sách người dùng</div>
+        <div class="page-header-sub">Tìm kiếm và xem tài khoản người dùng nội bộ · Actor chính: Quản trị hệ thống</div>
+    </div>
+    <a href="/Admin/Users/Create" class="btn btn-primary" style="white-space: nowrap;">
+        <i class="ri-user-add-line" style="margin-right: 6px;"></i>Tạo người dùng
+    </a>
+</div>
+
+<!-- Bộ lọc -->
+<form method="get" class="form-card" style="padding: 16px 20px;">
+    <div style="display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;">
+        <div class="form-group" style="flex: 2; min-width: 200px;">
+            <div style="position: relative;">
+                <i class="ri-search-line" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 15px;"></i>
+                <input type="text"
+                       name="Filter.Keyword"
+                       value="@Model.Filter.Keyword"
+                       class="form-control"
+                       style="width: 100%; padding-left: 36px;"
+                       placeholder="Tìm mã, tên hoặc tài khoản" />
+            </div>
+        </div>
+
+        <div class="form-group" style="min-width: 160px;">
+            <select name="Filter.Status" class="form-control form-control-select" style="width: 100%;">
+                <option value="">Tất cả trạng thái</option>
+                <option value="ACTIVE" selected="@(Model.Filter.Status == "ACTIVE" ? "selected" : null)">Đang hoạt động</option>
+                <option value="LOCKED" selected="@(Model.Filter.Status == "LOCKED" ? "selected" : null)">Đã khóa</option>
+                <option value="INACTIVE" selected="@(Model.Filter.Status == "INACTIVE" ? "selected" : null)">Không hoạt động</option>
+            </select>
+        </div>
+
+        <div class="form-group" style="min-width: 160px;">
+            <select name="Filter.RoleCode" class="form-control form-control-select" style="width: 100%;">
+                <option value="">Tất cả vai trò</option>
+                <option value="SYSTEM_ADMIN" selected="@(Model.Filter.RoleCode == "SYSTEM_ADMIN" ? "selected" : null)">Sys Admin</option>
+                <option value="WAREHOUSE_MANAGER" selected="@(Model.Filter.RoleCode == "WAREHOUSE_MANAGER" ? "selected" : null)">WH Manager</option>
+                <option value="WAREHOUSE_STAFF" selected="@(Model.Filter.RoleCode == "WAREHOUSE_STAFF" ? "selected" : null)">WH Staff</option>
+                <option value="PURCHASING_STAFF" selected="@(Model.Filter.RoleCode == "PURCHASING_STAFF" ? "selected" : null)">Purchasing</option>
+                <option value="SALES_STAFF" selected="@(Model.Filter.RoleCode == "SALES_STAFF" ? "selected" : null)">Sales Staff</option>
+            </select>
+        </div>
+
+        <button type="submit" class="btn btn-primary">
+            <i class="ri-search-line" style="margin-right: 4px;"></i>Tìm kiếm
+        </button>
+
+        <a href="/Admin/Users" class="btn btn-secondary">
+            <i class="ri-refresh-line" style="margin-right: 4px;"></i>Đặt lại
+        </a>
+    </div>
+</form>
+
+<!-- Bảng danh sách -->
+<div class="form-card" style="padding: 0; overflow: hidden;">
+    <table class="panel-table" style="width: 100%;">
+        <thead>
+            <tr>
+                <th>Mã người dùng</th>
+                <th>Họ tên</th>
+                <th>Tên đăng nhập</th>
+                <th>Vai trò</th>
+                <th>Trạng thái</th>
+                <th>Cập nhật</th>
+                <th>Thao tác</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (Model.UserList != null && Model.UserList.Items.Any())
+            {
+                @foreach (var user in Model.UserList.Items)
+                {
+                    <tr>
+                        <td>
+                            <a href="/Admin/Users/Detail?id=@user.UserId" style="color: var(--blue); font-weight: 500; text-decoration: none;">
+                                @user.UserCode
+                            </a>
+                        </td>
+                        <td style="font-weight: 500;">@user.FullName</td>
+                        <td style="color: var(--text-secondary);">@user.Username</td>
+                        <td>@user.RoleName</td>
+                        <td>
+                            @if (user.Status == "ACTIVE")
+                            {
+                                <span class="user-status-badge active">Đang hoạt động</span>
+                            }
+                            else if (user.Status == "LOCKED")
+                            {
+                                <span class="user-status-badge locked">Đã khóa</span>
+                            }
+                            else
+                            {
+                                <span class="user-status-badge inactive">Không hoạt động</span>
+                            }
+                        </td>
+                        <td style="color: var(--text-secondary); font-size: 12.5px;">
+                            @((user.UpdatedAt ?? user.CreatedAt).ToString("dd/MM/yyyy"))
+                        </td>
+                        <td>
+                            <a href="/Admin/Users/Detail/@user.UserId" style="color: var(--blue); text-decoration: none; font-size: 12.5px; font-weight: 500;">
+                                Xem chi tiết
+                            </a>
+                        </td>
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr>
+                    <td colspan="7" style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
+                        <i class="ri-search-eye-line" style="font-size: 32px; display: block; margin-bottom: 8px;"></i>
+                        Không tìm thấy người dùng nào phù hợp với bộ lọc.
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <!-- Phân trang -->
+    @if (Model.UserList != null && Model.UserList.TotalPages > 1)
+    {
+        <div class="pagination-bar">
+            <div class="pagination-info">
+                Hiển thị @((Model.UserList.PageIndex - 1) * Model.UserList.PageSize + 1)–@Math.Min(Model.UserList.PageIndex * Model.UserList.PageSize, Model.UserList.TotalCount) trong @Model.UserList.TotalCount bản ghi
+            </div>
+            <div class="pagination-controls">
+                @if (Model.UserList.PageIndex > 1)
+                {
+                    <a href="/Admin/Users?Filter.PageIndex=@(Model.UserList.PageIndex - 1)&Filter.Keyword=@Model.Filter.Keyword&Filter.Status=@Model.Filter.Status&Filter.RoleCode=@Model.Filter.RoleCode"
+                       class="pagination-btn">‹</a>
+                }
+                else
+                {
+                    <span class="pagination-btn disabled">‹</span>
+                }
+
+                @for (int i = 1; i <= Model.UserList.TotalPages; i++)
+                {
+                    var isActive = i == Model.UserList.PageIndex;
+                    <a href="/Admin/Users?Filter.PageIndex=@i&Filter.Keyword=@Model.Filter.Keyword&Filter.Status=@Model.Filter.Status&Filter.RoleCode=@Model.Filter.RoleCode"
+                       class="pagination-btn @(isActive ? "active" : "")">@i</a>
+                }
+
+                @if (Model.UserList.PageIndex < Model.UserList.TotalPages)
+                {
+                    <a href="/Admin/Users?Filter.PageIndex=@(Model.UserList.PageIndex + 1)&Filter.Keyword=@Model.Filter.Keyword&Filter.Status=@Model.Filter.Status&Filter.RoleCode=@Model.Filter.RoleCode"
+                       class="pagination-btn">›</a>
+                }
+                else
+                {
+                    <span class="pagination-btn disabled">›</span>
+                }
+            </div>
+        </div>
+    }
+    else if (Model.UserList != null && Model.UserList.Items.Any())
+    {
+        <div class="pagination-bar">
+            <div class="pagination-info">
+                Hiển thị 1–@Model.UserList.TotalCount trong @Model.UserList.TotalCount bản ghi
+            </div>
+        </div>
+    }
+</div>
+
+@section Styles {
+<style>
+    /* Status badges */
+    .user-status-badge {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        line-height: 1.4;
+    }
+    .user-status-badge.active {
+        background: #f0fdf4;
+        color: #16a34a;
+    }
+    .user-status-badge.locked {
+        background: #fef2f2;
+        color: #dc2626;
+    }
+    .user-status-badge.inactive {
+        background: #f3f4f6;
+        color: #6b7280;
+    }
+
+    /* Pagination */
+    .pagination-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 20px;
+        border-top: 1px solid var(--border);
+        background: #fafafa;
+    }
+    .pagination-info {
+        font-size: 12.5px;
+        color: var(--text-muted);
+    }
+    .pagination-controls {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+    .pagination-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 32px;
+        height: 32px;
+        padding: 0 8px;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 500;
+        text-decoration: none;
+        color: var(--text-primary);
+        background: white;
+        border: 1px solid var(--border);
+        transition: all 0.15s;
+        cursor: pointer;
+    }
+    .pagination-btn:hover:not(.active):not(.disabled) {
+        background: #f3f4f6;
+        border-color: #d1d5db;
+    }
+    .pagination-btn.active {
+        background: var(--navy);
+        color: white;
+        border-color: var(--navy);
+    }
+    .pagination-btn.disabled {
+        opacity: 0.4;
+        cursor: default;
+        pointer-events: none;
+    }
+</style>
+}

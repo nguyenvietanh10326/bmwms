@@ -1,0 +1,197 @@
+@page
+@model BMWMS.Web.Pages.Auth.LoginModel
+@{
+    ViewData["Title"] = "Đăng nhập";
+    Layout = "~/Pages/Shared/_AuthLayout.cshtml";
+}
+
+<div class="auth-card">
+
+    <!-- Logo -->
+    <div class="auth-logo">
+        <div class="auth-logo-icon">
+            🏭
+        </div>
+        <div class="auth-logo-text">
+            <span class="auth-logo-name">BMWMS</span>
+            <span class="auth-logo-sub">Building Materials Warehouse Management</span>
+        </div>
+    </div>
+
+    <!-- Title -->
+    <h1 class="auth-title">Đăng nhập</h1>
+    <p class="auth-subtitle">
+        Đăng nhập bằng tài khoản nội bộ. Tài khoản bị khóa 15 phút sau 5 lần nhập sai liên tiếp.
+    </p>
+
+    <!-- Alerts -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="auth-alert auth-alert-warning" role="alert" style="background-color: #ecfdf5; color: #065f46; border-color: #d1fae5;">
+            <span>✓</span>
+            <div>
+                <strong>@TempData["SuccessMessage"]</strong>
+            </div>
+        </div>
+    }
+
+    @if (Model.ErrorType == "locked")
+    {
+        <div class="auth-alert auth-alert-warning" role="alert">
+            <span>🔒</span>
+            <div>
+                <strong>Tài khoản bị khóa tạm thời</strong><br />
+                @Model.ErrorMessage
+                @if (Model.LockoutRemainingMinutes.HasValue)
+                {
+                    <span> Còn <span class="lockout-timer">@Model.LockoutRemainingMinutes phút</span></span>
+                }
+            </div>
+        </div>
+    }
+    else if (Model.ErrorType == "inactive")
+    {
+        <div class="auth-alert auth-alert-warning" role="alert">
+            <span>⛔</span>
+            <div>
+                <strong>Tài khoản bị vô hiệu hóa</strong><br />
+                @Model.ErrorMessage
+            </div>
+        </div>
+    }
+    else if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="auth-alert auth-alert-error" role="alert">
+            <span>⚠️</span>
+            <span>@Model.ErrorMessage</span>
+        </div>
+    }
+
+
+    <!-- Form -->
+    <form method="post" id="loginForm" novalidate>
+        @Html.AntiForgeryToken()
+
+        <!-- Username / Email -->
+        <div class="auth-field">
+            <label class="auth-label" for="usernameOrEmail">
+                Tên đăng nhập hoặc email <span class="required">*</span>
+            </label>
+            <div class="auth-input-wrap">
+                <input type="text"
+                       id="usernameOrEmail"
+                       name="UsernameOrEmail"
+                       class="auth-input @(Model.ErrorType == "invalid" ? "is-invalid" : "")"
+                       placeholder="Nhập tên đăng nhập hoặc email"
+                       value="@Model.UsernameOrEmail"
+                       autocomplete="username"
+                       maxlength="254"
+                       required />
+                <svg class="auth-input-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                     stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+            </div>
+            <div class="field-error" id="err-username">Vui lòng nhập tên đăng nhập hoặc email.</div>
+        </div>
+
+        <!-- Password -->
+        <div class="auth-field">
+            <label class="auth-label" for="password">
+                Mật khẩu <span class="required">*</span>
+            </label>
+            <div class="auth-input-wrap">
+                <input type="password"
+                       id="password"
+                       name="Password"
+                       class="auth-input @(Model.ErrorType == "invalid" ? "is-invalid" : "")"
+                       placeholder="Nhập mật khẩu"
+                       autocomplete="current-password"
+                       required />
+                <svg class="auth-input-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                     stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+                <button type="button" class="auth-pw-toggle" id="togglePw" aria-label="Hiện/ẩn mật khẩu">
+                    <svg id="eyeIcon" xmlns="http://www.w3.org/2000/svg" width="17" height="17"
+                         viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                </button>
+            </div>
+            <div class="field-error" id="err-password">Vui lòng nhập mật khẩu.</div>
+        </div>
+
+        <!-- Forgot password -->
+        <div class="auth-forgot">
+            <a href="/Auth/ForgotPassword">Quên mật khẩu?</a>
+        </div>
+
+        <!-- Submit -->
+        <button type="submit" class="auth-btn" id="loginBtn">
+            <span id="btnText">Đăng nhập</span>
+            <div class="auth-btn-spinner" id="btnSpinner"></div>
+        </button>
+    </form>
+
+    <!-- Footer note -->
+    <div class="auth-footer-note">
+        Vai trò được hỗ trợ: <strong>Quản trị hệ thống</strong>, <strong>Quản lý kho</strong>,
+        <strong>Nhân viên kho</strong>, <strong>Nhân viên mua hàng</strong>, <strong>Nhân viên bán hàng</strong>.
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    // ── Hiện/ẩn mật khẩu ──
+    const togglePw = document.getElementById('togglePw');
+    const pwInput  = document.getElementById('password');
+    const eyeIcon  = document.getElementById('eyeIcon');
+
+    togglePw.addEventListener('click', () => {
+        const isText = pwInput.type === 'text';
+        pwInput.type = isText ? 'password' : 'text';
+        eyeIcon.innerHTML = isText
+            ? '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>'
+            : '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"></path><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"></path><line x1="1" y1="1" x2="23" y2="23"></line>';
+    });
+
+    // ── Submit: hiện spinner ──
+    document.getElementById('loginForm').addEventListener('submit', function (e) {
+        const username = document.getElementById('usernameOrEmail').value.trim();
+        const password = document.getElementById('password').value;
+        let valid = true;
+
+        if (!username) {
+            document.getElementById('err-username').style.display = 'block';
+            document.getElementById('usernameOrEmail').classList.add('is-invalid');
+            valid = false;
+        } else {
+            document.getElementById('err-username').style.display = 'none';
+            document.getElementById('usernameOrEmail').classList.remove('is-invalid');
+        }
+
+        if (!password) {
+            document.getElementById('err-password').style.display = 'block';
+            document.getElementById('password').classList.add('is-invalid');
+            valid = false;
+        } else {
+            document.getElementById('err-password').style.display = 'none';
+            document.getElementById('password').classList.remove('is-invalid');
+        }
+
+        if (!valid) { e.preventDefault(); return; }
+
+        // Hiện spinner
+        document.getElementById('btnText').style.display = 'none';
+        document.getElementById('btnSpinner').style.display = 'block';
+        document.getElementById('loginBtn').disabled = true;
+    });
+</script>
+}

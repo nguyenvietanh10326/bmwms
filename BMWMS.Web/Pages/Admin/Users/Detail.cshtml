@@ -1,0 +1,149 @@
+@page "{id:long}"
+@model BMWMS.Web.Pages.Admin.Users.DetailModel
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Chi tiết người dùng";
+    ViewData["HeaderTitle"] = "Quản trị hệ thống";
+    ViewData["FooterVersion"] = "Full coverage · UC01-UC63";
+}
+
+<div class="page-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
+    <div>
+        <div class="page-header-title">Xem chi tiết người dùng</div>
+        <div class="page-header-sub">Xem hồ sơ, vai trò, trạng thái và hoạt động đăng nhập · Actor chính: Quản trị hệ thống</div>
+    </div>
+    <div style="font-weight: 500; display: flex; align-items: center;">
+        @if (Model.UserDetail.Status == "ACTIVE")
+        {
+            <span style="color: #16a34a; font-size: 16px;">Đang hoạt động</span>
+        }
+        else if (Model.UserDetail.Status == "LOCKED")
+        {
+            <span style="color: #dc2626; font-size: 16px;">Đã khóa</span>
+        }
+        else
+        {
+            <span style="color: #d97706; font-size: 16px;">Không hoạt động</span>
+        }
+    </div>
+</div>
+
+<div class="form-card" style="padding: 24px; margin-bottom: 24px;">
+    <h3 style="margin-top: 0; margin-bottom: 20px; font-size: 16px; font-weight: 600; color: var(--text-main);">Chi tiết người dùng</h3>
+    
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px;">
+        <div class="form-group">
+            <label class="form-label">Mã người dùng</label>
+            <input type="text" class="form-control" value="@Model.UserDetail.UserCode" readonly style="background-color: #f9fafb; color: var(--text-muted);" />
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Họ và tên</label>
+            <input type="text" class="form-control" value="@Model.UserDetail.FullName" readonly style="background-color: #f9fafb; color: var(--text-muted);" />
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Tên đăng nhập</label>
+            <input type="text" class="form-control" value="@Model.UserDetail.Username" readonly style="background-color: #f9fafb; color: var(--text-muted);" />
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Email</label>
+            <input type="text" class="form-control" value="@Model.UserDetail.Email" readonly style="background-color: #f9fafb; color: var(--text-muted);" />
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Số điện thoại</label>
+            <input type="text" class="form-control" value="@(Model.UserDetail.PhoneNumber ?? "Không có")" readonly style="background-color: #f9fafb; color: var(--text-muted);" />
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Vai trò cố định</label>
+            <input type="text" class="form-control" value="@Model.UserDetail.RoleName" readonly style="background-color: #f9fafb; color: var(--text-muted);" />
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Trạng thái</label>
+            <input type="text" class="form-control" value="@(Model.UserDetail.Status == "ACTIVE" ? "Đang hoạt động" : (Model.UserDetail.Status == "LOCKED" ? "Đã khóa" : "Không hoạt động"))" readonly style="background-color: #f9fafb; color: var(--text-muted);" />
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Đơn vị</label>
+            <input type="text" class="form-control" value="Tổng công ty" readonly style="background-color: #f9fafb; color: var(--text-muted);" />
+        </div>
+    </div>
+</div>
+
+<div class="form-card" style="padding: 24px; margin-bottom: 24px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h3 style="margin: 0; font-size: 16px; font-weight: 600; color: var(--text-main);">Vai trò & lịch sử truy cập</h3>
+        <button type="button" class="btn btn-secondary">Xem nhật ký</button>
+    </div>
+    
+    <div class="table-container">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th style="width: 15%">Thời điểm</th>
+                    <th style="width: 20%">Hành động</th>
+                    <th style="width: 25%">Địa chỉ IP</th>
+                    <th style="width: 15%">Kết quả</th>
+                    <th style="width: 25%">Chi tiết</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.UserDetail.Activities.Any())
+                {
+                    foreach (var log in Model.UserDetail.Activities)
+                    {
+                        <tr>
+                            <td style="color: var(--primary); font-weight: 500;">@log.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                            <td>
+                                @if (log.ActionType == "LOGIN_SUCCESS") { <span>Đăng nhập</span> }
+                                else if (log.ActionType == "LOGOUT") { <span>Đăng xuất</span> }
+                                else if (log.ActionType == "LOGIN_FAILED") { <span>Đăng nhập thất bại</span> }
+                                else if (log.ActionType == "CHANGE_PASSWORD") { <span>Đổi mật khẩu</span> }
+                                else { <span>@log.ActionType</span> }
+                            </td>
+                            <td>@log.IpAddress</td>
+                            <td>
+                                @if (log.ActionType.Contains("FAILED"))
+                                {
+                                    <span style="color: #dc2626;">Thất bại</span>
+                                }
+                                else
+                                {
+                                    <span style="color: #16a34a;">Thành công</span>
+                                }
+                            </td>
+                            <td>
+                                <span style="color: var(--text-muted); font-size: 13px;">@(log.Details?.Length > 50 ? log.Details.Substring(0, 50) + "..." : log.Details)</span>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 20px;">Không có lịch sử truy cập nào</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    
+    <div style="margin-top: 20px; font-size: 13px; color: var(--text-muted); display: flex; justify-content: space-between;">
+        <div>Vai trò và phạm vi được áp dụng theo RBAC cố định</div>
+        <div style="font-weight: 500; color: var(--text-main);">1 phạm vi hiệu lực</div>
+    </div>
+</div>
+
+<div style="background-color: #f3e8ff; border: 1px solid #e9d5ff; border-radius: 8px; padding: 16px; margin-bottom: 24px; display: flex; align-items: center; gap: 12px;">
+    <div style="width: 8px; height: 8px; border-radius: 50%; background-color: #9333ea;"></div>
+    <div style="color: #7e22ce; font-size: 14px;">Thông tin tài khoản, vai trò cố định và trạng thái khóa được hiển thị cùng nhật ký truy cập gần nhất.</div>
+</div>
+
+<div style="display: flex; justify-content: flex-end; gap: 12px; margin-bottom: 40px;">
+    <a href="/Admin/Users" class="btn btn-text" style="color: var(--text-muted);">Quay lại</a>
+    <a href="/Admin/Users/Edit/@Model.UserDetail.UserId" class="btn" style="background-color: #27272a; color: white; border: none; padding: 8px 24px;">Chỉnh sửa</a>
+</div>
