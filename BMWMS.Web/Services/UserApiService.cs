@@ -135,4 +135,21 @@ public class UserApiService
         var errorMsg = ExtractErrorMessage(body);
         return (false, errorMsg);
     }
+
+    public async Task<(bool Success, string Message)> UpdateUserAsync(long id, BMWMS.Web.Models.UpdateUserModel model)
+    {
+        var payload = JsonSerializer.Serialize(model);
+        var content = new StringContent(payload, Encoding.UTF8, "application/json");
+
+        var response = await _httpClient.PutAsync($"api/user/{id}", content);
+        var body = await response.Content.ReadAsStringAsync();
+
+        if (response.IsSuccessStatusCode)
+        {
+            return (true, "Cập nhật người dùng thành công");
+        }
+
+        var errorMsg = ExtractErrorMessage(body);
+        return (false, errorMsg);
+    }
 }
