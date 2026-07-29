@@ -180,4 +180,30 @@ public class UserController : ControllerBase
             return StatusCode(500, ex.Message);
         }
     }
+
+    [Authorize(Roles = "SYSTEM_ADMIN")]
+    [HttpPut("{id}/role")]
+    public async Task<IActionResult> AssignRole(long id, [FromBody] AssignRoleDto dto)
+    {
+        var editorIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!long.TryParse(editorIdStr, out var editorId))
+        {
+            return Unauthorized(new { message = "Token không hợp lệ." });
+        }
+
+        try
+        {
+            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+            await _userService.AssignRoleAsync(id, dto, editorId, ipAddress);
+            return Ok(new { message = "Gán vai trò thành công" });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ex.Message);
+        }
+    }
 }

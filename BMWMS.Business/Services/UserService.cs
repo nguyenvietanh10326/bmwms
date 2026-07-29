@@ -355,4 +355,52 @@ public class UserService : IUserService
             CreatedAt = DateTime.UtcNow
         });
     }
+
+    public async Task AssignRoleAsync(long targetUserId, AssignRoleDto dto, long editorId, string? ipAddress)
+    {
+        var user = await _userRepository.GetByIdAsync(targetUserId);
+        if (user == null)
+        {
+            throw new ArgumentException("Người dùng không tồn tại.");
+        }
+
+        if (user.RoleId == dto.RoleId)
+        {
+            throw new ArgumentException("Vai trò mới giống với vai trò hiện tại.");
+        }
+
+        // BR-04: The only usable System Administrator cannot be reassigned.
+        if (user.Role.RoleCode == "SYSTEM_ADMIN" && user.Status == "ACTIVE")
+        {
+            var adminCount = await _userRepository.GetActiveSystemAdminCountAsync();
+            if (adminCount <= 1)
+            {
+                throw new ArgumentException("Không thể thay đổi vai trò của Quản trị viên hệ thống duy nhất còn lại.");
+            }
+        }
+
+        var oldValues = $"{{ \"RoleId\": {user.RoleId} }}";
+        
+        user.RoleId = dto.RoleId;
+        user.UpdatedAt = DateTime.UtcNow;
+
+        await _userRepository.UpdateAsync(user);
+
+        var newValues = $"{{ \"RoleId\": {user.RoleId}, \"Reason\": \"{dto.Reason}\" }}";
+
+        await _userRepository.AddAuditLogAsync(new AuditLog
+        {
+            UserId = editorId,
+            ActionType = "ASSIGN_ROLE",
+            EntityName = "User",
+            EntityId = targetUserId.ToString(),
+            OldValuesJson = oldValues,
+            NewValuesJson = newValues,
+            IpAddress = ipAddress,
+            CreatedAt = DateTime.UtcNow
+        });
+
+        // BR-05: Hủy tất cả các phiên đăng nhập hiện tại để quyền mới được áp dụng ngay lập tức
+        await _userRepository.RevokeActiveSessionsAsync(targetUserId);
+    }
 }

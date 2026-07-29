@@ -14,4 +14,5 @@ public interface IUserService
     Task<UserDetailDto?> GetUserDetailAsync(long userId);
     Task<long> CreateUserAsync(CreateUserDto dto, string? ipAddress);
     Task UpdateUserAsync(long targetUserId, UpdateUserDto dto, long editorId, string? ipAddress);
+    Task AssignRoleAsync(long targetUserId, AssignRoleDto dto, long editorId, string? ipAddress);
 }

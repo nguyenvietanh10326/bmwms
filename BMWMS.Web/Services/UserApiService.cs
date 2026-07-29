@@ -152,4 +152,21 @@ public class UserApiService
         var errorMsg = ExtractErrorMessage(body);
         return (false, errorMsg);
     }
+
+    public async Task<(bool Success, string Message)> AssignRoleAsync(long id, BMWMS.Web.Models.AssignRoleModel model)
+    {
+        var payload = JsonSerializer.Serialize(model);
+        var content = new StringContent(payload, Encoding.UTF8, "application/json");
+
+        var response = await _httpClient.PutAsync($"api/user/{id}/role", content);
+        var body = await response.Content.ReadAsStringAsync();
+
+        if (response.IsSuccessStatusCode)
+        {
+            return (true, "Gán vai trò thành công");
+        }
+
+        var errorMsg = ExtractErrorMessage(body);
+        return (false, errorMsg);
+    }
 }
