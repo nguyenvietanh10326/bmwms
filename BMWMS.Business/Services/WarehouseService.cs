@@ -163,7 +163,7 @@ namespace BMWMS.Business.Services
             }
         }
 
-        private static WarehouseResponseDto MapToResponseDto(Warehouse entity)
+        private WarehouseResponseDto MapToResponseDto(Warehouse entity)
         {
             return new WarehouseResponseDto
             {
@@ -175,7 +175,9 @@ namespace BMWMS.Business.Services
                 IsPrimary = entity.IsPrimary,
                 Status = entity.Status,
                 CreatedAt = entity.CreatedAt,
-                UpdatedAt = entity.UpdatedAt
+                UpdatedAt = entity.UpdatedAt,
+                TotalLocations = entity.StorageLocations?.Count ?? 0,
+                ManagerName = string.IsNullOrEmpty(entity.PhoneNumber) ? "N/A" : $"WAREHOUSE MANAGER"
             };
         }
         #endregion

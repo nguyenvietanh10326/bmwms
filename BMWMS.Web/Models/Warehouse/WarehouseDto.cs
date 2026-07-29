@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BMWMS.Business.DTOs.Warehouse
+namespace BMWMS.Web.Models.Warehouse
 {
     public class CreateWarehouseDto
     {
