@@ -145,6 +145,14 @@
 
 <div style="display: flex; justify-content: flex-end; gap: 12px; margin-bottom: 40px;">
     <a href="/Admin/Users" class="btn btn-text" style="color: var(--text-muted);">Quay lại</a>
+    @if (Model.UserDetail.Status == "ACTIVE")
+    {
+        <a href="/Admin/Users/ChangeLockState/@Model.UserDetail.UserId" class="btn btn-secondary" style="color: #dc2626; border-color: #dc2626;">Khóa tài khoản</a>
+    }
+    else if (Model.UserDetail.Status == "LOCKED")
+    {
+        <a href="/Admin/Users/ChangeLockState/@Model.UserDetail.UserId" class="btn btn-secondary" style="color: #16a34a; border-color: #16a34a;">Mở khóa tài khoản</a>
+    }
     <a href="/Admin/Users/AssignRole/@Model.UserDetail.UserId" class="btn btn-secondary">Gán vai trò</a>
     <a href="/Admin/Users/Edit/@Model.UserDetail.UserId" class="btn" style="background-color: #27272a; color: white; border: none; padding: 8px 24px;">Chỉnh sửa</a>
 </div>

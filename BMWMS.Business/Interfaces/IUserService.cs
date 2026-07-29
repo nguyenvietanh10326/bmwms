@@ -15,4 +15,5 @@ public interface IUserService
     Task<long> CreateUserAsync(CreateUserDto dto, string? ipAddress);
     Task UpdateUserAsync(long targetUserId, UpdateUserDto dto, long editorId, string? ipAddress);
     Task AssignRoleAsync(long targetUserId, AssignRoleDto dto, long editorId, string? ipAddress);
+    Task ChangeUserLockStateAsync(long targetUserId, ChangeLockStateDto dto, long adminId, string? ipAddress);
 }

@@ -403,4 +403,69 @@ public class UserService : IUserService
         // BR-05: Hủy tất cả các phiên đăng nhập hiện tại để quyền mới được áp dụng ngay lập tức
         await _userRepository.RevokeActiveSessionsAsync(targetUserId);
     }
+
+    public async Task ChangeUserLockStateAsync(long targetUserId, ChangeLockStateDto dto, long adminId, string? ipAddress)
+    {
+        var user = await _userRepository.GetByIdAsync(targetUserId);
+        if (user == null)
+        {
+            throw new ArgumentException("Người dùng không tồn tại.");
+        }
+
+        var isCurrentlyLocked = user.Status == "LOCKED";
+        
+        if (dto.Action == "LOCK")
+        {
+            if (isCurrentlyLocked)
+                throw new ArgumentException("Tài khoản đã ở trạng thái khóa.");
+
+            // BR-02: Không thể khóa tài khoản System Administrator cuối cùng
+            if (user.Role.RoleCode == "SYSTEM_ADMIN" && user.Status == "ACTIVE")
+            {
+                var adminCount = await _userRepository.GetActiveSystemAdminCountAsync();
+                if (adminCount <= 1)
+                {
+                    throw new ArgumentException("Không thể khóa tài khoản Quản trị viên hệ thống duy nhất còn lại.");
+                }
+            }
+
+            user.Status = "LOCKED";
+            user.LockedUntil = null; // Khóa vô thời hạn (cho tới khi mở khóa thủ công)
+            user.FailedLoginCount = 0; // Reset số lần đăng nhập sai
+        }
+        else if (dto.Action == "UNLOCK")
+        {
+            if (!isCurrentlyLocked)
+                throw new ArgumentException("Tài khoản đang ở trạng thái hoạt động.");
+
+            user.Status = "ACTIVE";
+            user.LockedUntil = null;
+            user.FailedLoginCount = 0;
+        }
+
+        user.UpdatedAt = DateTime.UtcNow;
+        await _userRepository.UpdateAsync(user);
+
+        var newValues = $"{{ \"Status\": \"{user.Status}\", \"Reason\": \"{dto.Reason}\" }}";
+        var oldStatus = isCurrentlyLocked ? "LOCKED" : "ACTIVE";
+        var oldValues = $"{{ \"Status\": \"{oldStatus}\" }}";
+
+        await _userRepository.AddAuditLogAsync(new AuditLog
+        {
+            UserId = adminId,
+            ActionType = dto.Action == "LOCK" ? "LOCK_ACCOUNT" : "UNLOCK_ACCOUNT",
+            EntityName = "User",
+            EntityId = targetUserId.ToString(),
+            OldValuesJson = oldValues,
+            NewValuesJson = newValues,
+            IpAddress = ipAddress,
+            CreatedAt = DateTime.UtcNow
+        });
+
+        if (dto.Action == "LOCK")
+        {
+            // BR-03: Khóa tài khoản sẽ thu hồi tất cả phiên làm việc hiện hành
+            await _userRepository.RevokeActiveSessionsAsync(targetUserId);
+        }
+    }
 }
