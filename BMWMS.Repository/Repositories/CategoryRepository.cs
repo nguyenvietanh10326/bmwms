@@ -1,5 +1,6 @@
 
 using BMWMS.Repository.Entities;
+using BMWMS.Repository.Models;
 using BMWMS.Repository.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -7,9 +8,9 @@ namespace BMWMS.Repository.Repositories
 {
     public class CategoryRepository : ICategoryRepository
     {
-        private readonly BMWMSContext _context;
+        private readonly BmwmsContext _context;
 
-        public CategoryRepository(BMWMSContext context)
+        public CategoryRepository(BmwmsContext context)
         {
             _context = context;
         }

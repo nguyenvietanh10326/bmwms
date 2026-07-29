@@ -4,7 +4,7 @@ namespace BMWMS.Repository.Interfaces;
 
 public interface IUserRepository
 {
-    Task<User?> GetByUsernameOrEmailAsync(string usernameOrEmail);
+    Task<User?> GetByUsernameOrEmailAsync(string usernameOrEmail); // select * form user where username = @usernameOrEmail or email = @usernameOrEmail
     Task<User?> GetByIdAsync(long userId);
     Task UpdateAsync(User user);
     Task AddSessionAsync(UserSession session);

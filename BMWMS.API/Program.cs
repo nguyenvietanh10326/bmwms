@@ -1,4 +1,3 @@
-using BMWMS.Repository.Context;
 using BMWMS.Repository.Models;
 using BMWMS.Business.Interfaces;
 using BMWMS.Business.Services;
@@ -53,12 +52,6 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddAutoMapper(cfg =>
 {
     cfg.AddProfile<BMWMS.Business.Mapping.CategoryMapperProfile>();
-});
-
-// DbContext cu (Category)
-builder.Services.AddDbContext<BMWMSDbContext>(options =>
-{
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
 });
 
 // DbContext chinh (EF scaffold - toan bo DB)

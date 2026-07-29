@@ -67,7 +67,7 @@ public class UserApiService
         });
         var content = new StringContent(payload, Encoding.UTF8, "application/json");
 
-        var response = await _httpClient.PutAsync("api/user/me/password", content);
+        var response = await _httpClient.PutAsync("api/user/me/password", content); 
         var body = await response.Content.ReadAsStringAsync();
 
         if (response.IsSuccessStatusCode)
