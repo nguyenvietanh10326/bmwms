@@ -107,3 +107,23 @@ public class CreateUserModel
 
     public string Status { get; set; } = "ACTIVE";
 }
+
+public class UpdateUserModel
+{
+    public long UserId { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Họ tên là bắt buộc")]
+    [System.ComponentModel.DataAnnotations.StringLength(150, MinimumLength = 2, ErrorMessage = "Họ tên phải từ 2 đến 150 ký tự")]
+    public string FullName { get; set; } = null!;
+
+    [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Email là bắt buộc")]
+    [System.ComponentModel.DataAnnotations.EmailAddress(ErrorMessage = "Email không đúng định dạng")]
+    public string Email { get; set; } = null!;
+
+    public string? PhoneNumber { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Vai trò là bắt buộc")]
+    public int RoleId { get; set; }
+
+    public string Status { get; set; } = null!;
+}

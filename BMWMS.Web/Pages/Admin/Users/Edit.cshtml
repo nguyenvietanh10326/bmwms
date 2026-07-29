@@ -1,0 +1,91 @@
+@page "{id:long}"
+@model BMWMS.Web.Pages.Admin.Users.EditModel
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Chỉnh sửa người dùng";
+    ViewData["HeaderTitle"] = "Quản trị hệ thống";
+    ViewData["FooterVersion"] = "Full coverage · UC01-UC63";
+}
+
+<div class="page-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
+    <div>
+        <div class="page-header-title">Chỉnh sửa người dùng</div>
+        <div class="page-header-sub">Cập nhật thông tin và trạng thái tài khoản được phép · Actor chính: Quản trị hệ thống</div>
+    </div>
+</div>
+
+@if (!ViewData.ModelState.IsValid)
+{
+    <div style="background-color: #fee2e2; border: 1px solid #fecaca; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
+        <div style="color: #b91c1c; font-weight: 500; margin-bottom: 8px;">Vui lòng sửa các lỗi sau:</div>
+        <div asp-validation-summary="All" style="color: #b91c1c; font-size: 14px;"></div>
+    </div>
+}
+
+<form method="post">
+    <input type="hidden" asp-for="Input.UserId" />
+    <input type="hidden" name="Username" value="@Model.Username" />
+    <input type="hidden" name="UserCode" value="@Model.UserCode" />
+
+    <div class="form-card" style="padding: 24px; margin-bottom: 24px;">
+        <h3 style="margin-top: 0; margin-bottom: 20px; font-size: 16px; font-weight: 600; color: var(--text-main);">Thông tin người dùng</h3>
+        
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px;">
+            <div class="form-group">
+                <label class="form-label">Mã người dùng <span style="color: #dc2626;">*</span></label>
+                <input type="text" class="form-control" value="@Model.UserCode" readonly style="background-color: #f9fafb; color: var(--text-muted);" />
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Họ và tên <span style="color: #dc2626;">*</span></label>
+                <input asp-for="Input.FullName" class="form-control" placeholder="Nhập họ và tên" />
+                <span asp-validation-for="Input.FullName" style="color: #dc2626; font-size: 12px; margin-top: 4px; display: block;"></span>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Tên đăng nhập <span style="color: #dc2626;">*</span></label>
+                <input type="text" class="form-control" value="@Model.Username" readonly style="background-color: #f9fafb; color: var(--text-muted);" />
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Email <span style="color: #dc2626;">*</span></label>
+                <input asp-for="Input.Email" type="email" class="form-control" placeholder="example@domain.com" />
+                <span asp-validation-for="Input.Email" style="color: #dc2626; font-size: 12px; margin-top: 4px; display: block;"></span>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Số điện thoại</label>
+                <input asp-for="Input.PhoneNumber" class="form-control" placeholder="Nhập số điện thoại" />
+                <span asp-validation-for="Input.PhoneNumber" style="color: #dc2626; font-size: 12px; margin-top: 4px; display: block;"></span>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Vai trò cố định <span style="color: #dc2626;">*</span></label>
+                <select asp-for="Input.RoleId" asp-items="Model.Roles" class="form-control">
+                    <option value="">-- Chọn vai trò --</option>
+                </select>
+                <span asp-validation-for="Input.RoleId" style="color: #dc2626; font-size: 12px; margin-top: 4px; display: block;"></span>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Trạng thái <span style="color: #dc2626;">*</span></label>
+                <select asp-for="Input.Status" class="form-control">
+                    <option value="ACTIVE">Đang hoạt động</option>
+                    <option value="LOCKED">Đã khóa</option>
+                    <option value="INACTIVE">Không hoạt động</option>
+                </select>
+                <span asp-validation-for="Input.Status" style="color: #dc2626; font-size: 12px; margin-top: 4px; display: block;"></span>
+            </div>
+        </div>
+    </div>
+
+    <div style="background-color: #f3e8ff; border: 1px solid #e9d5ff; border-radius: 8px; padding: 16px; margin-bottom: 24px; display: flex; align-items: center; gap: 12px;">
+        <div style="width: 8px; height: 8px; border-radius: 50%; background-color: #9333ea;"></div>
+        <div style="color: #7e22ce; font-size: 14px;">Mọi thay đổi vai trò và phạm vi truy cập được ghi nhận vào lịch sử quản trị tài khoản.</div>
+    </div>
+
+    <div style="display: flex; justify-content: flex-end; gap: 12px; margin-bottom: 40px;">
+        <a href="/Admin/Users" class="btn btn-text" style="color: var(--text-muted);">Hủy</a>
+        <button type="submit" class="btn" style="background-color: #27272a; color: white; border: none; padding: 8px 24px;">Lưu thay đổi</button>
+    </div>
+</form>

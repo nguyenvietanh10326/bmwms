@@ -21,4 +21,5 @@ public interface IUserRepository
     Task<List<AuditLog>> GetUserActivitiesAsync(long userId, int limit = 20);
     Task AddAsync(User user);
     Task<bool> CheckUsernameExistsAsync(string username);
+    Task<int> GetActiveSystemAdminCountAsync();
 }

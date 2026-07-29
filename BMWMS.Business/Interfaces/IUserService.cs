@@ -13,4 +13,5 @@ public interface IUserService
     Task<PagedResultDto<UserListResponseDto>> GetPagedListAsync(UserFilterDto filter);
     Task<UserDetailDto?> GetUserDetailAsync(long userId);
     Task<long> CreateUserAsync(CreateUserDto dto, string? ipAddress);
+    Task UpdateUserAsync(long targetUserId, UpdateUserDto dto, long editorId, string? ipAddress);
 }

@@ -298,4 +298,61 @@ public class UserService : IUserService
 
         return user.UserId;
     }
+
+    public async Task UpdateUserAsync(long targetUserId, UpdateUserDto dto, long editorId, string? ipAddress)
+    {
+        var user = await _userRepository.GetByIdAsync(targetUserId);
+        if (user == null)
+        {
+            throw new ArgumentException("Người dùng không tồn tại.");
+        }
+
+        if (await _userRepository.CheckEmailExistsAsync(dto.Email, targetUserId))
+        {
+            throw new ArgumentException("Email này đã được sử dụng.");
+        }
+
+        // BR-04: Cannot deactivate the last SYSTEM_ADMIN or lock yourself
+        if (dto.Status != "ACTIVE")
+        {
+            if (targetUserId == editorId)
+            {
+                throw new ArgumentException("Không thể tự vô hiệu hóa tài khoản của chính mình.");
+            }
+
+            if (user.Role.RoleCode == "SYSTEM_ADMIN" && user.Status == "ACTIVE")
+            {
+                var adminCount = await _userRepository.GetActiveSystemAdminCountAsync();
+                if (adminCount <= 1)
+                {
+                    throw new ArgumentException("Không thể vô hiệu hóa Quản trị viên hệ thống duy nhất còn lại.");
+                }
+            }
+        }
+
+        var oldValues = $"{{ \"FullName\": \"{user.FullName}\", \"Email\": \"{user.Email}\", \"PhoneNumber\": \"{user.PhoneNumber}\", \"RoleId\": {user.RoleId}, \"Status\": \"{user.Status}\" }}";
+        
+        user.FullName = dto.FullName;
+        user.Email = dto.Email;
+        user.PhoneNumber = dto.PhoneNumber;
+        user.RoleId = dto.RoleId;
+        user.Status = dto.Status;
+        user.UpdatedAt = DateTime.UtcNow;
+
+        await _userRepository.UpdateAsync(user);
+
+        var newValues = $"{{ \"FullName\": \"{user.FullName}\", \"Email\": \"{user.Email}\", \"PhoneNumber\": \"{user.PhoneNumber}\", \"RoleId\": {user.RoleId}, \"Status\": \"{user.Status}\" }}";
+
+        await _userRepository.AddAuditLogAsync(new AuditLog
+        {
+            UserId = editorId,
+            ActionType = "UPDATE_USER",
+            EntityName = "User",
+            EntityId = targetUserId.ToString(),
+            OldValuesJson = oldValues,
+            NewValuesJson = newValues,
+            IpAddress = ipAddress,
+            CreatedAt = DateTime.UtcNow
+        });
+    }
 }

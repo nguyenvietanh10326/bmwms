@@ -176,4 +176,11 @@ public class UserRepository : IUserRepository
         return await _context.Users
             .AnyAsync(u => u.Username.ToLower() == lowerUsername);
     }
+
+    public async Task<int> GetActiveSystemAdminCountAsync()
+    {
+        return await _context.Users
+            .Include(u => u.Role)
+            .CountAsync(u => u.Status == "ACTIVE" && u.Role.RoleCode == "SYSTEM_ADMIN");
+    }
 }
