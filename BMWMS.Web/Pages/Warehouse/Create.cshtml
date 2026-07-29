@@ -1,0 +1,137 @@
+﻿@page
+@model BMWMS.Web.Pages.Warehouse.CreateModel
+
+@{
+    Layout = "/Pages/Shared/Warehourse/_Layout.cshtml";
+    ViewData["Title"] = "Create Warehouse";
+}
+
+<!-- TOPBAR -->
+<div class="topbar">
+    <div class="breadcrumb">
+        <span>Warehouse Management</span>
+        <span class="sep">›</span>
+        <a asp-page="./Index" style="text-decoration: none; color: inherit;">Warehouses</a>
+        <span class="sep">›</span>
+        <span class="current">Create</span>
+    </div>
+
+    <div class="topbar-right">
+        <div class="topbar-icon-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                <path d="M13.73 21a2 2 0 01-3.46 0" />
+            </svg>
+            <span class="badge">3</span>
+        </div>
+
+        <div class="user-info">
+            <div class="avatar">NA</div>
+            <div class="user-details">
+                <div class="user-name">Nguyen Van A</div>
+                <div class="user-role">Warehouse Manager</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CONTENT -->
+<div class="content">
+
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <div>
+            <div class="page-title">Create Warehouse</div>
+            <div class="page-sub">Add a new warehouse to the system.</div>
+        </div>
+        <a asp-page="./Index" class="btn-create" style="background: #e2e8f0; color: #475569; text-decoration: none;">
+            Cancel & Back
+        </a>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div style="background-color: #fef2f2; border: 1px solid #fecaca; color: #dc2626; padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; font-size: 14px;">
+            @Model.ErrorMessage
+        </div>
+    }
+
+    <!-- FORM CARD -->
+    <div class="table-card" style="padding: 24px;">
+        <form method="post">
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
+
+                <!-- Code -->
+                <div>
+                    <label style="font-size: 13px; font-weight: 500; color: #334155; display: block; margin-bottom: 6px;">
+                        Warehouse Code <span style="color: #ef4444;">*</span>
+                    </label>
+                    <input asp-for="Warehouse.WarehouseCode" class="filter-input" placeholder="e.g. WH001" style="width: 100%; box-sizing: border-box;" required />
+                    <span asp-validation-for="Warehouse.WarehouseCode" style="color: #ef4444; font-size: 12px;"></span>
+                </div>
+
+                <!-- Name -->
+                <div>
+                    <label style="font-size: 13px; font-weight: 500; color: #334155; display: block; margin-bottom: 6px;">
+                        Warehouse Name <span style="color: #ef4444;">*</span>
+                    </label>
+                    <input asp-for="Warehouse.WarehouseName" class="filter-input" placeholder="e.g. Hanoi Central Warehouse" style="width: 100%; box-sizing: border-box;" required />
+                    <span asp-validation-for="Warehouse.WarehouseName" style="color: #ef4444; font-size: 12px;"></span>
+                </div>
+
+                <!-- Address -->
+                <div style="grid-column: span 2;">
+                    <label style="font-size: 13px; font-weight: 500; color: #334155; display: block; margin-bottom: 6px;">
+                        Address <span style="color: #ef4444;">*</span>
+                    </label>
+                    <input asp-for="Warehouse.Address" class="filter-input" placeholder="Enter full address" style="width: 100%; box-sizing: border-box;" required />
+                    <span asp-validation-for="Warehouse.Address" style="color: #ef4444; font-size: 12px;"></span>
+                </div>
+
+                <!-- Phone -->
+                <div>
+                    <label style="font-size: 13px; font-weight: 500; color: #334155; display: block; margin-bottom: 6px;">
+                        Phone Number
+                    </label>
+                    <input asp-for="Warehouse.PhoneNumber" class="filter-input" placeholder="e.g. 0987654321" style="width: 100%; box-sizing: border-box;" />
+                </div>
+
+                <!-- Status -->
+                <div>
+                    <label style="font-size: 13px; font-weight: 500; color: #334155; display: block; margin-bottom: 6px;">
+                        Status
+                    </label>
+                    <select asp-for="Warehouse.Status" class="filter-select" style="width: 100%; box-sizing: border-box;">
+                        <option value="Active">Active</option>
+                        <option value="Inactive">Inactive</option>
+                    </select>
+                </div>
+
+                <!-- IsPrimary Checkbox -->
+                <div style="grid-column: span 2; margin-top: 10px;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; color: #334155;">
+                        <input type="checkbox" asp-for="Warehouse.IsPrimary" style="width: 16px; height: 16px; accent-color: #2563eb;" />
+                        Set as Primary Warehouse
+                    </label>
+                </div>
+
+            </div>
+
+            <!-- BUTTONS -->
+            <div style="margin-top: 28px; padding-top: 20px; border-top: 1px solid #f1f5f9; display: flex; justify-content: flex-end; gap: 12px;">
+                <a asp-page="./Index" class="btn-create" style="background: #e2e8f0; color: #475569; text-decoration: none;">
+                    Cancel
+                </a>
+                <button type="submit" class="btn-create">
+                    Save Warehouse
+                </button>
+            </div>
+        </form>
+    </div>
+
+</div>
+
+<!-- FOOTER -->
+<div class="page-footer">
+    <span>© 2024 BMWMS. All rights reserved.</span>
+    <span>Version 1.0.0</span>
+</div>
