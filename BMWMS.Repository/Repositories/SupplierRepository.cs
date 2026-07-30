@@ -86,4 +86,15 @@ public class SupplierRepository : ISupplierRepository
         await _context.AuditLogs.AddAsync(log);
         await _context.SaveChangesAsync();
     }
+
+    public async Task<bool> HasPurchaseReferencesAsync(long supplierId)
+    {
+        return await _context.PurchaseOrders.AnyAsync(po => po.SupplierId == supplierId);
+    }
+
+    public async Task UpdateAsync(Supplier supplier)
+    {
+        _context.Suppliers.Update(supplier);
+        await _context.SaveChangesAsync();
+    }
 }

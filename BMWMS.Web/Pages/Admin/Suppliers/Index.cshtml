@@ -3,17 +3,23 @@
 @{
     Layout = "_AdminLayout";
     ViewData["Title"] = "Xem danh sách nhà cung cấp";
-    ViewData["HeaderTitle"] = "Nhân viên mua hàng";
+    ViewData["HeaderTitle"] = HttpContext.Session.GetString("RoleName") ?? "Nhân viên mua hàng";
     ViewData["FooterVersion"] = "Full coverage · UC01-UC63";
 }
 
 <div class="page-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
     <div>
         <div class="page-header-title">Xem danh sách nhà cung cấp</div>
-        <div class="page-header-sub">Tìm kiếm và xem các nhà cung cấp đã đăng ký · Actor chính: Nhân viên mua hàng</div>
+        <div class="page-header-sub">Tìm kiếm và xem các nhà cung cấp đã đăng ký · Actor chính: @(HttpContext.Session.GetString("RoleName") ?? "Nhân viên mua hàng")</div>
     </div>
     <div>
-        <a href="/Admin/Suppliers/Create" class="btn btn-primary" style="background-color: #27272a; color: white; border: none; padding: 10px 20px;">Tạo nhà cung cấp</a>
+        @{
+            var canEdit = new[] { "SYSTEM_ADMIN", "WAREHOUSE_MANAGER", "PURCHASING_STAFF" }.Contains(HttpContext.Session.GetString("RoleCode"));
+        }
+        @if (canEdit)
+        {
+            <a href="/Admin/Suppliers/Create" class="btn btn-primary" style="background-color: #27272a; color: white; border: none; padding: 10px 20px;">Tạo nhà cung cấp</a>
+        }
     </div>
 </div>
 

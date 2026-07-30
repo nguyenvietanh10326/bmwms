@@ -3,14 +3,14 @@
 @{
     Layout = "_AdminLayout";
     ViewData["Title"] = "Xem chi tiết nhà cung cấp";
-    ViewData["HeaderTitle"] = "Nhân viên mua hàng";
+    ViewData["HeaderTitle"] = HttpContext.Session.GetString("RoleName") ?? "Nhân viên mua hàng";
     ViewData["FooterVersion"] = "Full coverage · UC01-UC63";
 }
 
 <div class="page-header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px;">
     <div>
         <div class="page-header-title">Xem chi tiết nhà cung cấp</div>
-        <div class="page-header-sub">Xem hồ sơ, liên hệ, sản phẩm và trạng thái nhà cung cấp &middot; Actor chính: Nhân viên mua hàng</div>
+        <div class="page-header-sub">Xem hồ sơ, liên hệ, sản phẩm và trạng thái nhà cung cấp &middot; Actor chính: @(HttpContext.Session.GetString("RoleName") ?? "Nhân viên mua hàng")</div>
     </div>
     <div style="font-size: 16px; color: var(--text-main);">
         @if (Model.Supplier.Status == "ACTIVE")
@@ -121,7 +121,13 @@
 </div>
 
 <div style="display: flex; justify-content: flex-end; gap: 12px;">
-    <a href="/Admin/Suppliers" class="btn" style="padding: 10px 24px; color: var(--text-main); text-decoration: none; font-weight: 500;">Hủy</a>
-    <button type="button" class="btn" style="background-color: #e4e4e7; color: #a1a1aa; border: 1px solid #d4d4d8; padding: 10px 24px; border-radius: 6px; font-weight: 500; cursor: not-allowed;" disabled>Lưu nháp</button>
-    <button type="button" class="btn btn-primary" style="background-color: #27272a; color: white; border: none; padding: 10px 24px; border-radius: 6px; font-weight: 500;">Chỉnh sửa</button>
+    <a href="/Admin/Suppliers" class="btn" style="padding: 10px 24px; color: var(--text-main); text-decoration: none; font-weight: 500;">Quay lại</a>
+    @{
+        var canEdit = new[] { "SYSTEM_ADMIN", "WAREHOUSE_MANAGER", "PURCHASING_STAFF" }.Contains(HttpContext.Session.GetString("RoleCode"));
+    }
+    @if (canEdit)
+    {
+        <button type="button" class="btn" style="background-color: #e4e4e7; color: #a1a1aa; border: 1px solid #d4d4d8; padding: 10px 24px; border-radius: 6px; font-weight: 500; cursor: not-allowed;" disabled>Lưu nháp</button>
+        <a href="/Admin/Suppliers/Edit/@Model.Supplier.SupplierCode" class="btn btn-primary" style="background-color: #27272a; color: white; border: none; padding: 10px 24px; border-radius: 6px; font-weight: 500; text-decoration: none;">Chỉnh sửa</a>
+    }
 </div>

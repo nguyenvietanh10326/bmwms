@@ -17,7 +17,7 @@ public class SuppliersController : ControllerBase
         _supplierService = supplierService;
     }
 
-    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF")]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF,WAREHOUSE_STAFF,SALES_STAFF")]
     [HttpGet]
     public async Task<IActionResult> GetSuppliers([FromQuery] SupplierFilterDto filter)
     {
@@ -32,7 +32,7 @@ public class SuppliersController : ControllerBase
         }
     }
 
-    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF")]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF,WAREHOUSE_STAFF,SALES_STAFF")]
     [HttpGet("{supplierCode}")]
     public async Task<IActionResult> GetSupplierDetail(string supplierCode)
     {
@@ -64,6 +64,32 @@ public class SuppliersController : ControllerBase
             return Ok(new { SupplierId = supplierId });
         }
         catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ex.Message);
+        }
+    }
+
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF")]
+    [HttpPut("{supplierCode}")]
+    public async Task<IActionResult> UpdateSupplier(string supplierCode, [FromBody] BMWMS.Business.DTOs.Supplier.SupplierUpdateRequestDto dto)
+    {
+        try
+        {
+            var userId = long.Parse(User.FindFirst("UserId")?.Value ?? "0");
+            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+
+            await _supplierService.UpdateSupplierAsync(supplierCode, dto, userId, ipAddress);
+            return NoContent();
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (InvalidOperationException ex)
         {
             return BadRequest(ex.Message);
         }

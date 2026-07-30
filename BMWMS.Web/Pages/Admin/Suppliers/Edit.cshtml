@@ -1,19 +1,26 @@
-@page
-@model BMWMS.Web.Pages.Admin.Suppliers.CreateModel
+@page "{supplierCode}"
+@model BMWMS.Web.Pages.Admin.Suppliers.EditModel
 @{
     Layout = "_AdminLayout";
-    ViewData["Title"] = "Tạo nhà cung cấp";
+    ViewData["Title"] = "Chỉnh sửa nhà cung cấp";
     ViewData["HeaderTitle"] = HttpContext.Session.GetString("RoleName") ?? "Nhân viên mua hàng";
     ViewData["FooterVersion"] = "Full coverage · UC01-UC63";
 }
 
 <div class="page-header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px;">
     <div>
-        <div class="page-header-title">Tạo nhà cung cấp</div>
-        <div class="page-header-sub">Thêm mới một hồ sơ nhà cung cấp vào hệ thống &middot; Actor chính: @(HttpContext.Session.GetString("RoleName") ?? "Nhân viên mua hàng")</div>
+        <div class="page-header-title">Chỉnh sửa nhà cung cấp</div>
+        <div class="page-header-sub">Cập nhật thông tin được phép của nhà cung cấp &middot; Actor chính: @(HttpContext.Session.GetString("RoleName") ?? "Nhân viên mua hàng")</div>
     </div>
     <div style="font-size: 16px; color: var(--text-main);">
-        <span>Đang hoạt động</span>
+        @if (Model.Input.Status == "ACTIVE")
+        {
+            <span>Đang hoạt động</span>
+        }
+        else
+        {
+            <span>Tạm ngừng</span>
+        }
     </div>
 </div>
 
@@ -32,48 +39,51 @@
         <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; margin-bottom: 24px;">
             <div>
                 <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px; color: var(--text-main);">Mã nhà cung cấp *</label>
-                <input type="text" asp-for="Input.SupplierCode" class="form-control" placeholder="SUP-001" style="width: 100%; box-sizing: border-box; padding: 10px 12px;" />
+                <input type="text" asp-for="Input.SupplierCode" class="form-control" style="width: 100%; box-sizing: border-box; padding: 10px 12px;" />
             </div>
             <div>
                 <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px; color: var(--text-main);">Tên nhà cung cấp *</label>
-                <input type="text" asp-for="Input.SupplierName" class="form-control" placeholder="Tên công ty" style="width: 100%; box-sizing: border-box; padding: 10px 12px;" />
+                <input type="text" asp-for="Input.SupplierName" class="form-control" style="width: 100%; box-sizing: border-box; padding: 10px 12px;" />
             </div>
             <div>
                 <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px; color: var(--text-main);">Mã số thuế *</label>
-                <input type="text" asp-for="Input.TaxCode" class="form-control" placeholder="Mã số thuế" style="width: 100%; box-sizing: border-box; padding: 10px 12px;" />
+                <input type="text" asp-for="Input.TaxCode" class="form-control" style="width: 100%; box-sizing: border-box; padding: 10px 12px;" />
             </div>
             <div>
                 <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px; color: var(--text-main);">Số điện thoại *</label>
-                <input type="text" asp-for="Input.PhoneNumber" class="form-control" placeholder="Số điện thoại" style="width: 100%; box-sizing: border-box; padding: 10px 12px;" />
+                <input type="text" asp-for="Input.PhoneNumber" class="form-control" style="width: 100%; box-sizing: border-box; padding: 10px 12px;" />
             </div>
 
             <div>
                 <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px; color: var(--text-main);">Email</label>
-                <input type="text" asp-for="Input.Email" class="form-control" placeholder="Email liên hệ" style="width: 100%; box-sizing: border-box; padding: 10px 12px;" />
+                <input type="text" asp-for="Input.Email" class="form-control" style="width: 100%; box-sizing: border-box; padding: 10px 12px;" />
             </div>
             <div>
                 <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px; color: var(--text-main);">Địa chỉ *</label>
-                <input type="text" asp-for="Input.Address" class="form-control" placeholder="Địa chỉ trụ sở" style="width: 100%; box-sizing: border-box; padding: 10px 12px;" />
+                <input type="text" asp-for="Input.Address" class="form-control" style="width: 100%; box-sizing: border-box; padding: 10px 12px;" />
             </div>
             <div>
                 <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px; color: var(--text-main);">Người liên hệ *</label>
-                <input type="text" asp-for="Input.RepresentativeName" class="form-control" placeholder="Người đại diện" style="width: 100%; box-sizing: border-box; padding: 10px 12px;" />
+                <input type="text" asp-for="Input.RepresentativeName" class="form-control" style="width: 100%; box-sizing: border-box; padding: 10px 12px;" />
             </div>
             <div>
                 <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px; color: var(--text-main);">Trạng thái</label>
-                <input type="text" class="form-control" value="Đang hoạt động" disabled style="width: 100%; box-sizing: border-box; background-color: #f9fafb; color: var(--text-main); border: 1px solid var(--border-color); padding: 10px 12px; border-radius: 6px;" />
+                <select asp-for="Input.Status" class="form-control" style="width: 100%; box-sizing: border-box; padding: 10px 12px;">
+                    <option value="ACTIVE">Đang hoạt động</option>
+                    <option value="INACTIVE">Tạm ngừng</option>
+                </select>
             </div>
         </div>
     </div>
 
     <div style="background-color: #faf5ff; border: 1px solid #e9d5ff; border-radius: 6px; padding: 16px; margin-bottom: 24px; display: flex; align-items: center; gap: 12px; color: #7e22ce; font-size: 14px;">
         <div style="width: 8px; height: 8px; background-color: #a855f7; border-radius: 50%;"></div>
-        Nhà cung cấp là dữ liệu danh mục; lịch sử nhập được liên kết qua đơn mua và lệnh nhập kho. Sau khi tạo mới, bạn có thể thêm sản phẩm cung ứng.
+        Nhà cung cấp là dữ liệu danh mục; lịch sử nhập được liên kết qua đơn mua và lệnh nhập kho. 
     </div>
 
     <div style="display: flex; justify-content: flex-end; gap: 12px;">
-        <a href="/Admin/Suppliers" class="btn" style="padding: 10px 24px; color: var(--text-main); text-decoration: none; font-weight: 500;">Hủy</a>
+        <a href="/Admin/Suppliers/Detail/@RouteData.Values["supplierCode"]" class="btn" style="padding: 10px 24px; color: var(--text-main); text-decoration: none; font-weight: 500;">Hủy</a>
         <button type="button" class="btn" style="background-color: #e4e4e7; color: #a1a1aa; border: 1px solid #d4d4d8; padding: 10px 24px; border-radius: 6px; font-weight: 500; cursor: not-allowed;" disabled>Lưu nháp</button>
-        <button type="submit" class="btn btn-primary" style="background-color: #27272a; color: white; border: none; padding: 10px 24px; border-radius: 6px; font-weight: 500;">Tạo nhà cung cấp</button>
+        <button type="submit" class="btn btn-primary" style="background-color: #27272a; color: white; border: none; padding: 10px 24px; border-radius: 6px; font-weight: 500;">Lưu thay đổi</button>
     </div>
 </form>

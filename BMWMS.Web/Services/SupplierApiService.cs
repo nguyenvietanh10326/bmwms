@@ -66,4 +66,18 @@ public class SupplierApiService
         var error = await response.Content.ReadAsStringAsync();
         return (false, error);
     }
+
+    public async Task<(bool Success, string ErrorMessage)> UpdateSupplierAsync(string supplierCode, SupplierUpdateRequestModel model)
+    {
+        var content = new StringContent(JsonSerializer.Serialize(model, _jsonOptions), System.Text.Encoding.UTF8, "application/json");
+        var response = await _httpClient.PutAsync($"api/suppliers/{supplierCode}", content);
+
+        if (response.IsSuccessStatusCode)
+        {
+            return (true, string.Empty);
+        }
+
+        var error = await response.Content.ReadAsStringAsync();
+        return (false, error);
+    }
 }

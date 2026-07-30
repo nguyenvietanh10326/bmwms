@@ -3,14 +3,14 @@
 @{
     Layout = "_AdminLayout";
     ViewData["Title"] = "Người dùng";
-    ViewData["HeaderTitle"] = "Quản trị hệ thống";
+    ViewData["HeaderTitle"] = HttpContext.Session.GetString("RoleName") ?? "Quản trị hệ thống";
     ViewData["FooterVersion"] = "Full coverage · UC01-UC63";
 }
 
 <div class="page-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
     <div>
         <div class="page-header-title">Xem danh sách người dùng</div>
-        <div class="page-header-sub">Tìm kiếm và xem tài khoản người dùng nội bộ · Actor chính: Quản trị hệ thống</div>
+        <div class="page-header-sub">Tìm kiếm và xem tài khoản người dùng nội bộ · Actor chính: @(HttpContext.Session.GetString("RoleName") ?? "Quản trị hệ thống")</div>
     </div>
     <a href="/Admin/Users/Create" class="btn btn-primary" style="white-space: nowrap;">
         <i class="ri-user-add-line" style="margin-right: 6px;"></i>Tạo người dùng

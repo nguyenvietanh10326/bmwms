@@ -11,4 +11,6 @@ public interface ISupplierRepository
     Task<bool> CheckTaxCodeExistsAsync(string taxCode);
     Task AddAsync(Supplier supplier);
     Task AddAuditLogAsync(AuditLog log);
+    Task<bool> HasPurchaseReferencesAsync(long supplierId);
+    Task UpdateAsync(Supplier supplier);
 }

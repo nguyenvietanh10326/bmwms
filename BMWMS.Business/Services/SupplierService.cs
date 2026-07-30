@@ -122,4 +122,67 @@ public class SupplierService : ISupplierService
 
         return supplier.SupplierId;
     }
+
+    public async Task UpdateSupplierAsync(string currentSupplierCode, SupplierUpdateRequestDto dto, long updaterId, string? ipAddress)
+    {
+        var supplier = await _supplierRepository.GetSupplierByCodeAsync(currentSupplierCode);
+        if (supplier == null)
+        {
+            throw new ArgumentException("Nhà cung cấp không tồn tại.");
+        }
+
+        if (supplier.Status != "ACTIVE" && supplier.Status != "INACTIVE")
+        {
+            throw new InvalidOperationException("Không thể chỉnh sửa nhà cung cấp ở trạng thái hiện tại.");
+        }
+
+        if (supplier.SupplierCode != dto.SupplierCode)
+        {
+            if (await _supplierRepository.HasPurchaseReferencesAsync(supplier.SupplierId))
+            {
+                throw new InvalidOperationException("Không thể thay đổi Mã nhà cung cấp vì đã có dữ liệu đơn mua liên kết.");
+            }
+            if (await _supplierRepository.CheckSupplierCodeExistsAsync(dto.SupplierCode))
+            {
+                throw new ArgumentException("Mã nhà cung cấp mới đã tồn tại.");
+            }
+        }
+
+        if (supplier.TaxCode != dto.TaxCode)
+        {
+            if (await _supplierRepository.CheckTaxCodeExistsAsync(dto.TaxCode))
+            {
+                throw new ArgumentException("Mã số thuế mới đã tồn tại.");
+            }
+        }
+
+        var oldValues = $"{{ \"SupplierCode\": \"{supplier.SupplierCode}\", \"SupplierName\": \"{supplier.SupplierName}\", \"TaxCode\": \"{supplier.TaxCode}\", \"PhoneNumber\": \"{supplier.PhoneNumber}\", \"Email\": \"{supplier.Email}\", \"Address\": \"{supplier.Address}\", \"RepresentativeName\": \"{supplier.RepresentativeName}\", \"Status\": \"{supplier.Status}\" }}";
+
+        supplier.SupplierCode = dto.SupplierCode;
+        supplier.SupplierName = dto.SupplierName;
+        supplier.TaxCode = dto.TaxCode;
+        supplier.PhoneNumber = dto.PhoneNumber;
+        supplier.Email = dto.Email;
+        supplier.Address = dto.Address;
+        supplier.RepresentativeName = dto.RepresentativeName;
+        supplier.Status = dto.Status;
+        supplier.UpdatedAt = DateTime.UtcNow;
+        supplier.UpdatedByUserId = updaterId;
+
+        await _supplierRepository.UpdateAsync(supplier);
+
+        var newValues = $"{{ \"SupplierCode\": \"{supplier.SupplierCode}\", \"SupplierName\": \"{supplier.SupplierName}\", \"TaxCode\": \"{supplier.TaxCode}\", \"PhoneNumber\": \"{supplier.PhoneNumber}\", \"Email\": \"{supplier.Email}\", \"Address\": \"{supplier.Address}\", \"RepresentativeName\": \"{supplier.RepresentativeName}\", \"Status\": \"{supplier.Status}\" }}";
+
+        await _supplierRepository.AddAuditLogAsync(new Repository.Models.AuditLog
+        {
+            UserId = updaterId,
+            ActionType = "UPDATE_SUPPLIER",
+            EntityName = "Supplier",
+            EntityId = supplier.SupplierId.ToString(),
+            OldValuesJson = oldValues,
+            NewValuesJson = newValues,
+            IpAddress = ipAddress,
+            CreatedAt = DateTime.UtcNow
+        });
+    }
 }
