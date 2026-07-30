@@ -7,4 +7,8 @@ public interface ISupplierRepository
     Task<(List<Supplier> Items, int TotalCount)> GetPagedListAsync(string? keyword, string? status, int pageIndex, int pageSize);
     Task<Supplier?> GetSupplierByCodeAsync(string supplierCode);
     Task<decimal> GetSupplierYtdInboundValueAsync(long supplierId, int year);
+    Task<bool> CheckSupplierCodeExistsAsync(string code);
+    Task<bool> CheckTaxCodeExistsAsync(string taxCode);
+    Task AddAsync(Supplier supplier);
+    Task AddAuditLogAsync(AuditLog log);
 }

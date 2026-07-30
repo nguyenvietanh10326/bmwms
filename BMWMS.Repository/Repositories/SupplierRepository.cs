@@ -64,4 +64,26 @@ public class SupplierRepository : ISupplierRepository
             .Where(pod => pod.PurchaseOrder.SupplierId == supplierId && pod.PurchaseOrder.OrderDate.Year == year)
             .SumAsync(pod => pod.OrderedQuantity * (pod.UnitPrice ?? 0));
     }
+
+    public async Task<bool> CheckSupplierCodeExistsAsync(string code)
+    {
+        return await _context.Suppliers.AnyAsync(s => s.SupplierCode == code);
+    }
+
+    public async Task<bool> CheckTaxCodeExistsAsync(string taxCode)
+    {
+        return await _context.Suppliers.AnyAsync(s => s.TaxCode == taxCode);
+    }
+
+    public async Task AddAsync(Supplier supplier)
+    {
+        await _context.Suppliers.AddAsync(supplier);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task AddAuditLogAsync(AuditLog log)
+    {
+        await _context.AuditLogs.AddAsync(log);
+        await _context.SaveChangesAsync();
+    }
 }

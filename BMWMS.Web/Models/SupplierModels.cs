@@ -1,3 +1,7 @@
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+
 namespace BMWMS.Web.Models;
 
 public class SupplierFilterModel
@@ -48,6 +52,35 @@ public class SupplierDetailResponseModel
     public int PreferredProducts { get; set; }
 
     public List<SupplierProductModel> SuppliedProducts { get; set; } = new();
+}
+
+public class SupplierCreateRequestModel
+{
+    [Required(ErrorMessage = "Vui lòng nhập Mã nhà cung cấp")]
+    [RegularExpression(@"^[A-Z0-9_\-]{2,30}$", ErrorMessage = "Mã nhà cung cấp từ 2-30 ký tự, chỉ gồm chữ in hoa, số, dấu gạch ngang hoặc gạch dưới")]
+    public string SupplierCode { get; set; } = null!;
+
+    [Required(ErrorMessage = "Vui lòng nhập Tên nhà cung cấp")]
+    [StringLength(200, MinimumLength = 2, ErrorMessage = "Tên nhà cung cấp từ 2 đến 200 ký tự")]
+    public string SupplierName { get; set; } = null!;
+
+    [Required(ErrorMessage = "Vui lòng nhập Mã số thuế")]
+    [StringLength(20, MinimumLength = 10, ErrorMessage = "Mã số thuế từ 10 đến 20 ký tự")]
+    public string TaxCode { get; set; } = null!;
+
+    [Required(ErrorMessage = "Vui lòng nhập Số điện thoại")]
+    [StringLength(20, ErrorMessage = "Số điện thoại tối đa 20 ký tự")]
+    public string PhoneNumber { get; set; } = null!;
+
+    public string? Email { get; set; }
+
+    [Required(ErrorMessage = "Vui lòng nhập Địa chỉ")]
+    [StringLength(500, ErrorMessage = "Địa chỉ tối đa 500 ký tự")]
+    public string Address { get; set; } = null!;
+
+    [Required(ErrorMessage = "Vui lòng nhập Người liên hệ")]
+    [StringLength(150, ErrorMessage = "Người liên hệ tối đa 150 ký tự")]
+    public string RepresentativeName { get; set; } = null!;
 }
 
 public class PagedResultModel<T>

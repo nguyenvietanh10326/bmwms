@@ -50,4 +50,26 @@ public class SuppliersController : ControllerBase
             return StatusCode(500, ex.Message);
         }
     }
+
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF")]
+    [HttpPost]
+    public async Task<IActionResult> CreateSupplier([FromBody] BMWMS.Business.DTOs.Supplier.SupplierCreateRequestDto dto)
+    {
+        try
+        {
+            var userId = long.Parse(User.FindFirst("UserId")?.Value ?? "0");
+            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+
+            var supplierId = await _supplierService.CreateSupplierAsync(dto, userId, ipAddress);
+            return Ok(new { SupplierId = supplierId });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ex.Message);
+        }
+    }
 }

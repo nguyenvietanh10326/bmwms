@@ -52,4 +52,18 @@ public class SupplierApiService
 
         return null;
     }
+
+    public async Task<(bool Success, string ErrorMessage)> CreateSupplierAsync(SupplierCreateRequestModel model)
+    {
+        var content = new StringContent(JsonSerializer.Serialize(model, _jsonOptions), System.Text.Encoding.UTF8, "application/json");
+        var response = await _httpClient.PostAsync("api/suppliers", content);
+
+        if (response.IsSuccessStatusCode)
+        {
+            return (true, string.Empty);
+        }
+
+        var error = await response.Content.ReadAsStringAsync();
+        return (false, error);
+    }
 }

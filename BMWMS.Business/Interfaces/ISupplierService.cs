@@ -7,4 +7,5 @@ public interface ISupplierService
 {
     Task<PagedResultDto<SupplierListResponseDto>> GetPagedListAsync(SupplierFilterDto filter);
     Task<SupplierDetailResponseDto?> GetSupplierDetailAsync(string supplierCode);
+    Task<long> CreateSupplierAsync(SupplierCreateRequestDto dto, long creatorId, string? ipAddress);
 }

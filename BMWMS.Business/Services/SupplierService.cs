@@ -77,4 +77,49 @@ public class SupplierService : ISupplierService
             }).ToList()
         };
     }
+
+    public async Task<long> CreateSupplierAsync(SupplierCreateRequestDto dto, long creatorId, string? ipAddress)
+    {
+        // Validation
+        if (await _supplierRepository.CheckSupplierCodeExistsAsync(dto.SupplierCode))
+        {
+            throw new ArgumentException("Mã nhà cung cấp đã tồn tại.");
+        }
+
+        if (await _supplierRepository.CheckTaxCodeExistsAsync(dto.TaxCode))
+        {
+            throw new ArgumentException("Mã số thuế đã tồn tại.");
+        }
+
+        var supplier = new Repository.Models.Supplier
+        {
+            SupplierCode = dto.SupplierCode,
+            SupplierName = dto.SupplierName,
+            TaxCode = dto.TaxCode,
+            PhoneNumber = dto.PhoneNumber,
+            Email = dto.Email,
+            Address = dto.Address,
+            RepresentativeName = dto.RepresentativeName,
+            Status = "ACTIVE",
+            CreatedByUserId = creatorId,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        await _supplierRepository.AddAsync(supplier);
+
+        // Audit Log
+        var newValues = $"{{ \"SupplierCode\": \"{supplier.SupplierCode}\", \"SupplierName\": \"{supplier.SupplierName}\", \"TaxCode\": \"{supplier.TaxCode}\", \"Status\": \"{supplier.Status}\" }}";
+        await _supplierRepository.AddAuditLogAsync(new Repository.Models.AuditLog
+        {
+            UserId = creatorId,
+            ActionType = "CREATE_SUPPLIER",
+            EntityName = "Supplier",
+            EntityId = supplier.SupplierId.ToString(),
+            NewValuesJson = newValues,
+            IpAddress = ipAddress,
+            CreatedAt = DateTime.UtcNow
+        });
+
+        return supplier.SupplierId;
+    }
 }
