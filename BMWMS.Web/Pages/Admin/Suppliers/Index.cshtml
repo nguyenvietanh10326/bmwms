@@ -1,0 +1,127 @@
+@page
+@model BMWMS.Web.Pages.Admin.Suppliers.IndexModel
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Xem danh sách nhà cung cấp";
+    ViewData["HeaderTitle"] = "Nhân viên mua hàng";
+    ViewData["FooterVersion"] = "Full coverage · UC01-UC63";
+}
+
+<div class="page-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
+    <div>
+        <div class="page-header-title">Xem danh sách nhà cung cấp</div>
+        <div class="page-header-sub">Tìm kiếm và xem các nhà cung cấp đã đăng ký · Actor chính: Nhân viên mua hàng</div>
+    </div>
+    <div>
+        <a href="#" class="btn btn-primary" style="background-color: #27272a; color: white; border: none; padding: 10px 20px;">Tạo nhà cung cấp</a>
+    </div>
+</div>
+
+<div class="form-card" style="padding: 24px;">
+    <form method="get" style="display: flex; gap: 16px; margin-bottom: 32px; flex-wrap: wrap;">
+        <div style="flex: 1; min-width: 300px; position: relative;">
+            <i class="ri-search-line" style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--text-muted);"></i>
+            <input type="text" asp-for="Filter.Keyword" class="form-control" placeholder="Tìm mã hoặc tên nhà cung cấp" style="padding-left: 44px; width: 100%; box-sizing: border-box;" />
+        </div>
+        
+        <div style="width: 200px;">
+            <select asp-for="Filter.Status" class="form-control">
+                <option value="">Tất cả trạng thái</option>
+                <option value="ACTIVE">Đang hoạt động</option>
+                <option value="INACTIVE">Tạm ngừng</option>
+            </select>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="background-color: #27272a; color: white; border: none; padding: 0 24px;">Tìm kiếm</button>
+        <a href="/Admin/Suppliers" class="btn" style="background-color: #e4e4e7; color: #27272a; border: 1px solid #d4d4d8; padding: 10px 24px; text-decoration: none;">Đặt lại</a>
+    </form>
+
+    <div style="overflow-x: auto;">
+        <table class="table" style="width: 100%; min-width: 1000px;">
+            <thead>
+                <tr>
+                    <th style="text-align: left;">Mã NCC</th>
+                    <th style="text-align: left;">Nhà cung cấp</th>
+                    <th style="text-align: left;">Liên hệ</th>
+                    <th style="text-align: left;">Sản phẩm</th>
+                    <th style="text-align: left;">Trạng thái</th>
+                    <th style="text-align: left;">Cập nhật</th>
+                    <th style="text-align: left;">Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Suppliers.Items.Any())
+                {
+                    foreach (var supplier in Model.Suppliers.Items)
+                    {
+                        <tr>
+                            <td style="color: #2563eb; font-weight: 500;">@supplier.SupplierCode</td>
+                            <td style="color: var(--text-main);">@supplier.SupplierName</td>
+                            <td style="color: var(--text-muted);">@supplier.RepresentativeName</td>
+                            <td style="color: var(--text-muted);">@supplier.SuppliedProductCount sản phẩm</td>
+                            <td>
+                                @if (supplier.Status == "ACTIVE")
+                                {
+                                    <span style="display: inline-flex; align-items: center; padding: 4px 12px; background-color: #dcfce7; color: #16a34a; border-radius: 100px; font-size: 13px; font-weight: 500;">Đang hoạt động</span>
+                                }
+                                else
+                                {
+                                    <span style="display: inline-flex; align-items: center; padding: 4px 12px; background-color: #f3f4f6; color: #4b5563; border-radius: 100px; font-size: 13px; font-weight: 500;">Tạm ngừng</span>
+                                }
+                            </td>
+                            <td style="color: var(--text-muted);">@(supplier.UpdatedAt?.ToString("dd/MM/yyyy") ?? "-")</td>
+                            <td>
+                                <a href="#" style="color: #2563eb; text-decoration: none; font-size: 14px;">Xem chi tiết</a>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 32px; color: var(--text-muted);">
+                            Không có nhà cung cấp nào phù hợp với bộ lọc hiện tại.
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    @if (Model.Suppliers.TotalPages > 1)
+    {
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--border-color);">
+            <div style="color: var(--text-muted); font-size: 14px;">
+                Hiển thị @(((Model.Suppliers.PageIndex - 1) * Model.Suppliers.PageSize) + 1)–@(Math.Min(Model.Suppliers.PageIndex * Model.Suppliers.PageSize, Model.Suppliers.TotalCount)) trong @Model.Suppliers.TotalCount bản ghi
+            </div>
+            
+            <div style="display: flex; gap: 8px;">
+                @if (Model.Suppliers.PageIndex > 1)
+                {
+                    <a href="?Keyword=@Model.Filter.Keyword&Status=@Model.Filter.Status&PageIndex=@(Model.Suppliers.PageIndex - 1)" class="btn btn-text" style="padding: 6px 12px; color: #2563eb;">&lsaquo;</a>
+                }
+                
+                @for (int i = 1; i <= Model.Suppliers.TotalPages; i++)
+                {
+                    if (i == Model.Suppliers.PageIndex)
+                    {
+                        <span class="btn" style="padding: 6px 12px; background-color: #e0e7ff; color: #4338ca; border-radius: 4px; font-weight: 600;">@i</span>
+                    }
+                    else if (i <= 4 || i == Model.Suppliers.TotalPages || Math.Abs(i - Model.Suppliers.PageIndex) <= 1)
+                    {
+                        <a href="?Keyword=@Model.Filter.Keyword&Status=@Model.Filter.Status&PageIndex=@i" class="btn btn-text" style="padding: 6px 12px; color: #2563eb; text-decoration: none;">@i</a>
+                    }
+                    else if (i == 5 && Model.Suppliers.PageIndex > 4)
+                    {
+                        <span style="padding: 6px; color: var(--text-muted);">...</span>
+                    }
+                }
+
+                @if (Model.Suppliers.PageIndex < Model.Suppliers.TotalPages)
+                {
+                    <a href="?Keyword=@Model.Filter.Keyword&Status=@Model.Filter.Status&PageIndex=@(Model.Suppliers.PageIndex + 1)" class="btn btn-text" style="padding: 6px 12px; color: #2563eb;">&rsaquo;</a>
+                }
+            </div>
+        </div>
+    }
+</div>

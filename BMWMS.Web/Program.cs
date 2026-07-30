@@ -35,6 +35,7 @@ builder.Services.AddScoped<CategoryApiService>();
 builder.Services.AddScoped<AuthApiService>();
 builder.Services.AddScoped<UserApiService>();
 builder.Services.AddScoped<RoleApiService>();
+builder.Services.AddScoped<SupplierApiService>();
 
 var app = builder.Build();
 
