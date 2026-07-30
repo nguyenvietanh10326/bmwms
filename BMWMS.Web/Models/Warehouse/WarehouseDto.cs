@@ -25,7 +25,7 @@ namespace BMWMS.Web.Models.Warehouse
         [Phone(ErrorMessage = "Số điện thoại không đúng định dạng.")]
         [StringLength(20, ErrorMessage = "Số điện thoại không vượt quá 20 ký tự.")]
         public string? PhoneNumber { get; set; }
-
+        public string Status { get; set; } = "Active";
         public bool IsPrimary { get; set; } = false;
     }
 
