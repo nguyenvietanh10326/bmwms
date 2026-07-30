@@ -185,4 +185,38 @@ public class SupplierService : ISupplierService
             CreatedAt = DateTime.UtcNow
         });
     }
+
+    public async Task<PagedResultDto<SupplierProductResponseDto>> GetSupplierProductsAsync(string supplierCode, SupplierProductFilterDto filter)
+    {
+        var supplier = await _supplierRepository.GetSupplierByCodeAsync(supplierCode);
+        if (supplier == null)
+        {
+            throw new ArgumentException($"Nhà cung cấp {supplierCode} không tồn tại.");
+        }
+
+        var (items, totalCount) = await _supplierRepository.GetSupplierProductsAsync(
+            supplier.SupplierId, 
+            filter.Search, 
+            filter.Status, 
+            filter.PageNumber, 
+            filter.PageSize);
+
+        var dtos = items.Select(sp => new SupplierProductResponseDto
+        {
+            ProductCode = sp.Product.ProductCode,
+            ProductName = sp.Product.ProductName,
+            UnitName = sp.Product.UnitOfMeasure.UnitName,
+            SupplierProductCode = sp.SupplierProductCode,
+            LeadTimeDays = sp.LeadTimeDays,
+            Status = sp.Status
+        }).ToList();
+
+        return new PagedResultDto<SupplierProductResponseDto>
+        {
+            Items = dtos,
+            TotalCount = totalCount,
+            PageIndex = filter.PageNumber,
+            PageSize = filter.PageSize
+        };
+    }
 }

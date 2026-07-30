@@ -43,16 +43,16 @@
     </form>
 
     <div style="overflow-x: auto;">
-        <table class="table" style="width: 100%; min-width: 1000px;">
-            <thead>
+        <table class="table table-bordered table-hover" style="width: 100%; min-width: 1000px; margin-bottom: 0;">
+            <thead style="background-color: #f8fafc;">
                 <tr>
-                    <th style="text-align: left;">Mã NCC</th>
-                    <th style="text-align: left;">Nhà cung cấp</th>
-                    <th style="text-align: left;">Liên hệ</th>
-                    <th style="text-align: left;">Sản phẩm</th>
-                    <th style="text-align: left;">Trạng thái</th>
-                    <th style="text-align: left;">Cập nhật</th>
-                    <th style="text-align: left;">Thao tác</th>
+                    <th style="text-align: left; padding: 12px 16px;">Mã NCC</th>
+                    <th style="text-align: left; padding: 12px 16px;">Nhà cung cấp</th>
+                    <th style="text-align: left; padding: 12px 16px;">Liên hệ</th>
+                    <th style="text-align: left; padding: 12px 16px;">Sản phẩm</th>
+                    <th style="text-align: left; padding: 12px 16px;">Trạng thái</th>
+                    <th style="text-align: left; padding: 12px 16px;">Cập nhật</th>
+                    <th style="text-align: left; padding: 12px 16px;">Thao tác</th>
                 </tr>
             </thead>
             <tbody>
@@ -61,11 +61,11 @@
                     foreach (var supplier in Model.Suppliers.Items)
                     {
                         <tr>
-                            <td style="color: #2563eb; font-weight: 500;">@supplier.SupplierCode</td>
-                            <td style="color: var(--text-main);">@supplier.SupplierName</td>
-                            <td style="color: var(--text-muted);">@supplier.RepresentativeName</td>
-                            <td style="color: var(--text-muted);">@supplier.SuppliedProductCount sản phẩm</td>
-                            <td>
+                            <td style="color: #2563eb; font-weight: 500; padding: 12px 16px; vertical-align: middle;">@supplier.SupplierCode</td>
+                            <td style="color: var(--text-main); padding: 12px 16px; vertical-align: middle;">@supplier.SupplierName</td>
+                            <td style="color: var(--text-muted); padding: 12px 16px; vertical-align: middle;">@supplier.RepresentativeName</td>
+                            <td style="color: var(--text-muted); padding: 12px 16px; vertical-align: middle;">@supplier.SuppliedProductCount sản phẩm</td>
+                            <td style="padding: 12px 16px; vertical-align: middle;">
                                 @if (supplier.Status == "ACTIVE")
                                 {
                                     <span style="display: inline-flex; align-items: center; padding: 4px 12px; background-color: #dcfce7; color: #16a34a; border-radius: 100px; font-size: 13px; font-weight: 500;">Đang hoạt động</span>
@@ -75,8 +75,8 @@
                                     <span style="display: inline-flex; align-items: center; padding: 4px 12px; background-color: #f3f4f6; color: #4b5563; border-radius: 100px; font-size: 13px; font-weight: 500;">Tạm ngừng</span>
                                 }
                             </td>
-                            <td style="color: var(--text-muted);">@(supplier.UpdatedAt?.ToString("dd/MM/yyyy") ?? "-")</td>
-                            <td>
+                            <td style="color: var(--text-muted); padding: 12px 16px; vertical-align: middle;">@(supplier.UpdatedAt?.ToString("dd/MM/yyyy") ?? "-")</td>
+                            <td style="padding: 12px 16px; vertical-align: middle;">
                                 <a href="/Admin/Suppliers/Detail/@supplier.SupplierCode" style="color: #2563eb; text-decoration: none; font-size: 14px;">Xem chi tiết</a>
                             </td>
                         </tr>

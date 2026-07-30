@@ -1,11 +1,14 @@
-USE BMWMS;
+USE [BMWMS];
 GO
+SET QUOTED_IDENTIFIER ON;
+SET ANSI_NULLS ON;
+GO
+UPDATE [Products] SET ProductName = N'Xi măng PCB40' WHERE ProductCode = 'XM001';
+UPDATE [Products] SET ProductName = N'Thép cây D16' WHERE ProductCode = 'TH001';
+UPDATE [Products] SET ProductName = N'Đá 1x2 nghiền' WHERE ProductCode = 'CD002';
+UPDATE [Products] SET ProductName = N'Gạch Viglacera' WHERE ProductCode = 'GV001';
+UPDATE [Products] SET ProductName = N'Dây cáp điện 2.5' WHERE ProductCode = 'DX001';
 
-UPDATE Suppliers SET SupplierName = N'Xi măng Hà Tiên', Address = N'KCN Biên Hòa, Đồng Nai', RepresentativeName = N'Nguyễn Văn Minh' WHERE SupplierCode = 'SUP-001';
-UPDATE Suppliers SET SupplierName = N'VLXD Thăng Long', Address = N'123 Láng Hạ, Hà Nội', RepresentativeName = N'Bùi Văn Nam' WHERE SupplierCode = 'SUP-002';
-UPDATE Suppliers SET SupplierName = N'Xi măng Nghi Sơn', Address = N'Nghi Sơn, Thanh Hóa', RepresentativeName = N'Đỗ Thanh Tùng' WHERE SupplierCode = 'SUP-003';
-UPDATE Suppliers SET SupplierName = N'Thép Hòa Phát', Address = N'KCN Phố Nối, Hưng Yên', RepresentativeName = N'Trần Quốc Dũng' WHERE SupplierCode = 'SUP-004';
-UPDATE Suppliers SET SupplierName = N'Gạch Viglacera', Address = N'Tiên Sơn, Bắc Ninh', RepresentativeName = N'Phạm Quang' WHERE SupplierCode = 'SUP-006';
-UPDATE Suppliers SET SupplierName = N'Cát Đá Sông Hồng', Address = N'Cảng Khuyến Lương, Hà Nội', RepresentativeName = N'Lê Thu Hà' WHERE SupplierCode = 'SUP-008';
-
-PRINT N'Đã sửa lỗi font thành công!';
+UPDATE [ProductGroups] SET GroupName = N'Vật liệu xây dựng' WHERE GroupCode = 'PG-01';
+UPDATE [ProductGroups] SET GroupName = N'Thiết bị điện nước' WHERE GroupCode = 'PG-02';
+GO

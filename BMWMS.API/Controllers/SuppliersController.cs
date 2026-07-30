@@ -98,4 +98,23 @@ public class SuppliersController : ControllerBase
             return StatusCode(500, ex.Message);
         }
     }
+
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF,WAREHOUSE_STAFF,SALES_STAFF")]
+    [HttpGet("{supplierCode}/products")]
+    public async Task<IActionResult> GetSupplierProducts(string supplierCode, [FromQuery] SupplierProductFilterDto filter)
+    {
+        try
+        {
+            var result = await _supplierService.GetSupplierProductsAsync(supplierCode, filter);
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            return NotFound(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ex.Message);
+        }
+    }
 }

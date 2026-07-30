@@ -123,3 +123,13 @@ public class PagedResultModel<T>
     public int PageSize { get; set; }
     public int TotalPages => (int)Math.Ceiling((double)TotalCount / PageSize);
 }
+
+public class SupplierProductResponseDto
+{
+    public string ProductCode { get; set; } = null!;
+    public string ProductName { get; set; } = null!;
+    public string UnitName { get; set; } = null!;
+    public string? SupplierProductCode { get; set; }
+    public int? LeadTimeDays { get; set; }
+    public string Status { get; set; } = null!;
+}

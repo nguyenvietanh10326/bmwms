@@ -67,6 +67,21 @@ public class SupplierApiService
         return (false, error);
     }
 
+    public async Task<PagedResultModel<SupplierProductResponseDto>?> GetSupplierProductsAsync(string supplierCode, string? search, string? status, int page, int pageSize)
+    {
+        var query = new List<string>
+        {
+            $"PageNumber={page}",
+            $"PageSize={pageSize}"
+        };
+
+        if (!string.IsNullOrEmpty(search)) query.Add($"Search={Uri.EscapeDataString(search)}");
+        if (!string.IsNullOrEmpty(status)) query.Add($"Status={Uri.EscapeDataString(status)}");
+
+        var queryString = string.Join("&", query);
+        return await _httpClient.GetFromJsonAsync<PagedResultModel<SupplierProductResponseDto>>($"api/suppliers/{supplierCode}/products?{queryString}");
+    }
+
     public async Task<(bool Success, string ErrorMessage)> UpdateSupplierAsync(string supplierCode, SupplierUpdateRequestModel model)
     {
         var content = new StringContent(JsonSerializer.Serialize(model, _jsonOptions), System.Text.Encoding.UTF8, "application/json");

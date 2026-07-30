@@ -97,4 +97,34 @@ public class SupplierRepository : ISupplierRepository
         _context.Suppliers.Update(supplier);
         await _context.SaveChangesAsync();
     }
+
+    public async Task<(IEnumerable<SupplierProduct> Items, int TotalCount)> GetSupplierProductsAsync(long supplierId, string? search, string? status, int page, int pageSize)
+    {
+        var query = _context.SupplierProducts
+            .Include(sp => sp.Product)
+                .ThenInclude(p => p.UnitOfMeasure)
+            .Where(sp => sp.SupplierId == supplierId);
+
+        if (!string.IsNullOrEmpty(status))
+        {
+            query = query.Where(sp => sp.Status == status);
+        }
+
+        if (!string.IsNullOrEmpty(search))
+        {
+            query = query.Where(sp => sp.Product.ProductCode.Contains(search) 
+                                   || sp.Product.ProductName.Contains(search) 
+                                   || (sp.SupplierProductCode != null && sp.SupplierProductCode.Contains(search)));
+        }
+
+        var totalCount = await query.CountAsync();
+
+        var items = await query
+            .OrderBy(sp => sp.Product.ProductName)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return (items, totalCount);
+    }
 }
