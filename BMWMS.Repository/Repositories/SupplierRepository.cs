@@ -47,4 +47,21 @@ public class SupplierRepository : ISupplierRepository
 
         return (items, totalCount);
     }
+
+    public async Task<Supplier?> GetSupplierByCodeAsync(string supplierCode)
+    {
+        return await _context.Suppliers
+            .Include(s => s.SupplierProducts)
+                .ThenInclude(sp => sp.Product)
+                    .ThenInclude(p => p.ProductGroup)
+            .FirstOrDefaultAsync(s => s.SupplierCode == supplierCode);
+    }
+
+    public async Task<decimal> GetSupplierYtdInboundValueAsync(long supplierId, int year)
+    {
+        return await _context.PurchaseOrderDetails
+            .Include(pod => pod.PurchaseOrder)
+            .Where(pod => pod.PurchaseOrder.SupplierId == supplierId && pod.PurchaseOrder.OrderDate.Year == year)
+            .SumAsync(pod => pod.OrderedQuantity * (pod.UnitPrice ?? 0));
+    }
 }

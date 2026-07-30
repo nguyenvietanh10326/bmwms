@@ -38,4 +38,18 @@ public class SupplierApiService
 
         return new PagedResultModel<SupplierListResponseModel>();
     }
+
+    public async Task<SupplierDetailResponseModel?> GetSupplierDetailAsync(string supplierCode)
+    {
+        var url = $"api/suppliers/{Uri.EscapeDataString(supplierCode)}";
+        var response = await _httpClient.GetAsync(url);
+        
+        if (response.IsSuccessStatusCode)
+        {
+            var content = await response.Content.ReadAsStringAsync();
+            return JsonSerializer.Deserialize<SupplierDetailResponseModel>(content, _jsonOptions);
+        }
+
+        return null;
+    }
 }
