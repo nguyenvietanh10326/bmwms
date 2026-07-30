@@ -1,0 +1,105 @@
+@page "{id:long}"
+@model BMWMS.Web.Pages.Admin.Users.AssignRoleModelPage
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Gán vai trò cố định";
+    ViewData["HeaderTitle"] = "Quản trị hệ thống";
+    ViewData["FooterVersion"] = "Full coverage · UC01-UC63";
+}
+
+<div class="page-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
+    <div>
+        <div class="page-header-title">Gán vai trò cố định cho người dùng</div>
+        <div class="page-header-sub">Gán đúng một trong năm vai trò cố định cho tài khoản · Actor chính: Quản trị hệ thống</div>
+    </div>
+</div>
+
+@if (!ViewData.ModelState.IsValid)
+{
+    <div style="background-color: #fee2e2; border: 1px solid #fecaca; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
+        <div style="color: #b91c1c; font-weight: 500; margin-bottom: 8px;">Vui lòng sửa các lỗi sau:</div>
+        <div asp-validation-summary="All" style="color: #b91c1c; font-size: 14px;"></div>
+    </div>
+}
+
+<form method="post">
+    <input type="hidden" asp-for="Input.UserId" />
+
+    <div class="form-card" style="padding: 24px; margin-bottom: 24px;">
+        <h3 style="margin-top: 0; margin-bottom: 20px; font-size: 16px; font-weight: 600; color: var(--text-main);">Gán vai trò cố định</h3>
+        
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
+            <div class="form-group">
+                <label class="form-label">Người dùng <span style="color: #dc2626;">*</span></label>
+                <input type="text" class="form-control" value="@Model.DisplayUser" readonly style="background-color: #f9fafb; color: var(--text-muted);" />
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Vai trò hiện tại</label>
+                <input type="text" class="form-control" value="@Model.CurrentRole" readonly style="background-color: #f9fafb; color: var(--text-muted);" />
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Vai trò mới <span style="color: #dc2626;">*</span></label>
+                <select asp-for="Input.RoleId" asp-items="Model.Roles" class="form-control">
+                    <option value="">-- Chọn vai trò --</option>
+                </select>
+                <span asp-validation-for="Input.RoleId" style="color: #dc2626; font-size: 12px; margin-top: 4px; display: block;"></span>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Lý do thay đổi <span style="color: #dc2626;">*</span></label>
+                <input asp-for="Input.Reason" class="form-control" placeholder="Nhập lý do thay đổi vai trò..." />
+                <span asp-validation-for="Input.Reason" style="color: #dc2626; font-size: 12px; margin-top: 4px; display: block;"></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="form-card" style="padding: 24px; margin-bottom: 24px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h3 style="margin: 0; font-size: 16px; font-weight: 600; color: var(--text-main);">Ma trận quyền theo vai trò (Bảng xem trước)</h3>
+        </div>
+        
+        <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+            <thead>
+                <tr style="border-bottom: 1px solid #e5e7eb; color: var(--text-muted); text-align: left;">
+                    <th style="padding: 12px 0; font-weight: 500;">Phân hệ</th>
+                    <th style="padding: 12px 0; font-weight: 500;">Quyền xem</th>
+                    <th style="padding: 12px 0; font-weight: 500;">Quyền tạo</th>
+                    <th style="padding: 12px 0; font-weight: 500;">Quyền duyệt</th>
+                    <th style="padding: 12px 0; font-weight: 500;">Quyền quản trị</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 12px 0; color: #2563eb; font-weight: 500;">Nhập / Xuất kho</td>
+                    <td style="padding: 12px 0;">Có</td>
+                    <td style="padding: 12px 0;">Có</td>
+                    <td style="padding: 12px 0;">Theo vai trò</td>
+                    <td style="padding: 12px 0;">Không</td>
+                </tr>
+                <tr style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 12px 0; color: #2563eb; font-weight: 500;">Người dùng</td>
+                    <td style="padding: 12px 0;">Theo vai trò</td>
+                    <td style="padding: 12px 0;">Không</td>
+                    <td style="padding: 12px 0;">Không</td>
+                    <td style="padding: 12px 0;">Theo vai trò</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <div style="margin-top: 16px; color: var(--text-muted); font-size: 13px;">
+            * Đây là bảng tổng quan phân quyền cố định. Quyền thực tế sẽ được tự động áp dụng ngay khi gán vai trò mới thành công.
+        </div>
+    </div>
+
+    <div style="background-color: #f3e8ff; border: 1px solid #e9d5ff; border-radius: 8px; padding: 16px; margin-bottom: 24px; display: flex; align-items: center; gap: 12px;">
+        <div style="width: 8px; height: 8px; border-radius: 50%; background-color: #9333ea;"></div>
+        <div style="color: #7e22ce; font-size: 14px;">Mỗi tài khoản có đúng một vai trò cố định: System Administrator, Warehouse Manager, Warehouse Staff, Purchasing Staff hoặc Sales Staff.</div>
+    </div>
+
+    <div style="display: flex; justify-content: flex-end; gap: 12px; margin-bottom: 40px;">
+        <a href="/Admin/Users/Detail/@Model.Input.UserId" class="btn btn-text" style="color: var(--text-muted);">Hủy</a>
+        <button type="submit" class="btn" style="background-color: #27272a; color: white; border: none; padding: 8px 24px;">Gán vai trò</button>
+    </div>
+</form>

@@ -1,0 +1,79 @@
+@page "{id:long}"
+@model BMWMS.Web.Pages.Admin.Users.ChangeLockStateModelPage
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = Model.DisplayAction;
+    ViewData["HeaderTitle"] = "Quản trị hệ thống";
+    ViewData["FooterVersion"] = "Full coverage · UC01-UC63";
+}
+
+<div class="page-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
+    <div>
+        <div class="page-header-title">@Model.DisplayAction</div>
+        <div class="page-header-sub">Thay đổi trạng thái LOCKED hoặc ACTIVE của tài khoản · Actor chính: Quản trị hệ thống</div>
+    </div>
+</div>
+
+@if (!ViewData.ModelState.IsValid)
+{
+    <div style="background-color: #fee2e2; border: 1px solid #fecaca; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
+        <div style="color: #b91c1c; font-weight: 500; margin-bottom: 8px;">Vui lòng sửa các lỗi sau:</div>
+        <div asp-validation-summary="All" style="color: #b91c1c; font-size: 14px;"></div>
+    </div>
+}
+
+<form method="post">
+    <input type="hidden" asp-for="Input.UserId" />
+    <input type="hidden" asp-for="Input.Action" />
+
+    <div class="form-card" style="padding: 24px; margin-bottom: 24px;">
+        <h3 style="margin-top: 0; margin-bottom: 20px; font-size: 16px; font-weight: 600; color: var(--text-main);">Trạng thái tài khoản</h3>
+        
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
+            <div class="form-group" style="grid-column: span 2;">
+                <label class="form-label">Người dùng</label>
+                <input type="text" class="form-control" value="@Model.DisplayUser" readonly style="background-color: #f9fafb; color: var(--text-muted);" />
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Trạng thái hiện tại</label>
+                <input type="text" class="form-control" value="@Model.CurrentStatus" readonly style="background-color: #f9fafb; color: @(Model.CurrentStatus == "Đã khóa" ? "#dc2626" : "#16a34a"); font-weight: 500;" />
+            </div>
+
+            @if (Model.Input.Action == "LOCK")
+            {
+                <div class="form-group">
+                    <label class="form-label">Thời hạn khóa</label>
+                    <input type="text" class="form-control" value="Cho đến khi mở khóa (Vô thời hạn)" readonly style="background-color: #f9fafb; color: var(--text-muted);" />
+                </div>
+            }
+
+            <div class="form-group" style="grid-column: span 2;">
+                <label class="form-label">Lý do thay đổi <span style="color: #dc2626;">*</span></label>
+                <input asp-for="Input.Reason" class="form-control" placeholder="Nhập lý do thực hiện thao tác này..." />
+                <span asp-validation-for="Input.Reason" style="color: #dc2626; font-size: 12px; margin-top: 4px; display: block;"></span>
+            </div>
+        </div>
+    </div>
+
+    <div style="background-color: #f3e8ff; border: 1px solid #e9d5ff; border-radius: 8px; padding: 16px; margin-bottom: 24px; display: flex; align-items: center; gap: 12px;">
+        <div style="width: 8px; height: 8px; border-radius: 50%; background-color: #9333ea;"></div>
+        <div style="color: #7e22ce; font-size: 14px;">
+            @if (Model.Input.Action == "LOCK")
+            {
+                <span>Khóa tài khoản sẽ thu hồi toàn bộ phiên đang hoạt động, người dùng bị khóa không thể đăng nhập.</span>
+            }
+            else
+            {
+                <span>Mở khóa không tự khôi phục mật khẩu cũ đã hết hạn. Người dùng có thể đăng nhập bình thường.</span>
+            }
+        </div>
+    </div>
+
+    <div style="display: flex; justify-content: flex-end; gap: 12px; margin-bottom: 40px;">
+        <a href="/Admin/Users/Detail/@Model.Input.UserId" class="btn btn-text" style="color: var(--text-muted);">Hủy</a>
+        <button type="submit" class="btn" style="background-color: @(Model.Input.Action == "LOCK" ? "#dc2626" : "#16a34a"); color: white; border: none; padding: 8px 24px;">
+            @Model.DisplayAction
+        </button>
+    </div>
+</form>

@@ -127,3 +127,28 @@ public class UpdateUserModel
 
     public string Status { get; set; } = null!;
 }
+
+public class AssignRoleModel
+{
+    public long UserId { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Vai trò là bắt buộc")]
+    public int RoleId { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Lý do thay đổi là bắt buộc")]
+    [System.ComponentModel.DataAnnotations.StringLength(500, MinimumLength = 5, ErrorMessage = "Lý do thay đổi phải từ 5 đến 500 ký tự")]
+    public string Reason { get; set; } = null!;
+}
+
+public class ChangeLockStateModel
+{
+    public long UserId { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Required]
+    [System.ComponentModel.DataAnnotations.RegularExpression("^(LOCK|UNLOCK)$")]
+    public string Action { get; set; } = null!;
+
+    [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Lý do thay đổi là bắt buộc")]
+    [System.ComponentModel.DataAnnotations.StringLength(500, MinimumLength = 5, ErrorMessage = "Lý do thay đổi phải từ 5 đến 500 ký tự")]
+    public string Reason { get; set; } = null!;
+}
