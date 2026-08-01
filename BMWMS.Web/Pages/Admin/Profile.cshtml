@@ -6,7 +6,7 @@
     var isPasswordTab = tab == "password";
 
     ViewData["Title"] = isPasswordTab ? "Đổi mật khẩu" : "Hồ sơ cá nhân";
-    ViewData["HeaderTitle"] = "Người dùng đã xác thực";
+    ViewData["HeaderTitle"] = HttpContext.Session.GetString("RoleName") ?? "Người dùng đã xác thực";
     ViewData["FooterVersion"] = "Full coverage";
 }
 
@@ -20,8 +20,8 @@
     <div>
         <div class="page-header-title">@(isPasswordTab ? "Đổi mật khẩu" : "Xem hồ sơ cá nhân")</div>
         <div class="page-header-sub">
-            @(isPasswordTab ? "Đổi mật khẩu đăng nhập theo chính sách bảo mật • Actor chính: Người dùng đã xác thực" 
-                            : "Xem thông tin cá nhân, vai trò và lịch sử đăng nhập của chính mình • Actor chính: Người dùng đã xác thực")
+            @(isPasswordTab ? $"Đổi mật khẩu đăng nhập theo chính sách bảo mật • Actor chính: {HttpContext.Session.GetString("RoleName") ?? "Người dùng đã xác thực"}" 
+                            : $"Xem thông tin cá nhân, vai trò và lịch sử đăng nhập của chính mình • Actor chính: {HttpContext.Session.GetString("RoleName") ?? "Người dùng đã xác thực"}")
         </div>
     </div>
     <div class="page-tag">@(isPasswordTab ? "Bảo mật" : "Cá nhân")</div>

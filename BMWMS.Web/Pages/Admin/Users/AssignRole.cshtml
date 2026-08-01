@@ -3,14 +3,14 @@
 @{
     Layout = "_AdminLayout";
     ViewData["Title"] = "Gán vai trò cố định";
-    ViewData["HeaderTitle"] = "Quản trị hệ thống";
+    ViewData["HeaderTitle"] = HttpContext.Session.GetString("RoleName") ?? "Quản trị hệ thống";
     ViewData["FooterVersion"] = "Full coverage · UC01-UC63";
 }
 
 <div class="page-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
     <div>
         <div class="page-header-title">Gán vai trò cố định cho người dùng</div>
-        <div class="page-header-sub">Gán đúng một trong năm vai trò cố định cho tài khoản · Actor chính: Quản trị hệ thống</div>
+        <div class="page-header-sub">Gán đúng một trong năm vai trò cố định cho tài khoản · Actor chính: @(HttpContext.Session.GetString("RoleName") ?? "Quản trị hệ thống")</div>
     </div>
 </div>
 

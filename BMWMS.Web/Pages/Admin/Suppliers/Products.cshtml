@@ -1,0 +1,115 @@
+@page "/Admin/Suppliers/{supplierCode}/Products"
+@model BMWMS.Web.Pages.Admin.Suppliers.ProductsModel
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Xem sản phẩm của nhà cung cấp";
+    ViewData["HeaderTitle"] = HttpContext.Session.GetString("RoleName") ?? "Nhân viên mua hàng";
+    ViewData["FooterVersion"] = "Full coverage · UC01-UC63";
+}
+
+<div class="page-header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px;">
+    <div>
+        <div class="page-header-title">Xem sản phẩm của nhà cung cấp</div>
+        <div class="page-header-sub">Xem danh sách sản phẩm mà nhà cung cấp có thể cung ứng &middot; Actor chính: @(HttpContext.Session.GetString("RoleName") ?? "Nhân viên mua hàng")</div>
+    </div>
+    <div>
+        <button class="btn btn-primary" style="background-color: #e4e4e7; color: #3f3f46; border: 1px solid #d4d4d8; font-weight: 500;">
+            Xuất danh sách
+        </button>
+    </div>
+</div>
+
+<div class="form-card" style="padding: 24px;">
+    <form method="get" style="display: flex; gap: 16px; margin-bottom: 32px; flex-wrap: wrap;">
+        <div style="flex: 1; min-width: 300px; position: relative;">
+            <i class="ri-search-line" style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--text-muted);"></i>
+            <input type="text" name="Search" value="@Model.Search" class="form-control" placeholder="Tìm mã hoặc tên sản phẩm" style="padding-left: 44px; width: 100%; box-sizing: border-box;" />
+        </div>
+        
+        <div style="width: 200px;">
+            <select name="Status" class="form-control">
+                <option value="">Tất cả trạng thái</option>
+                <option value="ACTIVE" selected="@(Model.Status == "ACTIVE")">Bình thường</option>
+                <option value="INACTIVE" selected="@(Model.Status == "INACTIVE")">Không cung ứng</option>
+            </select>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="background-color: #27272a; color: white; border: none; padding: 0 24px;">Tìm kiếm</button>
+        <a href="/Admin/Suppliers/@Model.SupplierCode/Products" class="btn" style="background-color: #e4e4e7; color: #27272a; border: 1px solid #d4d4d8; padding: 10px 24px; text-decoration: none;">Đặt lại</a>
+    </form>
+
+    <div style="overflow-x: auto;">
+        <table class="table table-bordered table-hover" style="width: 100%; min-width: 1000px; margin-bottom: 0;">
+            <thead style="background-color: #f8fafc;">
+                <tr>
+                    <th style="text-align: left; padding: 12px 16px;">Mã sản phẩm</th>
+                    <th style="text-align: left; padding: 12px 16px;">Tên sản phẩm</th>
+                    <th style="text-align: left; padding: 12px 16px;">Đơn vị tính</th>
+                    <th style="text-align: left; padding: 12px 16px;">Mã của NCC</th>
+                    <th style="text-align: left; padding: 12px 16px;">Thời gian giao</th>
+                    <th style="text-align: left; padding: 12px 16px;">Trạng thái</th>
+                </tr>
+            </thead>
+        <tbody>
+            @if (Model.Products != null && Model.Products.Items.Any())
+            {
+                foreach (var item in Model.Products.Items)
+                {
+                    <tr>
+                        <td style="color: #2563eb; font-weight: 500; padding: 12px 16px; vertical-align: middle;">@item.ProductCode</td>
+                        <td style="padding: 12px 16px; vertical-align: middle;">@item.ProductName</td>
+                        <td style="padding: 12px 16px; vertical-align: middle;">@item.UnitName</td>
+                        <td style="padding: 12px 16px; vertical-align: middle;">@(item.SupplierProductCode ?? "—")</td>
+                        <td style="padding: 12px 16px; vertical-align: middle;">@(item.LeadTimeDays.HasValue ? $"{item.LeadTimeDays} ngày" : "—")</td>
+                        <td style="padding: 12px 16px; vertical-align: middle;">
+                            @if (item.Status == "ACTIVE")
+                            {
+                                <span class="status-badge" style="background-color: #dcfce7; color: #166534;"><span class="status-dot" style="background-color: #22c55e;"></span>Bình thường</span>
+                            }
+                            else
+                            {
+                                <span class="status-badge" style="background-color: #fee2e2; color: #991b1b;"><span class="status-dot" style="background-color: #ef4444;"></span>Không cung ứng</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr>
+                    <td colspan="6" style="text-align: center; padding: 40px; color: var(--text-muted);">
+                        <i class="ri-inbox-line" style="font-size: 48px; color: #d4d4d8;"></i>
+                        <p style="margin-top: 12px; margin-bottom: 0;">Không có dữ liệu sản phẩm cung ứng nào phù hợp.</p>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    
+    @if (Model.Products != null && Model.Products.TotalCount > 0)
+    {
+        var totalPages = (int)Math.Ceiling(Model.Products.TotalCount / (double)Model.Products.PageSize);
+        <div class="pagination" style="padding: 16px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color);">
+            <div style="color: var(--text-muted); font-size: 14px;">
+                Hiển thị @(((Model.Products.PageIndex - 1) * Model.Products.PageSize) + 1)-@(Math.Min(Model.Products.PageIndex * Model.Products.PageSize, Model.Products.TotalCount)) trong @Model.Products.TotalCount dòng
+            </div>
+            
+            <div style="display: flex; gap: 4px;">
+                @if (Model.Products.PageIndex > 1)
+                {
+                    <a href="?Search=@Model.Search&Status=@Model.Status&PageNumber=@(Model.Products.PageIndex - 1)" class="btn" style="padding: 4px 12px; border: 1px solid #e4e4e7; border-radius: 4px; text-decoration: none; color: #3f3f46;">&laquo;</a>
+                }
+                
+                @for (int i = 1; i <= totalPages; i++)
+                {
+                    <a href="?Search=@Model.Search&Status=@Model.Status&PageNumber=@i" class="btn" style="padding: 4px 12px; border: 1px solid @(i == Model.Products.PageIndex ? "#2563eb" : "#e4e4e7"); background-color: @(i == Model.Products.PageIndex ? "#eff6ff" : "white"); color: @(i == Model.Products.PageIndex ? "#1d4ed8" : "#3f3f46"); border-radius: 4px; text-decoration: none;">@i</a>
+                }
+
+                @if (Model.Products.PageIndex < totalPages)
+                {
+                    <a href="?Search=@Model.Search&Status=@Model.Status&PageNumber=@(Model.Products.PageIndex + 1)" class="btn" style="padding: 4px 12px; border: 1px solid #e4e4e7; border-radius: 4px; text-decoration: none; color: #3f3f46;">&raquo;</a>
+                }
+            </div>
+        </div>
+    }
+</div>

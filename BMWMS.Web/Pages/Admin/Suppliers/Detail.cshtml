@@ -1,0 +1,136 @@
+@page "{supplierCode}"
+@model BMWMS.Web.Pages.Admin.Suppliers.DetailModel
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Xem chi tiết nhà cung cấp";
+    ViewData["HeaderTitle"] = HttpContext.Session.GetString("RoleName") ?? "Nhân viên mua hàng";
+    ViewData["FooterVersion"] = "Full coverage · UC01-UC63";
+}
+
+<div class="page-header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px;">
+    <div>
+        <div class="page-header-title">Xem chi tiết nhà cung cấp</div>
+        <div class="page-header-sub">Xem hồ sơ, liên hệ, sản phẩm và trạng thái nhà cung cấp &middot; Actor chính: @(HttpContext.Session.GetString("RoleName") ?? "Nhân viên mua hàng")</div>
+    </div>
+    <div style="font-weight: 500; display: flex; align-items: center; gap: 12px;">
+        <a href="/Admin/Suppliers/@Model.Supplier.SupplierCode/Products" class="btn" style="background-color: #f4f4f5; color: #18181b; border: 1px solid #e4e4e7; padding: 8px 16px; border-radius: 6px; font-weight: 500; text-decoration: none;">
+            <i class="ri-box-3-line" style="margin-right: 6px;"></i>Sản phẩm cung ứng
+        </a>
+        @if (Model.Supplier.Status == "ACTIVE")
+        {
+            <span class="status-badge" style="background-color: #dcfce7; color: #166534;"><span class="status-dot" style="background-color: #22c55e;"></span>Đang hoạt động</span>
+        }
+        else
+        {
+            <span>Tạm ngừng</span>
+        }
+    </div>
+</div>
+
+<div class="form-card" style="padding: 24px; margin-bottom: 24px;">
+    <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 16px; color: var(--text-main);">Thông tin nhà cung cấp</h3>
+    
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; margin-bottom: 24px;">
+        <div>
+            <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px; color: var(--text-main);">Mã nhà cung cấp *</label>
+            <input type="text" class="form-control" value="@Model.Supplier.SupplierCode" disabled style="width: 100%; box-sizing: border-box; background-color: #f9fafb; color: var(--text-main); border: 1px solid var(--border-color); padding: 10px 12px; border-radius: 6px;" />
+        </div>
+        <div>
+            <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px; color: var(--text-main);">Tên nhà cung cấp *</label>
+            <input type="text" class="form-control" value="@Model.Supplier.SupplierName" disabled style="width: 100%; box-sizing: border-box; background-color: #f9fafb; color: var(--text-main); border: 1px solid var(--border-color); padding: 10px 12px; border-radius: 6px;" />
+        </div>
+        <div>
+            <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px; color: var(--text-main);">Mã số thuế</label>
+            <input type="text" class="form-control" value="@Model.Supplier.TaxCode" disabled style="width: 100%; box-sizing: border-box; background-color: #f9fafb; color: var(--text-main); border: 1px solid var(--border-color); padding: 10px 12px; border-radius: 6px;" />
+        </div>
+        <div>
+            <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px; color: var(--text-main);">Số điện thoại</label>
+            <input type="text" class="form-control" value="@Model.Supplier.PhoneNumber" disabled style="width: 100%; box-sizing: border-box; background-color: #f9fafb; color: var(--text-main); border: 1px solid var(--border-color); padding: 10px 12px; border-radius: 6px;" />
+        </div>
+
+        <div>
+            <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px; color: var(--text-main);">Email</label>
+            <input type="text" class="form-control" value="@Model.Supplier.Email" disabled style="width: 100%; box-sizing: border-box; background-color: #f9fafb; color: var(--text-main); border: 1px solid var(--border-color); padding: 10px 12px; border-radius: 6px;" />
+        </div>
+        <div>
+            <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px; color: var(--text-main);">Địa chỉ</label>
+            <input type="text" class="form-control" value="@Model.Supplier.Address" disabled style="width: 100%; box-sizing: border-box; background-color: #f9fafb; color: var(--text-main); border: 1px solid var(--border-color); padding: 10px 12px; border-radius: 6px;" />
+        </div>
+        <div>
+            <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px; color: var(--text-main);">Người liên hệ</label>
+            <input type="text" class="form-control" value="@Model.Supplier.RepresentativeName" disabled style="width: 100%; box-sizing: border-box; background-color: #f9fafb; color: var(--text-main); border: 1px solid var(--border-color); padding: 10px 12px; border-radius: 6px;" />
+        </div>
+        <div>
+            <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px; color: var(--text-main);">Trạng thái</label>
+            <input type="text" class="form-control" value="@(Model.Supplier.Status == "ACTIVE" ? "Đang hoạt động" : "Tạm ngừng")" disabled style="width: 100%; box-sizing: border-box; background-color: #f9fafb; color: var(--text-main); border: 1px solid var(--border-color); padding: 10px 12px; border-radius: 6px;" />
+        </div>
+    </div>
+</div>
+
+<div class="form-card" style="padding: 24px; margin-bottom: 24px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 style="font-size: 16px; font-weight: 600; color: var(--text-main); margin: 0;">Sản phẩm cung ứng</h3>
+        <button type="button" class="btn" style="background-color: #e4e4e7; color: #27272a; border: 1px solid #d4d4d8; padding: 8px 16px; border-radius: 6px; font-weight: 500;">Thêm sản phẩm</button>
+    </div>
+
+    <div style="overflow-x: auto; margin-bottom: 24px;">
+        <table class="table" style="width: 100%; min-width: 800px; border-collapse: collapse;">
+            <thead>
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                    <th style="text-align: left; padding: 12px 0; color: var(--text-muted); font-size: 13px; font-weight: 500;">Mã SP</th>
+                    <th style="text-align: left; padding: 12px 0; color: var(--text-muted); font-size: 13px; font-weight: 500;">Sản phẩm</th>
+                    <th style="text-align: left; padding: 12px 0; color: var(--text-muted); font-size: 13px; font-weight: 500;">Nhóm</th>
+                    <th style="text-align: left; padding: 12px 0; color: var(--text-muted); font-size: 13px; font-weight: 500;">Giá tham chiếu</th>
+                    <th style="text-align: left; padding: 12px 0; color: var(--text-muted); font-size: 13px; font-weight: 500;">Lead time</th>
+                    <th style="text-align: left; padding: 12px 0; color: var(--text-muted); font-size: 13px; font-weight: 500;">Trạng thái</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Supplier.SuppliedProducts.Any())
+                {
+                    foreach (var sp in Model.Supplier.SuppliedProducts)
+                    {
+                        <tr style="border-bottom: 1px solid #f4f4f5;">
+                            <td style="padding: 16px 0; color: #2563eb; font-size: 14px;">@sp.ProductCode</td>
+                            <td style="padding: 16px 0; color: var(--text-main); font-size: 14px;">@sp.ProductName</td>
+                            <td style="padding: 16px 0; color: var(--text-muted); font-size: 14px;">@sp.GroupName</td>
+                            <td style="padding: 16px 0; color: var(--text-muted); font-size: 14px;">@(sp.LastPurchasePrice?.ToString("N0") ?? "0") ₫</td>
+                            <td style="padding: 16px 0; color: var(--text-muted); font-size: 14px;">@(sp.LeadTimeDays?.ToString() ?? "0") ngày</td>
+                            <td style="padding: 16px 0; color: var(--text-main); font-weight: 500; font-size: 14px;">@(sp.Status == "ACTIVE" ? "Đang bán" : "Ngừng bán")</td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 24px; color: var(--text-muted);">
+                            Chưa có sản phẩm cung ứng nào.
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; color: var(--text-muted); font-size: 14px;">
+        <div>@Model.Supplier.PreferredProducts sản phẩm nổi bật - @Model.Supplier.TotalProducts sản phẩm đang cung ứng</div>
+        <div style="font-weight: 600; color: var(--text-main);">Giá trị nhập YTD: @(Model.Supplier.InboundYtdValue >= 1000000000 ? (Model.Supplier.InboundYtdValue / 1000000000).ToString("0.0") + " tỷ ₫" : Model.Supplier.InboundYtdValue.ToString("N0") + " ₫")</div>
+    </div>
+</div>
+
+<div style="background-color: #faf5ff; border: 1px solid #e9d5ff; border-radius: 6px; padding: 16px; margin-bottom: 24px; display: flex; align-items: center; gap: 12px; color: #7e22ce; font-size: 14px;">
+    <div style="width: 8px; height: 8px; background-color: #a855f7; border-radius: 50%;"></div>
+    Nhà cung cấp là dữ liệu danh mục; lịch sử nhập được liên kết qua đơn mua và lệnh nhập kho.
+</div>
+
+<div style="display: flex; justify-content: flex-end; gap: 12px;">
+    <a href="/Admin/Suppliers" class="btn" style="padding: 10px 24px; color: var(--text-main); text-decoration: none; font-weight: 500;">Quay lại</a>
+    @{
+        var canEdit = new[] { "SYSTEM_ADMIN", "WAREHOUSE_MANAGER", "PURCHASING_STAFF" }.Contains(HttpContext.Session.GetString("RoleCode"));
+    }
+    @if (canEdit)
+    {
+        <button type="button" class="btn" style="background-color: #e4e4e7; color: #a1a1aa; border: 1px solid #d4d4d8; padding: 10px 24px; border-radius: 6px; font-weight: 500; cursor: not-allowed;" disabled>Lưu nháp</button>
+        <a href="/Admin/Suppliers/Edit/@Model.Supplier.SupplierCode" class="btn btn-primary" style="background-color: #27272a; color: white; border: none; padding: 10px 24px; border-radius: 6px; font-weight: 500; text-decoration: none;">Chỉnh sửa</a>
+    }
+</div>

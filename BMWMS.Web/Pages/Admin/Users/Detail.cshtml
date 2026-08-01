@@ -3,14 +3,14 @@
 @{
     Layout = "_AdminLayout";
     ViewData["Title"] = "Chi tiết người dùng";
-    ViewData["HeaderTitle"] = "Quản trị hệ thống";
+    ViewData["HeaderTitle"] = HttpContext.Session.GetString("RoleName") ?? "Quản trị hệ thống";
     ViewData["FooterVersion"] = "Full coverage · UC01-UC63";
 }
 
 <div class="page-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
     <div>
         <div class="page-header-title">Xem chi tiết người dùng</div>
-        <div class="page-header-sub">Xem hồ sơ, vai trò, trạng thái và hoạt động đăng nhập · Actor chính: Quản trị hệ thống</div>
+        <div class="page-header-sub">Xem hồ sơ, vai trò, trạng thái và hoạt động đăng nhập · Actor chính: @(HttpContext.Session.GetString("RoleName") ?? "Quản trị hệ thống")</div>
     </div>
     <div style="font-weight: 500; display: flex; align-items: center;">
         @if (Model.UserDetail.Status == "ACTIVE")

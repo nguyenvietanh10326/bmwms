@@ -78,6 +78,10 @@ builder.Services.AddScoped<IEmailService, MockEmailService>();
 builder.Services.AddScoped<IRoleRepository, RoleRepository>();
 builder.Services.AddScoped<IRoleService, RoleService>();
 
+// Supplier
+builder.Services.AddScoped<ISupplierRepository, SupplierRepository>();
+builder.Services.AddScoped<ISupplierService, SupplierService>();
+
 var app = builder.Build();
 
 app.UseCors("AllowAll");
