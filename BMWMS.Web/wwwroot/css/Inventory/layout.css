@@ -1,0 +1,47 @@
+﻿:root {
+    --sidebar-width: 250px;
+}
+
+
+* {
+    box-sizing: border-box;
+}
+
+
+body {
+    margin: 0;
+    font-family: Inter,"Segoe UI",Arial,sans-serif;
+}
+
+
+/* SIDEBAR */
+
+.sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: var(--sidebar-width);
+    height: 100vh;
+    background: #07182d;
+    color: #aab8c9;
+    z-index: 1000;
+}
+
+
+
+/* MAIN */
+
+.main-content {
+    margin-left: var(--sidebar-width);
+    width: calc(100% - var(--sidebar-width));
+    min-height: 100vh;
+    background: #f1f5f9;
+}
+
+
+
+/* CONTENT */
+
+.content {
+    padding: 20px;
+}

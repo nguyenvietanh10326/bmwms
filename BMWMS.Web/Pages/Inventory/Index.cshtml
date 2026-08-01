@@ -1,0 +1,219 @@
+﻿@page
+@model BMWMS.Web.Pages.Inventory.IndexModel
+@{
+    Layout = "/Pages/Shared/Inventory/_Layout.cshtml";
+    ViewData["Title"] = "Tổng quan";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/Inventory/index.css" asp-append-version="true" />
+}
+<style>
+  
+</style>
+
+<!-- TOPBAR -->
+<div class="topbar">
+
+    <div class="breadcrumb">
+        Tổng quan
+    </div>
+
+
+    <div class="topbar-right">
+
+        <div class="user-details">
+
+            <div class="user-name">
+                Nguyễn Văn An
+            </div>
+
+            <div class="user-role">
+                System Administrator
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- CONTENT -->
+<div class="content">
+
+    <!-- WELCOME BANNER -->
+    <div style="margin-bottom: 24px;">
+        <h2 style="font-size: 22px; font-weight: 700; color: #0f172a; margin: 0 0 4px 0;">
+            Chào mừng trở lại, Nguyễn Văn An
+        </h2>
+        <div style="font-size: 13px; color: #64748b;">
+            Tổng quan hoạt động kho ngày @DateTime.Now.ToString("dd/MM/yyyy")
+        </div>
+    </div>
+
+    <!-- HÀNG 1: 4 CARD THỐNG KÊ TỒN KHO -->
+    <div class="dashboard-grid-4">
+        <!-- Card 1: Tổng sản phẩm -->
+        <div class="stat-card">
+            <div class="stat-indicator" style="background: #2563eb;"></div>
+            <div class="stat-number">@Model.Summary.TotalProducts</div>
+            <div class="stat-label">
+                <span>Tổng sản phẩm</span>
+                <span class="stat-subtext" style="color: #2563eb; background: #eff6ff;">+8 tháng này</span>
+            </div>
+        </div>
+
+        <!-- Card 2: Kho đang hoạt động -->
+        <div class="stat-card">
+            <div class="stat-indicator" style="background: #10b981;"></div>
+            <div class="stat-number">@Model.Summary.ActiveWarehouses</div>
+            <div class="stat-label">
+                <span>Kho đang hoạt động</span>
+                <span class="stat-subtext" style="color: #10b981; background: #ecfdf5;">100% sẵn sàng</span>
+            </div>
+        </div>
+
+        <!-- Card 3: Sắp hết hàng -->
+        <div class="stat-card">
+            <div class="stat-indicator" style="background: #f97316;"></div>
+            <div class="stat-number">@Model.Summary.LowStockCount</div>
+            <div class="stat-label">
+                <span>Sắp hết hàng</span>
+                <span class="stat-subtext" style="color: #f97316; background: #fff7ed;">Cần xử lý</span>
+            </div>
+        </div>
+
+        <!-- Card 4: Hết hàng -->
+        <div class="stat-card">
+            <div class="stat-indicator" style="background: #ef4444;"></div>
+            <div class="stat-number">@Model.Summary.OutOfStockCount</div>
+            <div class="stat-label">
+                <span>Hết hàng</span>
+                <span class="stat-subtext" style="color: #ef4444; background: #fef2f2;">Ưu tiên cao</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- HÀNG 2: 4 CARD ĐƠN HÀNG/NGHIỆP VỤ -->
+    <div class="dashboard-grid-4">
+        <div class="stat-card" style="padding: 16px 20px;">
+            <div class="stat-number" style="font-size: 24px; color: #2563eb;">@Model.Summary.PendingPurchaseOrders</div>
+            <div class="stat-label" style="margin-top: 4px;">Đơn mua chờ xác nhận</div>
+        </div>
+
+        <div class="stat-card" style="padding: 16px 20px;">
+            <div class="stat-number" style="font-size: 24px; color: #2563eb;">@Model.Summary.PendingSalesOrders</div>
+            <div class="stat-label" style="margin-top: 4px;">Đơn bán chờ giữ tồn</div>
+        </div>
+
+        <div class="stat-card" style="padding: 16px 20px;">
+            <div class="stat-number" style="font-size: 24px; color: #2563eb;">@Model.Summary.ProcessingInboundOrders</div>
+            <div class="stat-label" style="margin-top: 4px;">Lệnh nhập đang xử lý</div>
+        </div>
+
+        <div class="stat-card" style="padding: 16px 20px;">
+            <div class="stat-number" style="font-size: 24px; color: #2563eb;">@Model.Summary.PickingOutboundOrders</div>
+            <div class="stat-label" style="margin-top: 4px;">Lệnh xuất đang picking</div>
+        </div>
+    </div>
+
+    <!-- HÀNG 3: BANG CẢNH BÁO TỒN KHO & HOẠT ĐỘNG GẦN ĐÂY -->
+    <div class="dashboard-main-grid">
+
+        <!-- Bảng Cảnh Báo Tồn Kho -->
+        <div class="section-card">
+            <div class="section-header">
+                <div class="section-title">Cảnh báo tồn kho</div>
+                <div class="section-sub">Theo tồn khả dụng sau khi trừ Reserved</div>
+            </div>
+
+            <table class="alert-table">
+                <thead>
+                    <tr>
+                        <th>Sản phẩm</th>
+                        <th>Khả dụng</th>
+                        <th>Ngưỡng</th>
+                        <th>Trạng thái</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Summary.LowStockAlerts != null && Model.Summary.LowStockAlerts.Any())
+                    {
+                        foreach (var alert in Model.Summary.LowStockAlerts)
+                        {
+                            <tr>
+                                <td style="font-weight: 500;">@alert.ProductName</td>
+                                <td>
+                                    <span class="@(alert.AvailableQuantity <= 0 ? "status-text-danger" : "status-text-warning")">
+                                        @alert.AvailableQuantity @alert.UnitName
+                                    </span>
+                                </td>
+                                <td style="color: #64748b;">@alert.Threshold</td>
+                                <td>
+                                    @if (alert.Status == "Hết hàng")
+                                    {
+                                        <span class="status-text-danger">Hết hàng</span>
+                                    }
+                                    else if (alert.Status == "Sắp hết")
+                                    {
+                                        <span class="status-text-warning">Sắp hết</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="status-text-info">Theo dõi</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="4" style="text-align: center; color: #94a3b8; padding: 20px;">
+                                Không có cảnh báo tồn kho nào.
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Hoạt Động Gần Đây -->
+        <div class="section-card">
+            <div class="section-header">
+                <div class="section-title">Hoạt động gần đây</div>
+                <div class="section-sub">Các nghiệp vụ mới nhất trong hệ thống</div>
+            </div>
+
+            <div class="activity-list">
+                @if (Model.Summary.RecentActivities != null && Model.Summary.RecentActivities.Any())
+                {
+                    foreach (var act in Model.Summary.RecentActivities)
+                    {
+                        <div class="activity-item">
+                            <div class="activity-dot" style="background: @(act.StatusType == "Success" ? "#2563eb" : "#f97316");"></div>
+                            <div>
+                                <div class="activity-title">@act.Title</div>
+                                <div class="activity-meta">@act.PerformerName • @act.TimeAgo</div>
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div style="text-align: center; color: #94a3b8; padding: 20px;">
+                        Chưa có hoạt động nào gần đây.
+                    </div>
+                }
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+<!-- FOOTER -->
+<div class="page-footer">
+    <span>© 2026 BMWMS. All rights reserved.</span>
+    <span>Database aligned v3.0</span>
+</div>
