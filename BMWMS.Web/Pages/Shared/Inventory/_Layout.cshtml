@@ -1,0 +1,26 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>@ViewData["Title"] - BMWMS</title>
+
+    <link rel="stylesheet" href="~/css/Inventory/layout.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/Inventory/sidebar.css" asp-append-version="true" />
+    @RenderSection("Styles", required: false)
+</head>
+
+<body>
+
+    @await Html.PartialAsync("~/Pages/Shared/Inventory/sidebar.cshtml")
+
+
+    <div class="main-content">
+        @RenderBody()
+    </div>
+
+
+</body>
+
+</html>
