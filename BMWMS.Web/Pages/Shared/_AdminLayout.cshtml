@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] | BMWMS</title>
-    <link href="~/css/dashboard.css" rel="stylesheet" />
+    <link href="~/css/dashboard.css" rel="stylesheet" asp-append-version="true" />
     <!-- Icons -->
     <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
     @RenderSection("Styles", required: false)
@@ -28,18 +28,47 @@
 
             <div class="nav-section">
                 <div class="nav-section-label">Danh mục</div>
-                <a href="#" class="nav-item">
-                    <i class="ri-map-pin-line nav-item-icon"></i>
-                    Kho & vị trí
-                </a>
-                <a href="#" class="nav-item">
-                    <i class="ri-box-3-line nav-item-icon"></i>
-                    Sản phẩm
-                </a>
-                <a href="/Admin/Suppliers" class="nav-item">
-                    <i class="ri-truck-line nav-item-icon"></i>
-                    Nhà cung cấp
-                </a>
+                <!-- Kho & Vị trí -->
+                <div class="nav-item nav-item-has-sub" onclick="toggleSubmenu(this)">
+                    <div class="nav-item-main">
+                        <i class="ri-map-pin-line nav-item-icon"></i>
+                        Kho & vị trí
+                    </div>
+                    <i class="ri-arrow-right-s-line nav-item-arrow"></i>
+                </div>
+                <div class="nav-submenu">
+                    <a href="#" class="nav-sub-item">Danh sách kho</a>
+                    <a href="#" class="nav-sub-item">Vị trí lưu trữ</a>
+                </div>
+
+                <!-- Sản phẩm -->
+                <div class="nav-item nav-item-has-sub" onclick="toggleSubmenu(this)">
+                    <div class="nav-item-main">
+                        <i class="ri-box-3-line nav-item-icon"></i>
+                        Sản phẩm
+                    </div>
+                    <i class="ri-arrow-right-s-line nav-item-arrow"></i>
+                </div>
+                <div class="nav-submenu">
+                    <a href="#" class="nav-sub-item">Danh mục</a>
+                    <a href="#" class="nav-sub-item">Hàng hóa</a>
+                </div>
+
+                <!-- Nhà cung cấp (UC15, UC16) -->
+                @{ var isSupplierActive = Context.Request.Path.StartsWithSegments("/Admin/Suppliers"); }
+                <div class="nav-item nav-item-has-sub @(isSupplierActive ? "expanded active" : "")" onclick="toggleSubmenu(this)">
+                    <div class="nav-item-main">
+                        <i class="ri-truck-line nav-item-icon"></i>
+                        Nhà cung cấp
+                    </div>
+                    <i class="ri-arrow-right-s-line nav-item-arrow"></i>
+                </div>
+                <div class="nav-submenu @(isSupplierActive ? "expanded" : "")">
+                    <a href="/Admin/Suppliers" class="nav-sub-item @(Context.Request.Path == "/Admin/Suppliers" ? "active" : "")">Danh sách nhà cung cấp</a>
+                    <!-- Có thể thêm các UC cụ thể liên quan đến Supplier tại đây nếu không yêu cầu ID -->
+                </div>
+
+                <!-- Khách hàng -->
                 <a href="#" class="nav-item">
                     <i class="ri-user-line nav-item-icon"></i>
                     Khách hàng
@@ -84,10 +113,21 @@
                     <i class="ri-bar-chart-box-line nav-item-icon"></i>
                     Báo cáo
                 </a>
-                <a href="/Admin/Users" class="nav-item @(Context.Request.Path.StartsWithSegments("/Admin/Users") ? "active" : "")">
-                    <i class="ri-user-settings-line nav-item-icon"></i>
-                    Người dùng
-                </a>
+                
+                <!-- Người dùng -->
+                @{ var isUserActive = Context.Request.Path.StartsWithSegments("/Admin/Users"); }
+                <div class="nav-item nav-item-has-sub @(isUserActive ? "expanded active" : "")" onclick="toggleSubmenu(this)">
+                    <div class="nav-item-main">
+                        <i class="ri-user-settings-line nav-item-icon"></i>
+                        Người dùng
+                    </div>
+                    <i class="ri-arrow-right-s-line nav-item-arrow"></i>
+                </div>
+                <div class="nav-submenu @(isUserActive ? "expanded" : "")">
+                    <a href="/Admin/Users" class="nav-sub-item @(Context.Request.Path == "/Admin/Users" ? "active" : "")">Quản lý người dùng</a>
+                    <a href="#" class="nav-sub-item">Phân quyền</a>
+                </div>
+
                 <a href="#" class="nav-item">
                     <i class="ri-settings-3-line nav-item-icon"></i>
                     Cấu hình
@@ -141,13 +181,23 @@
     </footer>
 
     <script>
-        // Close dropdown when clicking outside
+        // Close user dropdown when clicking outside
         document.addEventListener('click', function(event) {
             var userMenu = document.querySelector('.header-user');
-            if (!userMenu.contains(event.target)) {
-                document.getElementById('userDropdown').classList.remove('show');
+            var userDropdown = document.getElementById('userDropdown');
+            if (userMenu && userDropdown && !userMenu.contains(event.target)) {
+                userDropdown.classList.remove('show');
             }
         });
+
+        // Toggle Submenu sidebar
+        function toggleSubmenu(element) {
+            element.classList.toggle('expanded');
+            var submenu = element.nextElementSibling;
+            if (submenu && submenu.classList.contains('nav-submenu')) {
+                submenu.classList.toggle('expanded');
+            }
+        }
     </script>
     @RenderSection("Scripts", required: false)
 </body>
