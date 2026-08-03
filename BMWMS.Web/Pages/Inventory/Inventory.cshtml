@@ -1,0 +1,188 @@
+﻿@page
+@model BMWMS.Web.Pages.Inventory.InventoryModel
+@{
+    Layout = "/Pages/Shared/Inventory/_Layout.cshtml";
+    ViewData["Title"] = "Tồn kho theo kho & vị trí";
+}
+@section Styles {
+    <link rel="stylesheet" href="~/css/Inventory/index.css" asp-append-version="true" />
+}
+
+
+<div class="topbar">
+    <div class="breadcrumb">
+        <span>Danh mục</span>
+        <span class="sep">›</span>
+        <span>Kho & vị trí</span>
+        <span class="sep">›</span>
+        <span class="current">Tồn kho</span>
+    </div>
+
+    <div class="topbar-right">
+        <div class="user-info">
+            <div class="user-details">
+                <div class="user-name">Nguyễn Văn An</div>
+                <div class="user-role">System Administrator</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="content">
+
+    <div class="page-header">
+        <div>
+            <h1 style="font-size: 24px; font-weight: 700; color: #0f172a; margin: 0 0 4px 0;">Tồn kho theo kho & vị trí</h1>
+            <div style="font-size: 13px; color: #64748b;">Theo dõi On Hand, Reserved, Available và In Transit theo Product × Bin × Lot.</div>
+        </div>
+
+        <a asp-page-handler="ExportExcel" 
+           asp-route-keyword="@Model.Filter.Keyword"
+           asp-route-warehouseId="@Model.Filter.WarehouseId"
+           asp-route-status="@Model.Filter.Status"
+           class="btn-create" 
+           style="background: #ffffff; border: 1px solid #cbd5e1; color: #334155; text-decoration: none; display: flex; align-items: center; gap: 8px; font-weight: 500;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            Xuất Excel
+        </a>
+    </div>
+
+    <div class="metrics-grid">
+        <div class="metric-card">
+            <div class="metric-value" style="color: #0f172a;">@Model.Data.TotalOnHand.ToString("N0")</div>
+            <div class="metric-label">On Hand</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-value" style="color: #16a34a;">@Model.Data.TotalAvailable.ToString("N0")</div>
+            <div class="metric-label">Available</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-value" style="color: #2563eb;">@Model.Data.TotalReserved.ToString("N0")</div>
+            <div class="metric-label">Reserved</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-value" style="color: #ea580c;">@Model.Data.TotalInTransit.ToString("N0")</div>
+            <div class="metric-label">In Transit</div>
+        </div>
+    </div>
+
+    <!-- BỘ LỌC (FILTER BAR) -->
+    <div class="filter-card">
+        <form method="get" class="filter-grid">
+            <!-- Tìm mã/tên SP -->
+            <div style="position: relative;">
+                <input type="text" asp-for="Filter.Keyword" placeholder="Tìm mã hoặc tên sản phẩm" class="filter-input" style="width: 100%; box-sizing: border-box; padding-left: 36px;" />
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%);">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+            </div>
+
+            <!-- Chọn Kho -->
+            <select asp-for="Filter.WarehouseId" class="filter-select">
+                <option value="">Tất cả kho</option>
+            </select>
+
+            <select asp-for="Filter.StorageLocationId" class="filter-select">
+                <option value="">Tất cả vị trí</option>
+            </select>
+
+            <select asp-for="Filter.Status" class="filter-select">
+                <option value="ALL">Tất cả trạng thái</option>
+                <option value="NORMAL">Bình thường</option>
+                <option value="LOW_STOCK">Sắp hết</option>
+                <option value="OUT_OF_STOCK">Hết hàng</option>
+            </select>
+
+            <button type="submit" class="btn-create" style="background: #1e293b; padding: 0 24px;">Lọc</button>
+        </form>
+    </div>
+
+    <div class="table-card">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Sản phẩm</th>
+                    <th>Kho / Bin</th>
+                    <th style="text-align: right;">On Hand</th>
+                    <th style="text-align: right;">Reserved</th>
+                    <th style="text-align: right;">Available</th>
+                    <th>Lot / Hạn dùng</th>
+                    <th>Trạng thái</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Data.Items != null && Model.Data.Items.Any())
+                {
+                    foreach (var item in Model.Data.Items)
+                    {
+                        <tr>
+                            <td>
+                                <a href="#" style="text-decoration: none; font-weight: 600; color: #2563eb;">
+                                    @item.ProductCode — @item.ProductName
+                                </a>
+                            </td>
+                            <td style="color: #475569;">@item.WarehouseAndBin</td>
+                            <td style="text-align: right; font-weight: 500;">@item.OnHandQuantity.ToString("N0")</td>
+                            <td style="text-align: right; color: #64748b;">@item.ReservedQuantity.ToString("N0")</td>
+                            <td style="text-align:right;font-weight:700;color:@(item.AvailableQuantity <= 0 ? "#ef4444" : "#16a34a");">
+                                @item.AvailableQuantity.ToString("N0")
+                            </td>
+                            <td style="color: #475569;">@item.LotAndExpiryDisplay</td>
+                            <td>
+                                <span class="badge-status @item.StatusCssClass">
+                                    @item.Status
+                                </span>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="7" style="text-align: center; color: #94a3b8; padding: 32px;">
+                            Không tìm thấy dữ liệu tồn kho phù hợp.
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <!-- PAGINATION FOOTER -->
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-top: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">
+            <div>
+                Hiển thị @(Model.Data.Items.Count) trong @Model.Data.TotalCount dòng tồn kho
+            </div>
+            <div style="display: flex; gap: 4px;">
+                @for (int i = 1; i <= Model.Data.TotalPages; i++)
+                {
+                    <a asp-page="./Index" 
+                       asp-route-Filter.PageIndex="@i"
+                       asp-route-Filter.Keyword="@Model.Filter.Keyword"
+                       asp-route-Filter.WarehouseId="@Model.Filter.WarehouseId"
+                       asp-route-Filter.Status="@Model.Filter.Status"
+                       style="
+    padding:6px 12px;
+    border-radius:4px;
+    text-decoration:none;
+    border:1px solid @(i == Model.Data.PageIndex ? "#2563eb" : "#cbd5e1");
+    background:@(i == Model.Data.PageIndex ? "#2563eb" : "#fff");
+    color:@(i == Model.Data.PageIndex ? "#fff" : "#334155");
+    " >@i
+                    </a>
+                }
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- FOOTER -->
+<div class="page-footer">
+    <span>© 2026 BMWMS. All rights reserved.</span>
+    <span>Database aligned v3.0</span>
+</div>

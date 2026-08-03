@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BMWMS.API.Controllers.Inventory
 {
+    [Route("api/[controller]")]
+    [ApiController]
     public class InventoriesController : ControllerBase
     {
         private readonly IInventoryService _inventoryService;
