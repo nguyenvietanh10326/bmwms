@@ -67,6 +67,31 @@ public class SupplierApiService
         return (false, error);
     }
 
+    public async Task<PagedResultModel<SupplierInboundHistoryResponseModel>?> GetSupplierInboundHistoryAsync(string supplierCode, SupplierInboundHistoryFilterModel filter)
+    {
+        var query = new List<string>();
+        if (!string.IsNullOrEmpty(filter.Keyword)) query.Add($"Keyword={Uri.EscapeDataString(filter.Keyword)}");
+        if (!string.IsNullOrEmpty(filter.Status)) query.Add($"Status={Uri.EscapeDataString(filter.Status)}");
+        if (filter.WarehouseId.HasValue) query.Add($"WarehouseId={filter.WarehouseId}");
+        if (filter.FromDate.HasValue) query.Add($"FromDate={filter.FromDate.Value:yyyy-MM-dd}");
+        if (filter.ToDate.HasValue) query.Add($"ToDate={filter.ToDate.Value:yyyy-MM-dd}");
+        query.Add($"PageIndex={filter.PageIndex}");
+        query.Add($"PageSize={filter.PageSize}");
+
+        var url = $"api/suppliers/{supplierCode}/inbound-history?{string.Join("&", query)}";
+        var response = await _httpClient.GetAsync(url);
+        if (!response.IsSuccessStatusCode) return null;
+        return await response.Content.ReadFromJsonAsync<PagedResultModel<SupplierInboundHistoryResponseModel>>();
+    }
+
+    public async Task<SupplierInboundHistoryDetailModel?> GetSupplierInboundHistoryDetailAsync(string supplierCode, string inboundOrderNumber)
+    {
+        var url = $"api/suppliers/{supplierCode}/inbound-history/{inboundOrderNumber}";
+        var response = await _httpClient.GetAsync(url);
+        if (!response.IsSuccessStatusCode) return null;
+        return await response.Content.ReadFromJsonAsync<SupplierInboundHistoryDetailModel>();
+    }
+
     public async Task<PagedResultModel<SupplierProductResponseDto>?> GetSupplierProductsAsync(string supplierCode, string? search, string? status, int page, int pageSize)
     {
         var query = new List<string>

@@ -14,4 +14,6 @@ public interface ISupplierRepository
     Task<bool> HasPurchaseReferencesAsync(long supplierId);
     Task UpdateAsync(Supplier supplier);
     Task<(IEnumerable<SupplierProduct> Items, int TotalCount)> GetSupplierProductsAsync(long supplierId, string? search, string? status, int page, int pageSize);
+    Task<(IEnumerable<InboundOrder> Items, int TotalCount)> GetSupplierInboundHistoryAsync(long supplierId, string? keyword, string? status, long? warehouseId, DateTime? fromDate, DateTime? toDate, int pageIndex, int pageSize);
+    Task<InboundOrder?> GetSupplierInboundHistoryDetailAsync(long supplierId, string inboundOrderNumber);
 }

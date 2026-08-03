@@ -117,4 +117,39 @@ public class SuppliersController : ControllerBase
             return StatusCode(500, ex.Message);
         }
     }
+
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF,WAREHOUSE_STAFF")]
+    [HttpGet("{supplierCode}/inbound-history")]
+    public async Task<IActionResult> GetSupplierInboundHistory(string supplierCode, [FromQuery] SupplierInboundHistoryFilterDto filter)
+    {
+        try
+        {
+            var result = await _supplierService.GetSupplierInboundHistoryAsync(supplierCode, filter);
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            return NotFound(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ex.Message);
+        }
+    }
+
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF,WAREHOUSE_STAFF")]
+    [HttpGet("{supplierCode}/inbound-history/{inboundOrderNumber}")]
+    public async Task<IActionResult> GetSupplierInboundHistoryDetail(string supplierCode, string inboundOrderNumber)
+    {
+        try
+        {
+            var detail = await _supplierService.GetSupplierInboundHistoryDetailAsync(supplierCode, inboundOrderNumber);
+            if (detail == null) return NotFound("Inbound order not found or does not belong to this supplier.");
+            return Ok(detail);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ex.Message);
+        }
+    }
 }
