@@ -31,4 +31,18 @@ public class ReportsController : ControllerBase
             return StatusCode(500, ex.Message);
         }
     }
+
+    [HttpGet("inbound")]
+    public async Task<IActionResult> GetInboundReport([FromQuery] InboundReportFilterDto filter)
+    {
+        try
+        {
+            var result = await _reportService.GetInboundReportAsync(filter);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ex.Message);
+        }
+    }
 }

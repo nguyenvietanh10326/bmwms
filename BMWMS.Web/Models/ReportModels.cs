@@ -33,3 +33,34 @@ public class InventoryReportResponseModel
     
     public DateTime CutOffTime { get; set; }
 }
+
+public class InboundReportFilterModel
+{
+    public DateTime? FromDate { get; set; }
+    public DateTime? ToDate { get; set; }
+    public string? ProductSearch { get; set; }
+    public string? Status { get; set; }
+}
+
+public class InboundReportItemModel
+{
+    public string InboundOrderNumber { get; set; } = null!;
+    public string ProductCode { get; set; } = null!;
+    public string ProductName { get; set; } = null!;
+    public string SourceType { get; set; } = null!;
+    public DateOnly ExpectedReceiptDate { get; set; }
+    public string Status { get; set; } = null!;
+    public decimal ExpectedQuantity { get; set; }
+    public decimal ReceivedQuantity { get; set; }
+    public decimal DamagedQuantity { get; set; }
+    public decimal ShortageQuantity { get; set; }
+}
+
+public class InboundReportResponseModel
+{
+    public decimal TotalExpected { get; set; }
+    public decimal TotalReceived { get; set; }
+    public decimal TotalDamaged { get; set; }
+    public decimal TotalShortage { get; set; }
+    public List<InboundReportItemModel> Items { get; set; } = new List<InboundReportItemModel>();
+}

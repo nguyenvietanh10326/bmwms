@@ -1,0 +1,161 @@
+@page
+@model BMWMS.Web.Pages.Admin.Reports.InboundModel
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Báo cáo nhập kho";
+    ViewData["HeaderTitle"] = "Báo cáo nhập kho";
+}
+
+<div class="page-header">
+    <div class="page-header-title">Báo cáo nhập kho</div>
+    <div class="page-header-sub">Kỳ báo cáo: @Model.Filter.FromDate?.ToString("dd/MM/yyyy") - @Model.Filter.ToDate?.ToString("dd/MM/yyyy")</div>
+</div>
+
+<div class="stats-grid" style="grid-template-columns: repeat(4, 1fr);">
+    <div class="stat-card">
+        <div class="stat-card-header">
+            <div class="stat-dot blue"></div>
+            <div class="stat-badge blue">Kế hoạch</div>
+        </div>
+        <div class="stat-number" style="color: #2563b8;">@Model.ReportData?.TotalExpected.ToString("N0")</div>
+        <div class="stat-label">Tổng số lượng dự kiến</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-card-header">
+            <div class="stat-dot green"></div>
+            <div class="stat-badge green">Thành công</div>
+        </div>
+        <div class="stat-number" style="color: #16a34a;">@Model.ReportData?.TotalReceived.ToString("N0")</div>
+        <div class="stat-label">Tổng số lượng thực nhận</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-card-header">
+            <div class="stat-dot red"></div>
+            <div class="stat-badge" style="background: #fef2f2; color: #dc2626;">Sự cố</div>
+        </div>
+        <div class="stat-number" style="color: #dc2626;">@Model.ReportData?.TotalDamaged.ToString("N0")</div>
+        <div class="stat-label">Tổng số lượng hư hỏng</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-card-header">
+            <div class="stat-dot orange"></div>
+            <div class="stat-badge orange">Thất thoát</div>
+        </div>
+        <div class="stat-number" style="color: #d97706;">@Model.ReportData?.TotalShortage.ToString("N0")</div>
+        <div class="stat-label">Tổng số lượng thiếu hụt</div>
+    </div>
+</div>
+
+<div class="panel">
+    <div class="panel-header">
+        <div class="panel-title">Chi tiết nhập kho</div>
+        <div class="panel-actions">
+            <button class="btn btn-outline" type="button" disabled>
+                <i class="fas fa-file-export"></i> Xuất Excel
+            </button>
+        </div>
+    </div>
+    <div class="panel-body">
+        <form method="get" class="filter-form mb-4" style="display: flex; gap: 16px; align-items: flex-end; padding-bottom: 20px; border-bottom: 1px solid #e2e8f0; margin-bottom: 20px;">
+            <div class="form-group" style="margin-bottom: 0; min-width: 180px;">
+                <label style="display: block; margin-bottom: 6px; font-weight: 500; font-size: 13px; color: #475569;">Từ ngày</label>
+                <input type="date" class="form-control" asp-for="Filter.FromDate" style="width: 100%; height: 38px; border-radius: 6px; border: 1px solid #cbd5e1; padding: 0 12px; font-size: 14px;" />
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0; min-width: 180px;">
+                <label style="display: block; margin-bottom: 6px; font-weight: 500; font-size: 13px; color: #475569;">Đến ngày</label>
+                <input type="date" class="form-control" asp-for="Filter.ToDate" style="width: 100%; height: 38px; border-radius: 6px; border: 1px solid #cbd5e1; padding: 0 12px; font-size: 14px;" />
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0; min-width: 240px;">
+                <label style="display: block; margin-bottom: 6px; font-weight: 500; font-size: 13px; color: #475569;">Sản phẩm</label>
+                <input type="text" class="form-control" asp-for="Filter.ProductSearch" placeholder="Mã hoặc tên SP..." style="width: 100%; height: 38px; border-radius: 6px; border: 1px solid #cbd5e1; padding: 0 12px; font-size: 14px;" />
+            </div>
+            
+            <div class="form-group" style="margin-bottom: 0; min-width: 180px;">
+                <label style="display: block; margin-bottom: 6px; font-weight: 500; font-size: 13px; color: #475569;">Trạng thái</label>
+                <select class="form-control" asp-for="Filter.Status" style="width: 100%; height: 38px; border-radius: 6px; border: 1px solid #cbd5e1; padding: 0 12px; font-size: 14px; background-color: white;">
+                    <option value="">Tất cả trạng thái</option>
+                    <option value="DRAFT">DRAFT</option>
+                    <option value="CONFIRMED">CONFIRMED</option>
+                    <option value="IN_PROGRESS">IN_PROGRESS</option>
+                    <option value="COMPLETED">COMPLETED</option>
+                    <option value="CANCELLED">CANCELLED</option>
+                </select>
+            </div>
+            
+            <button type="submit" class="btn btn-primary" style="height: 38px; padding: 0 24px; font-weight: 500; border-radius: 6px; background-color: #2563b8; color: white; border: none; cursor: pointer; transition: background-color 0.2s;">
+                <i class="ri-filter-3-line" style="margin-right: 4px;"></i> Lọc dữ liệu
+            </button>
+        </form>
+
+        <table class="panel-table" style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr>
+                    <th>Mã phiếu nhập</th>
+                    <th>Sản phẩm</th>
+                    <th>Ngày dự kiến</th>
+                    <th class="text-right">SL dự kiến</th>
+                    <th class="text-right">Thực nhận</th>
+                    <th class="text-right">Hư hỏng</th>
+                    <th class="text-right">Thiếu hụt</th>
+                    <th>Trạng thái</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.ReportData?.Items != null && Model.ReportData.Items.Any())
+                {
+                    foreach (var item in Model.ReportData.Items)
+                    {
+                        <tr>
+                            <td>@item.InboundOrderNumber</td>
+                            <td>
+                                <div style="font-weight: 500;">@item.ProductCode</div>
+                                <div style="color: #64748b; font-size: 13px;">@item.ProductName</div>
+                            </td>
+                            <td>@item.ExpectedReceiptDate.ToString("dd/MM/yyyy")</td>
+                            <td class="text-right" style="font-weight: bold;">@item.ExpectedQuantity.ToString("N0")</td>
+                            <td class="text-right" style="font-weight: bold; color: #16a34a;">@item.ReceivedQuantity.ToString("N0")</td>
+                            <td class="text-right" style="color: #dc2626;">@item.DamagedQuantity.ToString("N0")</td>
+                            <td class="text-right" style="color: #d97706;">@item.ShortageQuantity.ToString("N0")</td>
+                            <td>
+                                @{
+                                    string badgeClass = item.Status switch {
+                                        "DRAFT" => "badge-secondary",
+                                        "CONFIRMED" => "badge-primary",
+                                        "IN_PROGRESS" => "badge-warning",
+                                        "COMPLETED" => "badge-success",
+                                        "CANCELLED" => "badge-danger",
+                                        _ => "badge-secondary"
+                                    };
+                                }
+                                <span class="badge @badgeClass">@item.Status</span>
+                            </td>
+                        </tr>
+                    }
+                    <!-- Totals Row -->
+                    <tr style="background-color: #f8fafc; font-weight: 600;">
+                        <td colspan="3" class="text-right">Tổng cộng:</td>
+                        <td class="text-right">@Model.ReportData.TotalExpected.ToString("N0")</td>
+                        <td class="text-right" style="color: #16a34a;">@Model.ReportData.TotalReceived.ToString("N0")</td>
+                        <td class="text-right" style="color: #dc2626;">@Model.ReportData.TotalDamaged.ToString("N0")</td>
+                        <td class="text-right" style="color: #d97706;">@Model.ReportData.TotalShortage.ToString("N0")</td>
+                        <td></td>
+                    </tr>
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="8" class="text-center text-muted" style="padding: 32px;">
+                            <i class="fas fa-box-open" style="font-size: 32px; color: #cbd5e1; margin-bottom: 12px; display: block;"></i>
+                            Không có dữ liệu báo cáo khớp với điều kiện lọc.
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

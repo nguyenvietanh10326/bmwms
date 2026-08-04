@@ -14,6 +14,39 @@ public class ReportService : IReportService
         _reportRepository = reportRepository;
     }
 
+    public async Task<InboundReportResponseDto> GetInboundReportAsync(InboundReportFilterDto filter)
+    {
+        var (items, totalExpected, totalReceived, totalDamaged, totalShortage) = await _reportRepository.GetInboundReportAsync(
+            filter.FromDate,
+            filter.ToDate,
+            filter.ProductSearch,
+            filter.Status
+        );
+
+        var dtos = items.Select(i => new InboundReportItemDto
+        {
+            InboundOrderNumber = i.InboundOrderNumber,
+            ProductCode = i.ProductCode,
+            ProductName = i.ProductName,
+            SourceType = i.SourceType,
+            ExpectedReceiptDate = i.ExpectedReceiptDate,
+            Status = i.Status,
+            ExpectedQuantity = i.ExpectedQuantity,
+            ReceivedQuantity = i.ReceivedQuantity,
+            DamagedQuantity = i.DamagedQuantity,
+            ShortageQuantity = i.ShortageQuantity
+        }).ToList();
+
+        return new InboundReportResponseDto
+        {
+            TotalExpected = totalExpected,
+            TotalReceived = totalReceived,
+            TotalDamaged = totalDamaged,
+            TotalShortage = totalShortage,
+            Items = dtos
+        };
+    }
+
     public async Task<InventoryReportResponseDto> GetInventoryReportAsync(InventoryReportFilterDto filter)
     {
         var (items, totalCount, totalOnHand, totalReserved, totalAvailable) = await _reportRepository.GetInventoryReportAsync(

@@ -57,4 +57,45 @@ public class ReportRepository : IReportRepository
 
         return (items, totalCount, totalOnHand, totalReserved, totalAvailable);
     }
+
+    public async Task<(List<VwInboundReport> Items, decimal TotalExpected, decimal TotalReceived, decimal TotalDamaged, decimal TotalShortage)> 
+        GetInboundReportAsync(DateTime? fromDate, DateTime? toDate, string? productSearch, string? status)
+    {
+        var query = _context.VwInboundReports.AsQueryable();
+
+        if (fromDate.HasValue)
+        {
+            var fDate = DateOnly.FromDateTime(fromDate.Value);
+            query = query.Where(q => q.ExpectedReceiptDate >= fDate);
+        }
+
+        if (toDate.HasValue)
+        {
+            var tDate = DateOnly.FromDateTime(toDate.Value);
+            query = query.Where(q => q.ExpectedReceiptDate <= tDate);
+        }
+
+        if (!string.IsNullOrEmpty(productSearch))
+        {
+            var search = productSearch.ToLower();
+            query = query.Where(q => q.ProductCode.ToLower().Contains(search) || q.ProductName.ToLower().Contains(search));
+        }
+        
+        if (!string.IsNullOrEmpty(status))
+        {
+            query = query.Where(q => q.Status == status);
+        }
+
+        var totalExpected = await query.SumAsync(q => q.ExpectedQuantity);
+        var totalReceived = await query.SumAsync(q => q.ReceivedQuantity);
+        var totalDamaged = await query.SumAsync(q => q.DamagedQuantity);
+        var totalShortage = await query.SumAsync(q => q.ShortageQuantity);
+
+        var items = await query
+            .OrderByDescending(q => q.ExpectedReceiptDate)
+            .ThenBy(q => q.InboundOrderNumber)
+            .ToListAsync();
+
+        return (items, totalExpected, totalReceived, totalDamaged, totalShortage);
+    }
 }
