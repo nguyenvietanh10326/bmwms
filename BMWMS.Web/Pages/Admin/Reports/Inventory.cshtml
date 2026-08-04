@@ -1,0 +1,132 @@
+@page
+@model BMWMS.Web.Pages.Admin.Reports.InventoryModel
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Báo cáo tồn kho";
+    ViewData["HeaderTitle"] = "Báo cáo tồn kho";
+    ViewData["FooterVersion"] = "Database aligned v3.0";
+}
+
+<div class="page-header">
+    <div class="page-header-title">Báo cáo tồn kho</div>
+    <div class="page-header-sub">Dữ liệu tính đến: @Model.ReportData.CutOffTime.ToString("dd/MM/yyyy HH:mm")</div>
+</div>
+
+<div class="stats-grid" style="grid-template-columns: repeat(3, 1fr);">
+    <div class="stat-card">
+        <div class="stat-card-header">
+            <div class="stat-dot blue"></div>
+            <div class="stat-badge blue">Hệ thống</div>
+        </div>
+        <div class="stat-number" style="color: #2563b8;">@Model.ReportData.TotalOnHand.ToString("N0")</div>
+        <div class="stat-label">Tổng tồn kho</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-card-header">
+            <div class="stat-dot green"></div>
+            <div class="stat-badge green">Sẵn sàng bán/xuất</div>
+        </div>
+        <div class="stat-number" style="color: #16a34a;">@Model.ReportData.TotalAvailable.ToString("N0")</div>
+        <div class="stat-label">Tồn kho khả dụng</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-card-header">
+            <div class="stat-dot orange"></div>
+            <div class="stat-badge orange">Đang lấy hàng</div>
+        </div>
+        <div class="stat-number" style="color: #d97706;">@Model.ReportData.TotalReserved.ToString("N0")</div>
+        <div class="stat-label">Tồn kho giữ chỗ</div>
+    </div>
+</div>
+
+<div class="panel">
+    <div class="panel-header">
+        <div class="panel-title">Chi tiết tồn kho</div>
+        <div class="panel-actions">
+            <!-- Tương lai: Thêm button Xuất báo cáo (UC45) ở đây -->
+            <button class="btn btn-outline" type="button" disabled>
+                <i class="fas fa-file-export"></i> Xuất Excel
+            </button>
+        </div>
+    </div>
+    <div class="panel-body">
+        <form method="get" class="filter-form mb-4" style="display: flex; gap: 16px; align-items: flex-end; padding-bottom: 20px; border-bottom: 1px solid #e2e8f0; margin-bottom: 20px;">
+            <div class="form-group" style="margin-bottom: 0; min-width: 240px;">
+                <label style="display: block; margin-bottom: 6px; font-weight: 500; font-size: 13px; color: #475569;">Sản phẩm</label>
+                <input type="text" class="form-control" asp-for="Filter.ProductSearch" placeholder="Mã hoặc tên SP..." style="width: 100%; height: 38px; border-radius: 6px; border: 1px solid #cbd5e1; padding: 0 12px; font-size: 14px;" />
+            </div>
+            
+            <div class="form-group" style="margin-bottom: 0; min-width: 180px;">
+                <label style="display: block; margin-bottom: 6px; font-weight: 500; font-size: 13px; color: #475569;">Vị trí kho</label>
+                <input type="text" class="form-control" asp-for="Filter.LocationCode" placeholder="Mã vị trí..." style="width: 100%; height: 38px; border-radius: 6px; border: 1px solid #cbd5e1; padding: 0 12px; font-size: 14px;" />
+            </div>
+            
+            <div class="form-group" style="margin-bottom: 0; min-width: 180px;">
+                <label style="display: block; margin-bottom: 6px; font-weight: 500; font-size: 13px; color: #475569;">Số lô</label>
+                <input type="text" class="form-control" asp-for="Filter.LotNumber" placeholder="Số lô..." style="width: 100%; height: 38px; border-radius: 6px; border: 1px solid #cbd5e1; padding: 0 12px; font-size: 14px;" />
+            </div>
+            
+            <div class="form-group" style="margin-bottom: 0; display: flex; align-items: center; gap: 8px; height: 38px;">
+                <input type="checkbox" asp-for="Filter.PositiveStockOnly" id="chkPositive" style="width: 16px; height: 16px; cursor: pointer; accent-color: #2563b8;" />
+                <label for="chkPositive" style="margin-bottom: 0; cursor: pointer; font-weight: 500; font-size: 14px; color: #334155;">Chỉ tồn dương</label>
+            </div>
+            
+            <button type="submit" class="btn btn-primary" style="height: 38px; padding: 0 24px; font-weight: 500; border-radius: 6px; background-color: #2563b8; color: white; border: none; cursor: pointer; transition: background-color 0.2s;">
+                <i class="ri-filter-3-line" style="margin-right: 4px;"></i> Lọc dữ liệu
+            </button>
+        </form>
+
+        <table class="panel-table" style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr>
+                    <th>Mã SP</th>
+                    <th>Tên SP</th>
+                    <th>ĐVT</th>
+                    <th>Số lô</th>
+                    <th>Vị trí</th>
+                    <th>Hạn SD</th>
+                    <th class="text-right">Tồn kho</th>
+                    <th class="text-right">Giữ chỗ</th>
+                    <th class="text-right">Khả dụng</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.ReportData.Data.Items.Any())
+                {
+                    foreach (var item in Model.ReportData.Data.Items)
+                    {
+                        <tr>
+                            <td>@item.ProductCode</td>
+                            <td style="font-weight: 500;">@item.ProductName</td>
+                            <td>@item.UnitCode</td>
+                            <td>@item.LotNumber</td>
+                            <td>@item.LocationCode</td>
+                            <td>@(item.ExpiryDate?.ToString("dd/MM/yyyy") ?? "-")</td>
+                            <td class="text-right" style="font-weight: bold;">@item.OnHandQuantity.ToString("N0")</td>
+                            <td class="text-right" style="color: #d97706;">@item.ReservedQuantity.ToString("N0")</td>
+                            <td class="text-right" style="color: #16a34a; font-weight: bold;">@item.AvailableQuantity.ToString("N0")</td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="9" class="text-center text-muted" style="padding: 32px;">
+                            <i class="fas fa-box-open" style="font-size: 32px; color: #cbd5e1; margin-bottom: 12px; display: block;"></i>
+                            Không có dữ liệu báo cáo khớp với điều kiện lọc.
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        
+        @if (Model.ReportData.Data.TotalCount > Model.Filter.PageSize)
+        {
+            <div class="text-center text-muted" style="margin-top: 16px; font-size: 13px;">
+                Hiển thị @Model.ReportData.Data.Items.Count trên tổng số @Model.ReportData.Data.TotalCount bản ghi.
+            </div>
+        }
+    </div>
+</div>

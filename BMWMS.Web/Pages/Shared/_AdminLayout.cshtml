@@ -29,30 +29,16 @@
             <div class="nav-section">
                 <div class="nav-section-label">Danh mục</div>
                 <!-- Kho & Vị trí -->
-                <div class="nav-item nav-item-has-sub" onclick="toggleSubmenu(this)">
-                    <div class="nav-item-main">
-                        <i class="ri-map-pin-line nav-item-icon"></i>
-                        Kho & vị trí
-                    </div>
-                    <i class="ri-arrow-right-s-line nav-item-arrow"></i>
-                </div>
-                <div class="nav-submenu">
-                    <a href="#" class="nav-sub-item">Danh sách kho</a>
-                    <a href="#" class="nav-sub-item">Vị trí lưu trữ</a>
-                </div>
+                <a href="#" class="nav-item">
+                    <i class="ri-map-pin-line nav-item-icon"></i>
+                    Kho & vị trí
+                </a>
 
                 <!-- Sản phẩm -->
-                <div class="nav-item nav-item-has-sub" onclick="toggleSubmenu(this)">
-                    <div class="nav-item-main">
-                        <i class="ri-box-3-line nav-item-icon"></i>
-                        Sản phẩm
-                    </div>
-                    <i class="ri-arrow-right-s-line nav-item-arrow"></i>
-                </div>
-                <div class="nav-submenu">
-                    <a href="#" class="nav-sub-item">Danh mục</a>
-                    <a href="#" class="nav-sub-item">Hàng hóa</a>
-                </div>
+                <a href="#" class="nav-item">
+                    <i class="ri-box-3-line nav-item-icon"></i>
+                    Sản phẩm
+                </a>
 
                 <!-- Nhà cung cấp (UC15, UC16) -->
                 @{ var isSupplierActive = Context.Request.Path.StartsWithSegments("/Admin/Suppliers"); }
@@ -109,10 +95,29 @@
             
             <div class="nav-section">
                 <div class="nav-section-label">Báo cáo & Hệ thống</div>
-                <a href="#" class="nav-item">
-                    <i class="ri-bar-chart-box-line nav-item-icon"></i>
-                    Báo cáo
-                </a>
+                <!-- Báo cáo & Cảnh báo (UC38-UC51) -->
+                @{ var isReportActive = Context.Request.Path.StartsWithSegments("/Admin/Reports"); }
+                <div class="nav-item nav-item-has-sub @(isReportActive ? "expanded active" : "")" onclick="toggleSubmenu(this)">
+                    <div class="nav-item-main">
+                        <i class="ri-bar-chart-box-line nav-item-icon"></i>
+                        Báo cáo
+                    </div>
+                    <i class="ri-arrow-right-s-line nav-item-arrow"></i>
+                </div>
+                <div class="nav-submenu @(isReportActive ? "expanded" : "")">
+                    <a href="/Admin/Reports/Inventory" class="nav-sub-item @(Context.Request.Path == "/Admin/Reports/Inventory" ? "active" : "")">Báo cáo tồn kho</a>
+                    <a href="/Admin/Reports/Inbound" class="nav-sub-item @(Context.Request.Path == "/Admin/Reports/Inbound" ? "active" : "")">Báo cáo nhập kho</a>
+                    <a href="/Admin/Reports/Outbound" class="nav-sub-item @(Context.Request.Path == "/Admin/Reports/Outbound" ? "active" : "")">Báo cáo xuất kho</a>
+                    <a href="/Admin/Reports/InOutStock" class="nav-sub-item @(Context.Request.Path == "/Admin/Reports/InOutStock" ? "active" : "")">Nhập - Xuất - Tồn</a>
+                    <a href="/Admin/Reports/ProductStats" class="nav-sub-item @(Context.Request.Path == "/Admin/Reports/ProductStats" ? "active" : "")">Thống kê sản phẩm</a>
+                    <a href="/Admin/Reports/SupplierStats" class="nav-sub-item @(Context.Request.Path == "/Admin/Reports/SupplierStats" ? "active" : "")">Thống kê NCC</a>
+                    <a href="/Admin/Reports/StocktakeStats" class="nav-sub-item @(Context.Request.Path == "/Admin/Reports/StocktakeStats" ? "active" : "")">Kết quả kiểm kho</a>
+                    <a href="/Admin/Reports/LowStock" class="nav-sub-item @(Context.Request.Path == "/Admin/Reports/LowStock" ? "active" : "")">Cảnh báo tồn kho</a>
+                    <a href="/Admin/Reports/ExpiringLot" class="nav-sub-item @(Context.Request.Path == "/Admin/Reports/ExpiringLot" ? "active" : "")">Lô sắp hết hạn</a>
+                    <a href="/Admin/Reports/OverdueOrder" class="nav-sub-item @(Context.Request.Path == "/Admin/Reports/OverdueOrder" ? "active" : "")">Đơn hàng quá hạn</a>
+                    <a href="/Admin/Reports/Notifications" class="nav-sub-item @(Context.Request.Path == "/Admin/Reports/Notifications" ? "active" : "")">Thông báo hệ thống</a>
+                    <a href="/Admin/Reports/KPIs" class="nav-sub-item @(Context.Request.Path == "/Admin/Reports/KPIs" ? "active" : "")">KPI vận hành</a>
+                </div>
                 
                 <!-- Người dùng -->
                 @{ var isUserActive = Context.Request.Path.StartsWithSegments("/Admin/Users"); }

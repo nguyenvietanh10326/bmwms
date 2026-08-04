@@ -38,6 +38,7 @@ builder.Services.AddScoped<WarehouseApiService>();
 builder.Services.AddScoped<SupplierApiService>();
 builder.Services.AddScoped<UserApiService>();
 builder.Services.AddScoped<RoleApiService>();
+builder.Services.AddScoped<IReportApiService, ReportApiService>();
 
 var app = builder.Build();
 
