@@ -1,0 +1,288 @@
+@page
+@model BMWMS.Web.Pages.Products.DetailsModel
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = $"Chi tiết {Model.Product.ProductCode}";
+    ViewData["ActivePage"] = "Products";
+}
+
+<div style="padding: 24px; max-width: 1400px; margin: 0 auto;">
+
+    <!-- BREADCRUMB & HEADER -->
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; flex-wrap: wrap; gap: 16px;">
+        <div>
+            <div style="font-size: 13px; color: #64748b; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+                <a href="/Products/Index" style="color: #64748b; text-decoration: none;">Danh mục hàng hóa</a>
+                <i class="ri-arrow-right-s-line" style="font-size: 14px;"></i>
+                <span style="color: #2563b8; font-weight: 500;">Chi tiết vật tư: @Model.Product.ProductCode</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <h1 style="font-size: 24px; font-weight: 700; color: #0f172a; margin: 0;">@Model.Product.ProductName</h1>
+                @if (Model.Product.Status == "ACTIVE")
+                {
+                    <span style="background: #dcfce7; color: #15803d; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+                        <span style="width: 6px; height: 6px; background: #22c55e; border-radius: 50%;"></span> Đang kinh doanh
+                    </span>
+                }
+                else
+                {
+                    <span style="background: #fee2e2; color: #b91c1c; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+                        <span style="width: 6px; height: 6px; background: #ef4444; border-radius: 50%;"></span> Ngừng kinh doanh
+                    </span>
+                }
+            </div>
+            <div style="font-size: 13px; color: #64748b; margin-top: 4px;">
+                Mã SKU: <span style="font-family: monospace; font-weight: 600; color: #1e3a8a;">@Model.Product.ProductCode</span>
+                @if (!string.IsNullOrEmpty(Model.Product.Barcode))
+                {
+                    <span style="margin: 0 8px;">•</span>
+                    <span>Barcode: <span style="font-family: monospace;">@Model.Product.Barcode</span></span>
+                }
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+            <a href="/Products/Index" style="padding: 8px 16px; border-radius: 6px; border: 1px solid #cbd5e1; background: #fff; color: #475569; font-weight: 500; font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+                <i class="ri-arrow-left-line"></i> Quay lại
+            </a>
+            <a href="/Products/Edit?id=@Model.Product.ProductId" style="padding: 8px 18px; border-radius: 6px; border: none; background: #2563b8; color: #fff; font-weight: 500; font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 1px 2px rgba(37, 99, 235, 0.2);">
+                <i class="ri-edit-line"></i> Chỉnh sửa
+            </a>
+        </div>
+    </div>
+
+    <!-- METRICS STRIP -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
+        <div style="background: #ffffff; padding: 16px 20px; border-radius: 10px; border: 1px solid #e2e8f0;">
+            <div style="font-size: 12px; color: #64748b; font-weight: 500; text-transform: uppercase;">Tổng Tồn Thực Tế (On-Hand)</div>
+            <div style="font-size: 26px; font-weight: 700; color: #16a34a; margin-top: 6px;">
+                @Model.Product.TotalStockOnHand.ToString("N0") <span style="font-size: 14px; font-weight: 500; color: #64748b;">@Model.Product.UnitName</span>
+            </div>
+        </div>
+
+        <div style="background: #ffffff; padding: 16px 20px; border-radius: 10px; border: 1px solid #e2e8f0;">
+            <div style="font-size: 12px; color: #64748b; font-weight: 500; text-transform: uppercase;">Nhóm Danh Mục</div>
+            <div style="font-size: 18px; font-weight: 600; color: #0f172a; margin-top: 8px;">@Model.Product.GroupName</div>
+        </div>
+
+        <div style="background: #ffffff; padding: 16px 20px; border-radius: 10px; border: 1px solid #e2e8f0;">
+            <div style="font-size: 12px; color: #64748b; font-weight: 500; text-transform: uppercase;">Quy Tắc Xuất Kho</div>
+            <div style="font-size: 18px; font-weight: 600; color: #2563b8; margin-top: 8px;">
+                @Model.Product.RotationMethod
+                <span style="font-size: 12px; font-weight: normal; color: #64748b;">(@(Model.Product.RotationMethod == "FIFO" ? "Nhập trước Xuất trước" : Model.Product.RotationMethod == "FEFO" ? "Hạn trước Xuất trước" : "Nhập sau Xuất trước"))</span>
+            </div>
+        </div>
+
+        <div style="background: #ffffff; padding: 16px 20px; border-radius: 10px; border: 1px solid #e2e8f0;">
+            <div style="font-size: 12px; color: #64748b; font-weight: 500; text-transform: uppercase;">Quản Lý Lô / Hạn</div>
+            <div style="margin-top: 8px; display: flex; gap: 8px; align-items: center;">
+                <span style="background: @(Model.Product.TrackLot ? "#dbeafe" : "#f1f5f9"); color: @(Model.Product.TrackLot ? "#1e40af" : "#64748b"); font-size: 12px; font-weight: 600; padding: 3px 8px; border-radius: 4px;">
+                    Lô: @(Model.Product.TrackLot ? "BẬT" : "TẮT")
+                </span>
+                <span style="background: @(Model.Product.TrackExpiry ? "#f3e8ff" : "#f1f5f9"); color: @(Model.Product.TrackExpiry ? "#6b21a8" : "#64748b"); font-size: 12px; font-weight: 600; padding: 3px 8px; border-radius: 4px;">
+                    Hạn: @(Model.Product.TrackExpiry ? (Model.Product.DefaultShelfLifeDays.HasValue ? $"{Model.Product.DefaultShelfLifeDays} ngày" : "BẬT") : "TẮT")
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN DETAIL SECTIONS -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px;">
+
+        <!-- SPECIFICATIONS & AUDIT -->
+        <div style="background: #ffffff; border-radius: 10px; border: 1px solid #e2e8f0; padding: 24px;">
+            <div style="font-size: 16px; font-weight: 600; color: #0f172a; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px;">
+                <i class="ri-information-line" style="color: #2563b8;"></i> Thông Tin Chi Tiết & Quy Cách
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 12px; font-size: 13px;">
+                <div style="display: flex; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px dashed #f1f5f9;">
+                    <span style="color: #64748b;">Mô tả / Quy cách:</span>
+                    <span style="color: #0f172a; font-weight: 500; text-align: right; max-width: 60%;">@(Model.Product.Description ?? "Chưa có mô tả")</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px dashed #f1f5f9;">
+                    <span style="color: #64748b;">Đơn vị tính cơ sở:</span>
+                    <span style="color: #0f172a; font-weight: 600;">@Model.Product.UnitName</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px dashed #f1f5f9;">
+                    <span style="color: #64748b;">Người khởi tạo:</span>
+                    <span style="color: #0f172a; font-weight: 500;">@Model.Product.CreatedByName</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px dashed #f1f5f9;">
+                    <span style="color: #64748b;">Thời gian tạo:</span>
+                    <span style="color: #0f172a;">@Model.Product.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
+                </div>
+                @if (Model.Product.UpdatedAt.HasValue)
+                {
+                    <div style="display: flex; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px dashed #f1f5f9;">
+                        <span style="color: #64748b;">Cập nhật lần cuối:</span>
+                        <span style="color: #0f172a;">@Model.Product.UpdatedAt.Value.ToString("dd/MM/yyyy HH:mm") @(Model.Product.UpdatedByName != null ? $"bởi {Model.Product.UpdatedByName}" : "")</span>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- DYNAMIC ATTRIBUTES (EAV) -->
+        <div style="background: #ffffff; border-radius: 10px; border: 1px solid #e2e8f0; padding: 24px;">
+            <div style="font-size: 16px; font-weight: 600; color: #0f172a; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <i class="bi bi-sliders text-primary"></i> Thông Số Kỹ Thuật Đặc Trưng (EAV)
+                </div>
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle">@Model.Product.GroupName</span>
+            </div>
+
+            @if (Model.Product.AttributeValues != null && Model.Product.AttributeValues.Any())
+            {
+                <div style="display: flex; flex-direction: column; gap: 12px; font-size: 13px;">
+                    @foreach (var av in Model.Product.AttributeValues)
+                    {
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 8px; border-bottom: 1px dashed #f1f5f9;">
+                            <div>
+                                <span style="color: #64748b; font-weight: 500;">@av.AttributeName:</span>
+                                <code style="font-size: 11px; color: #94a3b8; margin-left: 4px;">(@av.AttributeCode)</code>
+                            </div>
+                            <div>
+                                <span style="color: #0f172a; font-weight: 600;">@av.AttributeValue</span>
+                                @if (!string.IsNullOrEmpty(av.UnitLabel))
+                                {
+                                    <span style="font-size: 12px; color: #64748b; margin-left: 4px;">@av.UnitLabel</span>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div style="text-align: center; padding: 32px 0; color: #94a3b8; font-size: 13px;">
+                    <i class="bi bi-sliders" style="font-size: 28px; margin-bottom: 4px; display: block; color: #cbd5e1;"></i>
+                    Chưa có giá trị thông số kỹ thuật đặc trưng nào được thiết lập.
+                </div>
+            }
+        </div>
+
+    </div>
+
+    <!-- STOCK LOCATIONS & SUPPLIERS -->
+    <div style="display: grid; grid-template-columns: 1.4fr 1fr; gap: 24px; margin-bottom: 24px;">
+
+        <!-- TAB 1: TỒN THEO KHO & VỊ TRÍ -->
+        <div style="background: #ffffff; border-radius: 10px; border: 1px solid #e2e8f0; padding: 24px;">
+            <div style="font-size: 16px; font-weight: 600; color: #0f172a; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px;">
+                <i class="ri-archive-2-line" style="color: #2563b8;"></i> Phân Bố Tồn Kho Theo Vị Trí
+            </div>
+
+            @if (Model.Product.StockLocations != null && Model.Product.StockLocations.Any())
+            {
+                <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                    <thead>
+                        <tr style="background: #f8fafc; color: #475569; text-align: left;">
+                            <th style="padding: 8px 12px;">Kho Hàng</th>
+                            <th style="padding: 8px 12px;">Vị Trí (Location)</th>
+                            <th style="padding: 8px 12px; text-align: right;">Tồn Thực Tế</th>
+                            <th style="padding: 8px 12px; text-align: right;">Đang Giữ</th>
+                            <th style="padding: 8px 12px; text-align: right;">Khả Dụng</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var loc in Model.Product.StockLocations)
+                        {
+                            <tr style="border-bottom: 1px solid #f1f5f9;">
+                                <td style="padding: 8px 12px; font-weight: 500;">@loc.WarehouseName</td>
+                                <td style="padding: 8px 12px; font-family: monospace; color: #1e40af;">@loc.StorageLocationCode</td>
+                                <td style="padding: 8px 12px; text-align: right; font-weight: 600;">@loc.QuantityOnHand.ToString("N0")</td>
+                                <td style="padding: 8px 12px; text-align: right; color: #dc2626;">@loc.QuantityReserved.ToString("N0")</td>
+                                <td style="padding: 8px 12px; text-align: right; font-weight: 700; color: #16a34a;">@loc.QuantityAvailable.ToString("N0")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+            else
+            {
+                <div style="text-align: center; padding: 32px 0; color: #94a3b8; font-size: 13px;">
+                    <i class="ri-inbox-line" style="font-size: 32px; margin-bottom: 4px; display: block;"></i>
+                    Chưa có số dư tồn kho tại bất kỳ vị trí nào.
+                </div>
+            }
+        </div>
+
+        <!-- TAB 2: NHÀ CUNG CẤP LIÊN KẾT -->
+        <div style="background: #ffffff; border-radius: 10px; border: 1px solid #e2e8f0; padding: 24px;">
+            <div style="font-size: 16px; font-weight: 600; color: #0f172a; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px;">
+                <i class="ri-truck-line" style="color: #2563b8;"></i> Nhà Cung Cấp Phân Phối
+            </div>
+
+            @if (Model.Product.Suppliers != null && Model.Product.Suppliers.Any())
+            {
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    @foreach (var sup in Model.Product.Suppliers)
+                    {
+                        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; font-size: 13px;">
+                            <div style="font-weight: 600; color: #0f172a;">@sup.SupplierName</div>
+                            <div style="font-size: 12px; color: #64748b; margin-top: 2px;">
+                                Mã NCC: <span style="font-family: monospace;">@sup.SupplierCode</span>
+                                @if (!string.IsNullOrEmpty(sup.SupplierProductCode))
+                                {
+                                    <span> • Mã NCC đặt: @sup.SupplierProductCode</span>
+                                }
+                            </div>
+                            @if (sup.LeadTimeDays.HasValue)
+                            {
+                                <div style="font-size: 11px; color: #2563b8; margin-top: 4px;">
+                                    <i class="ri-time-line"></i> Thời gian giao hàng: @sup.LeadTimeDays ngày
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div style="text-align: center; padding: 32px 0; color: #94a3b8; font-size: 13px;">
+                    <i class="ri-truck-line" style="font-size: 32px; margin-bottom: 4px; display: block;"></i>
+                    Chưa liên kết nhà cung cấp cho mặt hàng này.
+                </div>
+            }
+        </div>
+
+    </div>
+
+    <!-- WAREHOUSE SAFETY STOCK POLICIES -->
+    <div style="background: #ffffff; border-radius: 10px; border: 1px solid #e2e8f0; padding: 24px;">
+        <div style="font-size: 16px; font-weight: 600; color: #0f172a; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px;">
+            <i class="ri-shield-check-line" style="color: #2563b8;"></i> Định Mức Tồn Kho An Toàn (Policy)
+        </div>
+
+        @if (Model.Product.WarehousePolicies != null && Model.Product.WarehousePolicies.Any())
+        {
+            <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                <thead>
+                    <tr style="background: #f8fafc; color: #475569; text-align: left;">
+                        <th style="padding: 8px 12px;">Kho hàng</th>
+                        <th style="padding: 8px 12px; text-align: right;">Định mức tồn tối thiểu</th>
+                        <th style="padding: 8px 12px; text-align: right;">Cảnh báo cận hạn (ngày)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var pol in Model.Product.WarehousePolicies)
+                    {
+                        <tr style="border-bottom: 1px solid #f1f5f9;">
+                            <td style="padding: 8px 12px; font-weight: 500;">@pol.WarehouseName</td>
+                            <td style="padding: 8px 12px; text-align: right; color: #dc2626; font-weight: 600;">@pol.MinimumStockQuantity.ToString("N0")</td>
+                            <td style="padding: 8px 12px; text-align: right; color: #d97706; font-weight: 600;">@pol.ExpiryWarningDays ngày</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        else
+        {
+            <div style="text-align: center; padding: 24px 0; color: #94a3b8; font-size: 13px;">
+                <i class="ri-shield-line" style="font-size: 28px; margin-bottom: 4px; display: block;"></i>
+                Chưa thiết lập định mức an toàn riêng theo kho.
+            </div>
+        }
+    </div>
+
+</div>

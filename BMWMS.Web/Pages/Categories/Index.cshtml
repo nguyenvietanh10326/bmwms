@@ -1,95 +1,769 @@
 @page
 @model BMWMS.Web.Pages.Categories.IndexModel
 @{
-    ViewData["Title"] = "Quan ly Categories";
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Danh mục & Nhóm vật tư";
     ViewData["ActivePage"] = "Categories";
 }
 
-<div class="container-fluid mt-4">
+<div class="category-page-container" style="padding: 24px; max-width: 1440px; margin: 0 auto;">
 
-    <!-- Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <!-- TOP BREADCRUMB & HEADER -->
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; flex-wrap: wrap; gap: 16px;">
         <div>
-            <h1 class="h3 mb-1">Danh sach Categories</h1>
-            <p class="text-muted mb-0">Quan ly danh muc he thong</p>
+            <div style="font-size: 13px; color: #64748b; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+                <span>Danh mục cơ sở</span>
+                <i class="ri-arrow-right-s-line" style="font-size: 14px;"></i>
+                <span style="color: #2563b8; font-weight: 500;">Nhóm ngành hàng & Thuộc tính (EAV)</span>
+            </div>
+            <h1 style="font-size: 22px; font-weight: 700; color: #0f172a; margin: 0;">Danh Mục & Nhóm Vật Tư Xây Dựng</h1>
+            <p style="font-size: 13px; color: #64748b; margin-top: 4px; margin-bottom: 0;">Quản lý 15 nhóm ngành hàng VLXD, cấu hình thuộc tính kỹ thuật động (EAV) & quy tắc luân chuyển kho.</p>
         </div>
-        <button id="btnRefresh" class="btn btn-outline-primary">
-            <span id="refreshIcon">&#8635;</span> Lam moi
-        </button>
+
+        <div style="display: flex; gap: 10px;">
+            <a asp-page="/Categories/Index" style="display: inline-flex; align-items: center; gap: 6px; background: #f1f5f9; color: #475569; padding: 9px 16px; border-radius: 8px; font-weight: 500; font-size: 13px; text-decoration: none; border: 1px solid #e2e8f0; transition: all 0.2s;">
+                <i class="ri-refresh-line"></i> Làm mới
+            </a>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createGroupModal" style="display: inline-flex; align-items: center; gap: 8px; background: #2563b8; color: #ffffff; padding: 9px 18px; border-radius: 8px; font-weight: 600; font-size: 13px; border: none; box-shadow: 0 1px 3px rgba(37, 99, 235, 0.2);">
+                <i class="ri-add-line" style="font-size: 16px;"></i> Thêm Nhóm Hàng Mới
+            </button>
+        </div>
     </div>
 
-    <!-- Server-side: Thong bao loi ket noi (render luc page load) -->
-    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    <!-- ALERTS -->
+    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
     {
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            <strong>Loi ket noi API:</strong> @Model.ErrorMessage
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <i class="ri-checkbox-circle-fill" style="font-size: 18px; color: #22c55e;"></i>
+                <span>@Model.SuccessMessage</span>
+            </div>
+            <button onclick="this.parentElement.style.display='none'" style="background: none; border: none; cursor: pointer; color: #166534;"><i class="ri-close-line"></i></button>
         </div>
     }
 
-    <!-- Client-side: Thong bao loi AJAX (an mac dinh) -->
-    <div id="ajaxError" class="alert alert-warning alert-dismissible fade show d-none" role="alert">
-        <strong>Canh bao:</strong> <span id="ajaxErrorMsg"></span>
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div style="background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <i class="ri-error-warning-fill" style="font-size: 18px; color: #ef4444;"></i>
+                <span>@Model.ErrorMessage</span>
+            </div>
+            <button onclick="this.parentElement.style.display='none'" style="background: none; border: none; cursor: pointer; color: #991b1b;"><i class="ri-close-line"></i></button>
+        </div>
+    }
 
-    <!-- Summary bar -->
-    <div class="d-flex gap-3 mb-3">
-        <span class="badge bg-primary fs-6 px-3 py-2">
-            Tong: <strong id="totalCount">@Model.Categories.Count</strong>
-        </span>
-        <span class="badge bg-success fs-6 px-3 py-2" id="loadStatus">
-            @(Model.ErrorMessage == null ? "Da tai du lieu" : "Load tu AJAX")
-        </span>
-    </div>
-
-    <!-- Bang du lieu -->
-    <div class="card shadow-sm">
-        <div class="card-body p-0">
-            <!-- Loading overlay -->
-            <div id="loadingOverlay" class="text-center py-4 d-none">
-                <div class="spinner-border text-primary me-2" role="status">
-                    <span class="visually-hidden">Dang tai...</span>
+    <!-- STATS SUMMARY CARDS -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
+        <div style="background: #ffffff; padding: 18px 20px; border-radius: 10px; border: 1px solid #e2e8f0; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <div style="font-size: 12px; color: #64748b; font-weight: 500; text-transform: uppercase;">Tổng số nhóm VLXD</div>
+                    <div style="font-size: 24px; font-weight: 700; color: #0f172a; margin-top: 6px;">@Model.TotalGroups</div>
                 </div>
-                <span class="text-muted">Dang tai du lieu...</span>
+                <div style="width: 42px; height: 42px; border-radius: 8px; background: #eff6ff; color: #2563b8; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+                    <i class="ri-price-tag-3-line"></i>
+                </div>
+            </div>
+            <div style="font-size: 12px; color: #16a34a; margin-top: 10px; display: flex; align-items: center; gap: 4px;">
+                <i class="ri-check-line"></i> Chuẩn 15 nhóm ngành hàng
+            </div>
+        </div>
+
+        <div style="background: #ffffff; padding: 18px 20px; border-radius: 10px; border: 1px solid #e2e8f0; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <div style="font-size: 12px; color: #64748b; font-weight: 500; text-transform: uppercase;">Nhóm đang hoạt động</div>
+                    <div style="font-size: 24px; font-weight: 700; color: #16a34a; margin-top: 6px;">@Model.ActiveGroups</div>
+                </div>
+                <div style="width: 42px; height: 42px; border-radius: 8px; background: #f0fdf4; color: #16a34a; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+                    <i class="ri-shield-check-line"></i>
+                </div>
+            </div>
+            <div style="font-size: 12px; color: #64748b; margin-top: 10px;">
+                Sẵn sàng cho việc tạo mới vật tư
+            </div>
+        </div>
+
+        <div style="background: #ffffff; padding: 18px 20px; border-radius: 10px; border: 1px solid #e2e8f0; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <div style="font-size: 12px; color: #64748b; font-weight: 500; text-transform: uppercase;">Thuộc tính kỹ thuật (EAV)</div>
+                    <div style="font-size: 24px; font-weight: 700; color: #0284c7; margin-top: 6px;">@Model.TotalAttributesConfigured</div>
+                </div>
+                <div style="width: 42px; height: 42px; border-radius: 8px; background: #f0f9ff; color: #0284c7; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+                    <i class="ri-equalizer-line"></i>
+                </div>
+            </div>
+            <div style="font-size: 12px; color: #64748b; margin-top: 10px;">
+                Cấu hình theo từng nhóm hàng
+            </div>
+        </div>
+
+        <div style="background: #ffffff; padding: 18px 20px; border-radius: 10px; border: 1px solid #e2e8f0; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <div style="font-size: 12px; color: #64748b; font-weight: 500; text-transform: uppercase;">Bắt buộc FEFO & HSD</div>
+                    <div style="font-size: 24px; font-weight: 700; color: #d97706; margin-top: 6px;">@Model.FefoGroupsCount</div>
+                </div>
+                <div style="width: 42px; height: 42px; border-radius: 8px; background: #fffbeb; color: #d97706; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+                    <i class="ri-time-line"></i>
+                </div>
+            </div>
+            <div style="font-size: 12px; color: #64748b; margin-top: 10px;">
+                PG06 (Sơn), PG07 (Keo), PG08 (Phụ gia)
+            </div>
+        </div>
+    </div>
+
+    <!-- FILTER & SEARCH BAR -->
+    <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px 20px; margin-bottom: 20px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+        <form method="get" id="categoryFilterForm" style="display: flex; gap: 14px; align-items: center; flex-wrap: wrap;">
+            <input type="hidden" name="PageIndex" value="1" />
+            <input type="hidden" name="PageSize" value="@(Model.PageSize > 0 ? Model.PageSize : 10)" id="catPageSizeInput" />
+
+            <div style="flex: 1; min-width: 260px; position: relative;">
+                <i class="ri-search-line" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 16px;"></i>
+                <input type="text" asp-for="Keyword" placeholder="Tìm theo mã nhóm (PG01, PG02...), tên nhóm ngành hàng..." 
+                       style="width: 100%; padding: 9px 12px 9px 36px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; outline: none;" />
             </div>
 
-            <div class="table-responsive">
-                <table class="table table-hover table-striped mb-0" id="categoriesTable">
-                    <thead class="table-dark">
-                        <tr>
-                            <th style="width:80px">ID</th>
-                            <th>Ten Category</th>
-                            <th>Mo ta</th>
-                        </tr>
-                    </thead>
-                    <tbody id="categoriesBody">
-                        @* Server-side render du lieu load tu API (lan dau) *@
-                        @if (Model.Categories.Count > 0)
+            <div style="min-width: 200px;">
+                <select asp-for="Status" style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; outline: none; background: #fff;">
+                    <option value="">-- Tất cả trạng thái --</option>
+                    <option value="ACTIVE">Đang hoạt động (ACTIVE)</option>
+                    <option value="INACTIVE">Tạm dừng (INACTIVE)</option>
+                </select>
+            </div>
+
+            <div style="display: flex; gap: 8px;">
+                <button type="submit" style="background: #2563b8; color: #fff; border: none; padding: 9px 18px; border-radius: 8px; font-weight: 500; font-size: 13px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+                    <i class="ri-filter-3-line"></i> Lọc Dữ Liệu
+                </button>
+                @if (!string.IsNullOrWhiteSpace(Model.Keyword) || !string.IsNullOrWhiteSpace(Model.Status))
+                {
+                    <a asp-page="/Categories/Index" style="background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; padding: 9px 14px; border-radius: 8px; font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
+                        <i class="ri-close-circle-line"></i> Xóa lọc
+                    </a>
+                }
+            </div>
+        </form>
+    </div>
+
+    <!-- DATA TABLE -->
+    <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13px;">
+                <thead>
+                    <tr style="background: #f8fafc; border-bottom: 1px solid #e2e8f0; color: #64748b; font-weight: 600; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px;">
+                        <th style="padding: 14px 18px; width: 110px;">Mã nhóm</th>
+                        <th style="padding: 14px 18px; min-width: 200px;">Tên nhóm ngành hàng</th>
+                        <th style="padding: 14px 18px; min-width: 250px;">Mô tả & Khu vực lưu kho</th>
+                        <th style="padding: 14px 18px; width: 130px; text-align: center;">Luân chuyển</th>
+                        <th style="padding: 14px 18px; width: 150px; text-align: center;">Quản lý Lô/Hạn</th>
+                        <th style="padding: 14px 18px; width: 140px; text-align: center;">Thuộc tính</th>
+                        <th style="padding: 14px 18px; width: 100px; text-align: center;">Số vật tư</th>
+                        <th style="padding: 14px 18px; width: 120px; text-align: center;">Trạng thái</th>
+                        <th style="padding: 14px 18px; width: 140px; text-align: right;">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.PagedGroups.Items != null && Model.PagedGroups.Items.Any())
+                    {
+                        @foreach (var g in Model.PagedGroups.Items)
                         {
-                            @foreach (var cat in Model.Categories)
-                            {
-                                <tr>
-                                    <td><span class="badge bg-secondary">@cat.CategoryId</span></td>
-                                    <td><strong>@cat.CategoryName</strong></td>
-                                    <td class="text-muted">@(cat.Description ?? "-")</td>
-                                </tr>
-                            }
-                        }
-                        else if (Model.ErrorMessage == null)
-                        {
-                            <tr id="emptyRow">
-                                <td colspan="3" class="text-center text-muted py-4">
-                                    Khong co du lieu
+                            bool isFefoGroup = (g.GroupCode == "PG06" || g.GroupCode == "PG07" || g.GroupCode == "PG08");
+                            <tr style="border-bottom: 1px solid #f1f5f9; transition: background 0.15s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#ffffff'">
+                                <td style="padding: 14px 18px;">
+                                    <span style="display: inline-block; padding: 3px 8px; border-radius: 6px; font-weight: 600; font-size: 12px; @(isFefoGroup ? "background: #fef3c7; color: #92400e; border: 1px solid #fde68a;" : "background: #eff6ff; color: #1e40af; border: 1px solid #dbeafe;")">
+                                        @g.GroupCode
+                                    </span>
+                                </td>
+                                <td style="padding: 14px 18px;">
+                                    <div style="font-weight: 600; color: #0f172a; font-size: 14px;">@g.GroupName</div>
+                                </td>
+                                <td style="padding: 14px 18px; color: #64748b;">
+                                    <div style="max-width: 320px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="@g.Description">
+                                        @(string.IsNullOrWhiteSpace(g.Description) ? "—" : g.Description)
+                                    </div>
+                                </td>
+                                <td style="padding: 14px 18px; text-align: center;">
+                                    @if (isFefoGroup)
+                                    {
+                                        <span style="display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; background: #fef3c7; color: #b45309; border: 1px solid #fde68a;">
+                                            <i class="ri-time-line"></i> FEFO
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span style="display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0;">
+                                            <i class="ri-arrow-right-circle-line"></i> FIFO
+                                        </span>
+                                    }
+                                </td>
+                                <td style="padding: 14px 18px; text-align: center;">
+                                    @if (isFefoGroup)
+                                    {
+                                        <span style="display: inline-block; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; background: #fee2e2; color: #991b1b; border: 1px solid #fecaca;">
+                                            Bắt buộc HSD
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span style="display: inline-block; padding: 3px 8px; border-radius: 6px; font-size: 11px; color: #64748b; background: #f8fafc; border: 1px solid #e2e8f0;">
+                                            Theo Lô SX
+                                        </span>
+                                    }
+                                </td>
+                                <td style="padding: 14px 18px; text-align: center;">
+                                    <button type="button" 
+                                            onclick="openAttributeModal(@g.ProductGroupId, '@g.GroupCode', '@g.GroupName')"
+                                            style="display: inline-flex; align-items: center; gap: 4px; background: #f0f9ff; color: #0369a1; border: 1px solid #bae6fd; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.2s;">
+                                        <i class="ri-equalizer-line"></i> @g.AttributeCount thuộc tính
+                                    </button>
+                                </td>
+                                <td style="padding: 14px 18px; text-align: center;">
+                                    <span style="display: inline-block; padding: 2px 8px; border-radius: 6px; font-weight: 600; background: #f8fafc; border: 1px solid #e2e8f0; color: #334155;">
+                                        @g.ProductCount
+                                    </span>
+                                </td>
+                                <td style="padding: 14px 18px; text-align: center;">
+                                    @if (g.Status == "ACTIVE")
+                                    {
+                                        <span style="display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0;">
+                                            <span style="width: 6px; height: 6px; border-radius: 50%; background: #22c55e;"></span> Hoạt động
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span style="display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; background: #fef2f2; color: #991b1b; border: 1px solid #fecaca;">
+                                            <span style="width: 6px; height: 6px; border-radius: 50%; background: #ef4444;"></span> Tạm dừng
+                                        </span>
+                                    }
+                                </td>
+                                <td style="padding: 14px 18px; text-align: right;">
+                                    <div style="display: inline-flex; gap: 4px; align-items: center;">
+                                        <button type="button" title="Sửa thông tin nhóm"
+                                                onclick="openEditGroupModal(@g.ProductGroupId, '@g.GroupCode', '@g.GroupName', '@(g.Description ?? "")', '@g.Status')"
+                                                style="width: 30px; height: 30px; border-radius: 6px; border: 1px solid #e2e8f0; background: #ffffff; color: #2563b8; display: inline-flex; align-items: center; justify-content: center; cursor: pointer;">
+                                            <i class="ri-pencil-line"></i>
+                                        </button>
+                                        <form method="post" asp-page-handler="ToggleStatus" asp-route-id="@g.ProductGroupId" style="display: inline;"
+                                              onsubmit="return confirm('Bạn có chắc chắn muốn đổi trạng thái nhóm này?');">
+                                            <button type="submit" title="@(g.Status == "ACTIVE" ? "Tạm dừng nhóm" : "Kích hoạt nhóm")"
+                                                    style="width: 30px; height: 30px; border-radius: 6px; border: 1px solid #e2e8f0; background: #ffffff; color: @(g.Status == "ACTIVE" ? "#d97706" : "#16a34a"); display: inline-flex; align-items: center; justify-content: center; cursor: pointer;">
+                                                <i class="@(g.Status == "ACTIVE" ? "ri-pause-circle-line" : "ri-play-circle-line")"></i>
+                                            </button>
+                                        </form>
+                                        @if (g.ProductCount == 0)
+                                        {
+                                            <form method="post" asp-page-handler="Delete" asp-route-id="@g.ProductGroupId" style="display: inline;"
+                                                  onsubmit="return confirm('Bạn có chắc chắn muốn xóa nhóm này khỏi hệ thống?');">
+                                                <button type="submit" title="Xóa nhóm"
+                                                        style="width: 30px; height: 30px; border-radius: 6px; border: 1px solid #e2e8f0; background: #ffffff; color: #dc2626; display: inline-flex; align-items: center; justify-content: center; cursor: pointer;">
+                                                    <i class="ri-delete-bin-line"></i>
+                                                </button>
+                                            </form>
+                                        }
+                                    </div>
                                 </td>
                             </tr>
                         }
-                    </tbody>
-                </table>
-            </div>
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="9" style="text-align: center; padding: 48px 18px; color: #64748b;">
+                                <i class="ri-inbox-line" style="font-size: 36px; color: #cbd5e1; display: block; margin-bottom: 8px;"></i>
+                                <span style="font-size: 14px; font-weight: 500;">Không tìm thấy nhóm sản phẩm nào phù hợp với bộ lọc.</span>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
         </div>
-        <div class="card-footer text-muted small" id="lastUpdated">
-            Du lieu duoc tai luc khoi dong server
+
+        <!-- SMART PAGINATION FOOTER -->
+        @{
+            var totalCount = Model.PagedGroups.TotalCount;
+            var pageSize = Model.PageSize > 0 ? Model.PageSize : 10;
+            var currentPage = Model.PagedGroups.PageIndex > 0 ? Model.PagedGroups.PageIndex : 1;
+            var totalPages = Model.PagedGroups.TotalPages;
+            var startEntry = totalCount == 0 ? 0 : (currentPage - 1) * pageSize + 1;
+            var endEntry = Math.Min(currentPage * pageSize, totalCount);
+
+            int windowSize = 5;
+            int startPage = Math.Max(1, currentPage - windowSize / 2);
+            int endPage = Math.Min(totalPages, startPage + windowSize - 1);
+            if (endPage - startPage + 1 < windowSize)
+            {
+                startPage = Math.Max(1, endPage - windowSize + 1);
+            }
+        }
+
+        <div style="padding: 14px 20px; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; background: #fafafa; font-size: 13px; color: #64748b;">
+            <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+                <div>
+                    Hiển thị <strong>@startEntry</strong> đến <strong>@endEntry</strong> trong tổng số <strong>@totalCount</strong> nhóm danh mục
+                </div>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <label for="catPageSizeSelect" style="font-size: 12px; color: #64748b;">Số dòng / trang:</label>
+                    <select id="catPageSizeSelect" onchange="changeCatPageSize(this.value)" style="padding: 4px 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 12px; background: #fff; color: #334155; outline: none; cursor: pointer;">
+                        <!option value="10" @(pageSize == 10 ? "selected" : "")>10</!option>
+                        <!option value="20" @(pageSize == 20 ? "selected" : "")>20</!option>
+                        <!option value="50" @(pageSize == 50 ? "selected" : "")>50</!option>
+                        <!option value="100" @(pageSize == 100 ? "selected" : "")>100</!option>
+                    </select>
+                </div>
+            </div>
+
+            @if (totalPages > 1)
+            {
+                <div style="display: flex; align-items: center; gap: 4px; flex-wrap: wrap;">
+                    <!-- First Page -->
+                    @if (currentPage > 1)
+                    {
+                        <a asp-page="/Categories/Index"
+                           asp-route-PageIndex="1"
+                           asp-route-PageSize="@pageSize"
+                           asp-route-Keyword="@Model.Keyword"
+                           asp-route-Status="@Model.Status"
+                           title="Trang đầu"
+                           style="min-width: 32px; height: 32px; padding: 0 8px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; color: #334155; text-decoration: none; font-size: 12.5px; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; transition: all 0.15s;">
+                            &laquo;
+                        </a>
+                        <a asp-page="/Categories/Index"
+                           asp-route-PageIndex="@(currentPage - 1)"
+                           asp-route-PageSize="@pageSize"
+                           asp-route-Keyword="@Model.Keyword"
+                           asp-route-Status="@Model.Status"
+                           title="Trang trước"
+                           style="min-width: 32px; height: 32px; padding: 0 8px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; color: #334155; text-decoration: none; font-size: 12.5px; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; transition: all 0.15s;">
+                            &lsaquo;
+                        </a>
+                    }
+                    else
+                    {
+                        <span style="min-width: 32px; height: 32px; padding: 0 8px; border: 1px solid #e2e8f0; border-radius: 6px; background: #f8fafc; color: #cbd5e1; display: inline-flex; align-items: center; justify-content: center; font-size: 12.5px; cursor: not-allowed;">&laquo;</span>
+                        <span style="min-width: 32px; height: 32px; padding: 0 8px; border: 1px solid #e2e8f0; border-radius: 6px; background: #f8fafc; color: #cbd5e1; display: inline-flex; align-items: center; justify-content: center; font-size: 12.5px; cursor: not-allowed;">&lsaquo;</span>
+                    }
+
+                    <!-- Ellipsis Before -->
+                    @if (startPage > 1)
+                    {
+                        <a asp-page="/Categories/Index"
+                           asp-route-PageIndex="1"
+                           asp-route-PageSize="@pageSize"
+                           asp-route-Keyword="@Model.Keyword"
+                           asp-route-Status="@Model.Status"
+                           style="min-width: 32px; height: 32px; padding: 0 8px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; color: #334155; text-decoration: none; font-size: 12.5px; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; transition: all 0.15s;">
+                            1
+                        </a>
+                        @if (startPage > 2)
+                        {
+                            <span style="padding: 0 4px; color: #94a3b8; font-size: 12px;">...</span>
+                        }
+                    }
+
+                    <!-- Numbered Pages -->
+                    @for (int pNum = startPage; pNum <= endPage; pNum++)
+                    {
+                        if (pNum == currentPage)
+                        {
+                            <span style="min-width: 32px; height: 32px; padding: 0 8px; border-radius: 6px; background: #2563eb; color: #ffffff; border: 1px solid #2563eb; font-weight: 600; font-size: 12.5px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 1px 2px rgba(37,99,235,0.2);">
+                                @pNum
+                            </span>
+                        }
+                        else
+                        {
+                            <a asp-page="/Categories/Index"
+                               asp-route-PageIndex="@pNum"
+                               asp-route-PageSize="@pageSize"
+                               asp-route-Keyword="@Model.Keyword"
+                               asp-route-Status="@Model.Status"
+                               style="min-width: 32px; height: 32px; padding: 0 8px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; color: #334155; text-decoration: none; font-size: 12.5px; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; transition: all 0.15s;">
+                                @pNum
+                            </a>
+                        }
+                    }
+
+                    <!-- Ellipsis After -->
+                    @if (endPage < totalPages)
+                    {
+                        @if (endPage < totalPages - 1)
+                        {
+                            <span style="padding: 0 4px; color: #94a3b8; font-size: 12px;">...</span>
+                        }
+                        <a asp-page="/Categories/Index"
+                           asp-route-PageIndex="@totalPages"
+                           asp-route-PageSize="@pageSize"
+                           asp-route-Keyword="@Model.Keyword"
+                           asp-route-Status="@Model.Status"
+                           style="min-width: 32px; height: 32px; padding: 0 8px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; color: #334155; text-decoration: none; font-size: 12.5px; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; transition: all 0.15s;">
+                            @totalPages
+                        </a>
+                    }
+
+                    <!-- Next & Last Page -->
+                    @if (currentPage < totalPages)
+                    {
+                        <a asp-page="/Categories/Index"
+                           asp-route-PageIndex="@(currentPage + 1)"
+                           asp-route-PageSize="@pageSize"
+                           asp-route-Keyword="@Model.Keyword"
+                           asp-route-Status="@Model.Status"
+                           title="Trang sau"
+                           style="min-width: 32px; height: 32px; padding: 0 8px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; color: #334155; text-decoration: none; font-size: 12.5px; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; transition: all 0.15s;">
+                            &rsaquo;
+                        </a>
+                        <a asp-page="/Categories/Index"
+                           asp-route-PageIndex="@totalPages"
+                           asp-route-PageSize="@pageSize"
+                           asp-route-Keyword="@Model.Keyword"
+                           asp-route-Status="@Model.Status"
+                           title="Trang cuối"
+                           style="min-width: 32px; height: 32px; padding: 0 8px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; color: #334155; text-decoration: none; font-size: 12.5px; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; transition: all 0.15s;">
+                            &raquo;
+                        </a>
+                    }
+                    else
+                    {
+                        <span style="min-width: 32px; height: 32px; padding: 0 8px; border: 1px solid #e2e8f0; border-radius: 6px; background: #f8fafc; color: #cbd5e1; display: inline-flex; align-items: center; justify-content: center; font-size: 12.5px; cursor: not-allowed;">&rsaquo;</span>
+                        <span style="min-width: 32px; height: 32px; padding: 0 8px; border: 1px solid #e2e8f0; border-radius: 6px; background: #f8fafc; color: #cbd5e1; display: inline-flex; align-items: center; justify-content: center; font-size: 12.5px; cursor: not-allowed;">&raquo;</span>
+                    }
+                </div>
+            }
         </div>
     </div>
 </div>
+
+<!-- MODAL: CẤU HÌNH THUỘC TÍNH ĐẶC TRƯNG CỦA NHÓM (EAV CONFIG MODAL) -->
+<div class="modal fade" id="groupAttributesModal" tabindex="-1" aria-labelledby="groupAttributesModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 12px; overflow: hidden;">
+            <div class="modal-header" style="background: #f8fafc; border-bottom: 1px solid #e2e8f0; padding: 16px 20px;">
+                <div>
+                    <h5 class="modal-title fw-bold text-dark mb-0" id="groupAttributesModalLabel" style="font-size: 16px; display: flex; align-items: center; gap: 8px;">
+                        <i class="ri-equalizer-line" style="color: #2563b8;"></i> Cấu hình Thuộc tính Kỹ thuật Đặc trưng (EAV)
+                    </h5>
+                    <span class="text-muted small" id="modalGroupSubtitle" style="font-size: 12px;">Nhóm: PG01 - Xi măng</span>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div id="attrLoadingSpinner" class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Đang tải...</span>
+                    </div>
+                    <p class="text-muted small mt-2">Đang tải danh mục thuộc tính kỹ thuật...</p>
+                </div>
+
+                <div id="attrContent" class="d-none">
+                    <div style="background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; padding: 10px 14px; border-radius: 8px; font-size: 12px; display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+                        <i class="ri-information-line" style="font-size: 16px;"></i>
+                        <span>Các thuộc tính được tick chọn sẽ tự động hiển thị trong form <strong>Tạo / Sửa Sản phẩm</strong> của nhóm này.</span>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-bordered align-middle mb-0" id="groupAttrTable" style="font-size: 13px;">
+                            <thead class="table-light small">
+                                <tr>
+                                    <th style="width: 50px;" class="text-center">Bật</th>
+                                    <th>Tên thuộc tính kỹ thuật</th>
+                                    <th>Mã & Kiểu dữ liệu</th>
+                                    <th style="width: 110px;" class="text-center">Bắt buộc</th>
+                                    <th style="width: 90px;" class="text-center">Thứ tự</th>
+                                    <th style="min-width: 150px;">Giá trị mặc định</th>
+                                </tr>
+                            </thead>
+                            <tbody id="groupAttrTableBody">
+                                <!-- Rendered dynamically by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 12px 20px;">
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-primary btn-sm" id="btnSaveAttributes" onclick="saveGroupAttributes()">
+                    <i class="ri-save-line me-1"></i> Lưu Cấu Hình Thuộc Tính
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: THÊM MỚI NHÓM HÀNG -->
+<div class="modal fade" id="createGroupModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 12px; overflow: hidden;">
+            <form method="post" asp-page-handler="CreateGroup">
+                <div class="modal-header" style="background: #f8fafc; border-bottom: 1px solid #e2e8f0; padding: 16px 20px;">
+                    <h5 class="modal-title fw-bold text-dark mb-0" style="font-size: 16px; display: flex; align-items: center; gap: 8px;">
+                        <i class="ri-add-circle-line" style="color: #2563b8;"></i> Thêm mới Nhóm Ngành Hàng VLXD
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-medium small text-dark">Mã nhóm sản phẩm <span class="text-danger">*</span></label>
+                        <input type="text" name="GroupCode" class="form-control text-uppercase" placeholder="VD: PG16" required maxlength="50" style="font-size: 13px;" />
+                        <span class="text-muted small" style="font-size: 11px;">Ký tự chữ cái, số, không khoảng trắng (VD: PG16).</span>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-medium small text-dark">Tên nhóm ngành hàng <span class="text-danger">*</span></label>
+                        <input type="text" name="GroupName" class="form-control" placeholder="VD: Vật liệu cách âm cách nhiệt" required maxlength="200" style="font-size: 13px;" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-medium small text-dark">Mô tả & Khu vực lưu kho đề xuất</label>
+                        <textarea name="Description" class="form-control" rows="3" placeholder="Ghi chú quy cách đóng gói, vị trí khu vực lưu kho..." style="font-size: 13px;"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-medium small text-dark">Trạng thái hoạt động</label>
+                        <select name="Status" class="form-select" style="font-size: 13px;">
+                            <option value="ACTIVE">Đang hoạt động (ACTIVE)</option>
+                            <option value="INACTIVE">Tạm dừng (INACTIVE)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer" style="background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 12px 20px;">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary btn-sm"><i class="ri-check-line me-1"></i> Tạo Nhóm Hàng</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: CHỈNH SỬA NHÓM HÀNG -->
+<div class="modal fade" id="editGroupModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 12px; overflow: hidden;">
+            <form method="post" id="editGroupForm" asp-page-handler="UpdateGroup">
+                <input type="hidden" name="id" id="editGroupId" />
+                <div class="modal-header" style="background: #f8fafc; border-bottom: 1px solid #e2e8f0; padding: 16px 20px;">
+                    <h5 class="modal-title fw-bold text-dark mb-0" style="font-size: 16px; display: flex; align-items: center; gap: 8px;">
+                        <i class="ri-pencil-line" style="color: #2563b8;"></i> Chỉnh sửa Nhóm Ngành Hàng
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-medium small text-dark">Mã nhóm sản phẩm</label>
+                        <input type="text" id="editGroupCode" class="form-control bg-light" readonly style="font-size: 13px;" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-medium small text-dark">Tên nhóm ngành hàng <span class="text-danger">*</span></label>
+                        <input type="text" name="GroupName" id="editGroupName" class="form-control" required maxlength="200" style="font-size: 13px;" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-medium small text-dark">Mô tả & Khu vực lưu kho đề xuất</label>
+                        <textarea name="Description" id="editGroupDescription" class="form-control" rows="3" style="font-size: 13px;"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-medium small text-dark">Trạng thái hoạt động</label>
+                        <select name="Status" id="editGroupStatus" class="form-select" style="font-size: 13px;">
+                            <option value="ACTIVE">Đang hoạt động (ACTIVE)</option>
+                            <option value="INACTIVE">Tạm dừng (INACTIVE)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer" style="background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 12px 20px;">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary btn-sm"><i class="ri-save-line me-1"></i> Lưu Thay Đổi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let currentGroupId = 0;
+        let allSystemAttributes = [];
+
+        function openEditGroupModal(id, code, name, desc, status) {
+            document.getElementById('editGroupId').value = id;
+            document.getElementById('editGroupCode').value = code;
+            document.getElementById('editGroupName').value = name;
+            document.getElementById('editGroupDescription').value = desc;
+            document.getElementById('editGroupStatus').value = status;
+            
+            const form = document.getElementById('editGroupForm');
+            form.action = `/Categories/Index?handler=UpdateGroup&id=${id}`;
+
+            const modalEl = document.getElementById('editGroupModal');
+            if (window.bootstrap && bootstrap.Modal) {
+                bootstrap.Modal.getOrCreateInstance(modalEl).show();
+            }
+        }
+
+        async function openAttributeModal(groupId, groupCode, groupName) {
+            currentGroupId = groupId;
+            document.getElementById('modalGroupSubtitle').innerText = `Nhóm: ${groupCode} - ${groupName}`;
+            
+            const modalEl = document.getElementById('groupAttributesModal');
+            if (window.bootstrap && bootstrap.Modal) {
+                bootstrap.Modal.getOrCreateInstance(modalEl).show();
+            }
+
+            document.getElementById('attrLoadingSpinner').classList.remove('d-none');
+            document.getElementById('attrContent').classList.add('d-none');
+
+            try {
+                // 1. Fetch all system attributes if not already cached
+                if (allSystemAttributes.length === 0) {
+                    const allAttrsRes = await fetch('/Categories/Index?handler=AttributesAll');
+                    if (allAttrsRes.ok) {
+                        allSystemAttributes = await allAttrsRes.json();
+                    }
+                }
+
+                // 2. Fetch assigned attributes for this group
+                const groupAttrsRes = await fetch(`/Categories/Index?handler=GroupAttributes&id=${groupId}`);
+                let assignedAttrs = [];
+                if (groupAttrsRes.ok) {
+                    assignedAttrs = await groupAttrsRes.json();
+                }
+
+                renderAttributeTable(assignedAttrs);
+            } catch (err) {
+                console.error("Lỗi tải thuộc tính:", err);
+                alert("Không thể tải danh sách thuộc tính từ máy chủ.");
+            } finally {
+                document.getElementById('attrLoadingSpinner').classList.add('d-none');
+                document.getElementById('attrContent').classList.remove('d-none');
+            }
+        }
+
+        function renderAttributeTable(assignedAttrs) {
+            const tbody = document.getElementById('groupAttrTableBody');
+            tbody.innerHTML = '';
+
+            const assignedMap = new Map();
+            assignedAttrs.forEach(a => assignedMap.set(a.productAttributeId, a));
+
+            // Merge all system attributes
+            allSystemAttributes.forEach((attr, idx) => {
+                const assigned = assignedMap.get(attr.productAttributeId);
+                const isChecked = !!assigned;
+                const isRequired = assigned ? assigned.isRequired : false;
+                const displayOrder = assigned ? assigned.displayOrder : (idx + 1);
+                const defaultValue = assigned ? (assigned.defaultValue || '') : '';
+
+                let typeBadge = `<span class="badge bg-secondary" style="font-size: 11px;">${attr.dataType}</span>`;
+                if (attr.dataType === 'NUMBER') typeBadge = `<span class="badge bg-info text-dark" style="font-size: 11px;">SỐ (${attr.unitLabel || 'ĐVT'})</span>`;
+                if (attr.dataType === 'OPTION') typeBadge = `<span class="badge bg-primary" style="font-size: 11px;">LỰA CHỌN</span>`;
+                if (attr.dataType === 'DATE') typeBadge = `<span class="badge bg-warning text-dark" style="font-size: 11px;">NGÀY</span>`;
+
+                let optionsHint = '';
+                if (attr.options && attr.options.length > 0) {
+                    optionsHint = `<div class="text-muted small mt-1" style="font-size: 11px;">Lựa chọn: ${attr.options.map(o => o.optionValue).join(', ')}</div>`;
+                }
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="text-center">
+                        <input type="checkbox" class="form-check-input attr-enabled" data-id="${attr.productAttributeId}" ${isChecked ? 'checked' : ''} onchange="toggleRowInputs(this)" />
+                    </td>
+                    <td>
+                        <div class="fw-bold text-dark">${attr.attributeName}</div>
+                        ${optionsHint}
+                    </td>
+                    <td>
+                        <code class="text-primary small">${attr.attributeCode}</code>
+                        <div class="mt-1">${typeBadge}</div>
+                    </td>
+                    <td class="text-center">
+                        <input type="checkbox" class="form-check-input attr-required" data-id="${attr.productAttributeId}" ${isRequired ? 'checked' : ''} ${!isChecked ? 'disabled' : ''} />
+                    </td>
+                    <td>
+                        <input type="number" class="form-control form-control-sm text-center attr-order" data-id="${attr.productAttributeId}" value="${displayOrder}" min="0" ${!isChecked ? 'disabled' : ''} style="font-size: 12px;" />
+                    </td>
+                    <td>
+                        <input type="text" class="form-control form-control-sm attr-default" data-id="${attr.productAttributeId}" value="${defaultValue}" placeholder="Mặc định..." ${!isChecked ? 'disabled' : ''} style="font-size: 12px;" />
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function toggleRowInputs(checkbox) {
+            const tr = checkbox.closest('tr');
+            const required = tr.querySelector('.attr-required');
+            const order = tr.querySelector('.attr-order');
+            const defVal = tr.querySelector('.attr-default');
+
+            if (checkbox.checked) {
+                required.removeAttribute('disabled');
+                order.removeAttribute('disabled');
+                defVal.removeAttribute('disabled');
+            } else {
+                required.setAttribute('disabled', 'disabled');
+                required.checked = false;
+                order.setAttribute('disabled', 'disabled');
+                defVal.setAttribute('disabled', 'disabled');
+            }
+        }
+
+        async function saveGroupAttributes() {
+            const btn = document.getElementById('btnSaveAttributes');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Đang lưu...';
+
+            const payload = [];
+            const rows = document.querySelectorAll('#groupAttrTableBody tr');
+
+            rows.forEach(tr => {
+                const enabled = tr.querySelector('.attr-enabled');
+                if (enabled && enabled.checked) {
+                    const attrId = parseInt(enabled.getAttribute('data-id'));
+                    const required = tr.querySelector('.attr-required').checked;
+                    const order = parseInt(tr.querySelector('.attr-order').value) || 0;
+                    const defVal = tr.querySelector('.attr-default').value;
+
+                    payload.push({
+                        productAttributeId: attrId,
+                        isRequired: required,
+                        displayOrder: order,
+                        defaultValue: defVal ? defVal.trim() : null
+                    });
+                }
+            });
+
+            try {
+                const tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
+                const headers = {
+                    'Content-Type': 'application/json'
+                };
+                if (tokenInput) {
+                    headers['RequestVerificationToken'] = tokenInput.value;
+                }
+
+                const response = await fetch(`/Categories/Index?handler=SaveGroupAttributes&id=${currentGroupId}`, {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    alert('Lưu cấu hình thuộc tính cho nhóm thành công!');
+                    location.reload();
+                } else {
+                    const err = await response.json();
+                    alert('Lỗi: ' + (err.message || 'Không thể lưu cấu hình thuộc tính.'));
+                }
+            } catch (ex) {
+                alert('Lỗi kết nối máy chủ: ' + ex.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="ri-save-line me-1"></i> Lưu Cấu Hình Thuộc Tính';
+            }
+        }
+
+        function changeCatPageSize(size) {
+            document.getElementById('catPageSizeInput').value = size;
+            document.getElementById('categoryFilterForm').submit();
+        }
+    </script>
+}
