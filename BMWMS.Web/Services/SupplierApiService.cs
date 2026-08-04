@@ -32,7 +32,6 @@ public class SupplierApiService
         if (response.IsSuccessStatusCode)
         {
             var content = await response.Content.ReadAsStringAsync();
-            File.WriteAllText("d:\\bmwms\\debug_json.txt", content);
             return JsonSerializer.Deserialize<PagedResultModel<SupplierListResponseModel>>(content, _jsonOptions);
         }
 

@@ -27,6 +27,9 @@ public class IndexModel : PageModel
             return RedirectToPage("/Admin/Dashboard");
         }
 
+        if (Filter.PageIndex < 1) Filter.PageIndex = 1;
+        if (Filter.PageSize < 1) Filter.PageSize = 10;
+
         UserList = await _userApiService.GetUsersAsync(Filter);
 
         return Page();

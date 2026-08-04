@@ -18,7 +18,10 @@
 </div>
 
 <!-- Bộ lọc -->
-<form method="get" class="form-card" style="padding: 16px 20px;">
+<form method="get" id="userFilterForm" class="form-card" style="padding: 16px 20px;">
+    <input type="hidden" name="Filter.PageIndex" value="1" />
+    <input type="hidden" name="Filter.PageSize" value="@(Model.Filter.PageSize > 0 ? Model.Filter.PageSize : 10)" id="userPageSizeInput" />
+
     <div style="display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;">
         <div class="form-group" style="flex: 2; min-width: 200px;">
             <div style="position: relative;">
@@ -56,9 +59,12 @@
             <i class="ri-search-line" style="margin-right: 4px;"></i>Tìm kiếm
         </button>
 
-        <a href="/Admin/Users" class="btn btn-secondary">
-            <i class="ri-refresh-line" style="margin-right: 4px;"></i>Đặt lại
-        </a>
+        @if (!string.IsNullOrWhiteSpace(Model.Filter.Keyword) || !string.IsNullOrWhiteSpace(Model.Filter.Status) || !string.IsNullOrWhiteSpace(Model.Filter.RoleCode))
+        {
+            <a href="/Admin/Users" class="btn btn-secondary">
+                <i class="ri-refresh-line" style="margin-right: 4px;"></i>Đặt lại
+            </a>
+        }
     </div>
 </form>
 
@@ -127,52 +133,137 @@
         </tbody>
     </table>
 
-    <!-- Phân trang -->
-    @if (Model.UserList != null && Model.UserList.TotalPages > 1)
-    {
-        <div class="pagination-bar">
-            <div class="pagination-info">
-                Hiển thị @((Model.UserList.PageIndex - 1) * Model.UserList.PageSize + 1)–@Math.Min(Model.UserList.PageIndex * Model.UserList.PageSize, Model.UserList.TotalCount) trong @Model.UserList.TotalCount bản ghi
+    <!-- SMART PAGINATION FOOTER -->
+    @{
+        var totalCount = Model.UserList?.TotalCount ?? 0;
+        var pageSize = Model.Filter.PageSize > 0 ? Model.Filter.PageSize : 10;
+        var currentPage = Model.UserList?.PageIndex > 0 ? Model.UserList.PageIndex : 1;
+        var totalPages = Model.UserList?.TotalPages ?? 0;
+        var startEntry = totalCount == 0 ? 0 : (currentPage - 1) * pageSize + 1;
+        var endEntry = Math.Min(currentPage * pageSize, totalCount);
+
+        int windowSize = 5;
+        int startPage = Math.Max(1, currentPage - windowSize / 2);
+        int endPage = Math.Min(totalPages, startPage + windowSize - 1);
+        if (endPage - startPage + 1 < windowSize)
+        {
+            startPage = Math.Max(1, endPage - windowSize + 1);
+        }
+    }
+
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; border-top: 1px solid #e2e8f0; background: #fafafa; font-size: 13px; color: #64748b; flex-wrap: wrap; gap: 12px;">
+        <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+            <div>
+                Hiển thị <strong>@startEntry</strong> đến <strong>@endEntry</strong> trong tổng số <strong>@totalCount</strong> người dùng
             </div>
-            <div class="pagination-controls">
-                @if (Model.UserList.PageIndex > 1)
+            <div style="display: flex; align-items: center; gap: 6px;">
+                <label for="userPageSizeSelect" style="font-size: 12px; color: #64748b;">Số dòng / trang:</label>
+                <select id="userPageSizeSelect" onchange="changeUserPageSize(this.value)" style="padding: 4px 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 12px; background: #fff; color: #334155; outline: none; cursor: pointer;">
+                    <!option value="10" @(pageSize == 10 ? "selected" : "")>10</!option>
+                    <!option value="20" @(pageSize == 20 ? "selected" : "")>20</!option>
+                    <!option value="50" @(pageSize == 50 ? "selected" : "")>50</!option>
+                    <!option value="100" @(pageSize == 100 ? "selected" : "")>100</!option>
+                </select>
+            </div>
+        </div>
+
+        @if (totalPages > 1)
+        {
+            <div style="display: flex; align-items: center; gap: 4px; flex-wrap: wrap;">
+                <!-- First & Prev -->
+                @if (currentPage > 1)
                 {
-                    <a href="/Admin/Users?Filter.PageIndex=@(Model.UserList.PageIndex - 1)&Filter.Keyword=@Model.Filter.Keyword&Filter.Status=@Model.Filter.Status&Filter.RoleCode=@Model.Filter.RoleCode"
-                       class="pagination-btn">‹</a>
+                    <a href="/Admin/Users?Filter.PageIndex=1&Filter.PageSize=@pageSize&Filter.Keyword=@Model.Filter.Keyword&Filter.Status=@Model.Filter.Status&Filter.RoleCode=@Model.Filter.RoleCode"
+                       title="Trang đầu"
+                       class="pagination-btn">
+                        &laquo;
+                    </a>
+                    <a href="/Admin/Users?Filter.PageIndex=@(currentPage - 1)&Filter.PageSize=@pageSize&Filter.Keyword=@Model.Filter.Keyword&Filter.Status=@Model.Filter.Status&Filter.RoleCode=@Model.Filter.RoleCode"
+                       title="Trang trước"
+                       class="pagination-btn">
+                        &lsaquo;
+                    </a>
                 }
                 else
                 {
-                    <span class="pagination-btn disabled">‹</span>
+                    <span class="pagination-btn disabled">&laquo;</span>
+                    <span class="pagination-btn disabled">&lsaquo;</span>
                 }
 
-                @for (int i = 1; i <= Model.UserList.TotalPages; i++)
+                <!-- Ellipsis Before -->
+                @if (startPage > 1)
                 {
-                    var isActive = i == Model.UserList.PageIndex;
-                    <a href="/Admin/Users?Filter.PageIndex=@i&Filter.Keyword=@Model.Filter.Keyword&Filter.Status=@Model.Filter.Status&Filter.RoleCode=@Model.Filter.RoleCode"
-                       class="pagination-btn @(isActive ? "active" : "")">@i</a>
+                    <a href="/Admin/Users?Filter.PageIndex=1&Filter.PageSize=@pageSize&Filter.Keyword=@Model.Filter.Keyword&Filter.Status=@Model.Filter.Status&Filter.RoleCode=@Model.Filter.RoleCode"
+                       class="pagination-btn">
+                        1
+                    </a>
+                    @if (startPage > 2)
+                    {
+                        <span style="padding: 0 4px; color: #94a3b8; font-size: 12px;">...</span>
+                    }
                 }
 
-                @if (Model.UserList.PageIndex < Model.UserList.TotalPages)
+                <!-- Numbered Pages -->
+                @for (int pNum = startPage; pNum <= endPage; pNum++)
                 {
-                    <a href="/Admin/Users?Filter.PageIndex=@(Model.UserList.PageIndex + 1)&Filter.Keyword=@Model.Filter.Keyword&Filter.Status=@Model.Filter.Status&Filter.RoleCode=@Model.Filter.RoleCode"
-                       class="pagination-btn">›</a>
+                    if (pNum == currentPage)
+                    {
+                        <span class="pagination-btn active">
+                            @pNum
+                        </span>
+                    }
+                    else
+                    {
+                        <a href="/Admin/Users?Filter.PageIndex=@pNum&Filter.PageSize=@pageSize&Filter.Keyword=@Model.Filter.Keyword&Filter.Status=@Model.Filter.Status&Filter.RoleCode=@Model.Filter.RoleCode"
+                           class="pagination-btn">
+                            @pNum
+                        </a>
+                    }
+                }
+
+                <!-- Ellipsis After -->
+                @if (endPage < totalPages)
+                {
+                    @if (endPage < totalPages - 1)
+                    {
+                        <span style="padding: 0 4px; color: #94a3b8; font-size: 12px;">...</span>
+                    }
+                    <a href="/Admin/Users?Filter.PageIndex=@totalPages&Filter.PageSize=@pageSize&Filter.Keyword=@Model.Filter.Keyword&Filter.Status=@Model.Filter.Status&Filter.RoleCode=@Model.Filter.RoleCode"
+                       class="pagination-btn">
+                        @totalPages
+                    </a>
+                }
+
+                <!-- Next & Last -->
+                @if (currentPage < totalPages)
+                {
+                    <a href="/Admin/Users?Filter.PageIndex=@(currentPage + 1)&Filter.PageSize=@pageSize&Filter.Keyword=@Model.Filter.Keyword&Filter.Status=@Model.Filter.Status&Filter.RoleCode=@Model.Filter.RoleCode"
+                       title="Trang sau"
+                       class="pagination-btn">
+                        &rsaquo;
+                    </a>
+                    <a href="/Admin/Users?Filter.PageIndex=@totalPages&Filter.PageSize=@pageSize&Filter.Keyword=@Model.Filter.Keyword&Filter.Status=@Model.Filter.Status&Filter.RoleCode=@Model.Filter.RoleCode"
+                       title="Trang cuối"
+                       class="pagination-btn">
+                        &raquo;
+                    </a>
                 }
                 else
                 {
-                    <span class="pagination-btn disabled">›</span>
+                    <span class="pagination-btn disabled">&rsaquo;</span>
+                    <span class="pagination-btn disabled">&raquo;</span>
                 }
             </div>
-        </div>
-    }
-    else if (Model.UserList != null && Model.UserList.Items.Any())
-    {
-        <div class="pagination-bar">
-            <div class="pagination-info">
-                Hiển thị 1–@Model.UserList.TotalCount trong @Model.UserList.TotalCount bản ghi
-            </div>
-        </div>
-    }
+        }
+    </div>
 </div>
+
+<script>
+    function changeUserPageSize(size) {
+        document.getElementById('userPageSizeInput').value = size;
+        document.getElementById('userFilterForm').submit();
+    }
+</script>
 
 @section Styles {
 <style>

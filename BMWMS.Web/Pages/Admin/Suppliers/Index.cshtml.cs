@@ -21,6 +21,9 @@ public class IndexModel : PageModel
 
     public async Task OnGetAsync()
     {
+        if (Filter.PageIndex < 1) Filter.PageIndex = 1;
+        if (Filter.PageSize < 1) Filter.PageSize = 10;
+
         var result = await _supplierApiService.GetPagedListAsync(Filter);
         if (result != null)
         {

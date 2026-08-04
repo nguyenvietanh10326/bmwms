@@ -1,120 +1,99 @@
-﻿<!DOCTYPE html>
-<html lang="vi">
-<head>
-    <meta charset="UTF-8">
-    <title>BMWMS Sidebar</title>
+<aside class="sidebar">
 
-    <!-- gọi CSS sidebar -->
-    <link rel="stylesheet" href="/css/Inventory/sidebar.css">
-
-</head>
-
-<body>
-
-    <aside class="sidebar">
-
-        <div class="brand">
+    <div class="brand">
+        <a href="/" style="text-decoration: none; color: inherit;">
             <div class="logo">BMWMS</div>
             <div class="subtitle">Quản lý kho vật liệu</div>
+        </a>
+    </div>
+
+    <nav class="menu">
+
+        <div class="menu-group">
+            <div class="group-title">TỔNG QUAN</div>
+
+            <a href="/Admin/Dashboard" class="menu-item @(Context.Request.Path == "/Admin/Dashboard" ? "active" : "")">
+                <span class="icon">▣</span>
+                Tổng quan
+            </a>
+
         </div>
 
-        <nav class="menu">
+        <div class="menu-group">
+            <div class="group-title">DANH MỤC</div>
 
-            <div class="menu-group">
-                <div class="group-title">TỔNG QUAN</div>
+            <a href="/Warehouse/Index" class="menu-item @(Context.Request.Path.StartsWithSegments("/Warehouse") ? "active" : "")">
+                <span class="icon">🏢</span>
+                Kho bãi
+            </a>
 
-                <a class="menu-item active">
-                    <span class="icon">▣</span>
-                    Tổng quan
-                </a>
+            <a href="/Categories/Index" class="menu-item @(Context.Request.Path.StartsWithSegments("/Categories") ? "active" : "")">
+                <span class="icon">▤</span>
+                Danh mục SP
+            </a>
 
-            </div>
+            <a href="/Admin/Suppliers" class="menu-item @(Context.Request.Path.StartsWithSegments("/Admin/Suppliers") ? "active" : "")">
+                <span class="icon">♙</span>
+                Nhà cung cấp
+            </a>
 
+        </div>
 
-            <div class="menu-group">
-                <div class="group-title">DANH MỤC</div>
+        <div class="menu-group">
+            <div class="group-title">NGHIỆP VỤ KHO</div>
 
-                <a asp-page="/Inventory/Inventory" class="menu-item">
-                    <span class="icon">⌖</span>
-                    Kho & vị trí
-                </a>
+            <a href="/Inventory/Index" class="menu-item @(Context.Request.Path == "/Inventory/Index" || Context.Request.Path == "/Inventory" ? "active" : "")">
+                <span class="icon">📊</span>
+                Bảng tồn kho
+            </a>
 
-                <a class="menu-item">
-                    <span class="icon">▤</span>
-                    Sản phẩm
-                </a>
+            <a href="/Inventory/Inventory" class="menu-item @(Context.Request.Path == "/Inventory/Inventory" ? "active" : "")">
+                <span class="icon">⌖</span>
+                Tồn kho theo vị trí
+            </a>
 
-                <a class="menu-item">
-                    <span class="icon">♙</span>
-                    Nhà cung cấp
-                </a>
+            <a class="menu-item" style="opacity: 0.6;">
+                <span class="icon">📥</span>
+                Nhập kho (Inbound)
+            </a>
 
-                <a class="menu-item">
-                    <span class="icon">♧</span>
-                    Khách hàng
-                </a>
+            <a class="menu-item" style="opacity: 0.6;">
+                <span class="icon">📤</span>
+                Xuất kho (Outbound)
+            </a>
 
-            </div>
+            <a class="menu-item" style="opacity: 0.6;">
+                <span class="icon">🔄</span>
+                Chuyển kho (Transfer)
+            </a>
 
+            <a class="menu-item" style="opacity: 0.6;">
+                <span class="icon">📋</span>
+                Kiểm kho (Audit)
+            </a>
 
-            <div class="menu-group">
-                <div class="group-title">ĐƠN HÀNG</div>
+        </div>
 
-                <a class="menu-item">
-                    Đơn mua hàng
-                </a>
+        <div class="menu-group">
+            <div class="group-title">BÁO CÁO & HỆ THỐNG</div>
 
-                <a class="menu-item">
-                    Đơn bán hàng
-                </a>
+            <a href="/Admin/Users" class="menu-item @(Context.Request.Path.StartsWithSegments("/Admin/Users") ? "active" : "")">
+                <span class="icon">👥</span>
+                Người dùng
+            </a>
 
-            </div>
+            <a href="/Admin/Profile" class="menu-item @(Context.Request.Path.StartsWithSegments("/Admin/Profile") ? "active" : "")">
+                <span class="icon">👤</span>
+                Hồ sơ cá nhân
+            </a>
 
+            <a href="/Auth/Logout" class="menu-item" style="color: #ef4444;">
+                <span class="icon">🚪</span>
+                Đăng xuất
+            </a>
 
-            <div class="menu-group">
-                <div class="group-title">NGHIỆP VỤ KHO</div>
+        </div>
 
-                <a class="menu-item">
-                    Nhập kho
-                </a>
+    </nav>
 
-                <a class="menu-item">
-                    Xuất kho
-                </a>
-
-                <a class="menu-item">
-                    Chuyển kho
-                </a>
-
-                <a class="menu-item">
-                    Kiểm kho
-                </a>
-
-            </div>
-
-
-            <div class="menu-group">
-                <div class="group-title">BÁO CÁO & HỆ THỐNG</div>
-
-                <a class="menu-item">
-                    Báo cáo
-                </a>
-
-                <a class="menu-item">
-                    Người dùng
-                </a>
-
-                <a class="menu-item">
-                    Cấu hình
-                </a>
-
-            </div>
-
-
-        </nav>
-
-    </aside>
-
-
-</body>
-</html>
+</aside>

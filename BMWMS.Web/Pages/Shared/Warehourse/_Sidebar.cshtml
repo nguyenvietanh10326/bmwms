@@ -1,18 +1,20 @@
-﻿<aside class="sidebar">
+<aside class="sidebar">
 
     <div class="sidebar-logo">
         <div class="logo-icon">🏢</div>
 
         <div class="logo-text">
-            <div class="brand">BMWMS</div>
-            <div class="sub">Warehouse Management System</div>
+            <a href="/" style="text-decoration: none; color: inherit;">
+                <div class="brand">BMWMS</div>
+                <div class="sub">Warehouse Management System</div>
+            </a>
         </div>
     </div>
 
     <nav class="sidebar-nav">
 
-        <a class="nav-item" asp-page="/Index">
-            Dashboard
+        <a class="nav-item" href="/Admin/Dashboard">
+            Dashboard (Tổng quan)
         </a>
 
         <div class="nav-section-label">
@@ -26,59 +28,77 @@
         <div class="nav-sub">
 
             <a class="nav-sub-item active"
-               asp-page="/Warehouse/Index">
+               href="/Warehouse/Index">
                 <span class="dot"></span>
-                Warehouse List
+                Danh sách kho
             </a>
 
             <a class="nav-sub-item"
-               href="#">
+               href="/Warehouse/Create">
+                <span class="dot"></span>
+                Thêm kho mới
+            </a>
+
+            <a class="nav-sub-item"
+               href="/Inventory/Inventory">
                 <span class="dot"></span>
                 Storage Location
             </a>
 
         </div>
 
-        <div class="nav-item">
-            Product Management
+        <a class="nav-item" href="/Categories/Index">
+            Product Categories
+        </a>
+
+        <a class="nav-item" href="/Admin/Suppliers">
+            Supplier Management
+        </a>
+
+        <a class="nav-item" href="/Inventory/Index">
+            Inventory Tracking
+        </a>
+
+        <div class="nav-section-label">
+            NGHIỆP VỤ
         </div>
 
-        <div class="nav-item">
-            Inbound
+        <div class="nav-item" style="opacity: 0.6;">
+            Inbound (Nhập kho)
         </div>
 
-        <div class="nav-item">
-            Outbound
+        <div class="nav-item" style="opacity: 0.6;">
+            Outbound (Xuất kho)
         </div>
 
-        <div class="nav-item">
-            Transfer
+        <div class="nav-item" style="opacity: 0.6;">
+            Transfer (Chuyển kho)
         </div>
 
-        <div class="nav-item">
-            Audit
+        <div class="nav-item" style="opacity: 0.6;">
+            Audit (Kiểm kê)
         </div>
 
-        <div class="nav-item">
-            Reports
+        <div class="nav-section-label">
+            HỆ THỐNG
         </div>
 
-        <div class="nav-item">
-            Analytics
-        </div>
-
-        <div class="nav-item">
+        <a class="nav-item" href="/Admin/Users">
             User Management
-        </div>
+        </a>
 
-        <div class="nav-item">
-            System Settings
-        </div>
+        <a class="nav-item" href="/Admin/Profile">
+            User Profile
+        </a>
+
+        <a class="nav-item" href="/Auth/Logout" style="color: #ef4444;">
+            Đăng xuất
+        </a>
 
     </nav>
 
     <div class="sidebar-footer">
-        Collapse
+        <a href="/" style="color: #94a3b8; text-decoration: none;">🏠 Trang chủ</a>
     </div>
 
 </aside>

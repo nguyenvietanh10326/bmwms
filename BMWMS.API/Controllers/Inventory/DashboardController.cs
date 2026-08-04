@@ -1,16 +1,16 @@
-﻿using BMWMS.Business.Interfaces.Inventory;
+using BMWMS.Business.Interfaces.Inventory;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BMWMS.API.Controllers.Inventory
 {
-    [Route("api/[controller]")]
+    [Route("api/dashboard")]
     [ApiController]
-    public class DashboardController : ControllerBase
+    public class InventoryDashboardController : ControllerBase
     {
         private readonly IDashboardService _dashboardService;
 
-        public DashboardController(IDashboardService dashboardService)
+        public InventoryDashboardController(IDashboardService dashboardService)
         {
             _dashboardService = dashboardService;
         }

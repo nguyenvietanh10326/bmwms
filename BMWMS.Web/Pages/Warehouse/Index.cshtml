@@ -1,4 +1,4 @@
-﻿@page
+@page
 @model BMWMS.Web.Pages.Warehouse.IndexModel
 
 @{
@@ -60,7 +60,7 @@
     </div>
 
     <!-- FILTER -->
-    <form method="get" class="filter-bar">
+    <form method="get" id="warehouseFilterForm" class="filter-bar">
         <div class="filter-header">
             <a asp-page="./Create" class="btn-create" style="text-decoration:none;">
                 Create Warehouse
@@ -68,6 +68,7 @@
         </div>
 
         <input type="hidden" name="Filter.PageIndex" value="1" />
+        <input type="hidden" name="Filter.PageSize" value="@(Model.Filter.PageSize > 0 ? Model.Filter.PageSize : 10)" id="whPageSizeInput" />
 
         <div class="search-group" style="flex: 1;">
             <div class="filter-label">Search</div>
@@ -98,9 +99,13 @@
             <button type="submit" class="btn-create" style="background: #475569;">
                 Filter
             </button>
+            @if (!string.IsNullOrWhiteSpace(Model.Filter.Keyword) || !string.IsNullOrWhiteSpace(Model.Filter.Status) || Model.Filter.IsPrimary.HasValue)
+            {
+                <a asp-page="./Index" class="btn-create" style="background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; text-decoration: none;">
+                    Reset
+                </a>
+            }
         </div>
-
-       
     </form>
 
     <!-- TABLE -->
@@ -188,69 +193,174 @@
             </tbody>
         </table>
 
-        <!-- PAGINATION FOOTER -->
+        <!-- SMART PAGINATION FOOTER -->
         @{
             var totalCount = Model.WarehousesResult.TotalCount;
-            var pageSize = Model.Filter.PageSize;
-            var currentPage = Model.Filter.PageIndex;
+            var pageSize = Model.Filter.PageSize > 0 ? Model.Filter.PageSize : 10;
+            var currentPage = Model.Filter.PageIndex > 0 ? Model.Filter.PageIndex : 1;
             var totalPages = Model.WarehousesResult.TotalPages;
 
             var startEntry = totalCount == 0 ? 0 : (currentPage - 1) * pageSize + 1;
             var endEntry = Math.Min(currentPage * pageSize, totalCount);
+
+            int windowSize = 5;
+            int startPage = Math.Max(1, currentPage - windowSize / 2);
+            int endPage = Math.Min(totalPages, startPage + windowSize - 1);
+            if (endPage - startPage + 1 < windowSize)
+            {
+                startPage = Math.Max(1, endPage - windowSize + 1);
+            }
         }
 
-        <div class="table-footer">
-            <span>
-                Showing @startEntry to @endEntry of @totalCount entries
-            </span>
-
-            <div class="pagination">
-                <!-- Nút Previous -->
-                @if (currentPage > 1)
-                {
-                    <a asp-page="./Index"
-                       asp-route-Filter.PageIndex="@(currentPage - 1)"
-                       asp-route-Filter.PageSize="@pageSize"
-                       asp-route-Filter.Keyword="@Model.Filter.Keyword"
-                       asp-route-Filter.Status="@Model.Filter.Status"
-                       asp-route-Filter.IsPrimary="@Model.Filter.IsPrimary"
-                       class="pg-btn" style="text-decoration: none; display: flex; align-items: center; justify-content: center;">
-                        &lt;
-                    </a>
-                }
-                else
-                {
-                    <button class="pg-btn" disabled style="opacity: 0.5; cursor: not-allowed;">&lt;</button>
-                }
-
-                <!-- Trang hiện tại -->
-                <div class="pg-current">
-                    @currentPage
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; border-top: 1px solid #e2e8f0; background: #fafafa; font-size: 13px; color: #64748b; flex-wrap: wrap; gap: 12px;">
+            <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+                <div>
+                    Showing <strong>@startEntry</strong> to <strong>@endEntry</strong> of <strong>@totalCount</strong> warehouses
                 </div>
-
-                <!-- Nút Next -->
-                @if (currentPage < totalPages)
-                {
-                    <a asp-page="./Index"
-                       asp-route-Filter.PageIndex="@(currentPage + 1)"
-                       asp-route-Filter.PageSize="@pageSize"
-                       asp-route-Filter.Keyword="@Model.Filter.Keyword"
-                       asp-route-Filter.Status="@Model.Filter.Status"
-                       asp-route-Filter.IsPrimary="@Model.Filter.IsPrimary"
-                       class="pg-btn" style="text-decoration: none; display: flex; align-items: center; justify-content: center;">
-                        &gt;
-                    </a>
-                }
-                else
-                {
-                    <button class="pg-btn" disabled style="opacity: 0.5; cursor: not-allowed;">&gt;</button>
-                }
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <label for="whPageSizeSelect" style="font-size: 12px; color: #64748b;">Page size:</label>
+                    <select id="whPageSizeSelect" onchange="changeWarehousePageSize(this.value)" style="padding: 4px 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 12px; background: #fff; color: #334155; outline: none; cursor: pointer;">
+                        <!option value="10" @(pageSize == 10 ? "selected" : "")>10</!option>
+                        <!option value="20" @(pageSize == 20 ? "selected" : "")>20</!option>
+                        <!option value="50" @(pageSize == 50 ? "selected" : "")>50</!option>
+                        <!option value="100" @(pageSize == 100 ? "selected" : "")>100</!option>
+                    </select>
+                </div>
             </div>
+
+            @if (totalPages > 1)
+            {
+                <div style="display: flex; align-items: center; gap: 4px; flex-wrap: wrap;">
+                    <!-- First & Prev -->
+                    @if (currentPage > 1)
+                    {
+                        <a asp-page="./Index"
+                           asp-route-Filter.PageIndex="1"
+                           asp-route-Filter.PageSize="@pageSize"
+                           asp-route-Filter.Keyword="@Model.Filter.Keyword"
+                           asp-route-Filter.Status="@Model.Filter.Status"
+                           asp-route-Filter.IsPrimary="@Model.Filter.IsPrimary"
+                           title="First page"
+                           style="min-width: 32px; height: 32px; padding: 0 8px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; color: #334155; text-decoration: none; font-size: 12.5px; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; transition: all 0.15s;">
+                            &laquo;
+                        </a>
+                        <a asp-page="./Index"
+                           asp-route-Filter.PageIndex="@(currentPage - 1)"
+                           asp-route-Filter.PageSize="@pageSize"
+                           asp-route-Filter.Keyword="@Model.Filter.Keyword"
+                           asp-route-Filter.Status="@Model.Filter.Status"
+                           asp-route-Filter.IsPrimary="@Model.Filter.IsPrimary"
+                           title="Previous page"
+                           style="min-width: 32px; height: 32px; padding: 0 8px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; color: #334155; text-decoration: none; font-size: 12.5px; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; transition: all 0.15s;">
+                            &lsaquo;
+                        </a>
+                    }
+                    else
+                    {
+                        <span style="min-width: 32px; height: 32px; padding: 0 8px; border: 1px solid #e2e8f0; border-radius: 6px; background: #f8fafc; color: #cbd5e1; display: inline-flex; align-items: center; justify-content: center; font-size: 12.5px; cursor: not-allowed;">&laquo;</span>
+                        <span style="min-width: 32px; height: 32px; padding: 0 8px; border: 1px solid #e2e8f0; border-radius: 6px; background: #f8fafc; color: #cbd5e1; display: inline-flex; align-items: center; justify-content: center; font-size: 12.5px; cursor: not-allowed;">&lsaquo;</span>
+                    }
+
+                    <!-- Ellipsis Before -->
+                    @if (startPage > 1)
+                    {
+                        <a asp-page="./Index"
+                           asp-route-Filter.PageIndex="1"
+                           asp-route-Filter.PageSize="@pageSize"
+                           asp-route-Filter.Keyword="@Model.Filter.Keyword"
+                           asp-route-Filter.Status="@Model.Filter.Status"
+                           asp-route-Filter.IsPrimary="@Model.Filter.IsPrimary"
+                           style="min-width: 32px; height: 32px; padding: 0 8px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; color: #334155; text-decoration: none; font-size: 12.5px; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; transition: all 0.15s;">
+                            1
+                        </a>
+                        @if (startPage > 2)
+                        {
+                            <span style="padding: 0 4px; color: #94a3b8; font-size: 12px;">...</span>
+                        }
+                    }
+
+                    <!-- Numbered Pages -->
+                    @for (int pNum = startPage; pNum <= endPage; pNum++)
+                    {
+                        if (pNum == currentPage)
+                        {
+                            <span style="min-width: 32px; height: 32px; padding: 0 8px; border-radius: 6px; background: #2563eb; color: #ffffff; border: 1px solid #2563eb; font-weight: 600; font-size: 12.5px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 1px 2px rgba(37,99,235,0.2);">
+                                @pNum
+                            </span>
+                        }
+                        else
+                        {
+                            <a asp-page="./Index"
+                               asp-route-Filter.PageIndex="@pNum"
+                               asp-route-Filter.PageSize="@pageSize"
+                               asp-route-Filter.Keyword="@Model.Filter.Keyword"
+                               asp-route-Filter.Status="@Model.Filter.Status"
+                               asp-route-Filter.IsPrimary="@Model.Filter.IsPrimary"
+                               style="min-width: 32px; height: 32px; padding: 0 8px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; color: #334155; text-decoration: none; font-size: 12.5px; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; transition: all 0.15s;">
+                                @pNum
+                            </a>
+                        }
+                    }
+
+                    <!-- Ellipsis After -->
+                    @if (endPage < totalPages)
+                    {
+                        @if (endPage < totalPages - 1)
+                        {
+                            <span style="padding: 0 4px; color: #94a3b8; font-size: 12px;">...</span>
+                        }
+                        <a asp-page="./Index"
+                           asp-route-Filter.PageIndex="@totalPages"
+                           asp-route-Filter.PageSize="@pageSize"
+                           asp-route-Filter.Keyword="@Model.Filter.Keyword"
+                           asp-route-Filter.Status="@Model.Filter.Status"
+                           asp-route-Filter.IsPrimary="@Model.Filter.IsPrimary"
+                           style="min-width: 32px; height: 32px; padding: 0 8px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; color: #334155; text-decoration: none; font-size: 12.5px; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; transition: all 0.15s;">
+                            @totalPages
+                        </a>
+                    }
+
+                    <!-- Next & Last -->
+                    @if (currentPage < totalPages)
+                    {
+                        <a asp-page="./Index"
+                           asp-route-Filter.PageIndex="@(currentPage + 1)"
+                           asp-route-Filter.PageSize="@pageSize"
+                           asp-route-Filter.Keyword="@Model.Filter.Keyword"
+                           asp-route-Filter.Status="@Model.Filter.Status"
+                           asp-route-Filter.IsPrimary="@Model.Filter.IsPrimary"
+                           title="Next page"
+                           style="min-width: 32px; height: 32px; padding: 0 8px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; color: #334155; text-decoration: none; font-size: 12.5px; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; transition: all 0.15s;">
+                            &rsaquo;
+                        </a>
+                        <a asp-page="./Index"
+                           asp-route-Filter.PageIndex="@totalPages"
+                           asp-route-Filter.PageSize="@pageSize"
+                           asp-route-Filter.Keyword="@Model.Filter.Keyword"
+                           asp-route-Filter.Status="@Model.Filter.Status"
+                           asp-route-Filter.IsPrimary="@Model.Filter.IsPrimary"
+                           title="Last page"
+                           style="min-width: 32px; height: 32px; padding: 0 8px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; color: #334155; text-decoration: none; font-size: 12.5px; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; transition: all 0.15s;">
+                            &raquo;
+                        </a>
+                    }
+                    else
+                    {
+                        <span style="min-width: 32px; height: 32px; padding: 0 8px; border: 1px solid #e2e8f0; border-radius: 6px; background: #f8fafc; color: #cbd5e1; display: inline-flex; align-items: center; justify-content: center; font-size: 12.5px; cursor: not-allowed;">&rsaquo;</span>
+                        <span style="min-width: 32px; height: 32px; padding: 0 8px; border: 1px solid #e2e8f0; border-radius: 6px; background: #f8fafc; color: #cbd5e1; display: inline-flex; align-items: center; justify-content: center; font-size: 12.5px; cursor: not-allowed;">&raquo;</span>
+                    }
+                </div>
+            }
         </div>
-
     </div>
-
 </div>
+
+<script>
+    function changeWarehousePageSize(size) {
+        document.getElementById('whPageSizeInput').value = size;
+        document.getElementById('warehouseFilterForm').submit();
+    }
+</script>
 
 <!-- FOOTER -->
 <div class="page-footer">
