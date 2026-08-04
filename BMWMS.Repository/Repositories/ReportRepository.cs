@@ -145,4 +145,49 @@ public class ReportRepository : IReportRepository
 
         return (totalCount, totalRequested, totalIssued, items);
     }
+
+    public async Task<(int TotalCount, List<(string ProductCode, string ProductName, decimal OpeningBalance, decimal InboundQuantity, decimal OutboundQuantity, decimal AdjustmentQuantity, decimal ClosingBalance)> Items)> GetInOutStockReportAsync(
+        DateTime? fromDate, DateTime? toDate, string? productSearch, int pageNumber, int pageSize)
+    {
+        var query = _context.VwInventoryInOutSummaries.AsQueryable();
+
+        if (toDate.HasValue)
+        {
+            var toDateOnly = DateOnly.FromDateTime(toDate.Value);
+            query = query.Where(x => x.TransactionDate <= toDateOnly);
+        }
+        
+        if (!string.IsNullOrEmpty(productSearch))
+        {
+            var search = productSearch.ToLower();
+            query = query.Where(x => x.ProductCode.ToLower().Contains(search) || x.ProductName.ToLower().Contains(search));
+        }
+
+        var fDateOnly = fromDate.HasValue ? DateOnly.FromDateTime(fromDate.Value) : DateOnly.MinValue;
+
+        var groupedQuery = query.GroupBy(x => new { x.ProductCode, x.ProductName })
+            .Select(g => new
+            {
+                ProductCode = g.Key.ProductCode,
+                ProductName = g.Key.ProductName,
+                OpeningBalance = g.Where(x => x.TransactionDate < fDateOnly).Sum(x => x.NetMovementQuantity) ?? 0,
+                InboundQuantity = g.Where(x => x.TransactionDate >= fDateOnly).Sum(x => x.InboundQuantity) ?? 0,
+                OutboundQuantity = g.Where(x => x.TransactionDate >= fDateOnly).Sum(x => x.OutboundQuantity) ?? 0,
+                AdjustmentQuantity = g.Where(x => x.TransactionDate >= fDateOnly).Sum(x => x.AdjustmentQuantity) ?? 0,
+                ClosingBalance = g.Sum(x => x.NetMovementQuantity) ?? 0
+            })
+            .Where(x => x.OpeningBalance != 0 || x.InboundQuantity != 0 || x.OutboundQuantity != 0 || x.AdjustmentQuantity != 0);
+
+        var totalCount = await groupedQuery.CountAsync();
+
+        var anonymousItems = await groupedQuery
+            .OrderBy(x => x.ProductCode)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        var items = anonymousItems.Select(x => (x.ProductCode, x.ProductName, x.OpeningBalance, x.InboundQuantity, x.OutboundQuantity, x.AdjustmentQuantity, x.ClosingBalance)).ToList();
+
+        return (totalCount, items);
+    }
 }

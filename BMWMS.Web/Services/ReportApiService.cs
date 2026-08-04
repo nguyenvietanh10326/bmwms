@@ -59,4 +59,22 @@ public class ReportApiService : IReportApiService
 
         return await response.Content.ReadFromJsonAsync<OutboundReportResponseModel>() ?? new OutboundReportResponseModel();
     }
+
+    public async Task<InOutStockReportResponseModel> GetInOutStockReportAsync(InOutStockReportFilterModel filter)
+    {
+        var query = new List<string>();
+        if (filter.FromDate.HasValue) query.Add($"fromDate={Uri.EscapeDataString(filter.FromDate.Value.ToString("O"))}");
+        if (filter.ToDate.HasValue) query.Add($"toDate={Uri.EscapeDataString(filter.ToDate.Value.ToString("O"))}");
+        if (!string.IsNullOrEmpty(filter.ProductSearch)) query.Add($"productSearch={Uri.EscapeDataString(filter.ProductSearch)}");
+        query.Add($"pageNumber={filter.PageNumber}");
+        query.Add($"pageSize={filter.PageSize}");
+
+        var queryString = string.Join("&", query);
+        var url = "/api/reports/inoutstock" + (query.Any() ? $"?{queryString}" : "");
+        
+        var response = await _httpClient.GetAsync(url);
+        response.EnsureSuccessStatusCode();
+
+        return await response.Content.ReadFromJsonAsync<InOutStockReportResponseModel>() ?? new InOutStockReportResponseModel();
+    }
 }

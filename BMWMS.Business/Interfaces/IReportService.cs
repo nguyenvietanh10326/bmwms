@@ -7,4 +7,5 @@ public interface IReportService
     Task<InventoryReportResponseDto> GetInventoryReportAsync(InventoryReportFilterDto filter);
     Task<InboundReportResponseDto> GetInboundReportAsync(InboundReportFilterDto filter);
     Task<OutboundReportResponseDto> GetOutboundReportAsync(OutboundReportFilterDto filter);
+    Task<InOutStockReportResponseDto> GetInOutStockReportAsync(InOutStockReportFilterDto filter);
 }

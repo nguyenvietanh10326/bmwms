@@ -11,4 +11,7 @@ public interface IReportRepository
 
     Task<(int TotalCount, decimal TotalRequested, decimal TotalIssued, List<VwOutboundReport> Items)> GetOutboundReportAsync(
         DateTime? fromDate, DateTime? toDate, string? productSearch, string? status, int pageNumber, int pageSize);
+
+    Task<(int TotalCount, List<(string ProductCode, string ProductName, decimal OpeningBalance, decimal InboundQuantity, decimal OutboundQuantity, decimal AdjustmentQuantity, decimal ClosingBalance)> Items)> GetInOutStockReportAsync(
+        DateTime? fromDate, DateTime? toDate, string? productSearch, int pageNumber, int pageSize);
 }

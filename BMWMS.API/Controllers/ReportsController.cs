@@ -59,4 +59,18 @@ public class ReportsController : ControllerBase
             return StatusCode(500, ex.Message);
         }
     }
+
+    [HttpGet("inoutstock")]
+    public async Task<IActionResult> GetInOutStockReport([FromQuery] InOutStockReportFilterDto filter)
+    {
+        try
+        {
+            var result = await _reportService.GetInOutStockReportAsync(filter);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ex.Message);
+        }
+    }
 }

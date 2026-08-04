@@ -97,3 +97,31 @@ public class OutboundReportResponseModel
     public int TotalCount { get; set; }
     public List<OutboundReportItemModel> Items { get; set; } = new();
 }
+
+// --- In-Out-Stock Report ---
+
+public class InOutStockReportFilterModel
+{
+    public DateTime? FromDate { get; set; } = DateTime.Today.AddDays(-30);
+    public DateTime? ToDate { get; set; } = DateTime.Today;
+    public string? ProductSearch { get; set; }
+    public int PageNumber { get; set; } = 1;
+    public int PageSize { get; set; } = 50;
+}
+
+public class InOutStockReportItemModel
+{
+    public string ProductCode { get; set; } = string.Empty;
+    public string ProductName { get; set; } = string.Empty;
+    public decimal OpeningBalance { get; set; }
+    public decimal InboundQuantity { get; set; }
+    public decimal OutboundQuantity { get; set; }
+    public decimal AdjustmentQuantity { get; set; }
+    public decimal ClosingBalance { get; set; }
+}
+
+public class InOutStockReportResponseModel
+{
+    public int TotalCount { get; set; }
+    public List<InOutStockReportItemModel> Items { get; set; } = new();
+}

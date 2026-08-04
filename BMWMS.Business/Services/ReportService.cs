@@ -71,6 +71,27 @@ public class ReportService : IReportService
         };
     }
 
+    public async Task<InOutStockReportResponseDto> GetInOutStockReportAsync(InOutStockReportFilterDto filter)
+    {
+        var (totalCount, items) = await _reportRepository.GetInOutStockReportAsync(
+            filter.FromDate, filter.ToDate, filter.ProductSearch, filter.PageNumber, filter.PageSize);
+
+        return new InOutStockReportResponseDto
+        {
+            TotalCount = totalCount,
+            Items = items.Select(x => new InOutStockReportItemDto
+            {
+                ProductCode = x.ProductCode,
+                ProductName = x.ProductName,
+                OpeningBalance = x.OpeningBalance,
+                InboundQuantity = x.InboundQuantity,
+                OutboundQuantity = x.OutboundQuantity,
+                AdjustmentQuantity = x.AdjustmentQuantity,
+                ClosingBalance = x.ClosingBalance
+            }).ToList()
+        };
+    }
+
     public async Task<InventoryReportResponseDto> GetInventoryReportAsync(InventoryReportFilterDto filter)
     {
         var (items, totalCount, totalOnHand, totalReserved, totalAvailable) = await _reportRepository.GetInventoryReportAsync(
