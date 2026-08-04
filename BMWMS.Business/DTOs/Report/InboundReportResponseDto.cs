@@ -8,6 +8,8 @@ namespace BMWMS.Business.DTOs.Report
         public decimal TotalReceived { get; set; }
         public decimal TotalDamaged { get; set; }
         public decimal TotalShortage { get; set; }
+        public int TotalCount { get; set; }
+        
         public List<InboundReportItemDto> Items { get; set; } = new List<InboundReportItemDto>();
     }
 }

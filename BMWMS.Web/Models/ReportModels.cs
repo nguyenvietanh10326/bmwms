@@ -62,5 +62,38 @@ public class InboundReportResponseModel
     public decimal TotalReceived { get; set; }
     public decimal TotalDamaged { get; set; }
     public decimal TotalShortage { get; set; }
-    public List<InboundReportItemModel> Items { get; set; } = new List<InboundReportItemModel>();
+    public int TotalCount { get; set; }
+    public List<InboundReportItemModel> Items { get; set; } = new();
+}
+
+// --- Outbound Report ---
+
+public class OutboundReportFilterModel
+{
+    public DateTime? FromDate { get; set; } = DateTime.Today.AddDays(-30);
+    public DateTime? ToDate { get; set; } = DateTime.Today;
+    public string? ProductSearch { get; set; }
+    public string? Status { get; set; }
+    public int PageNumber { get; set; } = 1;
+    public int PageSize { get; set; } = 50;
+}
+
+public class OutboundReportItemModel
+{
+    public string OutboundOrderNumber { get; set; } = string.Empty;
+    public string ProductCode { get; set; } = string.Empty;
+    public string ProductName { get; set; } = string.Empty;
+    public string SourceType { get; set; } = string.Empty;
+    public DateTime ExpectedIssueDate { get; set; }
+    public decimal RequestedQuantity { get; set; }
+    public decimal IssuedQuantity { get; set; }
+    public string Status { get; set; } = string.Empty;
+}
+
+public class OutboundReportResponseModel
+{
+    public decimal TotalRequested { get; set; }
+    public decimal TotalIssued { get; set; }
+    public int TotalCount { get; set; }
+    public List<OutboundReportItemModel> Items { get; set; } = new();
 }

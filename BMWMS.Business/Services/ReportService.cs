@@ -16,26 +16,14 @@ public class ReportService : IReportService
 
     public async Task<InboundReportResponseDto> GetInboundReportAsync(InboundReportFilterDto filter)
     {
-        var (items, totalExpected, totalReceived, totalDamaged, totalShortage) = await _reportRepository.GetInboundReportAsync(
+        var (totalCount, totalExpected, totalReceived, totalDamaged, totalShortage, items) = await _reportRepository.GetInboundReportAsync(
             filter.FromDate,
             filter.ToDate,
             filter.ProductSearch,
-            filter.Status
+            filter.Status,
+            filter.PageNumber,
+            filter.PageSize
         );
-
-        var dtos = items.Select(i => new InboundReportItemDto
-        {
-            InboundOrderNumber = i.InboundOrderNumber,
-            ProductCode = i.ProductCode,
-            ProductName = i.ProductName,
-            SourceType = i.SourceType,
-            ExpectedReceiptDate = i.ExpectedReceiptDate,
-            Status = i.Status,
-            ExpectedQuantity = i.ExpectedQuantity,
-            ReceivedQuantity = i.ReceivedQuantity,
-            DamagedQuantity = i.DamagedQuantity,
-            ShortageQuantity = i.ShortageQuantity
-        }).ToList();
 
         return new InboundReportResponseDto
         {
@@ -43,7 +31,43 @@ public class ReportService : IReportService
             TotalReceived = totalReceived,
             TotalDamaged = totalDamaged,
             TotalShortage = totalShortage,
-            Items = dtos
+            TotalCount = totalCount,
+            Items = items.Select(x => new InboundReportItemDto
+            {
+                InboundOrderNumber = x.InboundOrderNumber,
+                ProductCode = x.ProductCode,
+                ProductName = x.ProductName,
+                ExpectedReceiptDate = x.ExpectedReceiptDate,
+                ExpectedQuantity = x.ExpectedQuantity,
+                ReceivedQuantity = x.ReceivedQuantity,
+                DamagedQuantity = x.DamagedQuantity,
+                ShortageQuantity = x.ShortageQuantity,
+                Status = x.Status
+            }).ToList()
+        };
+    }
+
+    public async Task<OutboundReportResponseDto> GetOutboundReportAsync(OutboundReportFilterDto filter)
+    {
+        var (totalCount, totalRequested, totalIssued, items) = await _reportRepository.GetOutboundReportAsync(
+            filter.FromDate, filter.ToDate, filter.ProductSearch, filter.Status, filter.PageNumber, filter.PageSize);
+
+        return new OutboundReportResponseDto
+        {
+            TotalRequested = totalRequested,
+            TotalIssued = totalIssued,
+            TotalCount = totalCount,
+            Items = items.Select(x => new OutboundReportItemDto
+            {
+                OutboundOrderNumber = x.OutboundOrderNumber,
+                ProductCode = x.ProductCode,
+                ProductName = x.ProductName,
+                SourceType = x.SourceType,
+                ExpectedIssueDate = x.ExpectedIssueDate.ToDateTime(TimeOnly.MinValue),
+                RequestedQuantity = x.RequestedQuantity,
+                IssuedQuantity = x.IssuedQuantity,
+                Status = x.Status
+            }).ToList()
         };
     }
 

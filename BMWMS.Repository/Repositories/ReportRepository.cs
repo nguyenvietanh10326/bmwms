@@ -58,44 +58,91 @@ public class ReportRepository : IReportRepository
         return (items, totalCount, totalOnHand, totalReserved, totalAvailable);
     }
 
-    public async Task<(List<VwInboundReport> Items, decimal TotalExpected, decimal TotalReceived, decimal TotalDamaged, decimal TotalShortage)> 
-        GetInboundReportAsync(DateTime? fromDate, DateTime? toDate, string? productSearch, string? status)
+    public async Task<(int TotalCount, decimal TotalExpected, decimal TotalReceived, decimal TotalDamaged, decimal TotalShortage, List<VwInboundReport> Items)> GetInboundReportAsync(
+        DateTime? fromDate, DateTime? toDate, string? productSearch, string? status, int pageNumber, int pageSize)
     {
         var query = _context.VwInboundReports.AsQueryable();
 
         if (fromDate.HasValue)
         {
-            var fDate = DateOnly.FromDateTime(fromDate.Value);
-            query = query.Where(q => q.ExpectedReceiptDate >= fDate);
+            var fromDateOnly = DateOnly.FromDateTime(fromDate.Value);
+            query = query.Where(x => x.ExpectedReceiptDate >= fromDateOnly);
         }
 
         if (toDate.HasValue)
         {
-            var tDate = DateOnly.FromDateTime(toDate.Value);
-            query = query.Where(q => q.ExpectedReceiptDate <= tDate);
+            var toDateOnly = DateOnly.FromDateTime(toDate.Value);
+            query = query.Where(x => x.ExpectedReceiptDate <= toDateOnly);
         }
 
         if (!string.IsNullOrEmpty(productSearch))
         {
             var search = productSearch.ToLower();
-            query = query.Where(q => q.ProductCode.ToLower().Contains(search) || q.ProductName.ToLower().Contains(search));
+            query = query.Where(x => x.ProductCode.ToLower().Contains(search) || x.ProductName.ToLower().Contains(search));
         }
-        
+
         if (!string.IsNullOrEmpty(status))
         {
-            query = query.Where(q => q.Status == status);
+            var statusUpper = status.ToUpper();
+            query = query.Where(x => x.Status == statusUpper);
         }
 
-        var totalExpected = await query.SumAsync(q => q.ExpectedQuantity);
-        var totalReceived = await query.SumAsync(q => q.ReceivedQuantity);
-        var totalDamaged = await query.SumAsync(q => q.DamagedQuantity);
-        var totalShortage = await query.SumAsync(q => q.ShortageQuantity);
+        var totalCount = await query.CountAsync();
+        var totalExpected = await query.SumAsync(x => (decimal?)x.ExpectedQuantity) ?? 0;
+        var totalReceived = await query.SumAsync(x => (decimal?)x.ReceivedQuantity) ?? 0;
+        var totalDamaged = await query.SumAsync(x => (decimal?)x.DamagedQuantity) ?? 0;
+        var totalShortage = await query.SumAsync(x => (decimal?)x.ShortageQuantity) ?? 0;
 
         var items = await query
-            .OrderByDescending(q => q.ExpectedReceiptDate)
-            .ThenBy(q => q.InboundOrderNumber)
+            .OrderByDescending(x => x.ExpectedReceiptDate)
+            .ThenBy(x => x.InboundOrderNumber)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
             .ToListAsync();
 
-        return (items, totalExpected, totalReceived, totalDamaged, totalShortage);
+        return (totalCount, totalExpected, totalReceived, totalDamaged, totalShortage, items);
+    }
+
+    public async Task<(int TotalCount, decimal TotalRequested, decimal TotalIssued, List<VwOutboundReport> Items)> GetOutboundReportAsync(
+        DateTime? fromDate, DateTime? toDate, string? productSearch, string? status, int pageNumber, int pageSize)
+    {
+        var query = _context.VwOutboundReports.AsQueryable();
+
+        if (fromDate.HasValue)
+        {
+            var fromDateOnly = DateOnly.FromDateTime(fromDate.Value);
+            query = query.Where(x => x.ExpectedIssueDate >= fromDateOnly);
+        }
+
+        if (toDate.HasValue)
+        {
+            var toDateOnly = DateOnly.FromDateTime(toDate.Value);
+            query = query.Where(x => x.ExpectedIssueDate <= toDateOnly);
+        }
+
+        if (!string.IsNullOrEmpty(productSearch))
+        {
+            var search = productSearch.ToLower();
+            query = query.Where(x => x.ProductCode.ToLower().Contains(search) || x.ProductName.ToLower().Contains(search));
+        }
+
+        if (!string.IsNullOrEmpty(status))
+        {
+            var statusUpper = status.ToUpper();
+            query = query.Where(x => x.Status == statusUpper);
+        }
+
+        var totalCount = await query.CountAsync();
+        var totalRequested = await query.SumAsync(x => (decimal?)x.RequestedQuantity) ?? 0;
+        var totalIssued = await query.SumAsync(x => (decimal?)x.IssuedQuantity) ?? 0;
+
+        var items = await query
+            .OrderByDescending(x => x.ExpectedIssueDate)
+            .ThenBy(x => x.OutboundOrderNumber)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return (totalCount, totalRequested, totalIssued, items);
     }
 }
