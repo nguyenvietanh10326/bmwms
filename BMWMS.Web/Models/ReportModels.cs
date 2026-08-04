@@ -125,3 +125,65 @@ public class InOutStockReportResponseModel
     public int TotalCount { get; set; }
     public List<InOutStockReportItemModel> Items { get; set; } = new();
 }
+
+// --- Product Statistics Report ---
+
+public class ProductStatisticsFilterModel
+{
+    public DateTime? FromDate { get; set; } = DateTime.Today.AddDays(-30);
+    public DateTime? ToDate { get; set; } = DateTime.Today;
+    public string? ProductSearch { get; set; }
+    public string? ProductGroupCode { get; set; }
+    public int PageNumber { get; set; } = 1;
+    public int PageSize { get; set; } = 50;
+}
+
+public class ProductStatisticsItemModel
+{
+    public long ProductId { get; set; }
+    public string ProductCode { get; set; } = string.Empty;
+    public string ProductName { get; set; } = string.Empty;
+    public string BaseUnitCode { get; set; } = string.Empty;
+    public decimal CurrentStock { get; set; }
+    public decimal InboundQuantity { get; set; }
+    public decimal OutboundQuantity { get; set; }
+    public decimal AdjustmentQuantity { get; set; }
+    public int MovementFrequency { get; set; }
+    public int DaysSinceLastMovement { get; set; }
+}
+
+public class ProductStatisticsResponseModel
+{
+    public DateTime CutOffTime { get; set; }
+    public PagedResultModel<ProductStatisticsItemModel> Data { get; set; } = new();
+}
+
+// --- Supplier Statistics Report ---
+
+public class SupplierStatisticsFilterModel
+{
+    public DateTime? FromDate { get; set; } = DateTime.Today.AddDays(-30);
+    public DateTime? ToDate { get; set; } = DateTime.Today;
+    public string? SupplierSearch { get; set; }
+    public int PageNumber { get; set; } = 1;
+    public int PageSize { get; set; } = 50;
+}
+
+public class SupplierStatisticsItemModel
+{
+    public long SupplierId { get; set; }
+    public string SupplierCode { get; set; } = string.Empty;
+    public string SupplierName { get; set; } = string.Empty;
+    public int InboundOrderCount { get; set; }
+    public decimal ExpectedQuantity { get; set; }
+    public decimal ReceivedQuantity { get; set; }
+    public decimal DamagedQuantity { get; set; }
+    public decimal ShortageQuantity { get; set; }
+    public decimal CompletionPerformance { get; set; }
+}
+
+public class SupplierStatisticsResponseModel
+{
+    public DateTime CutOffTime { get; set; }
+    public PagedResultModel<SupplierStatisticsItemModel> Data { get; set; } = new();
+}

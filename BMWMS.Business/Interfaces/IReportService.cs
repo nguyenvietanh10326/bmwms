@@ -8,4 +8,6 @@ public interface IReportService
     Task<InboundReportResponseDto> GetInboundReportAsync(InboundReportFilterDto filter);
     Task<OutboundReportResponseDto> GetOutboundReportAsync(OutboundReportFilterDto filter);
     Task<InOutStockReportResponseDto> GetInOutStockReportAsync(InOutStockReportFilterDto filter);
+    Task<ProductStatisticsResponseDto> GetProductStatisticsAsync(ProductStatisticsFilterDto filter);
+    Task<SupplierStatisticsResponseDto> GetSupplierStatisticsAsync(SupplierStatisticsFilterDto filter);
 }

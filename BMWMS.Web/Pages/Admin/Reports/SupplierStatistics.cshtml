@@ -1,0 +1,435 @@
+@page
+@model BMWMS.Web.Pages.Admin.Reports.SupplierStatisticsModel
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Thống kê nhà cung cấp";
+    ViewData["HeaderTitle"] = "Thống kê hiệu suất nhập hàng nhà cung cấp";
+    ViewData["FooterVersion"] = "Premium Analytics v1.0";
+}
+
+<style>
+    /* Premium UI Styles */
+    .premium-container {
+        padding: 24px 0;
+        max-width: 100%;
+        animation: fadeIn 0.4s ease-out forwards;
+    }
+
+    @@keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Glassmorphism Header */
+    .glass-header {
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(147, 197, 253, 0.05));
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        border-radius: 16px;
+        padding: 24px;
+        margin-bottom: 24px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .glass-header-title {
+        font-size: 24px;
+        font-weight: 700;
+        background: linear-gradient(to right, #1e3a8a, #3b82f6);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 4px;
+    }
+
+    .glass-header-sub {
+        color: #64748b;
+        font-size: 14px;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    /* Premium Card */
+    .premium-card {
+        background: #ffffff;
+        border-radius: 16px;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+        border: 1px solid #f1f5f9;
+        overflow: hidden;
+    }
+
+    /* Filter Section */
+    .filter-wrapper {
+        padding: 24px;
+        background: #f8fafc;
+        border-bottom: 1px solid #f1f5f9;
+        display: flex;
+        gap: 20px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .form-group-float {
+        position: relative;
+        flex: 1;
+        min-width: 150px;
+    }
+    
+    .form-group-float.search-group {
+        flex: 2;
+        min-width: 250px;
+    }
+
+    .form-label-float {
+        position: absolute;
+        top: -8px;
+        left: 12px;
+        background: #f8fafc;
+        padding: 0 4px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #3b82f6;
+        z-index: 1;
+    }
+
+    .form-control-float {
+        width: 100%;
+        height: 48px;
+        border-radius: 12px;
+        border: 2px solid #e2e8f0;
+        padding: 0 16px;
+        font-size: 14px;
+        background: transparent;
+        color: #1e293b;
+        transition: all 0.3s ease;
+    }
+
+    .form-control-float:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+        outline: none;
+    }
+
+    .search-input-wrapper {
+        position: relative;
+    }
+
+    .search-input-wrapper i {
+        position: absolute;
+        left: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #94a3b8;
+        font-size: 18px;
+    }
+
+    .search-input-wrapper .form-control-float {
+        padding-left: 44px;
+    }
+
+    .btn-premium {
+        height: 48px;
+        padding: 0 32px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #3b82f6, #2563eb);
+        color: white;
+        font-weight: 600;
+        font-size: 15px;
+        border: none;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+        transition: all 0.3s ease;
+        white-space: nowrap;
+    }
+
+    .btn-premium:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(37, 99, 235, 0.3);
+    }
+
+    /* Premium Data Grid */
+    .data-grid {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    .data-grid th {
+        background: #ffffff;
+        color: #64748b;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 12px;
+        letter-spacing: 0.5px;
+        padding: 20px 24px;
+        border-bottom: 2px solid #f1f5f9;
+        white-space: nowrap;
+    }
+
+    .data-grid td {
+        padding: 20px 24px;
+        vertical-align: middle;
+        border-bottom: 1px solid #f8fafc;
+        transition: background-color 0.2s;
+    }
+
+    .data-grid tbody tr:hover {
+        background-color: #f8fafc;
+        box-shadow: inset 4px 0 0 #3b82f6;
+    }
+
+    .supplier-info-premium {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .supplier-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #e0f2fe, #bae6fd);
+        color: #0284c7;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        box-shadow: 0 2px 4px rgba(2, 132, 199, 0.1);
+    }
+
+    .supplier-details .code {
+        font-weight: 700;
+        color: #0f172a;
+        font-size: 15px;
+        margin-bottom: 4px;
+    }
+
+    .supplier-details .name {
+        color: #64748b;
+        font-size: 13px;
+        font-weight: 500;
+    }
+
+    /* Vibrant Badges */
+    .badge-vibrant {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 6px 14px;
+        border-radius: 8px;
+        font-weight: 700;
+        font-size: 14px;
+        min-width: 70px;
+        letter-spacing: 0.5px;
+        font-family: 'JetBrains Mono', 'Courier New', monospace;
+    }
+
+    .badge-neutral { background: #f1f5f9; color: #475569; }
+    .badge-positive { background: rgba(34, 197, 94, 0.1); color: #16a34a; box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.2); }
+    .badge-negative { background: rgba(239, 68, 68, 0.1); color: #dc2626; box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.2); }
+    .badge-warning { background: rgba(245, 158, 11, 0.1); color: #d97706; box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.2); }
+    .badge-blue { background: rgba(59, 130, 246, 0.1); color: #2563eb; box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.2); }
+    
+    .badge-zero { color: #cbd5e1; font-weight: 500; }
+    
+    /* Progress Bar */
+    .progress-wrapper {
+        width: 100%;
+        max-width: 120px;
+        margin: 0 auto;
+    }
+    .progress-bar-bg {
+        height: 8px;
+        background: #e2e8f0;
+        border-radius: 4px;
+        overflow: hidden;
+        margin-bottom: 4px;
+    }
+    .progress-bar-fill {
+        height: 100%;
+        border-radius: 4px;
+    }
+    .progress-text {
+        font-size: 12px;
+        font-weight: 600;
+        color: #475569;
+        text-align: right;
+    }
+
+    .empty-state-premium {
+        padding: 60px 20px;
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .empty-icon-wrapper {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 40px;
+        color: #94a3b8;
+        margin-bottom: 24px;
+        box-shadow: inset 0 2px 4px rgba(0,0,0,0.02), 0 8px 16px rgba(0,0,0,0.02);
+    }
+    
+    .empty-title { font-size: 18px; font-weight: 600; color: #334155; margin-bottom: 8px; }
+    .empty-subtitle { color: #64748b; font-size: 14px; }
+    
+    .pagination-footer {
+        padding: 20px 24px;
+        background: #ffffff;
+        border-top: 1px solid #f1f5f9;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 14px;
+        color: #64748b;
+    }
+</style>
+
+<div class="premium-container">
+    <div class="glass-header">
+        <div>
+            <div class="glass-header-title">Thống kê Nhà cung cấp</div>
+            <div class="glass-header-sub">
+                <i class="ri-time-line"></i> 
+                Dữ liệu tính đến: @Model.ReportData.CutOffTime.ToString("dd/MM/yyyy HH:mm")
+            </div>
+        </div>
+        <div>
+            <button class="btn btn-outline" style="border-radius: 10px; padding: 10px 20px; font-weight: 600; color: #475569; border: 1px solid #cbd5e1; background: white;" type="button" disabled>
+                <i class="ri-file-excel-2-line" style="color: #10b981; margin-right: 6px;"></i> Xuất Excel
+            </button>
+        </div>
+    </div>
+
+    <div class="premium-card">
+        <form method="get" class="filter-wrapper">
+            <div class="form-group-float search-group">
+                <label class="form-label-float">Tìm Nhà cung cấp</label>
+                <div class="search-input-wrapper">
+                    <i class="ri-search-2-line"></i>
+                    <input type="text" class="form-control-float" asp-for="Filter.SupplierSearch" placeholder="Mã hoặc tên nhà cung cấp..." />
+                </div>
+            </div>
+
+            <div class="form-group-float">
+                <label class="form-label-float">Từ ngày (Dự kiến nhập)</label>
+                <input type="date" class="form-control-float" asp-for="Filter.FromDate" />
+            </div>
+            
+            <div class="form-group-float">
+                <label class="form-label-float">Đến ngày (Dự kiến nhập)</label>
+                <input type="date" class="form-control-float" asp-for="Filter.ToDate" />
+            </div>
+            
+            <button type="submit" class="btn-premium">
+                <i class="ri-filter-3-line"></i> Lọc
+            </button>
+        </form>
+
+        <div class="table-responsive">
+            <table class="data-grid">
+                <thead>
+                    <tr>
+                        <th style="width: 25%;">Nhà cung cấp</th>
+                        <th class="text-center">Đơn nhập</th>
+                        <th class="text-center">Số lượng mong đợi</th>
+                        <th class="text-center">Số lượng thực nhận</th>
+                        <th class="text-center">Hàng hỏng / lỗi</th>
+                        <th class="text-center">Hàng thiếu</th>
+                        <th class="text-center">Tỉ lệ hoàn thành</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.ReportData.Data.Items.Any())
+                    {
+                        foreach (var item in Model.ReportData.Data.Items)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="supplier-info-premium">
+                                        <div class="supplier-avatar">
+                                            <i class="ri-building-4-fill"></i>
+                                        </div>
+                                        <div class="supplier-details">
+                                            <div class="code">@item.SupplierCode</div>
+                                            <div class="name">@item.SupplierName</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge-vibrant badge-blue">@item.InboundOrderCount</span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge-vibrant badge-neutral">@item.ExpectedQuantity.ToString("N0")</span>
+                                </td>
+                                <td class="text-center">
+                                    @if(item.ReceivedQuantity > 0) { <span class="badge-vibrant badge-positive">@item.ReceivedQuantity.ToString("N0")</span> }
+                                    else { <span class="badge-zero">-</span> }
+                                </td>
+                                <td class="text-center">
+                                    @if(item.DamagedQuantity > 0) { <span class="badge-vibrant badge-negative">@item.DamagedQuantity.ToString("N0")</span> }
+                                    else { <span class="badge-zero">-</span> }
+                                </td>
+                                <td class="text-center">
+                                    @if(item.ShortageQuantity > 0) { <span class="badge-vibrant badge-warning">@item.ShortageQuantity.ToString("N0")</span> }
+                                    else { <span class="badge-zero">-</span> }
+                                </td>
+                                <td class="text-center">
+                                    @{
+                                        string bgClass = item.CompletionPerformance >= 90 ? "#10b981" : 
+                                                         item.CompletionPerformance >= 50 ? "#f59e0b" : "#ef4444";
+                                    }
+                                    <div class="progress-wrapper">
+                                        <div class="progress-bar-bg">
+                                            <div class="progress-bar-fill" style="width: @(item.CompletionPerformance)%; background: @(bgClass);"></div>
+                                        </div>
+                                        <div class="progress-text" style="color: @(bgClass)">@(item.CompletionPerformance.ToString("0.0"))%</div>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="7">
+                                <div class="empty-state-premium">
+                                    <div class="empty-icon-wrapper">
+                                        <i class="ri-inbox-unarchive-line"></i>
+                                    </div>
+                                    <div class="empty-title">Không tìm thấy dữ liệu</div>
+                                    <div class="empty-subtitle">Thử thay đổi điều kiện bộ lọc để xem kết quả.</div>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="pagination-footer">
+            <div>
+                Hiển thị <strong style="color: #0f172a;">@Model.ReportData.Data.Items.Count</strong> trên tổng số <strong style="color: #0f172a;">@Model.ReportData.Data.TotalCount</strong> bản ghi
+            </div>
+            <div>
+                <!-- Pagination -->
+            </div>
+        </div>
+    </div>
+</div>

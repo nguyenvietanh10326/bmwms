@@ -77,4 +77,41 @@ public class ReportApiService : IReportApiService
 
         return await response.Content.ReadFromJsonAsync<InOutStockReportResponseModel>() ?? new InOutStockReportResponseModel();
     }
+
+    public async Task<ProductStatisticsResponseModel> GetProductStatisticsAsync(ProductStatisticsFilterModel filter)
+    {
+        var query = new List<string>();
+        if (filter.FromDate.HasValue) query.Add($"fromDate={Uri.EscapeDataString(filter.FromDate.Value.ToString("O"))}");
+        if (filter.ToDate.HasValue) query.Add($"toDate={Uri.EscapeDataString(filter.ToDate.Value.ToString("O"))}");
+        if (!string.IsNullOrEmpty(filter.ProductSearch)) query.Add($"productSearch={Uri.EscapeDataString(filter.ProductSearch)}");
+        if (!string.IsNullOrEmpty(filter.ProductGroupCode)) query.Add($"productGroupCode={Uri.EscapeDataString(filter.ProductGroupCode)}");
+        query.Add($"pageNumber={filter.PageNumber}");
+        query.Add($"pageSize={filter.PageSize}");
+
+        var queryString = string.Join("&", query);
+        var url = "/api/reports/product-statistics" + (query.Any() ? $"?{queryString}" : "");
+        
+        var response = await _httpClient.GetAsync(url);
+        response.EnsureSuccessStatusCode();
+
+        return await response.Content.ReadFromJsonAsync<ProductStatisticsResponseModel>() ?? new ProductStatisticsResponseModel();
+    }
+
+    public async Task<SupplierStatisticsResponseModel> GetSupplierStatisticsAsync(SupplierStatisticsFilterModel filter)
+    {
+        var query = new List<string>();
+        if (filter.FromDate.HasValue) query.Add($"fromDate={Uri.EscapeDataString(filter.FromDate.Value.ToString("O"))}");
+        if (filter.ToDate.HasValue) query.Add($"toDate={Uri.EscapeDataString(filter.ToDate.Value.ToString("O"))}");
+        if (!string.IsNullOrEmpty(filter.SupplierSearch)) query.Add($"supplierSearch={Uri.EscapeDataString(filter.SupplierSearch)}");
+        query.Add($"pageNumber={filter.PageNumber}");
+        query.Add($"pageSize={filter.PageSize}");
+
+        var queryString = string.Join("&", query);
+        var url = "/api/reports/supplier-statistics" + (query.Any() ? $"?{queryString}" : "");
+        
+        var response = await _httpClient.GetAsync(url);
+        response.EnsureSuccessStatusCode();
+
+        return await response.Content.ReadFromJsonAsync<SupplierStatisticsResponseModel>() ?? new SupplierStatisticsResponseModel();
+    }
 }

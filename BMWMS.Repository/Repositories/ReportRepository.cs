@@ -190,4 +190,168 @@ public class ReportRepository : IReportRepository
 
         return (totalCount, items);
     }
+
+    public async Task<(int TotalCount, List<(long ProductId, string ProductCode, string ProductName, string BaseUnitCode, decimal CurrentStock, decimal InboundQuantity, decimal OutboundQuantity, decimal AdjustmentQuantity, int MovementFrequency, int DaysSinceLastMovement)> Items)> GetProductStatisticsAsync(
+        DateTime? fromDate, DateTime? toDate, string? productSearch, string? productGroupCode, int pageNumber, int pageSize)
+    {
+        var productQuery = _context.Products
+            .Include(p => p.UnitOfMeasure)
+            .Include(p => p.ProductGroup)
+            .AsQueryable();
+
+        if (!string.IsNullOrEmpty(productSearch))
+        {
+            var search = productSearch.ToLower();
+            productQuery = productQuery.Where(p => p.ProductCode.ToLower().Contains(search) || p.ProductName.ToLower().Contains(search));
+        }
+
+        if (!string.IsNullOrEmpty(productGroupCode))
+        {
+            productQuery = productQuery.Where(p => p.ProductGroup.GroupCode == productGroupCode);
+        }
+
+        var totalCount = await productQuery.CountAsync();
+
+        var products = await productQuery
+            .OrderBy(p => p.ProductCode)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .Select(p => new {
+                p.ProductId,
+                p.ProductCode,
+                p.ProductName,
+                UnitCode = p.UnitOfMeasure.UnitCode,
+                CurrentStock = p.Inventories.Sum(i => i.OnHandQuantity)
+            })
+            .ToListAsync();
+
+        var productIds = products.Select(p => p.ProductId).ToList();
+
+        var transQuery = _context.InventoryTransactions.Where(t => productIds.Contains(t.ProductId));
+        if (fromDate.HasValue) transQuery = transQuery.Where(t => t.TransactionAt >= fromDate.Value);
+        if (toDate.HasValue) transQuery = transQuery.Where(t => t.TransactionAt <= toDate.Value);
+
+        var transactions = await transQuery
+            .GroupBy(t => t.ProductId)
+            .Select(g => new
+            {
+                ProductId = g.Key,
+                InboundQuantity = g.Where(t => t.TransactionType == "Inbound").Sum(t => t.OnHandDelta),
+                OutboundQuantity = g.Where(t => t.TransactionType == "Outbound").Sum(t => Math.Abs(t.OnHandDelta)),
+                AdjustmentQuantity = g.Where(t => t.TransactionType == "Adjustment").Sum(t => t.OnHandDelta),
+                MovementFrequency = g.Count(),
+                LastMovement = g.Max(t => (DateTime?)t.TransactionAt)
+            })
+            .ToDictionaryAsync(x => x.ProductId);
+
+        var items = new List<(long, string, string, string, decimal, decimal, decimal, decimal, int, int)>();
+        var now = DateTime.UtcNow;
+
+        foreach (var p in products)
+        {
+            var stat = transactions.GetValueOrDefault(p.ProductId);
+            int daysSinceLast = stat?.LastMovement != null ? (now - stat.LastMovement.Value).Days : 0;
+
+            items.Add((
+                p.ProductId,
+                p.ProductCode,
+                p.ProductName,
+                p.UnitCode,
+                p.CurrentStock,
+                stat?.InboundQuantity ?? 0,
+                stat?.OutboundQuantity ?? 0,
+                stat?.AdjustmentQuantity ?? 0,
+                stat?.MovementFrequency ?? 0,
+                daysSinceLast
+            ));
+        }
+
+        return (totalCount, items);
+    }
+
+    public async Task<(int TotalCount, List<(long SupplierId, string SupplierCode, string SupplierName, int InboundOrderCount, decimal ExpectedQuantity, decimal ReceivedQuantity, decimal DamagedQuantity, decimal ShortageQuantity)> Items)> GetSupplierStatisticsAsync(
+        DateTime? fromDate, DateTime? toDate, string? supplierSearch, int pageNumber, int pageSize)
+    {
+        var supplierQuery = _context.Suppliers.AsQueryable();
+
+        if (!string.IsNullOrEmpty(supplierSearch))
+        {
+            var search = supplierSearch.ToLower();
+            supplierQuery = supplierQuery.Where(s => s.SupplierCode.ToLower().Contains(search) || s.SupplierName.ToLower().Contains(search));
+        }
+
+        var totalCount = await supplierQuery.CountAsync();
+
+        var suppliers = await supplierQuery
+            .OrderBy(s => s.SupplierCode)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .Select(s => new {
+                s.SupplierId,
+                s.SupplierCode,
+                s.SupplierName
+            })
+            .ToListAsync();
+
+        var supplierIds = suppliers.Select(s => s.SupplierId).ToList();
+
+        var orderQuery = _context.InboundOrders
+            .Include(o => o.PurchaseOrder)
+            .Include(o => o.InboundOrderItems)
+            .Where(o => o.PurchaseOrder != null && supplierIds.Contains(o.PurchaseOrder.SupplierId));
+
+        if (fromDate.HasValue)
+        {
+            var fDate = DateOnly.FromDateTime(fromDate.Value);
+            orderQuery = orderQuery.Where(o => o.ExpectedReceiptDate >= fDate);
+        }
+        if (toDate.HasValue)
+        {
+            var tDate = DateOnly.FromDateTime(toDate.Value);
+            orderQuery = orderQuery.Where(o => o.ExpectedReceiptDate <= tDate);
+        }
+
+        var orders = await orderQuery
+            .Select(o => new
+            {
+                SupplierId = o.PurchaseOrder!.SupplierId,
+                o.InboundOrderId,
+                ExpectedQuantity = o.InboundOrderItems.Sum(i => i.ExpectedQuantity),
+                ReceivedQuantity = o.InboundOrderItems.Sum(i => i.ReceivedQuantity),
+                DamagedQuantity = o.InboundOrderItems.Sum(i => i.DamagedQuantity),
+                ShortageQuantity = o.InboundOrderItems.Sum(i => i.ShortageQuantity)
+            })
+            .ToListAsync();
+
+        var groupedOrders = orders.GroupBy(o => o.SupplierId)
+            .Select(g => new
+            {
+                SupplierId = g.Key,
+                OrderCount = g.Select(o => o.InboundOrderId).Distinct().Count(),
+                ExpectedQuantity = g.Sum(o => o.ExpectedQuantity),
+                ReceivedQuantity = g.Sum(o => o.ReceivedQuantity),
+                DamagedQuantity = g.Sum(o => o.DamagedQuantity),
+                ShortageQuantity = g.Sum(o => o.ShortageQuantity)
+            })
+            .ToDictionary(x => x.SupplierId);
+
+        var items = new List<(long, string, string, int, decimal, decimal, decimal, decimal)>();
+
+        foreach (var s in suppliers)
+        {
+            var stat = groupedOrders.GetValueOrDefault(s.SupplierId);
+            items.Add((
+                s.SupplierId,
+                s.SupplierCode,
+                s.SupplierName,
+                stat?.OrderCount ?? 0,
+                stat?.ExpectedQuantity ?? 0,
+                stat?.ReceivedQuantity ?? 0,
+                stat?.DamagedQuantity ?? 0,
+                stat?.ShortageQuantity ?? 0
+            ));
+        }
+
+        return (totalCount, items);
+    }
 }

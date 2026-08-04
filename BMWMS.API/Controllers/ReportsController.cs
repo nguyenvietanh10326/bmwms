@@ -73,4 +73,32 @@ public class ReportsController : ControllerBase
             return StatusCode(500, ex.Message);
         }
     }
+
+    [HttpGet("product-statistics")]
+    public async Task<IActionResult> GetProductStatistics([FromQuery] ProductStatisticsFilterDto filter)
+    {
+        try
+        {
+            var result = await _reportService.GetProductStatisticsAsync(filter);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ex.Message);
+        }
+    }
+
+    [HttpGet("supplier-statistics")]
+    public async Task<IActionResult> GetSupplierStatistics([FromQuery] SupplierStatisticsFilterDto filter)
+    {
+        try
+        {
+            var result = await _reportService.GetSupplierStatisticsAsync(filter);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ex.Message);
+        }
+    }
 }

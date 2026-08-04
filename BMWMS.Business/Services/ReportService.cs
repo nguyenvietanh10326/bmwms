@@ -132,4 +132,62 @@ public class ReportService : IReportService
             CutOffTime = DateTime.UtcNow
         };
     }
+
+    public async Task<ProductStatisticsResponseDto> GetProductStatisticsAsync(ProductStatisticsFilterDto filter)
+    {
+        var (totalCount, items) = await _reportRepository.GetProductStatisticsAsync(
+            filter.FromDate, filter.ToDate, filter.ProductSearch, filter.ProductGroupCode, filter.PageNumber, filter.PageSize);
+
+        return new ProductStatisticsResponseDto
+        {
+            CutOffTime = DateTime.UtcNow,
+            Data = new PagedResultDto<ProductStatisticsItemDto>
+            {
+                Items = items.Select(x => new ProductStatisticsItemDto
+                {
+                    ProductId = x.ProductId,
+                    ProductCode = x.ProductCode,
+                    ProductName = x.ProductName,
+                    BaseUnitCode = x.BaseUnitCode,
+                    CurrentStock = x.CurrentStock,
+                    InboundQuantity = x.InboundQuantity,
+                    OutboundQuantity = x.OutboundQuantity,
+                    AdjustmentQuantity = x.AdjustmentQuantity,
+                    MovementFrequency = x.MovementFrequency,
+                    DaysSinceLastMovement = x.DaysSinceLastMovement
+                }).ToList(),
+                TotalCount = totalCount,
+                PageIndex = filter.PageNumber,
+                PageSize = filter.PageSize
+            }
+        };
+    }
+
+    public async Task<SupplierStatisticsResponseDto> GetSupplierStatisticsAsync(SupplierStatisticsFilterDto filter)
+    {
+        var (totalCount, items) = await _reportRepository.GetSupplierStatisticsAsync(
+            filter.FromDate, filter.ToDate, filter.SupplierSearch, filter.PageNumber, filter.PageSize);
+
+        return new SupplierStatisticsResponseDto
+        {
+            CutOffTime = DateTime.UtcNow,
+            Data = new PagedResultDto<SupplierStatisticsItemDto>
+            {
+                Items = items.Select(x => new SupplierStatisticsItemDto
+                {
+                    SupplierId = x.SupplierId,
+                    SupplierCode = x.SupplierCode,
+                    SupplierName = x.SupplierName,
+                    InboundOrderCount = x.InboundOrderCount,
+                    ExpectedQuantity = x.ExpectedQuantity,
+                    ReceivedQuantity = x.ReceivedQuantity,
+                    DamagedQuantity = x.DamagedQuantity,
+                    ShortageQuantity = x.ShortageQuantity
+                }).ToList(),
+                TotalCount = totalCount,
+                PageIndex = filter.PageNumber,
+                PageSize = filter.PageSize
+            }
+        };
+    }
 }
