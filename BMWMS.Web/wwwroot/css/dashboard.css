@@ -141,6 +141,71 @@ body {
     opacity: 1;
 }
 
+/* Sidebar Submenu (Dropdown) */
+.nav-item-has-sub {
+    justify-content: space-between;
+}
+
+.nav-item-has-sub .nav-item-main {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.nav-item-arrow {
+    transition: transform 0.2s ease;
+    font-size: 16px;
+    opacity: 0.6;
+}
+
+.nav-item.expanded {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.nav-item.expanded .nav-item-arrow {
+    transform: rotate(90deg);
+}
+
+.nav-submenu {
+    display: none;
+    flex-direction: column;
+    margin-bottom: 4px;
+    overflow: hidden;
+}
+
+.nav-submenu.expanded {
+    display: flex;
+    animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.nav-sub-item {
+    color: var(--sidebar-text);
+    text-decoration: none;
+    font-size: 13.5px;
+    padding: 8px 12px 8px 46px; /* Căn chỉnh với text của item cha (20px padding + 16px icon + 10px gap) */
+    margin: 1px 8px;
+    border-radius: 8px;
+    transition: all 0.15s;
+    display: block;
+}
+
+.nav-sub-item:hover {
+    background: var(--sidebar-hover);
+    color: #ffffff;
+}
+
+.nav-sub-item.active {
+    background: rgba(255, 255, 255, 0.1); /* Phân biệt nhẹ với menu cha */
+    color: #ffffff;
+    font-weight: 500;
+}
+
+
 /* ── Header ── */
 .header {
     position: fixed;

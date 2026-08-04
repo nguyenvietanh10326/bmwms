@@ -127,4 +127,63 @@ public class SupplierRepository : ISupplierRepository
 
         return (items, totalCount);
     }
+
+    public async Task<(IEnumerable<InboundOrder> Items, int TotalCount)> GetSupplierInboundHistoryAsync(long supplierId, string? keyword, string? status, long? warehouseId, DateTime? fromDate, DateTime? toDate, int pageIndex, int pageSize)
+    {
+        var query = _context.InboundOrders
+            .Include(x => x.PurchaseOrder)
+                .ThenInclude(po => po.Supplier)
+            .Include(x => x.Warehouse)
+            .Include(x => x.InboundOrderItems)
+            .Where(x => x.PurchaseOrder != null && x.PurchaseOrder.SupplierId == supplierId)
+            .AsQueryable();
+
+        if (!string.IsNullOrEmpty(keyword))
+        {
+            query = query.Where(x => x.InboundOrderNumber.Contains(keyword) || 
+                                     (x.PurchaseOrder != null && x.PurchaseOrder.PurchaseOrderNumber.Contains(keyword)));
+        }
+
+        if (!string.IsNullOrEmpty(status))
+        {
+            query = query.Where(x => x.Status == status);
+        }
+
+        if (warehouseId.HasValue)
+        {
+            query = query.Where(x => x.WarehouseId == warehouseId.Value);
+        }
+
+        if (fromDate.HasValue)
+        {
+            var from = fromDate.Value.Date;
+            query = query.Where(x => x.CreatedAt >= from);
+        }
+
+        if (toDate.HasValue)
+        {
+            var to = toDate.Value.Date.AddDays(1).AddTicks(-1);
+            query = query.Where(x => x.CreatedAt <= to);
+        }
+
+        var totalCount = await query.CountAsync();
+        var items = await query.OrderByDescending(x => x.CreatedAt)
+            .Skip((pageIndex - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return (items, totalCount);
+    }
+
+    public async Task<InboundOrder?> GetSupplierInboundHistoryDetailAsync(long supplierId, string inboundOrderNumber)
+    {
+        return await _context.InboundOrders
+            .Include(x => x.PurchaseOrder)
+                .ThenInclude(po => po.Supplier)
+            .Include(x => x.Warehouse)
+            .Include(x => x.InboundOrderItems)
+                .ThenInclude(d => d.Product)
+                    .ThenInclude(p => p.UnitOfMeasure)
+            .FirstOrDefaultAsync(x => x.InboundOrderNumber == inboundOrderNumber && x.PurchaseOrder != null && x.PurchaseOrder.SupplierId == supplierId);
+    }
 }

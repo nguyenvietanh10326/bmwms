@@ -16,9 +16,9 @@
     <div class="stat-card">
         <div class="stat-card-header">
             <div class="stat-dot blue"></div>
-            <div class="stat-badge blue">+8 tháng này</div>
+            <div class="stat-badge blue">+@Model.DashboardData.NewProductsThisMonth tháng này</div>
         </div>
-        <div class="stat-number">156</div>
+        <div class="stat-number">@Model.DashboardData.TotalProducts</div>
         <div class="stat-label">Tổng sản phẩm</div>
     </div>
     
@@ -27,7 +27,7 @@
             <div class="stat-dot green"></div>
             <div class="stat-badge green">100% sẵn sàng</div>
         </div>
-        <div class="stat-number">5</div>
+        <div class="stat-number">@Model.DashboardData.ActiveWarehouses</div>
         <div class="stat-label">Kho đang hoạt động</div>
     </div>
     
@@ -36,7 +36,7 @@
             <div class="stat-dot orange"></div>
             <div class="stat-badge orange">Cần xử lý</div>
         </div>
-        <div class="stat-number">24</div>
+        <div class="stat-number">@Model.DashboardData.LowStockCount</div>
         <div class="stat-label">Sắp hết hàng</div>
     </div>
     
@@ -45,7 +45,7 @@
             <div class="stat-dot red"></div>
             <div class="stat-badge red">Ưu tiên cao</div>
         </div>
-        <div class="stat-number">3</div>
+        <div class="stat-number">@Model.DashboardData.OutOfStockCount</div>
         <div class="stat-label">Hết hàng</div>
     </div>
 </div>
@@ -53,28 +53,28 @@
 <div class="stats-grid">
     <div class="stat-card">
         <div class="stat-card-header">
-            <div class="stat-number" style="color: #7c3aed;">8</div>
+            <div class="stat-number" style="color: #7c3aed;">@Model.DashboardData.PendingPurchaseOrders</div>
         </div>
         <div class="stat-label">Đơn mua chờ xác nhận</div>
     </div>
     
     <div class="stat-card">
         <div class="stat-card-header">
-            <div class="stat-number" style="color: #2563b8;">6</div>
+            <div class="stat-number" style="color: #2563b8;">@Model.DashboardData.PendingSalesOrders</div>
         </div>
         <div class="stat-label">Đơn bán chờ giữ tồn</div>
     </div>
     
     <div class="stat-card">
         <div class="stat-card-header">
-            <div class="stat-number" style="color: #16a34a;">4</div>
+            <div class="stat-number" style="color: #16a34a;">@Model.DashboardData.ProcessingInboundOrders</div>
         </div>
         <div class="stat-label">Lệnh nhập đang xử lý</div>
     </div>
     
     <div class="stat-card">
         <div class="stat-card-header">
-            <div class="stat-number" style="color: #d97706;">3</div>
+            <div class="stat-number" style="color: #d97706;">@Model.DashboardData.PickingOutboundOrders</div>
         </div>
         <div class="stat-label">Lệnh xuất đang picking</div>
     </div>
@@ -97,30 +97,26 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <td>Xi măng PCB40</td>
-                        <td style="color: #dc2626; font-weight: 500;">0 Tấn</td>
-                        <td>250</td>
-                        <td><span class="status-badge danger">Hết hàng</span></td>
-                    </tr>
-                    <tr>
-                        <td>Thép cây D16</td>
-                        <td style="color: #d97706; font-weight: 500;">120 Kg</td>
-                        <td>300</td>
-                        <td><span class="status-badge warning">Sắp hết</span></td>
-                    </tr>
-                    <tr>
-                        <td>Cát vàng xây</td>
-                        <td style="color: #d97706; font-weight: 500;">45 m³</td>
-                        <td>100</td>
-                        <td><span class="status-badge warning">Sắp hết</span></td>
-                    </tr>
-                    <tr>
-                        <td>Gạch ống 8x8x18</td>
-                        <td style="color: #d97706; font-weight: 500;">520 Viên</td>
-                        <td>800</td>
-                        <td><span class="status-badge warning">Theo dõi</span></td>
-                    </tr>
+                    @if (Model.DashboardData.InventoryAlerts.Any())
+                    {
+                        foreach (var alert in Model.DashboardData.InventoryAlerts)
+                        {
+                            var color = alert.AvailableQuantity <= 0 ? "#dc2626" : "#d97706";
+                            var badgeClass = alert.AvailableQuantity <= 0 ? "danger" : "warning";
+                            <tr>
+                                <td>@alert.ProductName</td>
+                                <td style="color: @color; font-weight: 500;">@alert.AvailableQuantity.ToString("G29") @alert.Unit</td>
+                                <td>@alert.Threshold.ToString("G29")</td>
+                                <td><span class="status-badge @badgeClass">@alert.Status</span></td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="4" class="text-center text-muted" style="padding: 24px;">Không có cảnh báo tồn kho nào.</td>
+                        </tr>
+                    }
                 </tbody>
             </table>
         </div>
@@ -133,41 +129,38 @@
         </div>
         <div class="panel-body">
             <div class="activity-list">
-                <div class="activity-item">
-                    <div class="activity-dot purple"></div>
-                    <div class="activity-content">
-                        <div class="activity-text">PO-2026-0078 đã được xác nhận</div>
-                        <div class="activity-meta">Trần Thị Bình • 10 phút trước</div>
-                    </div>
-                </div>
-                <div class="activity-item">
-                    <div class="activity-dot blue"></div>
-                    <div class="activity-content">
-                        <div class="activity-text">SO-2026-0041 đã giữ tồn thành công</div>
-                        <div class="activity-meta">Hoàng Minh • 25 phút trước</div>
-                    </div>
-                </div>
-                <div class="activity-item">
-                    <div class="activity-dot green"></div>
-                    <div class="activity-content">
-                        <div class="activity-text">Nhận hàng PN-2026-0042 hoàn tất</div>
-                        <div class="activity-meta">Phạm Thị Cúc • 40 phút trước</div>
-                    </div>
-                </div>
-                <div class="activity-item">
-                    <div class="activity-dot orange"></div>
-                    <div class="activity-content">
-                        <div class="activity-text">Chuyển kho CK-2026-0086 đang vận chuyển</div>
-                        <div class="activity-meta">Trần Văn An • 1 giờ trước</div>
-                    </div>
-                </div>
-                <div class="activity-item">
-                    <div class="activity-dot red"></div>
-                    <div class="activity-content">
-                        <div class="activity-text">Kiểm kho Bin A-01-01 có chênh lệch</div>
-                        <div class="activity-meta">Phạm Thị Cúc • 2 giờ trước</div>
-                    </div>
-                </div>
+                @if (Model.DashboardData.RecentActivities.Any())
+                {
+                    foreach (var activity in Model.DashboardData.RecentActivities)
+                    {
+                        var timeSpan = DateTime.Now - activity.CreatedAt;
+                        var timeString = "";
+                        if (timeSpan.TotalMinutes < 60)
+                        {
+                            timeString = $"{(int)timeSpan.TotalMinutes} phút trước";
+                        }
+                        else if (timeSpan.TotalHours < 24)
+                        {
+                            timeString = $"{(int)timeSpan.TotalHours} giờ trước";
+                        }
+                        else
+                        {
+                            timeString = $"{(int)timeSpan.TotalDays} ngày trước";
+                        }
+                        
+                        <div class="activity-item">
+                            <div class="activity-dot @activity.ColorType"></div>
+                            <div class="activity-content">
+                                <div class="activity-text">@activity.ActivityText</div>
+                                <div class="activity-meta">@activity.PerformedBy &bull; @timeString</div>
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="text-muted text-center" style="padding: 24px;">Chưa có hoạt động nào gần đây.</div>
+                }
             </div>
         </div>
     </div>

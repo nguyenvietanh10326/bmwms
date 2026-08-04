@@ -44,6 +44,8 @@ public class SupplierService : ISupplierService
         };
     }
 
+
+
     public async Task<SupplierDetailResponseDto?> GetSupplierDetailAsync(string supplierCode)
     {
         var supplier = await _supplierRepository.GetSupplierByCodeAsync(supplierCode);
@@ -217,6 +219,64 @@ public class SupplierService : ISupplierService
             TotalCount = totalCount,
             PageIndex = filter.PageNumber,
             PageSize = filter.PageSize
+        };
+    }
+
+    public async Task<PagedResultDto<SupplierInboundHistoryResponseDto>> GetSupplierInboundHistoryAsync(string supplierCode, SupplierInboundHistoryFilterDto filter)
+    {
+        var supplier = await _supplierRepository.GetSupplierByCodeAsync(supplierCode);
+        if (supplier == null) throw new ArgumentException($"Nhà cung cấp {supplierCode} không tồn tại.");
+
+        var (items, totalCount) = await _supplierRepository.GetSupplierInboundHistoryAsync(
+            supplier.SupplierId, filter.Keyword, filter.Status, filter.WarehouseId, filter.FromDate, filter.ToDate, filter.PageIndex, filter.PageSize);
+
+        var dtos = items.Select(io => new SupplierInboundHistoryResponseDto
+        {
+            InboundOrderNumber = io.InboundOrderNumber,
+            PurchaseOrderNumber = io.PurchaseOrder?.PurchaseOrderNumber,
+            SupplierName = io.PurchaseOrder?.Supplier?.SupplierName ?? "",
+            WarehouseName = io.Warehouse?.WarehouseName,
+            Status = io.Status,
+            CreatedAt = io.CreatedAt,
+            TotalQuantity = (int)io.InboundOrderItems.Sum(d => 
+                io.Status == "COMPLETED" ? d.ReceivedQuantity : d.ExpectedQuantity)
+        }).ToList();
+
+        return new PagedResultDto<SupplierInboundHistoryResponseDto>
+        {
+            Items = dtos,
+            TotalCount = totalCount,
+            PageIndex = filter.PageIndex,
+            PageSize = filter.PageSize
+        };
+    }
+
+    public async Task<SupplierInboundHistoryDetailDto?> GetSupplierInboundHistoryDetailAsync(string supplierCode, string inboundOrderNumber)
+    {
+        var supplier = await _supplierRepository.GetSupplierByCodeAsync(supplierCode);
+        if (supplier == null) return null;
+
+        var order = await _supplierRepository.GetSupplierInboundHistoryDetailAsync(supplier.SupplierId, inboundOrderNumber);
+        if (order == null) return null;
+
+        return new SupplierInboundHistoryDetailDto
+        {
+            InboundOrderNumber = order.InboundOrderNumber,
+            PurchaseOrderNumber = order.PurchaseOrder?.PurchaseOrderNumber,
+            SupplierName = order.PurchaseOrder?.Supplier?.SupplierName ?? "",
+            WarehouseName = order.Warehouse?.WarehouseName,
+            Status = order.Status,
+            CreatedAt = order.CreatedAt,
+            ExpectedDate = order.ExpectedReceiptDate.ToDateTime(TimeOnly.MinValue),
+            ReceiptDate = order.ConfirmedAt,
+            Items = order.InboundOrderItems.Select(d => new SupplierInboundHistoryItemDto
+            {
+                ProductCode = d.Product.ProductCode,
+                ProductName = d.Product.ProductName,
+                UnitName = d.Product.UnitOfMeasure.UnitName,
+                ExpectedQuantity = (int)d.ExpectedQuantity,
+                ReceivedQuantity = (int)d.ReceivedQuantity
+            }).ToList()
         };
     }
 }

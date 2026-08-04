@@ -70,6 +70,10 @@ builder.Services.AddScoped<IWarehouseService, WarehouseService>();
 
 // Auth / User
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IWarehouseService, WarehouseService>();
+builder.Services.AddScoped<ISupplierService, SupplierService>();
+builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IEmailService, MockEmailService>();

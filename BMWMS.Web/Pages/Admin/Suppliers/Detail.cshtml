@@ -16,13 +16,21 @@
         <a href="/Admin/Suppliers/@Model.Supplier.SupplierCode/Products" class="btn" style="background-color: #f4f4f5; color: #18181b; border: 1px solid #e4e4e7; padding: 8px 16px; border-radius: 6px; font-weight: 500; text-decoration: none;">
             <i class="ri-box-3-line" style="margin-right: 6px;"></i>Sản phẩm cung ứng
         </a>
+        <a href="/Admin/Suppliers/@Model.Supplier.SupplierCode/InboundHistory" class="btn" style="background-color: #f4f4f5; color: #18181b; border: 1px solid #e4e4e7; padding: 8px 16px; border-radius: 6px; font-weight: 500; text-decoration: none;">
+            <i class="ri-history-line" style="margin-right: 6px;"></i>Lịch sử nhập
+        </a>
         @if (Model.Supplier.Status == "ACTIVE")
         {
             <span class="status-badge" style="background-color: #dcfce7; color: #166534;"><span class="status-dot" style="background-color: #22c55e;"></span>Đang hoạt động</span>
+            <form method="post" asp-page-handler="Suspend" asp-route-supplierCode="@Model.Supplier.SupplierCode" style="display:inline;" onsubmit="return confirm('Bạn có chắc chắn muốn ngừng giao dịch với nhà cung cấp này?');">
+                <button type="submit" class="btn" style="background-color: #fee2e2; color: #991b1b; border: 1px solid #fecaca; padding: 8px 16px; border-radius: 6px; font-weight: 500; cursor: pointer;">
+                    <i class="ri-close-circle-line" style="margin-right: 6px;"></i>Ngừng giao dịch
+                </button>
+            </form>
         }
         else
         {
-            <span>Tạm ngừng</span>
+            <span class="status-badge" style="background-color: #f3f4f6; color: #374151;">Tạm ngừng</span>
         }
     </div>
 </div>
