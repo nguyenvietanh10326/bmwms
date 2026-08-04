@@ -1,37 +1,16 @@
-using BMWMS.Repository.Models;
-using BMWMS.Business.Interfaces;
+﻿using BMWMS.Business.Interfaces;
+using BMWMS.Business.Interfaces.Inventory;
 using BMWMS.Business.Services;
+using BMWMS.Business.Services.Inventory;
+using BMWMS.Repository.Context;
 using BMWMS.Repository.Interfaces;
+using BMWMS.Repository.Interfaces.Inventory;
+using BMWMS.Repository.Models;
 using BMWMS.Repository.Repositories;
+using BMWMS.Repository.Repositories.Inventory;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
-
-// Add Authentication (JWT)
-var jwtKey = builder.Configuration["Jwt:Key"] ?? "SuperSecretKeyForBMWMS_WhichIsAtLeast32BytesLong!";
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-.AddJwtBearer(options =>
-{
-    options.TokenValidationParameters = new TokenValidationParameters
-    {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-        ValidIssuer = builder.Configuration["Jwt:Issuer"],
-        ValidAudience = builder.Configuration["Jwt:Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(jwtKey))
-    };
-});
-builder.Services.AddAuthorization();
-
 // Add CORS
 builder.Services.AddCors(options =>
 {
@@ -42,9 +21,7 @@ builder.Services.AddCors(options =>
               .AllowAnyHeader();
     });
 });
-
 builder.Services.AddControllers();
-
 // Add Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -54,49 +31,35 @@ builder.Services.AddAutoMapper(cfg =>
     cfg.AddProfile<BMWMS.Business.Mapping.CategoryMapperProfile>();
 });
 
-// DbContext chinh (EF scaffold - toan bo DB)
+//builder.Services.AddDbContext<BMWMSDbContext>(options =>
+//{
+//    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
+//});
 builder.Services.AddDbContext<BmwmsContext>(options =>
-{
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
-});
-
-// Category
-builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
-builder.Services.AddScoped<ICategoryService, CategoryService>();
-
-// Warehouse
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString("DefaultConnection")));
+//builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+//builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IWarehouseRepository, WarehouseRepository>();
 builder.Services.AddScoped<IWarehouseService, WarehouseService>();
-
-// Auth / User
-builder.Services.AddScoped<IUserRepository, UserRepository>();
-builder.Services.AddScoped<IWarehouseService, WarehouseService>();
-builder.Services.AddScoped<ISupplierService, SupplierService>();
-builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddScoped<IDashboardRepository, DashboardRepository>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
-builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<IUserService, UserService>();
-builder.Services.AddScoped<IEmailService, MockEmailService>();
+builder.Services.AddScoped<IInventoryRepository, InventoryRepository>();
+builder.Services.AddScoped<IInventoryService, InventoryService>();
 
-// Role
-builder.Services.AddScoped<IRoleRepository, RoleRepository>();
-builder.Services.AddScoped<IRoleService, RoleService>();
-
-// Supplier
-builder.Services.AddScoped<ISupplierRepository, SupplierRepository>();
-builder.Services.AddScoped<ISupplierService, SupplierService>();
+builder.Services.AddHttpClient("WarehouseAPI", client =>
+{
+    // Sử dụng URL từ launchSettings.json của API Backend
+    client.BaseAddress = new Uri("https://localhost:7194/");
+});
 
 var app = builder.Build();
+// CORS PHẢI TRƯỚC MapControllers
 
 app.UseCors("AllowAll");
-
 // Configure Swagger
 app.UseSwagger();
 app.UseSwaggerUI();
-
-// Authentication & Authorization middleware
-app.UseAuthentication();
-app.UseAuthorization();
 
 app.MapControllers();
 

@@ -188,3 +188,305 @@
     color: #64748b;
     margin-top: 2px;
 }
+
+:root {
+    --primary: #2563eb;
+    --border: #e2e8f0;
+    --text: #0f172a;
+    --muted: #64748b;
+    --background: #f8fafc;
+}
+
+body {
+    background: var(--background);
+}
+
+/* =========================
+           PAGE HEADER
+        ========================= */
+
+.content {
+    padding: 24px;
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.page-title {
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 6px;
+}
+
+.page-description {
+    color: var(--muted);
+    font-size: 14px;
+}
+
+
+/* =========================
+           METRICS
+        ========================= */
+
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(4,1fr);
+    gap: 18px;
+    margin-bottom: 24px;
+}
+
+
+.metric-card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    transition: .2s;
+    position: relative;
+    overflow: hidden;
+}
+
+
+    .metric-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 25px rgba(15,23,42,.08);
+    }
+
+
+    .metric-card:before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 4px;
+        width: 100%;
+        background: var(--primary);
+    }
+
+
+.metric-value {
+    font-size: 30px;
+    font-weight: 800;
+    margin-bottom: 8px;
+}
+
+
+.metric-label {
+    color: var(--muted);
+    font-size: 14px;
+    font-weight: 500;
+}
+
+
+
+/* =========================
+           FILTER
+        ========================= */
+
+.filter-card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px;
+    margin-bottom: 24px;
+}
+
+
+.filter-grid {
+    display: grid;
+    grid-template-columns: 2fr 1.2fr 1.2fr 1.2fr auto;
+    gap: 14px;
+    align-items: center;
+}
+
+
+.filter-input,
+.filter-select {
+    height: 42px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 0 14px;
+    font-size: 14px;
+    background: white;
+    transition: .2s;
+}
+
+
+    .filter-input:focus,
+    .filter-select:focus {
+        outline: none;
+        border-color: #2563eb;
+        box-shadow: 0 0 0 3px rgba(37,99,235,.12);
+    }
+
+
+
+/* =========================
+           BUTTON
+        ========================= */
+
+
+.btn-create {
+    height: 42px;
+    padding: 0 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: .2s;
+    font-size: 14px;
+}
+
+
+    .btn-create:hover {
+        opacity: .85;
+        transform: translateY(-1px);
+    }
+
+
+
+/* =========================
+           TABLE
+        ========================= */
+
+.table-card {
+    background: white;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+}
+
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+
+    .data-table thead {
+        background: #f8fafc;
+    }
+
+
+    .data-table th {
+        padding: 14px 18px;
+        text-align: left;
+        font-size: 13px;
+        font-weight: 700;
+        color: #475569;
+        border-bottom: 1px solid var(--border);
+    }
+
+
+    .data-table td {
+        padding: 16px 18px;
+        border-bottom: 1px solid #f1f5f9;
+        font-size: 14px;
+        color: #334155;
+    }
+
+
+    .data-table tbody tr {
+        transition: .15s;
+    }
+
+
+        .data-table tbody tr:hover {
+            background: #f8fafc;
+        }
+
+
+
+/* =========================
+           STATUS
+        ========================= */
+
+
+.badge-status {
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+
+.status-normal {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+
+.status-warning {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+
+.status-danger {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+
+.status-transit {
+    background: #e2e8f0;
+    color: #475569;
+}
+
+
+
+/* =========================
+           PAGINATION
+        ========================= */
+
+
+.pagination a {
+    min-width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    font-weight: 500;
+}
+
+
+/* =========================
+           RESPONSIVE
+        ========================= */
+
+
+@@media(max - width:1200px) {
+    .metrics-grid {
+        grid-template-columns: repeat(2,1fr);
+    }
+
+
+    .filter-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+
+@@media(max - width:700px) {
+    .metrics-grid {
+        grid-template-columns: 1fr;
+    }
+
+
+    .filter-grid {
+        grid-template-columns: 1fr;
+    }
+
+
+    .data-table {
+        min-width: 900px;
+    }
+
+    .table-card {
+        overflow-x: auto;
+    }
+}
