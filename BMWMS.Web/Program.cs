@@ -31,7 +31,6 @@ builder.Services.AddHttpClient("ApiClient", client =>
 .AddHttpMessageHandler<TokenDelegatingHandler>();
 
 // Đăng ký services
-builder.Services.AddScoped<ProductGroupApiService>();
 builder.Services.AddScoped<CategoryApiService>();
 builder.Services.AddScoped<AuthApiService>();
 builder.Services.AddScoped<IDashboardApiService, DashboardApiService>();
@@ -39,7 +38,7 @@ builder.Services.AddScoped<WarehouseApiService>();
 builder.Services.AddScoped<SupplierApiService>();
 builder.Services.AddScoped<UserApiService>();
 builder.Services.AddScoped<RoleApiService>();
-builder.Services.AddScoped<ProductApiService>();
+builder.Services.AddScoped<IReportApiService, ReportApiService>();
 
 var app = builder.Build();
 

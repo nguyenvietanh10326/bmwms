@@ -1,0 +1,461 @@
+@page
+@model BMWMS.Web.Pages.Admin.Reports.InOutStockModel
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Báo cáo Nhập-Xuất-Tồn";
+    ViewData["HeaderTitle"] = "Báo cáo Nhập-Xuất-Tồn";
+}
+
+<style>
+    /* Premium UI Styles */
+    .premium-container {
+        padding: 24px 0;
+        max-width: 100%;
+        animation: fadeIn 0.4s ease-out forwards;
+    }
+
+    @@keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Glassmorphism Header */
+    .glass-header {
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(147, 197, 253, 0.05));
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        border-radius: 16px;
+        padding: 24px;
+        margin-bottom: 24px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .glass-header-title {
+        font-size: 24px;
+        font-weight: 700;
+        background: linear-gradient(to right, #1e3a8a, #3b82f6);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 4px;
+    }
+
+    .glass-header-sub {
+        color: #64748b;
+        font-size: 14px;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    /* Premium Card */
+    .premium-card {
+        background: #ffffff;
+        border-radius: 16px;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+        border: 1px solid #f1f5f9;
+        overflow: hidden;
+    }
+
+    /* Filter Section */
+    .filter-wrapper {
+        padding: 24px;
+        background: #f8fafc;
+        border-bottom: 1px solid #f1f5f9;
+        display: flex;
+        gap: 20px;
+        align-items: flex-end;
+    }
+
+    .form-group-float {
+        position: relative;
+        flex: 1;
+        min-width: 200px;
+    }
+    .form-group-float.search-group {
+        flex: 2;
+    }
+
+    .form-label-float {
+        position: absolute;
+        top: -8px;
+        left: 12px;
+        background: #f8fafc;
+        padding: 0 4px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #3b82f6;
+        z-index: 1;
+    }
+
+    .form-control-float {
+        width: 100%;
+        height: 48px;
+        border-radius: 12px;
+        border: 2px solid #e2e8f0;
+        padding: 0 16px;
+        font-size: 14px;
+        background: transparent;
+        color: #1e293b;
+        transition: all 0.3s ease;
+    }
+
+    .form-control-float:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+        outline: none;
+    }
+
+    .search-input-wrapper {
+        position: relative;
+    }
+
+    .search-input-wrapper i {
+        position: absolute;
+        left: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #94a3b8;
+        font-size: 18px;
+    }
+
+    .search-input-wrapper .form-control-float {
+        padding-left: 44px;
+    }
+
+    .btn-premium {
+        height: 48px;
+        padding: 0 32px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #3b82f6, #2563eb);
+        color: white;
+        font-weight: 600;
+        font-size: 15px;
+        border: none;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+        transition: all 0.3s ease;
+    }
+
+    .btn-premium:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(37, 99, 235, 0.3);
+    }
+
+    .btn-premium:active {
+        transform: translateY(0);
+    }
+
+    /* Premium Data Grid */
+    .data-grid {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    .data-grid th {
+        background: #ffffff;
+        color: #64748b;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 12px;
+        letter-spacing: 0.5px;
+        padding: 20px 24px;
+        border-bottom: 2px solid #f1f5f9;
+        white-space: nowrap;
+    }
+
+    .data-grid td {
+        padding: 20px 24px;
+        vertical-align: middle;
+        border-bottom: 1px solid #f8fafc;
+        transition: background-color 0.2s;
+    }
+
+    .data-grid tbody tr {
+        transition: all 0.2s ease;
+    }
+
+    .data-grid tbody tr:hover {
+        background-color: #f8fafc;
+        box-shadow: inset 4px 0 0 #3b82f6;
+    }
+
+    .product-info-premium {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .product-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #eff6ff, #dbeafe);
+        color: #2563eb;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        box-shadow: 0 2px 4px rgba(37, 99, 235, 0.1);
+    }
+
+    .product-details .code {
+        font-weight: 700;
+        color: #0f172a;
+        font-size: 15px;
+        margin-bottom: 4px;
+    }
+
+    .product-details .name {
+        color: #64748b;
+        font-size: 13px;
+        font-weight: 500;
+    }
+
+    /* Vibrant Badges */
+    .badge-vibrant {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 6px 14px;
+        border-radius: 8px;
+        font-weight: 700;
+        font-size: 14px;
+        min-width: 70px;
+        letter-spacing: 0.5px;
+        font-family: 'JetBrains Mono', 'Courier New', monospace; /* Monospace for numbers */
+    }
+
+    .badge-neutral { 
+        background: #f1f5f9; 
+        color: #475569; 
+    }
+    
+    .badge-positive { 
+        background: rgba(34, 197, 94, 0.1); 
+        color: #16a34a; 
+        box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.2);
+    }
+    
+    .badge-negative { 
+        background: rgba(239, 68, 68, 0.1); 
+        color: #dc2626; 
+        box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.2);
+    }
+    
+    .badge-final { 
+        background: #0f172a; 
+        color: #ffffff;
+        font-size: 16px;
+        padding: 8px 16px;
+        box-shadow: 0 4px 6px rgba(15, 23, 42, 0.2);
+    }
+    
+    .badge-zero {
+        color: #cbd5e1;
+        font-weight: 500;
+    }
+
+    /* Empty State */
+    .empty-state-premium {
+        padding: 60px 20px;
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .empty-icon-wrapper {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 40px;
+        color: #94a3b8;
+        margin-bottom: 24px;
+        box-shadow: inset 0 2px 4px rgba(0,0,0,0.02), 0 8px 16px rgba(0,0,0,0.02);
+    }
+    
+    .empty-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: #334155;
+        margin-bottom: 8px;
+    }
+    
+    .empty-subtitle {
+        color: #64748b;
+        font-size: 14px;
+    }
+    
+    .pagination-footer {
+        padding: 20px 24px;
+        background: #ffffff;
+        border-top: 1px solid #f1f5f9;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 14px;
+        color: #64748b;
+    }
+</style>
+
+<div class="premium-container">
+    <!-- Header -->
+    <div class="glass-header">
+        <div>
+            <div class="glass-header-title">Luân chuyển hàng hóa</div>
+            <div class="glass-header-sub">
+                <i class="ri-calendar-event-line"></i> 
+                Kỳ báo cáo: @Model.Filter.FromDate?.ToString("dd/MM/yyyy") - @Model.Filter.ToDate?.ToString("dd/MM/yyyy")
+            </div>
+        </div>
+        <div>
+            <button class="btn btn-outline" style="border-radius: 10px; padding: 10px 20px; font-weight: 600; color: #475569; border: 1px solid #cbd5e1; background: white;" type="button" disabled>
+                <i class="ri-file-excel-2-line" style="color: #10b981; margin-right: 6px;"></i> Xuất Excel
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Card -->
+    <div class="premium-card">
+        <!-- Filter Form -->
+        <form method="get" class="filter-wrapper">
+            <div class="form-group-float">
+                <label class="form-label-float">Từ ngày</label>
+                <input type="date" class="form-control-float" asp-for="Filter.FromDate" />
+            </div>
+            
+            <div class="form-group-float">
+                <label class="form-label-float">Đến ngày</label>
+                <input type="date" class="form-control-float" asp-for="Filter.ToDate" />
+            </div>
+
+            <div class="form-group-float search-group">
+                <label class="form-label-float">Sản phẩm</label>
+                <div class="search-input-wrapper">
+                    <i class="ri-search-2-line"></i>
+                    <input type="text" class="form-control-float" asp-for="Filter.ProductSearch" placeholder="Nhập mã hoặc tên sản phẩm..." />
+                </div>
+            </div>
+            
+            <button type="submit" class="btn-premium">
+                <i class="ri-filter-3-line"></i> 
+                <span>Lọc dữ liệu</span>
+            </button>
+        </form>
+
+        <!-- Data Table -->
+        <div class="table-responsive">
+            <table class="data-grid">
+                <thead>
+                    <tr>
+                        <th style="width: 35%;">Thông tin sản phẩm</th>
+                        <th class="text-center">Đầu kỳ</th>
+                        <th class="text-center">Nhập</th>
+                        <th class="text-center">Xuất</th>
+                        <th class="text-center">Điều chỉnh</th>
+                        <th class="text-center" style="color: #0f172a;">Cuối kỳ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.ReportData?.Items != null && Model.ReportData.Items.Any())
+                    {
+                        foreach (var item in Model.ReportData.Items)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="product-info-premium">
+                                        <div class="product-avatar">
+                                            <i class="ri-box-3-fill"></i>
+                                        </div>
+                                        <div class="product-details">
+                                            <div class="code">@item.ProductCode</div>
+                                            <div class="name">@item.ProductName</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge-vibrant badge-neutral">@item.OpeningBalance.ToString("N0")</span>
+                                </td>
+                                <td class="text-center">
+                                    @if(item.InboundQuantity > 0)
+                                    {
+                                        <span class="badge-vibrant badge-positive">+@item.InboundQuantity.ToString("N0")</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge-zero">-</span>
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    @if(item.OutboundQuantity > 0)
+                                    {
+                                        <span class="badge-vibrant badge-negative">-@item.OutboundQuantity.ToString("N0")</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge-zero">-</span>
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    @if(item.AdjustmentQuantity > 0)
+                                    {
+                                        <span class="badge-vibrant badge-positive">+@item.AdjustmentQuantity.ToString("N0")</span>
+                                    }
+                                    else if (item.AdjustmentQuantity < 0)
+                                    {
+                                        <span class="badge-vibrant badge-negative">@item.AdjustmentQuantity.ToString("N0")</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge-zero">-</span>
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge-vibrant badge-final">@item.ClosingBalance.ToString("N0")</span>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="6">
+                                <div class="empty-state-premium">
+                                    <div class="empty-icon-wrapper">
+                                        <i class="ri-inbox-unarchive-line"></i>
+                                    </div>
+                                    <div class="empty-title">Không tìm thấy dữ liệu luân chuyển</div>
+                                    <div class="empty-subtitle">Thử thay đổi khoảng thời gian hoặc từ khóa tìm kiếm để xem kết quả.</div>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Footer / Pagination -->
+        <div class="pagination-footer">
+            <div>
+                Hiển thị <strong style="color: #0f172a;">@Model.ReportData?.Items.Count</strong> trên tổng số <strong style="color: #0f172a;">@Model.ReportData?.TotalCount</strong> sản phẩm
+            </div>
+            <div>
+                <!-- Pagination buttons can go here -->
+            </div>
+        </div>
+    </div>
+</div>

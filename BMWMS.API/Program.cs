@@ -91,6 +91,10 @@ builder.Services.AddScoped<BMWMS.Business.Interfaces.Inventory.IDashboardService
 builder.Services.AddScoped<IInventoryService, InventoryService>();
 builder.Services.AddScoped<IEmailService, MockEmailService>();
 
+// Report
+builder.Services.AddScoped<IReportRepository, ReportRepository>();
+builder.Services.AddScoped<IReportService, ReportService>();
+
 var app = builder.Build();
 
 app.UseCors("AllowAll");
