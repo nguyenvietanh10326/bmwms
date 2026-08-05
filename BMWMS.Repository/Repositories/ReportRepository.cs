@@ -353,4 +353,114 @@ public class ReportRepository : IReportRepository
 
         return (totalCount, items);
     }
+
+    public async Task<(int TotalCount, List<(long StocktakeSessionId, string StocktakeNumber, DateOnly PlannedDate, string Status, int BinsCounted, int MatchedItems, int ShortageItems, int ExcessItems, int TotalItemsCounted, decimal TotalShortageQuantity, decimal TotalExcessQuantity, decimal TotalApprovedAdjustmentQuantity)> Items)> GetStocktakeStatisticsAsync(
+        DateTime? fromDate, DateTime? toDate, string? countType, string? storageAreaCode, string? productGroupCode, string? sessionStatus, int pageNumber, int pageSize)
+    {
+        var query = _context.StocktakeSessions.Include(s => s.StocktakeItems).AsQueryable();
+
+        if (fromDate.HasValue)
+        {
+            var fDate = DateOnly.FromDateTime(fromDate.Value);
+            query = query.Where(x => x.PlannedDate >= fDate);
+        }
+        if (toDate.HasValue)
+        {
+            var tDate = DateOnly.FromDateTime(toDate.Value);
+            query = query.Where(x => x.PlannedDate <= tDate);
+        }
+        if (!string.IsNullOrEmpty(sessionStatus))
+        {
+            var statusUpper = sessionStatus.ToUpper();
+            query = query.Where(x => x.Status == statusUpper);
+        }
+
+        var totalCount = await query.CountAsync();
+
+        var sessions = await query
+            .OrderByDescending(x => x.PlannedDate)
+            .ThenByDescending(x => x.StocktakeSessionId)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .Select(s => new {
+                s.StocktakeSessionId,
+                s.StocktakeNumber,
+                s.PlannedDate,
+                s.Status,
+                BinsCounted = s.StocktakeItems.Select(i => i.StorageLocationId).Distinct().Count(),
+                MatchedItems = s.StocktakeItems.Count(i => i.DifferenceQuantity == 0),
+                ShortageItems = s.StocktakeItems.Count(i => i.DifferenceQuantity < 0),
+                ExcessItems = s.StocktakeItems.Count(i => i.DifferenceQuantity > 0),
+                TotalItemsCounted = s.StocktakeItems.Count(),
+                TotalShortageQuantity = s.StocktakeItems.Where(i => i.DifferenceQuantity < 0).Sum(i => i.DifferenceQuantity) ?? 0,
+                TotalExcessQuantity = s.StocktakeItems.Where(i => i.DifferenceQuantity > 0).Sum(i => i.DifferenceQuantity) ?? 0,
+                TotalApprovedAdjustmentQuantity = s.StocktakeItems.Sum(i => i.AdjustmentQuantity) ?? 0
+            })
+            .ToListAsync();
+
+        var items = sessions.Select(s => (
+            s.StocktakeSessionId,
+            s.StocktakeNumber,
+            s.PlannedDate,
+            s.Status,
+            s.BinsCounted,
+            s.MatchedItems,
+            s.ShortageItems,
+            s.ExcessItems,
+            s.TotalItemsCounted,
+            s.TotalShortageQuantity,
+            s.TotalExcessQuantity,
+            s.TotalApprovedAdjustmentQuantity
+        )).ToList();
+
+        return (totalCount, items);
+    }
+    public async Task<(int TotalCount, List<VwLowStockAlert> Items)> GetLowStockAlertsAsync(
+        string? keyword, int pageNumber, int pageSize)
+    {
+        var query = _context.Set<VwLowStockAlert>().AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(keyword))
+        {
+            var kw = keyword.Trim().ToLower();
+            query = query.Where(v => v.ProductCode.ToLower().Contains(kw) || v.ProductName.ToLower().Contains(kw));
+        }
+
+        int totalCount = await query.CountAsync();
+
+        var items = await query
+            .OrderBy(v => v.AvailableQuantity - v.MinimumStockQuantity)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return (totalCount, items);
+    }
+
+    public async Task<(int TotalCount, List<VwExpiringLotAlert> Items)> GetExpiringLotAlertsAsync(
+        string? keyword, int? maxDaysToExpiry, int pageNumber, int pageSize)
+    {
+        var query = _context.Set<VwExpiringLotAlert>().AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(keyword))
+        {
+            var kw = keyword.Trim().ToLower();
+            query = query.Where(v => v.ProductCode.ToLower().Contains(kw) || v.ProductName.ToLower().Contains(kw));
+        }
+
+        if (maxDaysToExpiry.HasValue)
+        {
+            query = query.Where(v => v.DaysToExpiry != null && v.DaysToExpiry <= maxDaysToExpiry.Value);
+        }
+
+        int totalCount = await query.CountAsync();
+
+        var items = await query
+            .OrderBy(v => v.DaysToExpiry)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return (totalCount, items);
+    }
 }

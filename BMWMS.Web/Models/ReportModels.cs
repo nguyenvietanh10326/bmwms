@@ -187,3 +187,95 @@ public class SupplierStatisticsResponseModel
     public DateTime CutOffTime { get; set; }
     public PagedResultModel<SupplierStatisticsItemModel> Data { get; set; } = new();
 }
+
+// --- Stocktake Statistics Report ---
+
+public class StocktakeStatisticsFilterModel
+{
+    public DateTime? FromDate { get; set; } = DateTime.Today.AddDays(-30);
+    public DateTime? ToDate { get; set; } = DateTime.Today;
+    public string? CountType { get; set; }
+    public string? StorageAreaCode { get; set; }
+    public string? ProductGroupCode { get; set; }
+    public string? SessionStatus { get; set; }
+    public int PageNumber { get; set; } = 1;
+    public int PageSize { get; set; } = 50;
+}
+
+public class StocktakeStatisticsItemModel
+{
+    public long StocktakeSessionId { get; set; }
+    public string StocktakeNumber { get; set; } = string.Empty;
+    public DateOnly PlannedDate { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public int BinsCounted { get; set; }
+    public int MatchedItems { get; set; }
+    public int ShortageItems { get; set; }
+    public int ExcessItems { get; set; }
+    public int TotalItemsCounted { get; set; }
+    public decimal TotalShortageQuantity { get; set; }
+    public decimal TotalExcessQuantity { get; set; }
+    public decimal TotalApprovedAdjustmentQuantity { get; set; }
+    public double StockAccuracyRate => TotalItemsCounted > 0 ? (double)MatchedItems / TotalItemsCounted * 100.0 : 0;
+}
+
+public class LowStockAlertFilterModel
+{
+    public string? Keyword { get; set; }
+    public int PageNumber { get; set; } = 1;
+    public int PageSize { get; set; } = 10;
+}
+
+public class LowStockAlertItemModel
+{
+    public long WarehouseId { get; set; }
+    public string WarehouseCode { get; set; } = string.Empty;
+    public long ProductId { get; set; }
+    public string ProductCode { get; set; } = string.Empty;
+    public string ProductName { get; set; } = string.Empty;
+    public decimal MinimumStockQuantity { get; set; }
+    public decimal? AvailableQuantity { get; set; }
+    public decimal? ShortageQuantity { get; set; }
+}
+
+public class LowStockAlertResponseModel
+{
+    public PagedResultModel<LowStockAlertItemModel> Data { get; set; } = new();
+    public DateTime CutOffTime { get; set; } = DateTime.UtcNow;
+}
+
+public class ExpiringLotAlertFilterModel
+{
+    public string? Keyword { get; set; }
+    public int? MaxDaysToExpiry { get; set; }
+    public int PageNumber { get; set; } = 1;
+    public int PageSize { get; set; } = 10;
+}
+
+public class ExpiringLotAlertItemModel
+{
+    public long WarehouseId { get; set; }
+    public string WarehouseCode { get; set; } = string.Empty;
+    public long ProductId { get; set; }
+    public string ProductCode { get; set; } = string.Empty;
+    public string ProductName { get; set; } = string.Empty;
+    public long ProductLotId { get; set; }
+    public string LotNumber { get; set; } = string.Empty;
+    public DateOnly? ExpiryDate { get; set; }
+    public int? DaysToExpiry { get; set; }
+    public decimal? OnHandQuantity { get; set; }
+    public decimal? AvailableQuantity { get; set; }
+    public int ExpiryWarningDays { get; set; }
+}
+
+public class ExpiringLotAlertResponseModel
+{
+    public PagedResultModel<ExpiringLotAlertItemModel> Data { get; set; } = new();
+    public DateTime CutOffTime { get; set; } = DateTime.UtcNow;
+}
+
+public class StocktakeStatisticsResponseModel
+{
+    public DateTime CutOffTime { get; set; }
+    public PagedResultModel<StocktakeStatisticsItemModel> Data { get; set; } = new();
+}

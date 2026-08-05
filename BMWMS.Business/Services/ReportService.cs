@@ -190,4 +190,109 @@ public class ReportService : IReportService
             }
         };
     }
+
+    public async Task<StocktakeStatisticsResponseDto> GetStocktakeStatisticsAsync(StocktakeStatisticsFilterDto filter)
+    {
+        var (totalCount, items) = await _reportRepository.GetStocktakeStatisticsAsync(
+            filter.FromDate, filter.ToDate, filter.CountType, filter.StorageAreaCode, filter.ProductGroupCode, filter.SessionStatus, filter.PageNumber, filter.PageSize);
+
+        return new StocktakeStatisticsResponseDto
+        {
+            CutOffTime = DateTime.UtcNow,
+            Data = new PagedResultDto<StocktakeStatisticsItemDto>
+            {
+                Items = items.Select(x => new StocktakeStatisticsItemDto
+                {
+                    StocktakeSessionId = x.StocktakeSessionId,
+                    StocktakeNumber = x.StocktakeNumber,
+                    PlannedDate = x.PlannedDate,
+                    Status = x.Status,
+                    BinsCounted = x.BinsCounted,
+                    MatchedItems = x.MatchedItems,
+                    ShortageItems = x.ShortageItems,
+                    ExcessItems = x.ExcessItems,
+                    TotalItemsCounted = x.TotalItemsCounted,
+                    TotalShortageQuantity = x.TotalShortageQuantity,
+                    TotalExcessQuantity = x.TotalExcessQuantity,
+                    TotalApprovedAdjustmentQuantity = x.TotalApprovedAdjustmentQuantity
+                }).ToList(),
+                TotalCount = totalCount,
+                PageIndex = filter.PageNumber,
+                PageSize = filter.PageSize
+            }
+        };
+    }
+
+    public async Task<LowStockAlertResponseDto> GetLowStockAlertsAsync(LowStockAlertFilterDto filter)
+    {
+        var result = await _reportRepository.GetLowStockAlertsAsync(
+            filter.Keyword,
+            filter.PageNumber,
+            filter.PageSize);
+
+        var items = result.Items.Select(x => new LowStockAlertItemDto
+        {
+            WarehouseId = x.WarehouseId,
+            WarehouseCode = x.WarehouseCode,
+            ProductId = x.ProductId,
+            ProductCode = x.ProductCode,
+            ProductName = x.ProductName,
+            MinimumStockQuantity = x.MinimumStockQuantity,
+            AvailableQuantity = x.AvailableQuantity,
+            ShortageQuantity = x.ShortageQuantity
+        }).ToList();
+
+        var response = new LowStockAlertResponseDto
+        {
+            Data = new PagedResultDto<LowStockAlertItemDto>
+            {
+                Items = items,
+                TotalCount = result.TotalCount,
+                PageIndex = filter.PageNumber,
+                PageSize = filter.PageSize
+            },
+            CutOffTime = DateTime.UtcNow
+        };
+
+        return response;
+    }
+
+    public async Task<ExpiringLotAlertResponseDto> GetExpiringLotAlertsAsync(ExpiringLotAlertFilterDto filter)
+    {
+        var result = await _reportRepository.GetExpiringLotAlertsAsync(
+            filter.Keyword,
+            filter.MaxDaysToExpiry,
+            filter.PageNumber,
+            filter.PageSize);
+
+        var items = result.Items.Select(x => new ExpiringLotAlertItemDto
+        {
+            WarehouseId = x.WarehouseId,
+            WarehouseCode = x.WarehouseCode,
+            ProductId = x.ProductId,
+            ProductCode = x.ProductCode,
+            ProductName = x.ProductName,
+            ProductLotId = x.ProductLotId,
+            LotNumber = x.LotNumber,
+            ExpiryDate = x.ExpiryDate,
+            DaysToExpiry = x.DaysToExpiry,
+            OnHandQuantity = x.OnHandQuantity,
+            AvailableQuantity = x.AvailableQuantity,
+            ExpiryWarningDays = x.ExpiryWarningDays
+        }).ToList();
+
+        var response = new ExpiringLotAlertResponseDto
+        {
+            Data = new PagedResultDto<ExpiringLotAlertItemDto>
+            {
+                Items = items,
+                TotalCount = result.TotalCount,
+                PageIndex = filter.PageNumber,
+                PageSize = filter.PageSize
+            },
+            CutOffTime = DateTime.UtcNow
+        };
+
+        return response;
+    }
 }

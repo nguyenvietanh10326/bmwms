@@ -19,8 +19,15 @@ public class ProductStatisticsModel : PageModel
 
     public ProductStatisticsResponseModel ReportData { get; set; } = new();
 
-    public async Task OnGetAsync()
+    public async Task<IActionResult> OnGetAsync()
     {
         ReportData = await _reportApiService.GetProductStatisticsAsync(Filter);
+        return Page();
+    }
+
+    public async Task<IActionResult> OnGetExportAsync()
+    {
+        var fileBytes = await _reportApiService.ExportProductStatisticsAsync(Filter);
+        return File(fileBytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "ProductStatistics.xlsx");
     }
 }
