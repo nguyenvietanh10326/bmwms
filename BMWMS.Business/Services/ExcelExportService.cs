@@ -42,6 +42,16 @@ public class ExcelExportService : IExcelExportService
         return GenerateExcel(items, "Stocktake Statistics");
     }
 
+    public byte[] ExportLowStockAlerts(IEnumerable<LowStockAlertItemDto> items)
+    {
+        return GenerateExcel(items, "Low Stock Alerts");
+    }
+
+    public byte[] ExportExpiringLotAlerts(IEnumerable<ExpiringLotAlertItemDto> items)
+    {
+        return GenerateExcel(items, "Expiring Lot Alerts");
+    }
+
     private byte[] GenerateExcel<T>(IEnumerable<T> data, string sheetName)
     {
         using var workbook = new XLWorkbook();

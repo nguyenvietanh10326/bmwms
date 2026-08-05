@@ -19,4 +19,10 @@ public interface IReportApiService
     Task<byte[]> ExportProductStatisticsAsync(ProductStatisticsFilterModel filter);
     Task<byte[]> ExportSupplierStatisticsAsync(SupplierStatisticsFilterModel filter);
     Task<byte[]> ExportStocktakeStatisticsAsync(StocktakeStatisticsFilterModel filter);
+
+    Task<LowStockAlertResponseModel> GetLowStockAlertsAsync(LowStockAlertFilterModel filter);
+    Task<byte[]> ExportLowStockAlertsAsync(LowStockAlertFilterModel filter);
+
+    Task<ExpiringLotAlertResponseModel> GetExpiringLotAlertsAsync(ExpiringLotAlertFilterModel filter);
+    Task<byte[]> ExportExpiringLotAlertsAsync(ExpiringLotAlertFilterModel filter);
 }

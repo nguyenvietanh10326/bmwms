@@ -219,6 +219,61 @@ public class StocktakeStatisticsItemModel
     public double StockAccuracyRate => TotalItemsCounted > 0 ? (double)MatchedItems / TotalItemsCounted * 100.0 : 0;
 }
 
+public class LowStockAlertFilterModel
+{
+    public string? Keyword { get; set; }
+    public int PageNumber { get; set; } = 1;
+    public int PageSize { get; set; } = 10;
+}
+
+public class LowStockAlertItemModel
+{
+    public long WarehouseId { get; set; }
+    public string WarehouseCode { get; set; } = string.Empty;
+    public long ProductId { get; set; }
+    public string ProductCode { get; set; } = string.Empty;
+    public string ProductName { get; set; } = string.Empty;
+    public decimal MinimumStockQuantity { get; set; }
+    public decimal? AvailableQuantity { get; set; }
+    public decimal? ShortageQuantity { get; set; }
+}
+
+public class LowStockAlertResponseModel
+{
+    public PagedResultModel<LowStockAlertItemModel> Data { get; set; } = new();
+    public DateTime CutOffTime { get; set; } = DateTime.UtcNow;
+}
+
+public class ExpiringLotAlertFilterModel
+{
+    public string? Keyword { get; set; }
+    public int? MaxDaysToExpiry { get; set; }
+    public int PageNumber { get; set; } = 1;
+    public int PageSize { get; set; } = 10;
+}
+
+public class ExpiringLotAlertItemModel
+{
+    public long WarehouseId { get; set; }
+    public string WarehouseCode { get; set; } = string.Empty;
+    public long ProductId { get; set; }
+    public string ProductCode { get; set; } = string.Empty;
+    public string ProductName { get; set; } = string.Empty;
+    public long ProductLotId { get; set; }
+    public string LotNumber { get; set; } = string.Empty;
+    public DateOnly? ExpiryDate { get; set; }
+    public int? DaysToExpiry { get; set; }
+    public decimal? OnHandQuantity { get; set; }
+    public decimal? AvailableQuantity { get; set; }
+    public int ExpiryWarningDays { get; set; }
+}
+
+public class ExpiringLotAlertResponseModel
+{
+    public PagedResultModel<ExpiringLotAlertItemModel> Data { get; set; } = new();
+    public DateTime CutOffTime { get; set; } = DateTime.UtcNow;
+}
+
 public class StocktakeStatisticsResponseModel
 {
     public DateTime CutOffTime { get; set; }

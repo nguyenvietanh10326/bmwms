@@ -23,4 +23,9 @@ public interface IReportRepository
 
     Task<(int TotalCount, List<(long StocktakeSessionId, string StocktakeNumber, DateOnly PlannedDate, string Status, int BinsCounted, int MatchedItems, int ShortageItems, int ExcessItems, int TotalItemsCounted, decimal TotalShortageQuantity, decimal TotalExcessQuantity, decimal TotalApprovedAdjustmentQuantity)> Items)> GetStocktakeStatisticsAsync(
         DateTime? fromDate, DateTime? toDate, string? countType, string? storageAreaCode, string? productGroupCode, string? sessionStatus, int pageNumber, int pageSize);
+    Task<(int TotalCount, List<VwLowStockAlert> Items)> GetLowStockAlertsAsync(
+        string? keyword, int pageNumber, int pageSize);
+
+    Task<(int TotalCount, List<VwExpiringLotAlert> Items)> GetExpiringLotAlertsAsync(
+        string? keyword, int? maxDaysToExpiry, int pageNumber, int pageSize);
 }

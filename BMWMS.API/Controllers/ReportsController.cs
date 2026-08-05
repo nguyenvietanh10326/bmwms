@@ -118,6 +118,34 @@ public class ReportsController : ControllerBase
         }
     }
 
+    [HttpGet("low-stock")]
+    public async Task<IActionResult> GetLowStockAlerts([FromQuery] LowStockAlertFilterDto filter)
+    {
+        try
+        {
+            var result = await _reportService.GetLowStockAlertsAsync(filter);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ex.Message);
+        }
+    }
+
+    [HttpGet("expiring-lots")]
+    public async Task<IActionResult> GetExpiringLotAlerts([FromQuery] ExpiringLotAlertFilterDto filter)
+    {
+        try
+        {
+            var result = await _reportService.GetExpiringLotAlertsAsync(filter);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ex.Message);
+        }
+    }
+
     [HttpGet("inventory/export")]
     public async Task<IActionResult> ExportInventory([FromQuery] InventoryReportFilterDto filter)
     {
@@ -179,5 +207,23 @@ public class ReportsController : ControllerBase
         var result = await _reportService.GetStocktakeStatisticsAsync(filter);
         var fileContent = _excelExportService.ExportStocktakeStatistics(result.Data.Items);
         return File(fileContent, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "StocktakeStatistics.xlsx");
+    }
+
+    [HttpGet("low-stock/export")]
+    public async Task<IActionResult> ExportLowStockAlerts([FromQuery] LowStockAlertFilterDto filter)
+    {
+        filter.PageSize = 100000;
+        var result = await _reportService.GetLowStockAlertsAsync(filter);
+        var fileContent = _excelExportService.ExportLowStockAlerts(result.Data.Items);
+        return File(fileContent, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "LowStockAlerts.xlsx");
+    }
+
+    [HttpGet("expiring-lots/export")]
+    public async Task<IActionResult> ExportExpiringLotAlerts([FromQuery] ExpiringLotAlertFilterDto filter)
+    {
+        filter.PageSize = 100000;
+        var result = await _reportService.GetExpiringLotAlertsAsync(filter);
+        var fileContent = _excelExportService.ExportExpiringLotAlerts(result.Data.Items);
+        return File(fileContent, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "ExpiringLotAlerts.xlsx");
     }
 }

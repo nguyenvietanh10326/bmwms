@@ -239,4 +239,36 @@ public class ReportApiService : IReportApiService
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadAsByteArrayAsync();
     }
+
+    public async Task<LowStockAlertResponseModel> GetLowStockAlertsAsync(LowStockAlertFilterModel filter)
+    {
+        var queryString = $"Keyword={Uri.EscapeDataString(filter.Keyword ?? "")}&PageNumber={filter.PageNumber}&PageSize={filter.PageSize}";
+        var response = await _httpClient.GetAsync($"/api/reports/low-stock?{queryString}");
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<LowStockAlertResponseModel>() ?? new LowStockAlertResponseModel();
+    }
+
+    public async Task<byte[]> ExportLowStockAlertsAsync(LowStockAlertFilterModel filter)
+    {
+        var queryString = $"Keyword={Uri.EscapeDataString(filter.Keyword ?? "")}&PageNumber={filter.PageNumber}&PageSize={filter.PageSize}";
+        var response = await _httpClient.GetAsync($"/api/reports/low-stock/export?{queryString}");
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadAsByteArrayAsync();
+    }
+
+    public async Task<ExpiringLotAlertResponseModel> GetExpiringLotAlertsAsync(ExpiringLotAlertFilterModel filter)
+    {
+        var queryString = $"Keyword={Uri.EscapeDataString(filter.Keyword ?? "")}&MaxDaysToExpiry={filter.MaxDaysToExpiry}&PageNumber={filter.PageNumber}&PageSize={filter.PageSize}";
+        var response = await _httpClient.GetAsync($"/api/reports/expiring-lots?{queryString}");
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<ExpiringLotAlertResponseModel>() ?? new ExpiringLotAlertResponseModel();
+    }
+
+    public async Task<byte[]> ExportExpiringLotAlertsAsync(ExpiringLotAlertFilterModel filter)
+    {
+        var queryString = $"Keyword={Uri.EscapeDataString(filter.Keyword ?? "")}&MaxDaysToExpiry={filter.MaxDaysToExpiry}&PageNumber={filter.PageNumber}&PageSize={filter.PageSize}";
+        var response = await _httpClient.GetAsync($"/api/reports/expiring-lots/export?{queryString}");
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadAsByteArrayAsync();
+    }
 }

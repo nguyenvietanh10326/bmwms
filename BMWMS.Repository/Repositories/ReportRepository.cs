@@ -416,4 +416,52 @@ public class ReportRepository : IReportRepository
 
         return (totalCount, items);
     }
+    public async Task<(int TotalCount, List<VwLowStockAlert> Items)> GetLowStockAlertsAsync(
+        string? keyword, int pageNumber, int pageSize)
+    {
+        var query = _context.Set<VwLowStockAlert>().AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(keyword))
+        {
+            var kw = keyword.Trim().ToLower();
+            query = query.Where(v => v.ProductCode.ToLower().Contains(kw) || v.ProductName.ToLower().Contains(kw));
+        }
+
+        int totalCount = await query.CountAsync();
+
+        var items = await query
+            .OrderBy(v => v.AvailableQuantity - v.MinimumStockQuantity)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return (totalCount, items);
+    }
+
+    public async Task<(int TotalCount, List<VwExpiringLotAlert> Items)> GetExpiringLotAlertsAsync(
+        string? keyword, int? maxDaysToExpiry, int pageNumber, int pageSize)
+    {
+        var query = _context.Set<VwExpiringLotAlert>().AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(keyword))
+        {
+            var kw = keyword.Trim().ToLower();
+            query = query.Where(v => v.ProductCode.ToLower().Contains(kw) || v.ProductName.ToLower().Contains(kw));
+        }
+
+        if (maxDaysToExpiry.HasValue)
+        {
+            query = query.Where(v => v.DaysToExpiry != null && v.DaysToExpiry <= maxDaysToExpiry.Value);
+        }
+
+        int totalCount = await query.CountAsync();
+
+        var items = await query
+            .OrderBy(v => v.DaysToExpiry)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return (totalCount, items);
+    }
 }
