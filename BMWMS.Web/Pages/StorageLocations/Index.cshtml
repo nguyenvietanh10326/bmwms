@@ -1,0 +1,591 @@
+﻿@page
+@model BMWMS.Web.Pages.StorageLocations.IndexModel
+@{
+    Layout = "/Pages/Shared/Warehourse/_Layout.cshtml";
+}
+@section Styles {
+    <link rel="stylesheet" href="~/css/Warehouse/index.css" asp-append-version="true" />
+}
+<style>
+    /* Custom Styling for Storage Locations */
+    .wh-info-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 20px 24px;
+        margin-bottom: 24px;
+    }
+    .wh-info-title {
+        font-size: 14px;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 12px;
+    }
+    .wh-info-grid {
+        display: grid;
+        grid-template-columns: 180px 1fr;
+        row-gap: 8px;
+        font-size: 13px;
+    }
+    .wh-info-label { color: #64748b; }
+    .wh-info-val { color: #0f172a; font-weight: 500; }
+
+    /* Badges */
+    .badge-type {
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 500;
+        display: inline-block;
+    }
+    .type-bin { background-color: #dcfce7; color: #15803d; }   /* Light Green */
+    .type-floor { background-color: #dbeafe; color: #1d4ed8; } /* Light Blue */
+
+    .badge-status-dot {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 13px;
+        font-weight: 500;
+        color: #166534;
+    }
+    .dot-active {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background-color: #22c55e;
+    }
+
+    /* Actions Column Menu */
+    .btn-action-more {
+        border: none;
+        background: transparent;
+        color: #64748b;
+        cursor: pointer;
+        font-size: 18px;
+        padding: 2px 8px;
+    }
+    .btn-action-more:hover { color: #0f172a; }
+</style>
+
+<!-- BREADCRUMB HEADER -->
+<div class="topbar">
+    <div class="breadcrumb">
+        <a asp-page="/Dashboard/Index" style="text-decoration:none; color:inherit;">
+            Warehouse Management
+        </a>
+
+        <span class="sep">›</span>
+
+        <a asp-page="/Warehouses/Index" style="text-decoration:none; color:inherit;">
+            Warehouses
+        </a>
+
+        <span class="sep">›</span>
+
+        <a asp-page="/Warehouses/Details"
+           asp-route-id="@Model.Data.WarehouseInfo.WarehouseId"
+           style="text-decoration:none; color:inherit;">
+            @Model.Data.WarehouseInfo.WarehouseName
+        </a>
+
+        <span class="sep">›</span>
+
+        <span class="current">
+            Storage Locations
+        </span>
+    </div>
+
+    <div class="topbar-right">
+        <div class="user-info">
+            <div class="avatar">NA</div>
+            <div class="user-details">
+                <div class="user-name">Nguyen Van A</div>
+                <div class="user-role">Warehouse Manager</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="content">
+   
+    <!-- PAGE TITLE & EXPORT -->
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+        <div>
+            <h1 style="font-size: 24px; font-weight: 700; color: #0f172a; margin: 0 0 4px 0;">Storage Locations</h1>
+            <div style="font-size: 13px; color: #64748b;">View and manage storage locations in this warehouse.</div>
+        </div>
+
+        <div style="display: flex; gap: 12px;">
+            <a asp-page="/Warehouse/Index" class="btn-create" style="background: #e2e8f0; color: #475569; text-decoration: none;">
+                Back to List
+            </a>
+            <a asp-page-handler="Export"
+               asp-route-WarehouseId="@Model.Filter.WarehouseId"
+               asp-route-Keyword="@Model.Filter.Keyword"
+               class="btn-create" style="background: #fff; border: 1px solid #cbd5e1; color: #334155; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                Export
+            </a>
+        </div>
+    </div>
+
+    <!-- WAREHOUSE INFORMATION HEADER CARD -->
+    <div class="wh-info-card">
+        <div class="wh-info-title">Warehouse Information</div>
+        <div class="wh-info-grid">
+            <div class="wh-info-label">Warehouse Code</div>
+            <div class="wh-info-val">@Model.Data.WarehouseInfo.WarehouseCode</div>
+
+            <div class="wh-info-label">Warehouse Name</div>
+            <div class="wh-info-val">@Model.Data.WarehouseInfo.WarehouseName</div>
+
+            <div class="wh-info-label">Address</div>
+            <div class="wh-info-val">@Model.Data.WarehouseInfo.Address</div>
+        </div>
+    </div>
+
+    <!-- TOOLBAR (FILTER & SEARCH & ADD BUTTON) -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <div style="font-size: 14px; font-weight: 600; color: #0f172a;">
+            Total <span style="color: #2563eb;">@Model.Data.TotalCount</span> locations
+        </div>
+
+        <form method="get" style="display: flex; gap: 12px; align-items: center;">
+            <input type="hidden" asp-for="Filter.WarehouseId" />
+
+            <div style="position: relative;">
+                <input type="text" asp-for="Filter.Keyword" placeholder="Search location code, name..." 
+                       style="padding: 8px 12px 8px 36px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; width: 260px;" />
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%);">
+                    <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+            </div>
+
+            <button type="submit" class="btn-create" style="background: #fff; border: 1px solid #cbd5e1; color: #334155; display: inline-flex; align-items: center; gap: 6px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+                Filter
+            </button>
+
+            <button type="button" onclick="openCreateModal()" class="btn-create" style="background: #2563eb; color: #fff; border: none; font-weight: 500;">
+                + Add Location
+            </button>
+        </form>
+    </div>
+
+    <!-- TABLE LIST -->
+    <div class="table-card">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th style="width: 40px;">#</th>
+                    <th>Location Code</th>
+                    <th>Location Name</th>
+                    <th>Location Type</th>
+                    <th>Zone</th>
+                    <th>Floor</th>
+                    <th>Capacity</th>
+                    <th>Status</th>
+                    <th style="text-align: center; width: 60px;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Data.Items != null && Model.Data.Items.Any())
+                {
+                    int index = (Model.Data.PageIndex - 1) * Model.Data.PageSize + 1;
+                    foreach (var item in Model.Data.Items)
+                    {
+                        <tr>
+                            <td style="color: #64748b;">@(index++)</td>
+                            <td style="font-weight: 600; color: #0f172a;">@item.LocationCode</td>
+                            <td style="color: #334155;">@item.LocationName</td>
+                            <td>
+                                <span class="badge-type @(item.LocationType?.ToLower() == "floor" ? "type-floor" : "type-bin")">
+                                    @item.LocationType
+                                </span>
+                            </td>
+                            <td style="color: #334155;">@item.ZoneCode</td>
+                            <td style="color: #334155;">@item.Floor</td>
+                            <td style="color: #334155;">@item.DisplayCapacity</td>
+                            <td>
+                                <div class="badge-status-dot">
+                                    <span class="dot-active"></span>
+                                    @item.Status
+                                </div>
+                            </td>
+                            <td style="text-align: center;">
+                                <button class="btn-action-more" title="More options">⋮</button>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="9" style="text-align: center; color: #94a3b8; padding: 32px;">
+                            No locations found.
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <!-- PAGINATION FOOTER -->
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-top: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">
+            <div>
+                Showing @((Model.Data.PageIndex - 1) * Model.Data.PageSize + 1) to @(Math.Min(Model.Data.PageIndex * Model.Data.PageSize, Model.Data.TotalCount)) of @Model.Data.TotalCount entries
+            </div>
+
+            @for (int i = 1; i <= Model.Data.TotalPages; i++)
+            {
+                var active = i == Model.Data.PageIndex;
+
+                <a asp-page="./Index"
+                   asp-route-WarehouseId="@Model.Filter.WarehouseId"
+                   asp-route-Keyword="@Model.Filter.Keyword"
+                   asp-route-PageIndex="@i"
+                   style="padding:5px 10px;
+                  border-radius:6px;
+                  text-decoration:none;
+                  border:1px solid @(active ? "#2563eb" : "#cbd5e1");
+                  background:@(active ? "#2563eb" : "#fff");
+                  color:@(active ? "#fff" : "#334155");
+                  font-weight:500;">
+                    @i
+                </a>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- MODAL THÊM / SỬA STORAGE LOCATION -->
+<div id="locationModal" class="modal-backdrop" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.5); z-index: 9999; align-items: center; justify-content: center;">
+    <div style="background: #fff; width: 100%; max-width: 560px; border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); overflow: hidden;">
+
+        <!-- Modal Header -->
+        <div style="padding: 16px 24px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+            <h3 id="modalTitle" style="font-size: 18px; font-weight: 700; color: #0f172a; margin: 0;">Add Storage Location</h3>
+            <button type="button" onclick="closeLocationModal()" style="border: none; background: transparent; font-size: 20px; cursor: pointer; color: #64748b;">&times;</button>
+        </div>
+
+        <!-- Modal Body / Form -->
+        <form id="locationForm" style="padding: 24px;">
+            <input type="hidden" id="locStorageLocationId" value="0" />
+            <input type="hidden" id="locWarehouseId" value="@Model.Filter.WarehouseId" />
+            <input type="hidden" id="locRackId" value="" /> <!-- Tránh null khi đọc -->
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                <div>
+                    <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">Location Code *</label>
+                    <input type="text" id="locCode" required placeholder="e.g. Z-A-R1-B1-01" class="filter-input" style="width: 100%; box-sizing: border-box;" />
+                </div>
+                <div>
+                    <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">Location Name</label>
+                    <input type="text" id="locName" placeholder="e.g. Rack 1 - Bin 01" class="filter-input" style="width: 100%; box-sizing: border-box;" />
+                </div>
+            </div>
+
+            <!-- BỔ SUNG CÁC TRƯỜNG CÒN THIẾU: ZONE, RACK CODE, FLOOR -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                <div>
+                    <label style="display: block; font-size: 12px; font-weight: 600; color: #334155; margin-bottom: 4px;">Zone Code</label>
+                    <input type="text" id="locZoneCode" placeholder="e.g. Z-A" class="filter-input" style="width: 100%; box-sizing: border-box;" />
+                </div>
+                <div>
+                    <label style="display: block; font-size: 12px; font-weight: 600; color: #334155; margin-bottom: 4px;">Rack Code</label>
+                    <input type="text" id="locRackCode" placeholder="e.g. R1" class="filter-input" style="width: 100%; box-sizing: border-box;" />
+                </div>
+                <div>
+                    <label style="display: block; font-size: 12px; font-weight: 600; color: #334155; margin-bottom: 4px;">Floor</label>
+                    <input type="number" id="locFloor" placeholder="e.g. 1" class="filter-input" style="width: 100%; box-sizing: border-box;" />
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                <div>
+                    <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">Location Type</label>
+                    <select id="locType" class="filter-select" style="width: 100%;">
+                        <option value="Bin">Bin</option>
+                        <option value="Floor">Floor</option>
+                        <option value="Buffer">Buffer</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">Status</label>
+                    <select id="locStatus" class="filter-select" style="width: 100%;">
+                        <!-- Đổi 'Active' thành 'Available' (hoặc giá trị mà DB bạn chấp nhận) -->
+                        <option value="Available">Available</option>
+                        <option value="Occupied">Occupied</option>
+                        <option value="Inactive">Inactive</option>
+                    </select>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                <div>
+                    <label style="display: block; font-size: 12px; font-weight: 600; color: #334155; margin-bottom: 4px;">Area (m²)</label>
+                    <input type="number" step="0.01" id="locArea" class="filter-input" style="width: 100%; box-sizing: border-box;" />
+                </div>
+                <div>
+                    <label style="display: block; font-size: 12px; font-weight: 600; color: #334155; margin-bottom: 4px;">Max Weight (kg)</label>
+                    <input type="number" step="0.01" id="locWeight" class="filter-input" style="width: 100%; box-sizing: border-box;" />
+                </div>
+                <div>
+                    <label style="display: block; font-size: 12px; font-weight: 600; color: #334155; margin-bottom: 4px;">Max Vol (m³)</label>
+                    <input type="number" step="0.01" id="locVolume" class="filter-input" style="width: 100%; box-sizing: border-box;" />
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 24px; margin-bottom: 20px; font-size: 13px;">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                    <input type="checkbox" id="locIsPutaway" checked /> Allow Putaway
+                </label>
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                    <input type="checkbox" id="locIsPickable" checked /> Allow Pick
+                </label>
+            </div>
+
+            <!-- Modal Footer -->
+            <div style="display: flex; justify-content: flex-end; gap: 12px; border-top: 1px solid #f1f5f9; padding-top: 16px; margin-top: 16px;">
+                <button type="button" onclick="closeLocationModal()" class="btn-create" style="background: #fff; border: 1px solid #cbd5e1; color: #334155;">Cancel</button>
+                <button type="button" onclick="saveStorageLocation()" class="btn-create" style="background: #2563eb; color: #fff; border: none;">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL VIEW DETAIL STORAGE LOCATION -->
+<div id="detailModal" class="modal-backdrop" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.5); z-index: 9999; align-items: center; justify-content: center;">
+    <div style="background: #fff; width: 100%; max-width: 480px; border-radius: 12px; padding: 24px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h3 style="font-size: 18px; font-weight: 700; margin: 0; color: #0f172a;">Location Details</h3>
+            <button type="button" onclick="closeDetailModal()" style="border: none; background: transparent; font-size: 20px; cursor: pointer;">&times;</button>
+        </div>
+        <div id="detailContent" style="font-size: 14px; color: #334155; display: grid; grid-template-columns: 140px 1fr; row-gap: 12px;">
+            <!-- JS sẽ render thông tin chi tiết vào đây -->
+        </div>
+    </div>
+</div>
+<script>
+    // Hàm phụ trợ đọc giá trị an toàn (tránh văng lỗi nếu lỡ thiếu element)
+    function getVal(id) {
+        const el = document.getElementById(id);
+        return el ? el.value : '';
+    }
+    // Reset sạch sẽ form khi tạo mới
+    function openCreateModal() {
+        document.getElementById('modalTitle').innerText = 'Add Storage Location';
+        document.getElementById('locStorageLocationId').value = '0';
+        document.getElementById('locRackId').value = '';
+        document.getElementById('locCode').value = '';
+        document.getElementById('locName').value = '';
+        document.getElementById('locZoneCode').value = '';
+        document.getElementById('locRackCode').value = '';
+        document.getElementById('locFloor').value = '';
+        document.getElementById('locType').value = 'Bin';
+    document.getElementById('locStatus').value = 'Available';
+    document.getElementById('locArea').value = '';
+        document.getElementById('locWeight').value = '';
+        document.getElementById('locVolume').value = '';
+        document.getElementById('locIsPutaway').checked = true;
+        document.getElementById('locIsPickable').checked = true;
+
+        document.getElementById('locationModal').style.display = 'flex';
+    }
+
+    // Lưu dữ liệu với Data Validation & Parsing an toàn
+    async function saveStorageLocation() {
+        const id = parseInt(getVal('locStorageLocationId')) || 0;
+        const isCreate = id === 0;
+
+        // Lấy giá trị chuỗi từ input
+        const floorRaw = getVal('locFloor');
+        const areaRaw = getVal('locArea');
+        const weightRaw = getVal('locWeight');
+        const volumeRaw = getVal('locVolume');
+        const rackIdRaw = getVal('locRackId');
+
+        // Build Payload chuẩn kiểu dữ liệu C# DTO kỳ vọng
+        const payload = {
+            // Nếu Create -> BẮT BUỘC để 0 hoặc bỏ qua
+            storageLocationId: isCreate ? 0 : id,
+            warehouseId: parseInt(getVal('locWarehouseId')) || 1,
+
+            // Parse số an toàn, nếu rỗng thì trả về null (tránh NaN)
+            rackId: rackIdRaw && !isNaN(rackIdRaw) ? parseInt(rackIdRaw) : null,
+            floor: floorRaw && !isNaN(floorRaw) ? parseInt(floorRaw) : null,
+            areaSquareMeter: areaRaw && !isNaN(areaRaw) ? parseFloat(areaRaw) : null,
+            maxWeightKg: weightRaw && !isNaN(weightRaw) ? parseFloat(weightRaw) : null,
+            maxVolumeM3: volumeRaw && !isNaN(volumeRaw) ? parseFloat(volumeRaw) : null,
+
+            locationCode: getVal('locCode').trim(),
+            locationName: getVal('locName').trim() || null,
+            locationType: getVal('locType') || 'Bin',
+            zoneCode: getVal('locZoneCode').trim() || null,
+            rackCode: getVal('locRackCode').trim() || null,
+            displayCapacity: areaRaw ? `${areaRaw} m²` : null,
+
+            isPutawayAllowed: document.getElementById('locIsPutaway')?.checked ?? true,
+            isPickable: document.getElementById('locIsPickable')?.checked ?? true,
+            status: getVal('locStatus') || 'Active'
+        };
+
+        if (!payload.locationCode) {
+            alert('Vui lòng nhập Location Code!');
+            return;
+        }
+
+        const apiBaseUrl = "https://localhost:7194";
+        const url = isCreate
+            ? `${apiBaseUrl}/api/StorageLocations`
+            : `${apiBaseUrl}/api/StorageLocations/${id}`;
+        const method = isCreate ? 'POST' : 'PUT';
+
+        try {
+            const res = await fetch(url, {
+                method: method,
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                let result = {};
+                try { result = await res.json(); } catch(e) {}
+                alert(result.message || (isCreate ? "Tạo vị trí thành công!" : "Cập nhật thành công!"));
+                window.location.reload();
+            } else {
+                let errorData = {};
+                try { errorData = await res.json(); } catch(e) {}
+                alert('Lỗi từ API: ' + (errorData.message || `Mã lỗi ${res.status}`));
+            }
+        } catch (err) {
+            console.error("Fetch Error:", err);
+            alert('Không thể kết nối tới Server API.');
+        }
+    }
+
+    // 2. Mở Modal Update (Sửa)
+    async function openEditModal(locationId) {
+        try {
+            const apiBaseUrl = "https://localhost:7194";
+            const res = await fetch(`${apiBaseUrl}/api/StorageLocations/${locationId}`);
+            if (!res.ok) throw new Error('Failed to fetch detail');
+            const data = await res.json();
+
+            document.getElementById('modalTitle').innerText = 'Edit Storage Location';
+            document.getElementById('locStorageLocationId').value = data.storageLocationId || 0;
+            document.getElementById('locWarehouseId').value = data.warehouseId || '';
+            document.getElementById('locRackId').value = data.rackId || '';
+            document.getElementById('locCode').value = data.locationCode || '';
+            document.getElementById('locName').value = data.locationName || '';
+            document.getElementById('locZoneCode').value = data.zoneCode || '';
+            document.getElementById('locRackCode').value = data.rackCode || '';
+            document.getElementById('locFloor').value = data.floor || '';
+            document.getElementById('locType').value = data.locationType || 'Bin';
+            document.getElementById('locStatus').value = data.status || 'Active';
+            document.getElementById('locArea').value = data.areaSquareMeter || '';
+            document.getElementById('locWeight').value = data.maxWeightKg || '';
+            document.getElementById('locVolume').value = data.maxVolumeM3 || '';
+            document.getElementById('locIsPutaway').checked = !!data.isPutawayAllowed;
+            document.getElementById('locIsPickable').checked = !!data.isPickable;
+
+            document.getElementById('locationModal').style.display = 'flex';
+        } catch (err) {
+            alert('Có lỗi xảy ra: ' + err.message);
+        }
+    }
+
+    // 3. Mở Modal Xem chi tiết (Detail)
+    async function openDetailModal(locationId) {
+        try {
+            const apiBaseUrl = "https://localhost:7194";
+            const res = await fetch(`${apiBaseUrl}/api/StorageLocations/${locationId}`);
+            if (!res.ok) throw new Error('Failed to fetch detail');
+            const data = await res.json();
+
+            const html = `
+                <div style="color: #64748b;">Code:</div><div style="font-weight: 700;">${data.locationCode || 'N/A'}</div>
+                <div style="color: #64748b;">Name:</div><div>${data.locationName || 'N/A'}</div>
+                <div style="color: #64748b;">Type:</div><div>${data.locationType || 'N/A'}</div>
+                <div style="color: #64748b;">Zone Code:</div><div>${data.zoneCode || 'N/A'}</div>
+                <div style="color: #64748b;">Rack Code:</div><div>${data.rackCode || 'N/A'}</div>
+                <div style="color: #64748b;">Floor:</div><div>${data.floor || 'N/A'}</div>
+                <div style="color: #64748b;">Area:</div><div>${data.areaSquareMeter ? data.areaSquareMeter + ' m²' : '—'}</div>
+                <div style="color: #64748b;">Max Weight:</div><div>${data.maxWeightKg ? data.maxWeightKg + ' kg' : '—'}</div>
+                <div style="color: #64748b;">Max Volume:</div><div>${data.maxVolumeM3 ? data.maxVolumeM3 + ' m³' : '—'}</div>
+                <div style="color: #64748b;">Allow Putaway:</div><div>${data.isPutawayAllowed ? 'Yes' : 'No'}</div>
+                <div style="color: #64748b;">Allow Pick:</div><div>${data.isPickable ? 'Yes' : 'No'}</div>
+                <div style="color: #64748b;">Status:</div><div><strong style="color: green;">${data.status || 'Active'}</strong></div>
+            `;
+            document.getElementById('detailContent').innerHTML = html;
+            document.getElementById('detailModal').style.display = 'flex';
+        } catch (err) {
+            alert('Có lỗi khi lấy dữ liệu chi tiết.');
+        }
+    }
+
+    // 4. Lưu dữ liệu (Gửi POST/PUT tới API)
+    async function saveStorageLocation() {
+        const id = parseInt(getVal('locStorageLocationId')) || 0;
+        const areaVal = getVal('locArea');
+
+        const payload = {
+            storageLocationId: id,
+            warehouseId: parseInt(getVal('locWarehouseId')) || 0,
+            rackId: parseInt(getVal('locRackId')) || null,
+            locationCode: getVal('locCode'),
+            locationName: getVal('locName'),
+            locationType: getVal('locType'),
+            zoneCode: getVal('locZoneCode'),
+            rackCode: getVal('locRackCode'),
+            floor: parseInt(getVal('locFloor')) || null,
+            areaSquareMeter: parseFloat(areaVal) || null,
+            displayCapacity: areaVal ? areaVal + " m²" : null,
+            maxWeightKg: parseFloat(getVal('locWeight')) || null,
+            maxVolumeM3: parseFloat(getVal('locVolume')) || null,
+            isPutawayAllowed: document.getElementById('locIsPutaway') ? document.getElementById('locIsPutaway').checked : true,
+            isPickable: document.getElementById('locIsPickable') ? document.getElementById('locIsPickable').checked : true,
+            status: getVal('locStatus')
+        };
+
+        if (!payload.locationCode) {
+            alert('Vui lòng nhập Location Code!');
+            return;
+        }
+
+        const isCreate = id === 0;
+        const apiBaseUrl = "https://localhost:7194";
+
+        const url = isCreate
+            ? `${apiBaseUrl}/api/StorageLocations`
+            : `${apiBaseUrl}/api/StorageLocations/${id}`;
+        const method = isCreate ? 'POST' : 'PUT';
+
+        try {
+            const res = await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                let result = {};
+                try { result = await res.json(); } catch(e) {}
+                alert(result.message || (isCreate ? "Tạo vị trí thành công!" : "Cập nhật thành công!"));
+                window.location.reload();
+            } else {
+                let errorData = {};
+                try { errorData = await res.json(); } catch(e) {}
+                alert('Lỗi: ' + (errorData.message || 'Không thể lưu dữ liệu'));
+            }
+        } catch (err) {
+            alert('Lỗi kết nối Server.');
+        }
+    }
+
+    function closeLocationModal() { document.getElementById('locationModal').style.display = 'none'; }
+    function closeDetailModal() { document.getElementById('detailModal').style.display = 'none'; }
+</script>

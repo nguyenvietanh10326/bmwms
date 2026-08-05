@@ -106,18 +106,17 @@
     <!-- TABLE -->
     <div class="table-card">
 
-        <table>
+        <table class="data-table">
             <thead>
                 <tr>
-                    <th>#</th>
-                    <th>Warehouse Code</th>
-                    <th>Warehouse Name</th>
+                    <th style="width:60px; text-align:center;">#</th>
+                    <th style="width:160px;">Warehouse Code</th>
+                    <th style="width:220px;">Warehouse Name</th>
                     <th>Address</th>
-                    <th>City</th>
-                    <th>Manager</th>
-                    <th>Status</th>
-                    <th style="text-align: center;">Total Locations</th>
-                    <th style="text-align: center;">Actions</th>
+                    <th style="width:180px;">Manager</th>
+                    <th style="width:120px; text-align:center;">Status</th>
+                    <th style="width:120px; text-align:center;">Locations</th>
+                    <th style="width:190px; text-align:center;">Actions</th>
                 </tr>
             </thead>
 
@@ -125,62 +124,161 @@
                 @if (Model.WarehousesResult.Items != null && Model.WarehousesResult.Items.Any())
                 {
                     int index = (Model.Filter.PageIndex - 1) * Model.Filter.PageSize + 1;
+
                     foreach (var item in Model.WarehousesResult.Items)
                     {
                         <tr>
-                            <td class="td-num">@(index++)</td>
-                            <td style="font-weight: 600;">
+                            <!-- STT -->
+                            <td style="text-align:center;">
+                                @(index++)
+                            </td>
+
+                            <!-- Warehouse Code -->
+                            <td style="font-weight:600; white-space:nowrap;">
                                 @item.WarehouseCode
-                                @if (item.IsPrimary == true)
+
+                                @if (item.IsPrimary)
                                 {
-                                    <span style="font-size: 10px; background: #dbeafe; color: #1e40af; padding: 2px 6px; border-radius: 4px; margin-left: 4px;">
-                                        Primary
+                                    <span style="margin-left:6px;
+                                                     padding:2px 8px;
+                                                     background:#DBEAFE;
+                                                     color:#1D4ED8;
+                                                     border-radius:999px;
+                                                     font-size:11px;
+                                                     font-weight:600;">
+                                        ★ Primary
                                     </span>
                                 }
                             </td>
-                            <td>@item.WarehouseName</td>
-                            <td class="td-addr">@item.Address</td>
-                            <td>@item.Address</td>
-                            <td class="td-mgr">
-                                @item.ManagerName<br />
-                                <span class="phone">@item.PhoneNumber</span>
-                            </td>
+
+                            <!-- Warehouse Name -->
                             <td>
+                                @item.WarehouseName
+                            </td>
+
+                            <!-- Address -->
+                            <td>
+                                @item.Address
+                            </td>
+
+                            <!-- Manager -->
+                            <td>
+                                <div style="font-weight:600;">
+                                    @item.ManagerName
+                                </div>
+
+                                <div style="font-size:12px;color:#64748b;margin-top:2px;">
+                                    📞 @item.PhoneNumber
+                                </div>
+                            </td>
+
+                            <!-- Status -->
+                            <td style="text-align:center;">
                                 @if (string.Equals(item.Status, "Active", StringComparison.OrdinalIgnoreCase))
                                 {
                                     <span class="badge-status badge-active">
-                                        Active
+                                         Active
                                     </span>
                                 }
                                 else
                                 {
                                     <span class="badge-status badge-inactive">
-                                        Inactive
+                                         Inactive
                                     </span>
                                 }
                             </td>
-                            <td style="text-align: center;">@item.TotalLocations</td>
+
+                            <!-- Total Locations -->
+                            <td style="text-align:center;font-weight:600;">
+                                @item.TotalLocations
+                            </td>
+
+                            <!-- Actions -->
                             <td>
-                                <div class="actions" style="justify-content: center;">
-                                    <a asp-page="./Details"
-                                       asp-route-id="@item.WarehouseID"
-                                       class="act-btn"
-                                       style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center; padding: 4px 12px;">
+                                <div style="display:flex;
+                                            justify-content:center;
+                                            align-items:center;
+                                            gap:8px;">
+
+                                    <!-- View -->
+                                    <a asp-page="/StorageLocations/Index"
+                                       asp-route-WarehouseId="@item.WarehouseID"
+                                       title="View Storage Locations"
+                                       style="display:inline-flex;
+                                              align-items:center;
+                                              gap:6px;
+                                              padding:6px 12px;
+                                              background:#EFF6FF;
+                                              color:#2563EB;
+                                              border:1px solid #BFDBFE;
+                                              border-radius:6px;
+                                              text-decoration:none;
+                                              font-size:13px;
+                                              font-weight:500;">
+
+                                        <svg xmlns="http://www.w3.org/2000/svg"
+                                             width="16"
+                                             height="16"
+                                             fill="none"
+                                             viewBox="0 0 24 24"
+                                             stroke="currentColor"
+                                             stroke-width="2">
+                                            <path stroke-linecap="round"
+                                                  stroke-linejoin="round"
+                                                  d="M2.458 12C3.732 7.943 7.523 5 12 5s8.268 2.943 9.542 7c-1.274 4.057-5.065 7-9.542 7S3.732 16.057 2.458 12z" />
+                                            <circle cx="12" cy="12" r="3" />
+                                        </svg>
+
                                         View
                                     </a>
 
-                                    <a asp-page="./Edit" asp-route-id="@item.WarehouseID" class="act-btn" style="text-decoration:none; text-align:center; line-height:28px;">
+                                    <!-- Edit -->
+                                    <a asp-page="./Edit"
+                                       asp-route-id="@item.WarehouseID"
+                                       title="Edit Warehouse"
+                                       style="display:inline-flex;
+                                              align-items:center;
+                                              gap:6px;
+                                              padding:6px 12px;
+                                              background:#F8FAFC;
+                                              color:#334155;
+                                              border:1px solid #CBD5E1;
+                                              border-radius:6px;
+                                              text-decoration:none;
+                                              font-size:13px;
+                                              font-weight:500;">
+
+                                        <svg xmlns="http://www.w3.org/2000/svg"
+                                             width="16"
+                                             height="16"
+                                             fill="none"
+                                             viewBox="0 0 24 24"
+                                             stroke="currentColor"
+                                             stroke-width="2">
+                                            <path stroke-linecap="round"
+                                                  stroke-linejoin="round"
+                                                  d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                            <path stroke-linecap="round"
+                                                  stroke-linejoin="round"
+                                                  d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                        </svg>
+
                                         Edit
                                     </a>
+
                                 </div>
                             </td>
+
                         </tr>
                     }
                 }
                 else
                 {
                     <tr>
-                        <td colspan="9" style="text-align: center; padding: 24px; color: #64748b;">
+                        <td colspan="9"
+                            style="text-align:center;
+                               padding:32px;
+                               color:#94A3B8;">
                             No warehouses found.
                         </td>
                     </tr>
