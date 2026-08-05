@@ -25,4 +25,7 @@ public interface IReportApiService
 
     Task<ExpiringLotAlertResponseModel> GetExpiringLotAlertsAsync(ExpiringLotAlertFilterModel filter);
     Task<byte[]> ExportExpiringLotAlertsAsync(ExpiringLotAlertFilterModel filter);
+
+    Task<OverdueOrderAlertResponseModel> GetOverdueOrderAlertsAsync(OverdueOrderAlertFilterModel filter);
+    Task<byte[]> ExportOverdueOrderAlertsAsync(OverdueOrderAlertFilterModel filter);
 }
