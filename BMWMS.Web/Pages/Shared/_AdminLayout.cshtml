@@ -36,7 +36,7 @@
 
                 <!-- Kho & Vị trí -->
                 @{
-                    var isWhActive = Context.Request.Path.StartsWithSegments("/Warehouse");
+                    var isWhActive = Context.Request.Path.StartsWithSegments("/Warehouse") || Context.Request.Path.StartsWithSegments("/StorageLocations");
                 }
                 <div class="nav-item nav-item-has-sub @(isWhActive ? "expanded active" : "")" onclick="toggleSubmenu(this)">
                     <div class="nav-item-main">
@@ -47,6 +47,7 @@
                 </div>
                 <div class="nav-submenu @(isWhActive ? "expanded" : "")">
                     <a href="/Warehouse/Index" class="nav-sub-item @(Context.Request.Path == "/Warehouse/Index" || Context.Request.Path == "/Warehouse" ? "active" : "")">Danh sách kho hàng</a>
+                    <a href="/StorageLocations/Index" class="nav-sub-item @(Context.Request.Path.StartsWithSegments("/StorageLocations") ? "active" : "")">Vị trí lưu trữ</a>
                     <a href="/Warehouse/Create" class="nav-sub-item @(Context.Request.Path == "/Warehouse/Create" ? "active" : "")">Thêm kho mới</a>
                 </div>
 
