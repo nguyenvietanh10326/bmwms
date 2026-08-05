@@ -19,6 +19,11 @@ namespace BMWMS.Web.Pages.Warehouse
 
         public PagedResultDto<WarehouseResponseDto> WarehousesResult { get; set; } = new();
 
+        [TempData]
+        public string? SuccessMessage { get; set; }
+
+        public string? ErrorMessage { get; set; }
+
         public async Task OnGetAsync()
         {
             if (Filter.PageIndex < 1) Filter.PageIndex = 1;

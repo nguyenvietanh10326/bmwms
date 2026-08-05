@@ -1,139 +1,125 @@
-﻿@page
+@page
 @model BMWMS.Web.Pages.Warehouse.CreateModel
 
 @{
-    Layout = "/Pages/Shared/Warehourse/_Layout.cshtml";
-    ViewData["Title"] = "Create Warehouse";
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Thêm Mới Kho Hàng";
 }
-@section Styles {
-    <link rel="stylesheet" href="~/css/Warehouse/index.css" asp-append-version="true" />
-}
-<!-- TOPBAR -->
-<div class="topbar">
-    <div class="breadcrumb">
-        <span>Warehouse Management</span>
-        <span class="sep">›</span>
-        <a asp-page="./Index" style="text-decoration: none; color: inherit;">Warehouses</a>
-        <span class="sep">›</span>
-        <span class="current">Create</span>
-    </div>
 
-    <div class="topbar-right">
-        <div class="topbar-icon-btn">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
-                <path d="M13.73 21a2 2 0 01-3.46 0" />
-            </svg>
-            <span class="badge">3</span>
-        </div>
+<div class="container-fluid" style="padding: 24px; max-width: 1000px; margin: 0 auto;">
 
-        <div class="user-info">
-            <div class="avatar">NA</div>
-            <div class="user-details">
-                <div class="user-name">Nguyen Van A</div>
-                <div class="user-role">Warehouse Manager</div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- CONTENT -->
-<div class="content">
-
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <!-- TOP BREADCRUMB & HEADER -->
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; flex-wrap: wrap; gap: 16px;">
         <div>
-            <div class="page-title">Create Warehouse</div>
-            <div class="page-sub">Add a new warehouse to the system.</div>
+            <div style="font-size: 13px; color: #64748b; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+                <span>Danh mục cơ sở</span>
+                <i class="ri-arrow-right-s-line" style="font-size: 14px;"></i>
+                <a asp-page="./Index" style="color: #64748b; text-decoration: none;">Kho & Vị trí</a>
+                <i class="ri-arrow-right-s-line" style="font-size: 14px;"></i>
+                <span style="color: #2563eb; font-weight: 500;">Thêm kho mới</span>
+            </div>
+            <h1 style="font-size: 22px; font-weight: 700; color: #0f172a; margin: 0;">Thêm Mới Kho Hàng</h1>
+            <p style="font-size: 13px; color: #64748b; margin-top: 4px; margin-bottom: 0;">Thiết lập thông tin kho bãi mới vào mạng lưới vận hành của hệ thống.</p>
         </div>
-        <a asp-page="./Index" class="btn-create" style="background: #e2e8f0; color: #475569; text-decoration: none;">
-            Cancel & Back
-        </a>
+
+        <div style="display: flex; gap: 10px;">
+            <a asp-page="./Index" style="display: inline-flex; align-items: center; gap: 6px; background: #ffffff; color: #475569; padding: 8px 16px; border-radius: 8px; font-weight: 500; font-size: 13px; text-decoration: none; border: 1px solid #cbd5e1; transition: all 0.2s;">
+                <i class="ri-arrow-left-line"></i> Quay lại
+            </a>
+        </div>
     </div>
 
+    <!-- ALERTS -->
     @if (!string.IsNullOrEmpty(Model.ErrorMessage))
     {
-        <div style="background-color: #fef2f2; border: 1px solid #fecaca; color: #dc2626; padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; font-size: 14px;">
-            @Model.ErrorMessage
+        <div style="background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <i class="ri-error-warning-fill" style="font-size: 18px; color: #ef4444;"></i>
+                <span>@Model.ErrorMessage</span>
+            </div>
+            <button onclick="this.parentElement.style.display='none'" style="background: none; border: none; cursor: pointer; color: #991b1b;"><i class="ri-close-line"></i></button>
         </div>
     }
 
     <!-- FORM CARD -->
-    <div class="table-card" style="padding: 24px;">
+    <div style="background: #ffffff; border-radius: 10px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.03); padding: 28px;">
         <form method="post">
             <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
 
-                <!-- Code -->
+                <!-- Warehouse Code -->
                 <div>
-                    <label style="font-size: 13px; font-weight: 500; color: #334155; display: block; margin-bottom: 6px;">
-                        Warehouse Code <span style="color: #ef4444;">*</span>
+                    <label style="font-size: 13px; font-weight: 600; color: #334155; display: block; margin-bottom: 6px;">
+                        Mã kho hàng <span style="color: #ef4444;">*</span>
                     </label>
-                    <input asp-for="Warehouse.WarehouseCode" class="filter-input" placeholder="e.g. WH001" style="width: 100%; box-sizing: border-box;" required />
-                    <span asp-validation-for="Warehouse.WarehouseCode" style="color: #ef4444; font-size: 12px;"></span>
+                    <input asp-for="Warehouse.WarehouseCode" placeholder="VD: WH-HN-01" 
+                           style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; outline: none; box-sizing: border-box;" required />
+                    <span asp-validation-for="Warehouse.WarehouseCode" style="color: #ef4444; font-size: 12px; margin-top: 4px; display: block;"></span>
                 </div>
 
-                <!-- Name -->
+                <!-- Warehouse Name -->
                 <div>
-                    <label style="font-size: 13px; font-weight: 500; color: #334155; display: block; margin-bottom: 6px;">
-                        Warehouse Name <span style="color: #ef4444;">*</span>
+                    <label style="font-size: 13px; font-weight: 600; color: #334155; display: block; margin-bottom: 6px;">
+                        Tên kho hàng <span style="color: #ef4444;">*</span>
                     </label>
-                    <input asp-for="Warehouse.WarehouseName" class="filter-input" placeholder="e.g. Hanoi Central Warehouse" style="width: 100%; box-sizing: border-box;" required />
-                    <span asp-validation-for="Warehouse.WarehouseName" style="color: #ef4444; font-size: 12px;"></span>
+                    <input asp-for="Warehouse.WarehouseName" placeholder="VD: Kho Tổng Hà Nội" 
+                           style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; outline: none; box-sizing: border-box;" required />
+                    <span asp-validation-for="Warehouse.WarehouseName" style="color: #ef4444; font-size: 12px; margin-top: 4px; display: block;"></span>
                 </div>
 
                 <!-- Address -->
                 <div style="grid-column: span 2;">
-                    <label style="font-size: 13px; font-weight: 500; color: #334155; display: block; margin-bottom: 6px;">
-                        Address <span style="color: #ef4444;">*</span>
+                    <label style="font-size: 13px; font-weight: 600; color: #334155; display: block; margin-bottom: 6px;">
+                        Địa chỉ kho <span style="color: #ef4444;">*</span>
                     </label>
-                    <input asp-for="Warehouse.Address" class="filter-input" placeholder="Enter full address" style="width: 100%; box-sizing: border-box;" required />
-                    <span asp-validation-for="Warehouse.Address" style="color: #ef4444; font-size: 12px;"></span>
+                    <input asp-for="Warehouse.Address" placeholder="Nhập địa chỉ đầy đủ (số nhà, đường, quận/huyện, tỉnh/thành)" 
+                           style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; outline: none; box-sizing: border-box;" required />
+                    <span asp-validation-for="Warehouse.Address" style="color: #ef4444; font-size: 12px; margin-top: 4px; display: block;"></span>
                 </div>
 
                 <!-- Phone -->
                 <div>
-                    <label style="font-size: 13px; font-weight: 500; color: #334155; display: block; margin-bottom: 6px;">
-                        Phone Number
+                    <label style="font-size: 13px; font-weight: 600; color: #334155; display: block; margin-bottom: 6px;">
+                        Số điện thoại liên hệ
                     </label>
-                    <input asp-for="Warehouse.PhoneNumber" class="filter-input" placeholder="e.g. 0987654321" style="width: 100%; box-sizing: border-box;" />
+                    <input asp-for="Warehouse.PhoneNumber" placeholder="VD: 0987654321" 
+                           style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; outline: none; box-sizing: border-box;" />
+                    <span asp-validation-for="Warehouse.PhoneNumber" style="color: #ef4444; font-size: 12px; margin-top: 4px; display: block;"></span>
                 </div>
 
                 <!-- Status -->
                 <div>
-                    <label style="font-size: 13px; font-weight: 500; color: #334155; display: block; margin-bottom: 6px;">
-                        Status
+                    <label style="font-size: 13px; font-weight: 600; color: #334155; display: block; margin-bottom: 6px;">
+                        Trạng thái hoạt động
                     </label>
-                    <select asp-for="Warehouse.Status" class="filter-select" style="width: 100%; box-sizing: border-box;">
-                        <option value="Active">Active</option>
-                        <option value="Inactive">Inactive</option>
+                    <select asp-for="Warehouse.Status" style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; background: #ffffff; outline: none; box-sizing: border-box;">
+                        <option value="Active">Hoạt động (Active)</option>
+                        <option value="Inactive">Tạm ngưng (Inactive)</option>
                     </select>
                 </div>
 
                 <!-- IsPrimary Checkbox -->
-                <div style="grid-column: span 2; margin-top: 10px;">
-                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; color: #334155;">
-                        <input type="checkbox" asp-for="Warehouse.IsPrimary" style="width: 16px; height: 16px; accent-color: #2563eb;" />
-                        Set as Primary Warehouse
+                <div style="grid-column: span 2; margin-top: 6px; background: #f8fafc; padding: 14px 18px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 13.5px; color: #1e293b; font-weight: 500;">
+                        <input type="checkbox" asp-for="Warehouse.IsPrimary" style="width: 18px; height: 18px; accent-color: #2563eb;" />
+                        <span>Đặt làm <strong>Kho Tổng / Kho Chính (Primary Warehouse)</strong></span>
                     </label>
+                    <div style="font-size: 12px; color: #64748b; margin-top: 4px; margin-left: 28px;">
+                        Kho chính sẽ được ưu tiên làm điểm tập kết và trung chuyển nguyên vật liệu chính trong chuỗi cung ứng.
+                    </div>
                 </div>
 
             </div>
 
             <!-- BUTTONS -->
             <div style="margin-top: 28px; padding-top: 20px; border-top: 1px solid #f1f5f9; display: flex; justify-content: flex-end; gap: 12px;">
-                <a asp-page="./Index" class="btn-create" style="background: #e2e8f0; color: #475569; text-decoration: none;">
-                    Cancel
+                <a asp-page="./Index" style="display: inline-flex; align-items: center; gap: 6px; background: #ffffff; color: #475569; padding: 9px 18px; border-radius: 6px; font-size: 13px; font-weight: 500; text-decoration: none; border: 1px solid #cbd5e1;">
+                    Hủy bỏ
                 </a>
-                <button type="submit" class="btn-create">
-                    Save Warehouse
+                <button type="submit" style="display: inline-flex; align-items: center; gap: 6px; background: #2563eb; color: #ffffff; padding: 9px 20px; border-radius: 6px; font-size: 13px; font-weight: 600; border: none; cursor: pointer; box-shadow: 0 1px 3px rgba(37, 99, 235, 0.2);">
+                    <i class="ri-save-line"></i> Lưu Kho Hàng
                 </button>
             </div>
         </form>
     </div>
 
-</div>
-
-<!-- FOOTER -->
-<div class="page-footer">
-    <span>© 2024 BMWMS. All rights reserved.</span>
-    <span>Version 1.0.0</span>
 </div>
