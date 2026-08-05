@@ -463,4 +463,36 @@ public class ReportRepository : IReportRepository
 
         return (totalCount, items);
     }
+
+    public async Task<(int TotalCount, List<VwOverdueOrder> Items)> GetOverdueOrderAlertsAsync(
+        string? documentType, string? keyword, int pageNumber, int pageSize)
+    {
+        var query = _context.Set<VwOverdueOrder>().AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(documentType))
+        {
+            query = query.Where(v => v.DocumentType == documentType);
+        }
+
+        if (!string.IsNullOrWhiteSpace(keyword))
+        {
+            var kw = keyword.Trim().ToLower();
+            query = query.Where(v => v.DocumentNumber.ToLower().Contains(kw));
+        }
+
+        int totalCount = await query.CountAsync();
+
+        var items = await query
+            .OrderByDescending(v => v.DaysOverdue)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return (totalCount, items);
+    }
+
+    public async Task<List<VwWarehouseKpi>> GetWarehouseKpisAsync()
+    {
+        return await _context.VwWarehouseKpis.AsNoTracking().ToListAsync();
+    }
 }

@@ -295,4 +295,58 @@ public class ReportService : IReportService
 
         return response;
     }
+
+    public async Task<OverdueOrderAlertResponseDto> GetOverdueOrderAlertsAsync(OverdueOrderAlertFilterDto filter)
+    {
+        var result = await _reportRepository.GetOverdueOrderAlertsAsync(
+            filter.DocumentType,
+            filter.Keyword,
+            filter.PageNumber,
+            filter.PageSize);
+
+        var items = result.Items.Select(x => new OverdueOrderAlertItemDto
+        {
+            DocumentType = x.DocumentType,
+            DocumentId = x.DocumentId,
+            DocumentNumber = x.DocumentNumber,
+            WarehouseId = x.WarehouseId,
+            DueDate = x.DueDate,
+            DaysOverdue = x.DaysOverdue,
+            Status = x.Status
+        }).ToList();
+
+        var response = new OverdueOrderAlertResponseDto
+        {
+            Data = new PagedResultDto<OverdueOrderAlertItemDto>
+            {
+                Items = items,
+                TotalCount = result.TotalCount,
+                PageIndex = filter.PageNumber,
+                PageSize = filter.PageSize
+            },
+            CutOffTime = DateTime.UtcNow
+        };
+
+        return response;
+    }
+
+    public async Task<WarehouseKpiResponseDto> GetWarehouseKpisAsync()
+    {
+        var result = await _reportRepository.GetWarehouseKpisAsync();
+
+        var items = result.Select(x => new WarehouseKpiItemDto
+        {
+            WarehouseId = x.WarehouseId,
+            WarehouseCode = x.WarehouseCode,
+            AverageInboundProcessingHours = x.AverageInboundProcessingHours,
+            AverageOutboundProcessingHours = x.AverageOutboundProcessingHours,
+            InboundOnTimeRate = x.InboundOnTimeRate,
+            OutboundOnTimeRate = x.OutboundOnTimeRate
+        }).ToList();
+
+        return new WarehouseKpiResponseDto
+        {
+            Items = items
+        };
+    }
 }

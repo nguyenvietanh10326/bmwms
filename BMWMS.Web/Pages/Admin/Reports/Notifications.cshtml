@@ -1,0 +1,331 @@
+@page
+@model BMWMS.Web.Pages.Admin.Reports.NotificationsModel
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Thông báo hệ thống";
+    ViewData["HeaderTitle"] = "Thông báo hệ thống";
+    ViewData["FooterVersion"] = "UC50 Premium UI";
+}
+
+<style>
+    /* Premium UI Styles */
+    .premium-container {
+        padding: 24px 0;
+        max-width: 900px;
+        margin: 0 auto;
+        animation: fadeIn 0.4s ease-out forwards;
+    }
+
+    @@keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Glassmorphism Header */
+    .glass-header {
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(37, 99, 235, 0.05));
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        border-radius: 16px;
+        padding: 24px;
+        margin-bottom: 24px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .glass-header-title {
+        font-size: 24px;
+        font-weight: 700;
+        background: linear-gradient(to right, #1e40af, #3b82f6);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 4px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .btn-premium-outline {
+        height: 40px;
+        padding: 0 20px;
+        border-radius: 10px;
+        background: white;
+        color: #3b82f6;
+        font-weight: 600;
+        font-size: 14px;
+        border: 1px solid #bfdbfe;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.2s ease;
+    }
+    
+    .btn-premium-outline:hover {
+        background: #eff6ff;
+        border-color: #3b82f6;
+    }
+
+    /* Filter Tabs */
+    .filter-tabs {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 24px;
+        background: #f1f5f9;
+        padding: 6px;
+        border-radius: 12px;
+        display: inline-flex;
+    }
+
+    .filter-tab {
+        padding: 8px 24px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        color: #64748b;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+
+    .filter-tab.active {
+        background: white;
+        color: #0f172a;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+
+    /* Notification List */
+    .notification-list {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .notification-card {
+        background: #ffffff;
+        border-radius: 16px;
+        padding: 20px;
+        border: 1px solid #f1f5f9;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
+        display: flex;
+        gap: 16px;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .notification-card:hover {
+        transform: translateX(4px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+        border-color: #e2e8f0;
+    }
+
+    .notification-card.unread {
+        background: #f8fafc;
+        border-left: 4px solid #3b82f6;
+    }
+
+    .noti-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        flex-shrink: 0;
+    }
+    
+    .icon-system { background: #eff6ff; color: #3b82f6; }
+    .icon-alert { background: #fef2f2; color: #ef4444; }
+    .icon-success { background: #ecfdf5; color: #10b981; }
+    .icon-warning { background: #fffbeb; color: #f59e0b; }
+
+    .noti-content {
+        flex: 1;
+    }
+
+    .noti-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: #0f172a;
+        margin-bottom: 4px;
+    }
+    
+    .unread .noti-title {
+        color: #1e40af;
+    }
+
+    .noti-message {
+        font-size: 14px;
+        color: #475569;
+        line-height: 1.5;
+        margin-bottom: 8px;
+    }
+
+    .noti-meta {
+        font-size: 12px;
+        color: #94a3b8;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .noti-time {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .noti-actions {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .btn-mark-read {
+        background: transparent;
+        border: none;
+        color: #94a3b8;
+        font-size: 20px;
+        cursor: pointer;
+        padding: 8px;
+        border-radius: 50%;
+        transition: all 0.2s;
+    }
+
+    .btn-mark-read:hover {
+        background: #f1f5f9;
+        color: #3b82f6;
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        background: white;
+        border-radius: 16px;
+        border: 1px dashed #cbd5e1;
+    }
+
+    .empty-icon {
+        font-size: 48px;
+        color: #cbd5e1;
+        margin-bottom: 16px;
+    }
+
+    .empty-text {
+        font-size: 16px;
+        color: #64748b;
+        font-weight: 500;
+    }
+    
+    /* Time Ago formatter */
+    .time-ago {
+        font-weight: 500;
+    }
+</style>
+
+
+
+<div class="premium-container">
+    <!-- Header -->
+    <div class="glass-header">
+        <div>
+            <div class="glass-header-title">
+                <i class="ri-notification-3-line"></i> Thông báo hệ thống
+            </div>
+            <div style="color: #64748b; font-size: 14px;">
+                Quản lý và theo dõi các cảnh báo, hoạt động hệ thống.
+            </div>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <a asp-page="/Admin/Reports/CreateNotification" class="btn-premium-outline" style="border-color: #6366f1; color: #6366f1;">
+                <i class="ri-add-line"></i> Tạo thông báo
+            </a>
+            @if (Model.ReportData.Data.Items.Any(x => !x.IsRead))
+            {
+                <form method="post" asp-page-handler="MarkAllAsRead">
+                    <input type="hidden" name="Filter.IsRead" value="@Model.Filter.IsRead" />
+                    <input type="hidden" name="Filter.PageNumber" value="@Model.Filter.PageNumber" />
+                    <button type="submit" class="btn-premium-outline">
+                        <i class="ri-check-double-line"></i> Đánh dấu tất cả đã đọc
+                    </button>
+                </form>
+            }
+        </div>
+    </div>
+
+    <!-- Filter Tabs -->
+    <div class="filter-tabs">
+        <a href="?Filter.IsRead=" class="filter-tab @(Model.Filter.IsRead == null ? "active" : "")">Tất cả</a>
+        <a href="?Filter.IsRead=false" class="filter-tab @(Model.Filter.IsRead == false ? "active" : "")">Chưa đọc</a>
+        <a href="?Filter.IsRead=true" class="filter-tab @(Model.Filter.IsRead == true ? "active" : "")">Đã đọc</a>
+    </div>
+
+    <!-- Notification List -->
+    <div class="notification-list">
+        @if (Model.ReportData.Data.Items.Any())
+        {
+            foreach (var noti in Model.ReportData.Data.Items)
+            {
+                var iconClass = "icon-system";
+                var icon = "ri-information-line";
+                
+                if (noti.NotificationType == "ALERT" || noti.NotificationType == "OVERDUE") { iconClass = "icon-alert"; icon = "ri-error-warning-line"; }
+                else if (noti.NotificationType == "WARNING") { iconClass = "icon-warning"; icon = "ri-alert-line"; }
+                else if (noti.NotificationType == "SUCCESS") { iconClass = "icon-success"; icon = "ri-checkbox-circle-line"; }
+
+                var timeAgo = (DateTime.UtcNow - noti.CreatedAt);
+                string timeString = "";
+                if (timeAgo.TotalMinutes < 60) timeString = $"{(int)timeAgo.TotalMinutes} phút trước";
+                else if (timeAgo.TotalHours < 24) timeString = $"{(int)timeAgo.TotalHours} giờ trước";
+                else timeString = $"{(int)timeAgo.TotalDays} ngày trước";
+
+                <div class="notification-card @(!noti.IsRead ? "unread" : "")">
+                    <div class="noti-icon @iconClass">
+                        <i class="@icon"></i>
+                    </div>
+                    <div class="noti-content">
+                        <div class="noti-title">@noti.Title</div>
+                        <div class="noti-message">@noti.Message</div>
+                        <div class="noti-meta">
+                            <span class="noti-time">
+                                <i class="ri-time-line"></i> <span class="time-ago">@timeString</span>
+                            </span>
+                            @if (noti.IsRead && noti.ReadAt.HasValue)
+                            {
+                                <span>
+                                    <i class="ri-check-double-line" style="color: #10b981;"></i> Đã đọc lúc @noti.ReadAt.Value.ToString("HH:mm dd/MM")
+                                </span>
+                            }
+                        </div>
+                    </div>
+                    @if (!noti.IsRead)
+                    {
+                        <div class="noti-actions">
+                            <form method="post" asp-page-handler="MarkAsRead">
+                                <input type="hidden" name="id" value="@noti.NotificationId" />
+                                <input type="hidden" name="Filter.IsRead" value="@Model.Filter.IsRead" />
+                                <input type="hidden" name="Filter.PageNumber" value="@Model.Filter.PageNumber" />
+                                <button type="submit" class="btn-mark-read" title="Đánh dấu đã đọc">
+                                    <i class="ri-check-line"></i>
+                                </button>
+                            </form>
+                        </div>
+                    }
+                </div>
+            }
+        }
+        else
+        {
+            <div class="empty-state">
+                <i class="ri-notification-badge-line empty-icon"></i>
+                <div class="empty-text">Bạn không có thông báo nào.</div>
+            </div>
+        }
+    </div>
+
+</div>

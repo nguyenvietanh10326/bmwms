@@ -13,4 +13,5 @@ public interface IExcelExportService
     byte[] ExportStocktakeStatistics(IEnumerable<StocktakeStatisticsItemDto> items);
     byte[] ExportLowStockAlerts(IEnumerable<LowStockAlertItemDto> items);
     byte[] ExportExpiringLotAlerts(IEnumerable<ExpiringLotAlertItemDto> items);
+    byte[] ExportOverdueOrderAlerts(IEnumerable<OverdueOrderAlertItemDto> items);
 }

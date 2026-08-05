@@ -52,6 +52,11 @@ public class ExcelExportService : IExcelExportService
         return GenerateExcel(items, "Expiring Lot Alerts");
     }
 
+    public byte[] ExportOverdueOrderAlerts(IEnumerable<OverdueOrderAlertItemDto> items)
+    {
+        return GenerateExcel(items, "Overdue Order Alerts");
+    }
+
     private byte[] GenerateExcel<T>(IEnumerable<T> data, string sheetName)
     {
         using var workbook = new XLWorkbook();

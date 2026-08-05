@@ -223,7 +223,31 @@ public class ReportsController : ControllerBase
     {
         filter.PageSize = 100000;
         var result = await _reportService.GetExpiringLotAlertsAsync(filter);
-        var fileContent = _excelExportService.ExportExpiringLotAlerts(result.Data.Items);
-        return File(fileContent, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "ExpiringLotAlerts.xlsx");
+        var fileBytes = _excelExportService.ExportExpiringLotAlerts(result.Data.Items);
+        return File(fileBytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "ExpiringLotAlerts.xlsx");
+    }
+
+    [HttpGet("overdue-orders")]
+    public async Task<IActionResult> GetOverdueOrderAlerts([FromQuery] OverdueOrderAlertFilterDto filter)
+    {
+        var result = await _reportService.GetOverdueOrderAlertsAsync(filter);
+        return Ok(result);
+    }
+
+    [HttpGet("overdue-orders/export")]
+    public async Task<IActionResult> ExportOverdueOrderAlerts([FromQuery] OverdueOrderAlertFilterDto filter)
+    {
+        filter.PageNumber = 1;
+        filter.PageSize = 100000; // Export all data
+        var result = await _reportService.GetOverdueOrderAlertsAsync(filter);
+        var fileBytes = _excelExportService.ExportOverdueOrderAlerts(result.Data.Items);
+        return File(fileBytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "OverdueOrderAlerts.xlsx");
+    }
+
+    [HttpGet("warehouse-kpi")]
+    public async Task<IActionResult> GetWarehouseKpis()
+    {
+        var result = await _reportService.GetWarehouseKpisAsync();
+        return Ok(result);
     }
 }

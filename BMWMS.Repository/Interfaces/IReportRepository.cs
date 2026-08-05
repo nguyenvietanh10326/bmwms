@@ -28,4 +28,9 @@ public interface IReportRepository
 
     Task<(int TotalCount, List<VwExpiringLotAlert> Items)> GetExpiringLotAlertsAsync(
         string? keyword, int? maxDaysToExpiry, int pageNumber, int pageSize);
+
+    Task<(int TotalCount, List<VwOverdueOrder> Items)> GetOverdueOrderAlertsAsync(
+        string? documentType, string? keyword, int pageNumber, int pageSize);
+
+    Task<List<VwWarehouseKpi>> GetWarehouseKpisAsync();
 }

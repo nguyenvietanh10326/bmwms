@@ -1,0 +1,403 @@
+@page
+@model BMWMS.Web.Pages.Admin.Reports.KPIsModel
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "KPI vận hành kho";
+    ViewData["HeaderTitle"] = "KPI vận hành kho";
+}
+
+<style>
+    /* Premium UI Styles */
+    .premium-container {
+        padding: 24px 0;
+        max-width: 100%;
+        animation: fadeIn 0.4s ease-out forwards;
+    }
+
+    @@keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Glassmorphism Header */
+    .glass-header {
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(147, 197, 253, 0.05));
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        border-radius: 16px;
+        padding: 24px;
+        margin-bottom: 24px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .glass-header-title {
+        font-size: 24px;
+        font-weight: 700;
+        background: linear-gradient(to right, #1e3a8a, #3b82f6);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 4px;
+    }
+
+    .glass-header-sub {
+        color: #64748b;
+        font-size: 14px;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    /* Premium Stats Grid */
+    .premium-stats-grid {
+        display: grid;
+        gap: 20px;
+        margin-bottom: 24px;
+        grid-template-columns: repeat(4, 1fr);
+    }
+    
+    .premium-stat-card {
+        background: #ffffff;
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+        border: 1px solid #f1f5f9;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        overflow: hidden;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .premium-stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 15px 30px -5px rgba(0, 0, 0, 0.08);
+    }
+    
+    .premium-stat-card::after {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 4px;
+    }
+    .stat-blue::after { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
+    .stat-cyan::after { background: linear-gradient(90deg, #06b6d4, #22d3ee); }
+    .stat-green::after { background: linear-gradient(90deg, #10b981, #34d399); }
+    .stat-orange::after { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+
+    .stat-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+    
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+    }
+    .icon-blue { background: #eff6ff; color: #3b82f6; }
+    .icon-cyan { background: #ecfeff; color: #06b6d4; }
+    .icon-green { background: #ecfdf5; color: #10b981; }
+    .icon-orange { background: #fffbeb; color: #f59e0b; }
+
+    .stat-title {
+        color: #64748b;
+        font-size: 13px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .stat-value {
+        font-size: 28px;
+        font-weight: 700;
+        color: #0f172a;
+        line-height: 1.2;
+    }
+    .stat-unit {
+        font-size: 14px;
+        font-weight: 500;
+        color: #64748b;
+        margin-left: 4px;
+    }
+
+    /* Premium Table Section */
+    .premium-table-section {
+        background: #ffffff;
+        border-radius: 16px;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+        border: 1px solid #f1f5f9;
+        overflow: hidden;
+    }
+    
+    .premium-table {
+        margin-bottom: 0;
+    }
+    
+    .premium-table th {
+        background-color: #f8fafc;
+        color: #475569;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 12px;
+        letter-spacing: 0.5px;
+        padding: 16px 24px;
+        border-bottom: 2px solid #e2e8f0;
+    }
+    
+    .premium-table td {
+        padding: 16px 24px;
+        vertical-align: middle;
+        color: #334155;
+        font-size: 14px;
+        border-bottom: 1px solid #f1f5f9;
+    }
+    
+    .premium-table tbody tr:hover {
+        background-color: #f8fafc;
+    }
+</style>
+
+<div class="premium-container">
+    <div class="glass-header">
+        <div>
+            <h1 class="glass-header-title">KPI Vận Hành Kho</h1>
+            <div class="glass-header-sub">
+                <i class="ri-bar-chart-box-line"></i>
+                Báo cáo hiệu suất theo từng chi nhánh
+            </div>
+        </div>
+    </div>
+
+    @if (!ModelState.IsValid)
+    {
+        <div class="alert alert-danger">
+            <div asp-validation-summary="All"></div>
+        </div>
+    }
+
+    <div class="premium-stats-grid">
+        <div class="premium-stat-card stat-blue">
+            <div class="stat-header">
+                <div class="stat-icon icon-blue"><i class="ri-time-line"></i></div>
+                <div class="stat-title">TB TG Nhập Kho</div>
+            </div>
+            <div class="stat-value">
+                @(Model.ReportData.Items.Average(x => x.AverageInboundProcessingHours)?.ToString("0.0") ?? "0")
+                <span class="stat-unit">giờ</span>
+            </div>
+        </div>
+        
+        <div class="premium-stat-card stat-cyan">
+            <div class="stat-header">
+                <div class="stat-icon icon-cyan"><i class="ri-time-line"></i></div>
+                <div class="stat-title">TB TG Xuất Kho</div>
+            </div>
+            <div class="stat-value">
+                @(Model.ReportData.Items.Average(x => x.AverageOutboundProcessingHours)?.ToString("0.0") ?? "0")
+                <span class="stat-unit">giờ</span>
+            </div>
+        </div>
+
+        <div class="premium-stat-card stat-green">
+            <div class="stat-header">
+                <div class="stat-icon icon-green"><i class="ri-checkbox-circle-line"></i></div>
+                <div class="stat-title">Nhập Đúng Hạn</div>
+            </div>
+            <div class="stat-value">
+                @(Model.ReportData.Items.Average(x => x.InboundOnTimeRate)?.ToString("0.0") ?? "0")
+                <span class="stat-unit">%</span>
+            </div>
+        </div>
+
+        <div class="premium-stat-card stat-orange">
+            <div class="stat-header">
+                <div class="stat-icon icon-orange"><i class="ri-checkbox-circle-line"></i></div>
+                <div class="stat-title">Xuất Đúng Hạn</div>
+            </div>
+            <div class="stat-value">
+                @(Model.ReportData.Items.Average(x => x.OutboundOnTimeRate)?.ToString("0.0") ?? "0")
+                <span class="stat-unit">%</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-lg-6">
+            <div class="premium-table-section p-4">
+                <h6 class="fw-bold mb-4 text-secondary text-uppercase">Thời gian xử lý trung bình (Giờ)</h6>
+                <div style="position: relative; height: 280px; width: 100%;">
+                    <canvas id="processingTimeChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="premium-table-section p-4">
+                <h6 class="fw-bold mb-4 text-secondary text-uppercase">Tỉ lệ đúng hạn (%)</h6>
+                <div style="position: relative; height: 280px; width: 100%;">
+                    <canvas id="onTimeRateChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="premium-table-section">
+        <div class="table-responsive">
+            <table class="table premium-table">
+                <thead>
+                    <tr>
+                        <th>Mã kho</th>
+                        <th class="text-end">TG Nhập TB (Giờ)</th>
+                        <th class="text-end">TG Xuất TB (Giờ)</th>
+                        <th class="text-end">Tỉ lệ nhập đúng hạn</th>
+                        <th class="text-end">Tỉ lệ xuất đúng hạn</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.ReportData.Items.Any())
+                    {
+                        foreach (var item in Model.ReportData.Items)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center fw-semibold text-primary">
+                                        <i class="ri-store-2-line me-2"></i> @item.WarehouseCode
+                                    </div>
+                                </td>
+                                <td class="text-end fw-semibold">
+                                    @(item.AverageInboundProcessingHours?.ToString("0.0") ?? "-")
+                                </td>
+                                <td class="text-end fw-semibold">
+                                    @(item.AverageOutboundProcessingHours?.ToString("0.0") ?? "-")
+                                </td>
+                                <td class="text-end">
+                                    @if(item.InboundOnTimeRate.HasValue) {
+                                        var badgeClass = item.InboundOnTimeRate >= 90 ? "bg-success" : (item.InboundOnTimeRate >= 70 ? "bg-warning text-dark" : "bg-danger");
+                                        <span class="badge rounded-pill @badgeClass px-3 py-2">@item.InboundOnTimeRate?.ToString("0.0")%</span>
+                                    } else {
+                                        <span>-</span>
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    @if(item.OutboundOnTimeRate.HasValue) {
+                                        var badgeClass = item.OutboundOnTimeRate >= 90 ? "bg-success" : (item.OutboundOnTimeRate >= 70 ? "bg-warning text-dark" : "bg-danger");
+                                        <span class="badge rounded-pill @badgeClass px-3 py-2">@item.OutboundOnTimeRate?.ToString("0.0")%</span>
+                                    } else {
+                                        <span>-</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="5" class="text-center py-5 text-muted">
+                                <i class="ri-inbox-line ri-3x mb-3 d-block text-black-50"></i>
+                                <p class="mb-0">Không có dữ liệu KPI</p>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var chartData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ReportData.Items));
+            
+            var labels = chartData.map(function(item) { return item.WarehouseCode; });
+            var inboundTime = chartData.map(function(item) { return item.AverageInboundProcessingHours || 0; });
+            var outboundTime = chartData.map(function(item) { return item.AverageOutboundProcessingHours || 0; });
+            
+            var inboundOnTime = chartData.map(function(item) { return item.InboundOnTimeRate || 0; });
+            var outboundOnTime = chartData.map(function(item) { return item.OutboundOnTimeRate || 0; });
+
+            // Chart 1: Processing Time
+            var ctxTime = document.getElementById('processingTimeChart').getContext('2d');
+            new Chart(ctxTime, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'TG Nhập trung bình (h)',
+                            data: inboundTime,
+                            backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                            borderRadius: 6,
+                            borderWidth: 0
+                        },
+                        {
+                            label: 'TG Xuất trung bình (h)',
+                            data: outboundTime,
+                            backgroundColor: 'rgba(6, 182, 212, 0.8)',
+                            borderRadius: 6,
+                            borderWidth: 0
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, grid: { borderDash: [4, 4] } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+
+            // Chart 2: On-Time Rate
+            var ctxRate = document.getElementById('onTimeRateChart').getContext('2d');
+            new Chart(ctxRate, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Tỉ lệ Nhập đúng hạn (%)',
+                            data: inboundOnTime,
+                            backgroundColor: 'rgba(16, 185, 129, 0.8)',
+                            borderRadius: 6,
+                            borderWidth: 0
+                        },
+                        {
+                            label: 'Tỉ lệ Xuất đúng hạn (%)',
+                            data: outboundOnTime,
+                            backgroundColor: 'rgba(245, 158, 11, 0.8)',
+                            borderRadius: 6,
+                            borderWidth: 0
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, max: 100, grid: { borderDash: [4, 4] } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        });
+    </script>
+}

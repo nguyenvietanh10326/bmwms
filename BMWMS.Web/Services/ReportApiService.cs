@@ -271,4 +271,26 @@ public class ReportApiService : IReportApiService
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadAsByteArrayAsync();
     }
+
+    public async Task<OverdueOrderAlertResponseModel> GetOverdueOrderAlertsAsync(OverdueOrderAlertFilterModel filter)
+    {
+        var queryString = $"DocumentType={Uri.EscapeDataString(filter.DocumentType ?? "")}&Keyword={Uri.EscapeDataString(filter.Keyword ?? "")}&PageNumber={filter.PageNumber}&PageSize={filter.PageSize}";
+        var response = await _httpClient.GetAsync($"/api/reports/overdue-orders?{queryString}");
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<OverdueOrderAlertResponseModel>() ?? new OverdueOrderAlertResponseModel();
+    }
+
+    public async Task<WarehouseKpiResponseModel> GetWarehouseKpisAsync()
+    {
+        return await _httpClient.GetFromJsonAsync<WarehouseKpiResponseModel>("api/reports/warehouse-kpi")
+            ?? new WarehouseKpiResponseModel();
+    }
+
+    public async Task<byte[]> ExportOverdueOrderAlertsAsync(OverdueOrderAlertFilterModel filter)
+    {
+        var queryString = $"DocumentType={Uri.EscapeDataString(filter.DocumentType ?? "")}&Keyword={Uri.EscapeDataString(filter.Keyword ?? "")}&PageNumber={filter.PageNumber}&PageSize={filter.PageSize}";
+        var response = await _httpClient.GetAsync($"/api/reports/overdue-orders/export?{queryString}");
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadAsByteArrayAsync();
+    }
 }
