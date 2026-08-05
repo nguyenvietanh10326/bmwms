@@ -243,4 +243,11 @@ public class ReportsController : ControllerBase
         var fileBytes = _excelExportService.ExportOverdueOrderAlerts(result.Data.Items);
         return File(fileBytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "OverdueOrderAlerts.xlsx");
     }
+
+    [HttpGet("warehouse-kpi")]
+    public async Task<IActionResult> GetWarehouseKpis()
+    {
+        var result = await _reportService.GetWarehouseKpisAsync();
+        return Ok(result);
+    }
 }

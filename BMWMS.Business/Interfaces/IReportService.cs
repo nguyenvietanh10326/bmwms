@@ -14,4 +14,5 @@ public interface IReportService
     Task<LowStockAlertResponseDto> GetLowStockAlertsAsync(LowStockAlertFilterDto filter);
     Task<ExpiringLotAlertResponseDto> GetExpiringLotAlertsAsync(ExpiringLotAlertFilterDto filter);
     Task<OverdueOrderAlertResponseDto> GetOverdueOrderAlertsAsync(OverdueOrderAlertFilterDto filter);
+    Task<WarehouseKpiResponseDto> GetWarehouseKpisAsync();
 }

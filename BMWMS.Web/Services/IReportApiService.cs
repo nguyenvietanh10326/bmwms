@@ -28,4 +28,6 @@ public interface IReportApiService
 
     Task<OverdueOrderAlertResponseModel> GetOverdueOrderAlertsAsync(OverdueOrderAlertFilterModel filter);
     Task<byte[]> ExportOverdueOrderAlertsAsync(OverdueOrderAlertFilterModel filter);
+
+    Task<WarehouseKpiResponseModel> GetWarehouseKpisAsync();
 }

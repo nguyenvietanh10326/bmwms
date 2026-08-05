@@ -491,4 +491,9 @@ public class ReportRepository : IReportRepository
 
         return (totalCount, items);
     }
+
+    public async Task<List<VwWarehouseKpi>> GetWarehouseKpisAsync()
+    {
+        return await _context.VwWarehouseKpis.AsNoTracking().ToListAsync();
+    }
 }

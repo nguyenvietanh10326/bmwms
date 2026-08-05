@@ -329,4 +329,24 @@ public class ReportService : IReportService
 
         return response;
     }
+
+    public async Task<WarehouseKpiResponseDto> GetWarehouseKpisAsync()
+    {
+        var result = await _reportRepository.GetWarehouseKpisAsync();
+
+        var items = result.Select(x => new WarehouseKpiItemDto
+        {
+            WarehouseId = x.WarehouseId,
+            WarehouseCode = x.WarehouseCode,
+            AverageInboundProcessingHours = x.AverageInboundProcessingHours,
+            AverageOutboundProcessingHours = x.AverageOutboundProcessingHours,
+            InboundOnTimeRate = x.InboundOnTimeRate,
+            OutboundOnTimeRate = x.OutboundOnTimeRate
+        }).ToList();
+
+        return new WarehouseKpiResponseDto
+        {
+            Items = items
+        };
+    }
 }

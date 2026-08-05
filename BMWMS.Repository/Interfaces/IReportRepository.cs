@@ -31,4 +31,6 @@ public interface IReportRepository
 
     Task<(int TotalCount, List<VwOverdueOrder> Items)> GetOverdueOrderAlertsAsync(
         string? documentType, string? keyword, int pageNumber, int pageSize);
+
+    Task<List<VwWarehouseKpi>> GetWarehouseKpisAsync();
 }

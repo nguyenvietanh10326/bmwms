@@ -280,6 +280,12 @@ public class ReportApiService : IReportApiService
         return await response.Content.ReadFromJsonAsync<OverdueOrderAlertResponseModel>() ?? new OverdueOrderAlertResponseModel();
     }
 
+    public async Task<WarehouseKpiResponseModel> GetWarehouseKpisAsync()
+    {
+        return await _httpClient.GetFromJsonAsync<WarehouseKpiResponseModel>("api/reports/warehouse-kpi")
+            ?? new WarehouseKpiResponseModel();
+    }
+
     public async Task<byte[]> ExportOverdueOrderAlertsAsync(OverdueOrderAlertFilterModel filter)
     {
         var queryString = $"DocumentType={Uri.EscapeDataString(filter.DocumentType ?? "")}&Keyword={Uri.EscapeDataString(filter.Keyword ?? "")}&PageNumber={filter.PageNumber}&PageSize={filter.PageSize}";

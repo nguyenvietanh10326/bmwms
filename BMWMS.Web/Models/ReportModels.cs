@@ -304,3 +304,18 @@ public class StocktakeStatisticsResponseModel
     public DateTime CutOffTime { get; set; }
     public PagedResultModel<StocktakeStatisticsItemModel> Data { get; set; } = new();
 }
+
+public class WarehouseKpiItemModel
+{
+    public long WarehouseId { get; set; }
+    public string WarehouseCode { get; set; } = string.Empty;
+    public decimal? AverageInboundProcessingHours { get; set; }
+    public decimal? AverageOutboundProcessingHours { get; set; }
+    public decimal? InboundOnTimeRate { get; set; }
+    public decimal? OutboundOnTimeRate { get; set; }
+}
+
+public class WarehouseKpiResponseModel
+{
+    public List<WarehouseKpiItemModel> Items { get; set; } = new();
+}
