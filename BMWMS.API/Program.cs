@@ -96,6 +96,7 @@ builder.Services.AddScoped<ISupplierService, SupplierService>();
 // Report
 builder.Services.AddScoped<IReportRepository, ReportRepository>();
 builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddScoped<IExcelExportService, ExcelExportService>();
 
 var app = builder.Build();
 

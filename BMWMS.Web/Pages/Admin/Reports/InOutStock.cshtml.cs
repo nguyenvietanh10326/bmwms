@@ -22,13 +22,14 @@ namespace BMWMS.Web.Pages.Admin.Reports
 
         public async Task<IActionResult> OnGetAsync()
         {
-            var data = await _reportApiService.GetInOutStockReportAsync(Filter);
-            if (data != null)
-            {
-                ReportData = data;
-            }
-
+            ReportData = await _reportApiService.GetInOutStockReportAsync(Filter);
             return Page();
+        }
+
+        public async Task<IActionResult> OnGetExportAsync()
+        {
+            var fileBytes = await _reportApiService.ExportInOutStockAsync(Filter);
+            return File(fileBytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "InOutStockReport.xlsx");
         }
     }
 }

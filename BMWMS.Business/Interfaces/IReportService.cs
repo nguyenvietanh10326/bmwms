@@ -10,4 +10,5 @@ public interface IReportService
     Task<InOutStockReportResponseDto> GetInOutStockReportAsync(InOutStockReportFilterDto filter);
     Task<ProductStatisticsResponseDto> GetProductStatisticsAsync(ProductStatisticsFilterDto filter);
     Task<SupplierStatisticsResponseDto> GetSupplierStatisticsAsync(SupplierStatisticsFilterDto filter);
+    Task<StocktakeStatisticsResponseDto> GetStocktakeStatisticsAsync(StocktakeStatisticsFilterDto filter);
 }

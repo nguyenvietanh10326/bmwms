@@ -417,7 +417,7 @@
             </div>
         </div>
         <div>
-            <button class="btn btn-outline" style="border-radius: 10px; padding: 10px 20px; font-weight: 600; color: #475569; border: 1px solid #cbd5e1; background: white;" type="button" disabled>
+            <button onclick="exportExcel()" class="btn btn-outline" style="border-radius: 10px; padding: 10px 20px; font-weight: 600; color: #475569; border: 1px solid #cbd5e1; background: white; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='white'" type="button">
                 <i class="ri-file-excel-2-line" style="color: #10b981; margin-right: 6px;"></i> Xuất Excel
             </button>
         </div>
@@ -618,3 +618,25 @@
         </div>
     </div>
 </div>
+
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function exportExcel() {
+            var form = document.querySelector('.filter-wrapper');
+            var formData = new FormData(form);
+            var searchParams = new URLSearchParams();
+            
+            for (const [key, value] of formData) {
+                if(value) {
+                    searchParams.append(key, value);
+                }
+            }
+            
+            var url = '?handler=Export&' + searchParams.toString();
+            window.location.href = url;
+        }
+    </script>
+}

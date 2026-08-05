@@ -190,4 +190,36 @@ public class ReportService : IReportService
             }
         };
     }
+
+    public async Task<StocktakeStatisticsResponseDto> GetStocktakeStatisticsAsync(StocktakeStatisticsFilterDto filter)
+    {
+        var (totalCount, items) = await _reportRepository.GetStocktakeStatisticsAsync(
+            filter.FromDate, filter.ToDate, filter.CountType, filter.StorageAreaCode, filter.ProductGroupCode, filter.SessionStatus, filter.PageNumber, filter.PageSize);
+
+        return new StocktakeStatisticsResponseDto
+        {
+            CutOffTime = DateTime.UtcNow,
+            Data = new PagedResultDto<StocktakeStatisticsItemDto>
+            {
+                Items = items.Select(x => new StocktakeStatisticsItemDto
+                {
+                    StocktakeSessionId = x.StocktakeSessionId,
+                    StocktakeNumber = x.StocktakeNumber,
+                    PlannedDate = x.PlannedDate,
+                    Status = x.Status,
+                    BinsCounted = x.BinsCounted,
+                    MatchedItems = x.MatchedItems,
+                    ShortageItems = x.ShortageItems,
+                    ExcessItems = x.ExcessItems,
+                    TotalItemsCounted = x.TotalItemsCounted,
+                    TotalShortageQuantity = x.TotalShortageQuantity,
+                    TotalExcessQuantity = x.TotalExcessQuantity,
+                    TotalApprovedAdjustmentQuantity = x.TotalApprovedAdjustmentQuantity
+                }).ToList(),
+                TotalCount = totalCount,
+                PageIndex = filter.PageNumber,
+                PageSize = filter.PageSize
+            }
+        };
+    }
 }

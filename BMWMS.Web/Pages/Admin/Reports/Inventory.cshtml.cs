@@ -29,4 +29,10 @@ public class InventoryModel : PageModel
 
         return Page();
     }
+
+    public async Task<IActionResult> OnGetExportAsync()
+    {
+        var fileBytes = await _reportApiService.ExportInventoryAsync(Filter);
+        return File(fileBytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "InventoryReport.xlsx");
+    }
 }

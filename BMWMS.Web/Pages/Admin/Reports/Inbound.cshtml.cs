@@ -19,9 +19,9 @@ namespace BMWMS.Web.Pages.Admin.Reports
         [BindProperty(SupportsGet = true)]
         public InboundReportFilterModel Filter { get; set; } = new InboundReportFilterModel();
 
-        public InboundReportResponseModel? ReportData { get; set; }
+        public InboundReportResponseModel ReportData { get; set; } = new();
 
-        public async Task OnGetAsync()
+        public async Task<IActionResult> OnGetAsync()
         {
             // Default filter to current month if not set
             if (!Filter.FromDate.HasValue)
@@ -36,6 +36,13 @@ namespace BMWMS.Web.Pages.Admin.Reports
             }
 
             ReportData = await _reportApiService.GetInboundReportAsync(Filter);
+            return Page();
+        }
+
+        public async Task<IActionResult> OnGetExportAsync()
+        {
+            var fileBytes = await _reportApiService.ExportInboundAsync(Filter);
+            return File(fileBytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "InboundReport.xlsx");
         }
     }
 }

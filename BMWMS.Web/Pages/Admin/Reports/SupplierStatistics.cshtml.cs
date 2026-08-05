@@ -19,8 +19,15 @@ public class SupplierStatisticsModel : PageModel
 
     public SupplierStatisticsResponseModel ReportData { get; set; } = new();
 
-    public async Task OnGetAsync()
+    public async Task<IActionResult> OnGetAsync()
     {
         ReportData = await _reportApiService.GetSupplierStatisticsAsync(Filter);
+        return Page();
+    }
+
+    public async Task<IActionResult> OnGetExportAsync()
+    {
+        var fileBytes = await _reportApiService.ExportSupplierStatisticsAsync(Filter);
+        return File(fileBytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "SupplierStatistics.xlsx");
     }
 }

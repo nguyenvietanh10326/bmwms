@@ -1,9 +1,10 @@
 @page
-@model BMWMS.Web.Pages.Admin.Reports.OutboundModel
+@model BMWMS.Web.Pages.Admin.Reports.StocktakeStatisticsModel
 @{
     Layout = "_AdminLayout";
-    ViewData["Title"] = "Báo cáo xuất kho";
-    ViewData["HeaderTitle"] = "Báo cáo xuất kho";
+    ViewData["Title"] = "Thống kê kiểm kho";
+    ViewData["HeaderTitle"] = "Thống kê kết quả kiểm kho";
+    ViewData["FooterVersion"] = "UC44 Premium UI";
 }
 
 <style>
@@ -57,7 +58,7 @@
         display: grid;
         gap: 20px;
         margin-bottom: 24px;
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(3, 1fr);
     }
     
     .premium-stat-card {
@@ -86,6 +87,7 @@
     }
     .stat-blue::after { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
     .stat-green::after { background: linear-gradient(90deg, #10b981, #34d399); }
+    .stat-orange::after { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
 
     .stat-header {
         display: flex;
@@ -106,6 +108,7 @@
     
     .stat-blue .stat-icon { background: #eff6ff; color: #3b82f6; }
     .stat-green .stat-icon { background: #ecfdf5; color: #10b981; }
+    .stat-orange .stat-icon { background: #fffbeb; color: #f59e0b; }
 
     .stat-title {
         color: #64748b;
@@ -147,11 +150,6 @@
         flex: 1;
         min-width: 150px;
     }
-    
-    .form-group-float.search-group {
-        flex: 2;
-        min-width: 250px;
-    }
 
     .form-label-float {
         position: absolute;
@@ -176,36 +174,11 @@
         color: #1e293b;
         transition: all 0.3s ease;
     }
-    
-    select.form-control-float {
-        appearance: none;
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2364748b'%3E%3Cpath d='M12 15.0006L7.75732 10.758L9.17154 9.34375L12 12.1722L14.8284 9.34375L16.2426 10.758L12 15.0006Z'/%3E%3C/svg%3E");
-        background-repeat: no-repeat;
-        background-position: right 12px center;
-        background-size: 24px;
-    }
 
     .form-control-float:focus {
         border-color: #3b82f6;
         box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
         outline: none;
-    }
-
-    .search-input-wrapper {
-        position: relative;
-    }
-
-    .search-input-wrapper i {
-        position: absolute;
-        left: 16px;
-        top: 50%;
-        transform: translateY(-50%);
-        color: #94a3b8;
-        font-size: 18px;
-    }
-
-    .search-input-wrapper .form-control-float {
-        padding-left: 44px;
     }
 
     .btn-premium {
@@ -230,10 +203,6 @@
     .btn-premium:hover {
         transform: translateY(-2px);
         box-shadow: 0 6px 16px rgba(37, 99, 235, 0.3);
-    }
-
-    .btn-premium:active {
-        transform: translateY(0);
     }
 
     /* Premium Data Grid */
@@ -271,13 +240,13 @@
         box-shadow: inset 4px 0 0 #3b82f6;
     }
 
-    .product-info-premium {
+    .item-info-premium {
         display: flex;
         align-items: center;
         gap: 16px;
     }
 
-    .product-avatar {
+    .item-avatar {
         width: 48px;
         height: 48px;
         border-radius: 12px;
@@ -290,17 +259,11 @@
         box-shadow: 0 2px 4px rgba(37, 99, 235, 0.1);
     }
 
-    .product-details .code {
+    .item-details .code {
         font-weight: 700;
         color: #0f172a;
         font-size: 15px;
         margin-bottom: 4px;
-    }
-
-    .product-details .name {
-        color: #64748b;
-        font-size: 13px;
-        font-weight: 500;
     }
 
     /* Vibrant Badges */
@@ -317,40 +280,23 @@
         font-family: 'JetBrains Mono', 'Courier New', monospace;
     }
 
-    .badge-neutral { 
-        background: #f1f5f9; 
-        color: #475569; 
-    }
+    .badge-neutral { background: #f1f5f9; color: #475569; }
+    .badge-positive { background: rgba(34, 197, 94, 0.1); color: #16a34a; box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.2); }
+    .badge-warning { background: rgba(245, 158, 11, 0.1); color: #d97706; box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.2); }
+    .badge-danger { background: rgba(239, 68, 68, 0.1); color: #dc2626; box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.2); }
+    .badge-zero { color: #cbd5e1; font-weight: 500; }
     
-    .badge-positive { 
-        background: rgba(34, 197, 94, 0.1); 
-        color: #16a34a; 
-        box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.2);
-    }
-
-    .badge-zero {
-        color: #cbd5e1;
-        font-weight: 500;
-    }
-    
-    .order-code {
-        font-family: 'JetBrains Mono', 'Courier New', monospace;
-        font-weight: 600;
-        color: #3b82f6;
-        background: #eff6ff;
-        padding: 4px 8px;
-        border-radius: 6px;
-        font-size: 13px;
-    }
-    
-    .tag-lite {
-        background: #f1f5f9;
-        color: #475569;
-        padding: 4px 10px;
-        border-radius: 6px;
+    .status-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
         font-size: 12px;
         font-weight: 600;
+        display: inline-block;
     }
+    
+    .status-completed { background: #dcfce7; color: #16a34a; }
+    .status-inprogress { background: #dbeafe; color: #2563eb; }
+    .status-pending { background: #fef9c3; color: #ca8a04; }
 
     /* Empty State */
     .empty-state-premium {
@@ -397,16 +343,31 @@
         font-size: 14px;
         color: #64748b;
     }
+    
+    .progress-wrapper {
+        width: 100px;
+        height: 6px;
+        background: #f1f5f9;
+        border-radius: 4px;
+        overflow: hidden;
+        margin: 4px auto 0;
+    }
+    
+    .progress-bar {
+        height: 100%;
+        background: #3b82f6;
+        border-radius: 4px;
+    }
 </style>
 
 <div class="premium-container">
     <!-- Header -->
     <div class="glass-header">
         <div>
-            <div class="glass-header-title">Báo cáo xuất kho</div>
+            <div class="glass-header-title">Thống kê kiểm kho</div>
             <div class="glass-header-sub">
-                <i class="ri-calendar-event-line"></i> 
-                Kỳ báo cáo: @Model.Filter.FromDate?.ToString("dd/MM/yyyy") - @Model.Filter.ToDate?.ToString("dd/MM/yyyy")
+                <i class="ri-time-line"></i> 
+                Dữ liệu tính đến: @Model.ReportData.CutOffTime.ToString("dd/MM/yyyy HH:mm")
             </div>
         </div>
         <div>
@@ -420,18 +381,26 @@
     <div class="premium-stats-grid">
         <div class="premium-stat-card stat-blue">
             <div class="stat-header">
-                <div class="stat-icon"><i class="ri-clipboard-line"></i></div>
-                <div class="stat-title">Yêu cầu xuất</div>
+                <div class="stat-icon"><i class="ri-checkbox-multiple-line"></i></div>
+                <div class="stat-title">Số phiên kiểm kho</div>
             </div>
-            <div class="stat-value">@Model.ReportData?.TotalRequested.ToString("N0")</div>
+            <div class="stat-value">@Model.ReportData.Data.TotalCount.ToString("N0")</div>
         </div>
         
         <div class="premium-stat-card stat-green">
             <div class="stat-header">
-                <div class="stat-icon"><i class="ri-truck-line"></i></div>
-                <div class="stat-title">Thực xuất</div>
+                <div class="stat-icon"><i class="ri-check-double-line"></i></div>
+                <div class="stat-title">Tổng mã khớp</div>
             </div>
-            <div class="stat-value">@Model.ReportData?.TotalIssued.ToString("N0")</div>
+            <div class="stat-value">@Model.ReportData.Data.Items.Sum(x => x.MatchedItems).ToString("N0")</div>
+        </div>
+        
+        <div class="premium-stat-card stat-orange">
+            <div class="stat-header">
+                <div class="stat-icon"><i class="ri-error-warning-line"></i></div>
+                <div class="stat-title">Số lượng chênh lệch</div>
+            </div>
+            <div class="stat-value">@Model.ReportData.Data.Items.Sum(x => Math.Abs(x.TotalShortageQuantity) + Math.Abs(x.TotalExcessQuantity)).ToString("N0")</div>
         </div>
     </div>
 
@@ -443,30 +412,19 @@
                 <label class="form-label-float">Từ ngày</label>
                 <input type="date" class="form-control-float" asp-for="Filter.FromDate" />
             </div>
-            
             <div class="form-group-float">
                 <label class="form-label-float">Đến ngày</label>
                 <input type="date" class="form-control-float" asp-for="Filter.ToDate" />
             </div>
-
-            <div class="form-group-float search-group">
-                <label class="form-label-float">Sản phẩm</label>
-                <div class="search-input-wrapper">
-                    <i class="ri-search-2-line"></i>
-                    <input type="text" class="form-control-float" asp-for="Filter.ProductSearch" placeholder="Mã hoặc tên SP..." />
-                </div>
-            </div>
-            
             <div class="form-group-float">
                 <label class="form-label-float">Trạng thái</label>
-                <select class="form-control-float" asp-for="Filter.Status">
+                <select class="form-control-float" asp-for="Filter.SessionStatus" style="appearance: none;">
                     <option value="">Tất cả</option>
-                    <option value="DRAFT">Nháp (Draft)</option>
-                    <option value="CONFIRMED">Đã chốt (Confirmed)</option>
-                    <option value="PICKING">Đang lấy (Picking)</option>
-                    <option value="PACKED">Đã đóng gói (Packed)</option>
-                    <option value="SHIPPED">Đã xuất (Shipped)</option>
-                    <option value="CANCELLED">Hủy (Cancelled)</option>
+                    <option value="PLANNED">Kế hoạch</option>
+                    <option value="IN_PROGRESS">Đang tiến hành</option>
+                    <option value="REVIEW">Chờ duyệt</option>
+                    <option value="COMPLETED">Hoàn thành</option>
+                    <option value="CANCELLED">Đã hủy</option>
                 </select>
             </div>
             
@@ -481,89 +439,95 @@
             <table class="data-grid">
                 <thead>
                     <tr>
-                        <th>Mã phiếu</th>
-                        <th class="text-center">Nguồn xuất</th>
-                        <th style="width: 30%;">Sản phẩm</th>
+                        <th style="width: 25%;">Phiên kiểm kho</th>
                         <th class="text-center">Ngày dự kiến</th>
-                        <th class="text-center">Yêu cầu</th>
-                        <th class="text-center">Đã xuất</th>
                         <th class="text-center">Trạng thái</th>
+                        <th class="text-center">Tỷ lệ khớp</th>
+                        <th class="text-center">Mã thiếu</th>
+                        <th class="text-center">Mã thừa</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @if (Model.ReportData?.Items != null && Model.ReportData.Items.Any())
+                    @if (Model.ReportData.Data.Items.Any())
                     {
-                        foreach (var item in Model.ReportData.Items)
+                        foreach (var item in Model.ReportData.Data.Items)
                         {
                             <tr>
-                                <td><span class="order-code">@item.OutboundOrderNumber</span></td>
-                                <td class="text-center">
-                                    <span class="tag-lite">@item.SourceType</span>
-                                </td>
                                 <td>
-                                    <div class="product-info-premium">
-                                        <div class="product-avatar" style="width: 40px; height: 40px; font-size: 20px;">
-                                            <i class="ri-box-3-fill"></i>
+                                    <div class="item-info-premium">
+                                        <div class="item-avatar">
+                                            <i class="ri-survey-line"></i>
                                         </div>
-                                        <div class="product-details">
-                                            <div class="code">@item.ProductCode</div>
-                                            <div class="name">@item.ProductName</div>
+                                        <div class="item-details">
+                                            <div class="code">@item.StocktakeNumber</div>
+                                            <div style="font-size: 13px; color: #64748b;">
+                                                <i class="ri-map-pin-2-line"></i> @item.BinsCounted vị trí
+                                            </div>
                                         </div>
                                     </div>
                                 </td>
                                 <td class="text-center">
-                                    <span style="color: #64748b; font-weight: 500;">@item.ExpectedIssueDate.ToString("dd/MM/yyyy")</span>
+                                    <span style="color: #475569; font-weight: 500;">@item.PlannedDate.ToString("dd/MM/yyyy")</span>
                                 </td>
                                 <td class="text-center">
-                                    @if(item.RequestedQuantity > 0)
+                                    @switch (item.Status)
                                     {
-                                        <span class="badge-vibrant badge-neutral">@item.RequestedQuantity.ToString("N0")</span>
+                                        case "COMPLETED":
+                                            <span class="status-badge status-completed">Hoàn thành</span>
+                                            break;
+                                        case "IN_PROGRESS":
+                                        case "REVIEW":
+                                            <span class="status-badge status-inprogress">Đang xử lý</span>
+                                            break;
+                                        case "PLANNED":
+                                            <span class="status-badge status-pending">Chờ kiểm</span>
+                                            break;
+                                        default:
+                                            <span class="status-badge" style="background:#f1f5f9; color:#64748b">@item.Status</span>
+                                            break;
                                     }
-                                    else { <span class="badge-zero">-</span> }
                                 </td>
                                 <td class="text-center">
-                                    @if(item.IssuedQuantity > 0)
+                                    <div style="font-weight: 600; color: #0f172a; margin-bottom: 2px;">
+                                        @item.StockAccuracyRate.ToString("0.0")%
+                                    </div>
+                                    <div class="progress-wrapper">
+                                        <div class="progress-bar" style="width: @(item.StockAccuracyRate)%"></div>
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    @if(item.ShortageItems > 0)
                                     {
-                                        <span class="badge-vibrant badge-positive">@item.IssuedQuantity.ToString("N0")</span>
+                                        <span class="badge-vibrant badge-danger">@item.ShortageItems</span>
                                     }
-                                    else { <span class="badge-zero">-</span> }
+                                    else
+                                    {
+                                        <span class="badge-zero">-</span>
+                                    }
                                 </td>
                                 <td class="text-center">
-                                    @{
-                                        string statusClass = item.Status switch {
-                                            "SHIPPED" => "color: #10b981; background: #ecfdf5;",
-                                            "PICKING" => "color: #f59e0b; background: #fffbeb;",
-                                            "PACKED" => "color: #f59e0b; background: #fffbeb;",
-                                            "CANCELLED" => "color: #ef4444; background: #fef2f2;",
-                                            "CONFIRMED" => "color: #3b82f6; background: #eff6ff;",
-                                            _ => "color: #64748b; background: #f1f5f9;"
-                                        };
+                                    @if(item.ExcessItems > 0)
+                                    {
+                                        <span class="badge-vibrant badge-warning">@item.ExcessItems</span>
                                     }
-                                    <span style="display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; letter-spacing: 0.5px; @statusClass">
-                                        @item.Status
-                                    </span>
+                                    else
+                                    {
+                                        <span class="badge-zero">-</span>
+                                    }
                                 </td>
                             </tr>
                         }
-                        
-                        <!-- Totals Row -->
-                        <tr style="background-color: #f8fafc;">
-                            <td colspan="4" class="text-right" style="font-weight: 700; color: #334155; text-transform: uppercase;">Tổng cộng:</td>
-                            <td class="text-center"><span class="badge-vibrant badge-neutral" style="font-size: 15px;">@Model.ReportData.TotalRequested.ToString("N0")</span></td>
-                            <td class="text-center"><span class="badge-vibrant badge-positive" style="font-size: 15px;">@Model.ReportData.TotalIssued.ToString("N0")</span></td>
-                            <td></td>
-                        </tr>
                     }
                     else
                     {
                         <tr>
-                            <td colspan="7">
+                            <td colspan="6">
                                 <div class="empty-state-premium">
                                     <div class="empty-icon-wrapper">
-                                        <i class="ri-inbox-unarchive-line"></i>
+                                        <i class="ri-article-line"></i>
                                     </div>
-                                    <div class="empty-title">Không tìm thấy dữ liệu xuất kho</div>
-                                    <div class="empty-subtitle">Thử thay đổi khoảng thời gian hoặc từ khóa tìm kiếm để xem kết quả.</div>
+                                    <div class="empty-title">Không tìm thấy dữ liệu kiểm kho</div>
+                                    <div class="empty-subtitle">Thử thay đổi khoảng thời gian hoặc trạng thái để xem kết quả.</div>
                                 </div>
                             </td>
                         </tr>
@@ -575,7 +539,7 @@
         <!-- Footer / Pagination -->
         <div class="pagination-footer">
             <div>
-                Hiển thị <strong style="color: #0f172a;">@Model.ReportData?.Items.Count</strong> trên tổng số <strong style="color: #0f172a;">@Model.ReportData?.TotalCount</strong> bản ghi
+                Hiển thị <strong style="color: #0f172a;">@Model.ReportData.Data.Items.Count</strong> trên tổng số <strong style="color: #0f172a;">@Model.ReportData.Data.TotalCount</strong> bản ghi
             </div>
             <div>
                 <!-- Pagination buttons -->
