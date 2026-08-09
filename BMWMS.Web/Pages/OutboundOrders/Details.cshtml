@@ -1,0 +1,209 @@
+﻿@page "{id:long}"
+@model BMWMS.Web.Pages.OutboundOrders.DetailsModel
+
+@{
+    Layout = "/Pages/Shared/Inventory/_Layout.cshtml";
+    ViewData["Title"] = $"Chi tiết lệnh xuất {Model.Order.OutboundOrderNumber}";
+}
+
+
+@section Styles {
+    <link rel="stylesheet"
+          href="~/css/Inventory/StyleSheet.css"
+          asp-append-version="true" />
+}
+<div class="page-container">
+
+    <!-- =====================================================
+         PAGE HEADER & ACTIONS
+    ====================================================== -->
+    <div class="page-header">
+        <div class="page-header-content">
+            <div class="page-title-row">
+                <a asp-page="./Index" class="btn-back me-2">
+                    <i class="bi bi-arrow-left"></i>
+                </a>
+                <h1 class="page-header-title">
+                    Lệnh xuất: @Model.Order.OutboundOrderNumber
+                </h1>
+
+                <span class="ms-3">
+                    @switch (Model.Order.Status)
+                    {
+                        case "COMPLETED":
+                            <span class="status-pill status-completed">
+                                <span class="status-dot"></span> Đã xuất
+                            </span>
+                            break;
+                        case "IN_PROGRESS":
+                            <span class="status-pill status-in-progress">
+                                <span class="status-dot"></span> Đang picking
+                            </span>
+                            break;
+                        case "ASSIGNED":
+                            <span class="status-pill status-assigned">
+                                <span class="status-dot"></span> Chờ xử lý
+                            </span>
+                            break;
+                        case "DRAFT":
+                            <span class="status-pill status-draft">
+                                <span class="status-dot"></span> Nháp
+                            </span>
+                            break;
+                        case "CANCELLED":
+                            <span class="status-pill status-cancelled">
+                                <span class="status-dot"></span> Đã hủy
+                            </span>
+                            break;
+                        default:
+                            <span class="status-pill status-draft">
+                                <span class="status-dot"></span> @Model.Order.Status
+                            </span>
+                            break;
+                    }
+                </span>
+            </div>
+
+            <p class="page-header-sub">
+                Ngày tạo: @Model.Order.CreatedAt.ToString("dd/MM/yyyy HH:mm")
+                <span class="header-dot">•</span>
+                Tạo bởi: @(string.IsNullOrEmpty(Model.Order.CreatedByName) ? "N/A" : Model.Order.CreatedByName)
+            </p>
+        </div>
+
+        <div class="header-actions">
+            @if (Model.Order.Status != "CANCELLED" && Model.Order.Status != "COMPLETED")
+            {
+                <form method="post" asp-page-handler="CancelOrder" asp-route-id="@Model.Order.OutboundOrderId" onsubmit="return confirm('Bạn có chắc chắn muốn hủy lệnh xuất kho này?');" class="d-inline">
+                    <button type="submit" class="btn btn-outline-danger">
+                        <i class="bi bi-x-circle me-1"></i> Hủy lệnh
+                    </button>
+                </form>
+            }
+            <a asp-page="./Index" >
+                Quay lại
+            </a>
+        </div>
+    </div>
+
+    <!-- =====================================================
+         ALERT NOTIFICATIONS
+    ====================================================== -->
+    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+    {
+        <div class="custom-alert custom-alert-success role=" alert"">
+            <div class="custom-alert-content">
+                <div class="custom-alert-icon"><i class="bi bi-check-circle-fill"></i></div>
+                <div class="custom-alert-message">@Model.SuccessMessage</div>
+            </div>
+            <button type="button" class="custom-alert-close" data-bs-dismiss="alert"><i class="bi bi-x-lg"></i></button>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="custom-alert custom-alert-error role=" alert"">
+            <div class="custom-alert-content">
+                <div class="custom-alert-icon"><i class="bi bi-exclamation-circle-fill"></i></div>
+                <div class="custom-alert-message">@Model.ErrorMessage</div>
+            </div>
+            <button type="button" class="custom-alert-close" data-bs-dismiss="alert"><i class="bi bi-x-lg"></i></button>
+        </div>
+    }
+
+    <!-- =====================================================
+         ORDER GENERAL INFORMATION CARD
+    ====================================================== -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light">
+            <h5 class="card-title mb-0"><i class="bi bi-info-circle me-2"></i>Thông tin chung</h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="text-muted d-block small">Mã Sales Order (SO)</label>
+                    <strong class="fs-6">@(string.IsNullOrEmpty(Model.Order.SalesOrderNumber) ? "N/A" : Model.Order.SalesOrderNumber)</strong>
+                </div>
+                <div class="col-md-4">
+                    <label class="text-muted d-block small">Khách hàng</label>
+                    <strong class="fs-6">@(string.IsNullOrEmpty(Model.Order.CustomerName) ? "N/A" : Model.Order.CustomerName)</strong>
+                </div>
+                <div class="col-md-4">
+                    <label class="text-muted d-block small">Kho xuất</label>
+                    <strong class="fs-6">@(string.IsNullOrEmpty(Model.Order.WarehouseName) ? "N/A" : Model.Order.WarehouseName)</strong>
+                </div>
+                <div class="col-md-4">
+                    <label class="text-muted d-block small">Ngày dự kiến xuất</label>
+                    <span>@(Model.Order.ExpectedIssueDate?.ToString("dd/MM/yyyy") ?? "N/A")</span>
+                </div>
+                <div class="col-md-4">
+                    <label class="text-muted d-block small">Người phụ trách (Pick/Pack)</label>
+                    <span>@(string.IsNullOrEmpty(Model.Order.AssignedToUserName) ? "Chưa phân công" : Model.Order.AssignedToUserName)</span>
+                </div>
+                <div class="col-md-4">
+                    <label class="text-muted d-block small">Ghi chú</label>
+                    <span>@(string.IsNullOrEmpty(Model.Order.Notes) ? "Không có" : Model.Order.Notes)</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- =====================================================
+         PRODUCT LIST TABLE CARD
+    ====================================================== -->
+    <div class="data-table-card">
+        <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 fs-6 fw-bold"><i class="bi bi-box-seam me-2"></i>Danh sách sản phẩm xuất kho</h5>
+            <span class="badge bg-primary">Tổng sản phẩm: @(Model.Order.Items?.Count ?? 0)</span>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table custom-table mb-0">
+                <thead>
+                    <tr>
+                        <th style="width: 50px;">#</th>
+                        <th>Mã sản phẩm</th>
+                        <th>Tên sản phẩm</th>
+                        <th>Đơn vị tính</th>
+                        <th class="text-end">SL Yêu cầu</th>
+                        <th class="text-end">SL Đã Pick</th>
+                        <th>Vị trí (Lot/Bin)</th>
+                        <th>Ghi chú</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Order.Items != null && Model.Order.Items.Any())
+                    {
+                        int index = 1;
+                        foreach (var item in Model.Order.Items)
+                        {
+                            <tr>
+                                <td>@(index++)</td>
+                                <td><span class="fw-bold">@item.ProductCode</span></td>
+                                <td>@item.ProductName</td>
+                                <td>@item.UnitName</td>
+                                <td class="text-end fw-bold">@item.RequestedQuantity.ToString("N0")</td>
+                                <td class="text-end text-success fw-bold">@item.PickedQuantity.ToString("N0")</td>
+                                <td>
+                                    <span class="badge bg-light text-dark border">
+                                        @(string.IsNullOrEmpty(item.LotBin) ? "N/A" : item.LotBin)
+                                    </span>
+                                </td>
+                                <td class="text-muted small">@(string.IsNullOrEmpty(item.Notes) ? "-" : item.Notes)</td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="8" class="text-center py-4 text-muted">
+                                Không có chi tiết sản phẩm nào trong lệnh xuất kho này.
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
