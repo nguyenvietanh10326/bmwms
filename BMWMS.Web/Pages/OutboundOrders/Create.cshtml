@@ -1,0 +1,627 @@
+﻿@page
+@model BMWMS.Web.Pages.OutboundOrders.CreateModel
+
+@{
+    Layout = "/Pages/Shared/Inventory/_Layout.cshtml";
+    ViewData["Title"] = "UC26 · Tạo lệnh xuất kho";
+}
+
+<link rel="stylesheet" href="~/css/Inventory/outbound-create.css" />
+
+<div class="outbound-page">
+
+    <form method="post" class="outbound-form">
+
+        <!-- =========================================================
+             PAGE HEADER
+        ========================================================== -->
+        <div class="page-header">
+
+            <div class="page-header-left">
+
+                <div class="page-title-row">
+                    <div class="page-title-icon">
+                        <i class="bi bi-box-arrow-up"></i>
+                    </div>
+
+                    <div>
+                        <h1 class="page-title">
+                            UC26 · Tạo lệnh xuất kho
+                        </h1>
+
+                        <p class="page-subtitle">
+                            Tạo lệnh xuất từ Sales Order đã xác nhận và giữ tồn
+                            <span class="dot-separator">•</span>
+                            Actor chính: Nhân viên bán hàng
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="page-status">
+                <i class="bi bi-pencil-square"></i>
+                <span>Nháp</span>
+            </div>
+
+        </div>
+
+
+        <!-- =========================================================
+             ERROR MESSAGE
+        ========================================================== -->
+        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+        {
+            <div class="error-alert" role="alert">
+
+                <div class="error-alert-content">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+
+                    <span>
+                        @Model.ErrorMessage
+                    </span>
+                </div>
+
+                <button type="button"
+                        class="error-close"
+                        data-bs-dismiss="alert"
+                        aria-label="Đóng">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+
+            </div>
+        }
+
+
+        <!-- =========================================================
+             GENERAL INFORMATION
+        ========================================================== -->
+        <section class="content-card">
+
+            <div class="card-header">
+
+                <div class="card-header-title">
+                    <div class="section-icon">
+                        <i class="bi bi-info-circle"></i>
+                    </div>
+
+                    <div>
+                        <h2>Thông tin lệnh xuất</h2>
+                        <span>Thông tin cơ bản của lệnh xuất kho</span>
+                    </div>
+                </div>
+
+            </div>
+
+
+            <div class="card-body">
+
+                <div class="form-grid">
+
+                    <!-- Sales Order -->
+                    <div class="form-field">
+
+                        <label asp-for="Input.SalesOrderId" class="form-label">
+                            Sales Order
+                            <span class="required">*</span>
+                        </label>
+
+                        <select asp-for="Input.SalesOrderId"
+                                asp-items="Model.SalesOrderOptions"
+                                class="form-control-custom"
+                                onchange="location.href='?selectedSalesOrderId=' + this.value;">
+                        </select>
+
+                    </div>
+
+
+                    <!-- Mã lệnh xuất -->
+                    <div class="form-field">
+
+                        <label class="form-label">
+                            Mã lệnh xuất
+                        </label>
+
+                        <div class="input-with-icon readonly-control">
+
+                            <i class="bi bi-hash"></i>
+
+                            <input type="text"
+                                   class="form-control-custom"
+                                   value="@Model.Input.OrderNumberAuto"
+                                   readonly
+                                   placeholder="Hệ thống tự tạo" />
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- Khách hàng -->
+                    <div class="form-field">
+
+                        <label asp-for="Input.CustomerName" class="form-label">
+                            Khách hàng
+                        </label>
+
+                        <div class="input-with-icon readonly-control">
+
+                            <i class="bi bi-person"></i>
+
+                            <input type="text"
+                                   asp-for="Input.CustomerName"
+                                   class="form-control-custom"
+                                   placeholder="Tên khách hàng"
+                                   readonly />
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- Kho xuất -->
+                    <div class="form-field">
+
+                        <label asp-for="Input.WarehouseId" class="form-label">
+                            Kho xuất
+                            <span class="required">*</span>
+                        </label>
+
+                        <select asp-for="Input.WarehouseId"
+                                asp-items="Model.WarehouseOptions"
+                                class="form-control-custom">
+                        </select>
+
+                    </div>
+
+
+                    <!-- Ngày dự kiến -->
+                    <div class="form-field">
+
+                        <label asp-for="Input.ExpectedIssueDate" class="form-label">
+                            Ngày dự kiến
+                        </label>
+
+                        <div class="input-with-icon">
+
+                            <i class="bi bi-calendar3"></i>
+
+                            <input type="date"
+                                   asp-for="Input.ExpectedIssueDate"
+                                   class="form-control-custom" />
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- Người phụ trách -->
+                    <div class="form-field">
+
+                        <label asp-for="Input.AssignedToUserId" class="form-label">
+                            Người phụ trách
+                        </label>
+
+                        <select asp-for="Input.AssignedToUserId"
+                                asp-items="Model.UserOptions"
+                                class="form-control-custom">
+                        </select>
+
+                    </div>
+
+
+                    <!-- Chiến lược picking -->
+                    <div class="form-field">
+
+                        <label asp-for="Input.PickingStrategy" class="form-label">
+                            Chiến lược picking
+                        </label>
+
+                        <select asp-for="Input.PickingStrategy"
+                                asp-items="Model.PickingStrategyOptions"
+                                class="form-control-custom">
+                        </select>
+
+                    </div>
+
+
+                    <!-- Tham chiếu -->
+                    <div class="form-field">
+
+                        <label asp-for="Input.ReferenceCode" class="form-label">
+                            Tham chiếu
+                        </label>
+
+                        <div class="input-with-icon">
+
+                            <i class="bi bi-link-45deg"></i>
+
+                            <input type="text"
+                                   asp-for="Input.ReferenceCode"
+                                   class="form-control-custom"
+                                   placeholder="Mã SO / Tham chiếu" />
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =========================================================
+             OUTBOUND ITEMS
+        ========================================================== -->
+        <section class="content-card items-card">
+           
+        
+            <section class="content-card items-card">
+
+                <div class="card-header items-header">
+
+                    <div class="card-header-title">
+
+                       
+
+                        <div>
+                            <h2>Hàng xuất theo Sales Order</h2>
+                            <span>Danh sách sản phẩm cần xuất từ Sales Order</span>
+                        </div>
+
+                    </div>
+
+                    <button type="button"
+                            class="inventory-button">
+                        <i class="bi bi-search"></i>
+                        <span>Chọn tồn kho</span>
+                    </button>
+
+                </div>
+
+
+                <!-- =====================================================
+                     TABLE
+                ====================================================== -->
+                <div class="items-table-wrapper">
+
+                    <table class="items-table">
+
+                    
+                        <colgroup>
+                            <col class="column-product" />
+                            <col class="column-requested" />
+                            <col class="column-reserved" />
+                            <col class="column-unit" />
+                            <col class="column-lot" />
+                            <col class="column-status" />
+                            <col class="column-price" />
+                        </colgroup>
+
+
+                        <thead>
+                            <tr>
+
+                                <th class="text-left">
+                                    SẢN PHẨM
+                                </th>
+
+                                <th class="text-right">
+                                    SL YÊU CẦU
+                                </th>
+
+                                <th class="text-right">
+                                    ĐÃ GIỮ
+                                </th>
+
+                                <th class="text-center">
+                                    ĐVT
+                                </th>
+
+                                <th class="text-left">
+                                    LOT / BIN
+                                </th>
+
+                                <th class="text-center">
+                                    KẾT QUẢ
+                                </th>
+
+                                <th class="text-right">
+                                    THÀNH TIỀN
+                                </th>
+
+                            </tr>
+                        </thead>
+
+
+                        <tbody>
+
+                            @if (Model.Input.Items != null && Model.Input.Items.Any())
+                            {
+                                @for (int i = 0; i < Model.Input.Items.Count; i++)
+                                {
+                                    <tr>
+
+                                        <!-- =================================================
+                                             PRODUCT
+                                        ================================================== -->
+                                        <td>
+
+                                            <input type="hidden"
+                                                   asp-for="Input.Items[i].ProductId" />
+
+                                            <input type="hidden"
+                                                   asp-for="Input.Items[i].RequestedQuantity" />
+
+                                            <div class="product-cell">
+
+                                                <span class="product-code">
+                                                    @Model.Input.Items[i].ProductCode
+                                                </span>
+
+                                                <span class="product-name">
+                                                    @Model.Input.Items[i].ProductName
+                                                </span>
+
+                                            </div>
+
+                                        </td>
+
+
+                                        <!-- =================================================
+                                             REQUESTED QUANTITY
+                                        ================================================== -->
+                                        <td class="text-right">
+
+                                            <span class="quantity-value">
+                                                @Model.Input.Items[i].RequestedQuantity.ToString("N0")
+                                            </span>
+
+                                        </td>
+
+
+                                        <!-- =================================================
+                                             RESERVED QUANTITY
+                                        ================================================== -->
+                                        <td class="text-right">
+
+                                            <span class="quantity-value reserved">
+                                                @Model.Input.Items[i].ReservedQuantity.ToString("N0")
+                                            </span>
+
+                                        </td>
+
+
+                                        <!-- =================================================
+                                             UNIT
+                                        ================================================== -->
+                                        <td class="text-center">
+
+                                            <span class="unit-badge">
+                                                @Model.Input.Items[i].UnitName
+                                            </span>
+
+                                        </td>
+
+
+                                        <!-- =================================================
+                                             LOT / BIN
+                                        ================================================== -->
+                                        <td>
+
+                                            <div class="lot-bin">
+
+                                                <i class="bi bi-geo-alt"></i>
+
+                                                <span class="lot-bin-text">
+                                                    @Model.Input.Items[i].LotBin
+                                                </span>
+
+                                            </div>
+
+                                        </td>
+
+
+                                        <!-- =================================================
+                                             RESULT
+                                        ================================================== -->
+                                        <td class="text-center">
+
+                                            @if (Model.Input.Items[i].IsEnough)
+                                            {
+                                                <span class="result-badge result-success">
+
+                                                    <i class="bi bi-check-circle-fill"></i>
+
+                                                    <span>Đủ</span>
+
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="result-badge result-danger">
+
+                                                    <i class="bi bi-x-circle-fill"></i>
+
+                                                    <span>
+                                                        @Model.Input.Items[i].CheckResult
+                                                    </span>
+
+                                                </span>
+                                            }
+
+                                        </td>
+
+
+                                        <!-- =================================================
+                                             TOTAL PRICE
+                                        ================================================== -->
+                                        <td class="text-right">
+
+                                            <span class="total-price">
+                                                @Model.Input.Items[i].TotalPrice.ToString("N0")
+                                                <span class="currency">đ</span>
+                                            </span>
+
+                                        </td>
+
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+
+                                    <td colspan="7">
+
+                                        <div class="empty-state">
+
+                                            <div class="empty-icon">
+                                                <i class="bi bi-inbox"></i>
+                                            </div>
+
+                                            <div class="empty-title">
+                                                Chưa có sản phẩm
+                                            </div>
+
+                                            <div class="empty-description">
+                                                Chưa chọn Sales Order hoặc Sales Order không có sản phẩm nào.
+                                            </div>
+
+                                        </div>
+
+                                    </td>
+
+                                </tr>
+                            }
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+
+                <!-- =====================================================
+                     TABLE SUMMARY
+                ====================================================== -->
+                <div class="items-summary">
+
+                    <div class="summary-check">
+
+                        <i class="bi bi-check2-circle"></i>
+
+                        <span>
+                            Đã kiểm tra giữ tồn cho
+                            <strong>@(Model.Input.Items?.Count ?? 0)</strong>
+                            dòng sản phẩm
+                        </span>
+
+                    </div>
+
+
+                    <div class="summary-total">
+
+                        <span class="summary-label">
+                            Tổng đã giữ
+                        </span>
+
+                        <span class="summary-value">
+                            @(Model.Input.Items?.Sum(x => x.ReservedQuantity).ToString("N0") ?? "0")
+                        </span>
+
+                        <span class="summary-unit">
+                            đơn vị
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </section>
+            
+
+
+
+        </section>
+
+
+        <!-- =========================================================
+             INFORMATION NOTE
+        ========================================================== -->
+        <div class="info-note">
+
+            <div class="info-note-icon">
+                <i class="bi bi-info-circle-fill"></i>
+            </div>
+
+            <div class="info-note-content">
+
+                <strong>Lưu ý</strong>
+
+                <span>
+                    Sales Order phải được xác nhận và giữ tồn
+                    <em>Available</em>
+                    trước khi tạo lệnh xuất; xác nhận xuất thực tế mới chính thức trừ tồn kho.
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <!-- =========================================================
+             ACTION BAR
+        ========================================================== -->
+        <div class="action-bar">
+
+            <div class="action-left">
+                <span class="action-hint">
+                    <i class="bi bi-shield-check"></i>
+                    Kiểm tra lại thông tin trước khi tạo lệnh
+                </span>
+            </div>
+
+
+            <div class="action-buttons">
+
+                <a asp-page="./Index"
+                   class="btn-cancel">
+
+                    Hủy
+
+                </a>
+
+
+                <button type="submit"
+                        name="actionType"
+                        value="draft"
+                        class="btn-draft">
+
+                    <i class="bi bi-bookmark"></i>
+
+                    <span>Lưu nháp</span>
+
+                </button>
+
+
+                <button type="submit"
+                        name="actionType"
+                        value="submit"
+                        class="btn-submit">
+
+                    <i class="bi bi-check-lg"></i>
+
+                    <span>Tạo lệnh xuất</span>
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </form>
+
+</div>
