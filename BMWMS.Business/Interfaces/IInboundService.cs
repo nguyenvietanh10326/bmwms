@@ -7,4 +7,11 @@ public interface IInboundService
 {
     Task<InboundOrderPageDto> GetInboundOrdersPageAsync(InboundOrderFilterDto filter);
     Task<InboundOrderDetailDto?> GetInboundOrderByIdAsync(long id);
+    Task<long> CreateInboundOrderAsync(CreateInboundOrderDto dto, long currentUserId);
+    Task<PurchaseOrderForInboundDto?> GetPurchaseOrderForInboundAsync(long purchaseOrderId);
+    Task<List<ShortageInboundOrderDto>> GetShortageInboundOrdersAsync();
+    Task<PurchaseOrderForInboundDto?> GetInboundOrderForSupplementAsync(long parentId);
+    Task<List<SourceOrderDropdownDto>> GetPendingPurchaseOrdersAsync();
+    Task<List<SourceOrderDropdownDto>> GetReturnableSalesOrdersAsync();
+    Task<PurchaseOrderForInboundDto?> GetSalesOrderForInboundAsync(long salesOrderId);
 }

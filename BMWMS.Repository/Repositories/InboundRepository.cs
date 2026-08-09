@@ -85,4 +85,14 @@ public class InboundRepository : IInboundRepository
                     .ThenInclude(detail => detail.ProductLot)
             .FirstOrDefaultAsync(i => i.InboundOrderId == id);
     }
+
+    public async Task AddAsync(InboundOrder inboundOrder)
+    {
+        await _context.InboundOrders.AddAsync(inboundOrder);
+    }
+
+    public async Task SaveChangesAsync()
+    {
+        await _context.SaveChangesAsync();
+    }
 }

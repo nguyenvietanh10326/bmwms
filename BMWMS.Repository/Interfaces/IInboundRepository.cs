@@ -16,4 +16,6 @@ public interface IInboundRepository
         int pageSize);
 
     Task<InboundOrder?> GetByIdAsync(long id);
+    Task AddAsync(InboundOrder inboundOrder);
+    Task SaveChangesAsync();
 }

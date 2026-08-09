@@ -65,5 +65,60 @@ public class InboundOrderTimelineDto
     public string EventName { get; set; } = string.Empty;
     public string StatusBadge { get; set; } = string.Empty;
     public string StatusBadgeColor { get; set; } = string.Empty;
+    public string EventDescription { get; set; } = string.Empty;
     public string PerformedBy { get; set; } = string.Empty;
+}
+
+public class SourceOrderDropdownDto
+{
+    public long Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+}
+
+public class CreateInboundOrderDto
+{
+    public string SourceType { get; set; } = "PURCHASE_ORDER";
+    public long? PurchaseOrderId { get; set; }
+    public long? SalesOrderId { get; set; }
+    public long WarehouseId { get; set; }
+    public DateOnly ExpectedReceiptDate { get; set; }
+    public string? Notes { get; set; }
+    public long? ParentInboundOrderId { get; set; }
+    [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Vui lòng chọn người phụ trách")]
+    public long? AssignedToUserId { get; set; }
+    public List<CreateInboundOrderItemDto> Items { get; set; } = new();
+}
+
+public class ShortageInboundOrderDto
+{
+    public long InboundOrderId { get; set; }
+    public string InboundOrderNumber { get; set; } = string.Empty;
+    public string PurchaseOrderNumber { get; set; } = string.Empty;
+    public string SupplierName { get; set; } = string.Empty;
+    public DateOnly OriginalExpectedDate { get; set; }
+}
+
+public class CreateInboundOrderItemDto
+{
+    public long ProductId { get; set; }
+    public decimal ExpectedQuantity { get; set; }
+    public string? Notes { get; set; }
+}
+
+public class PurchaseOrderForInboundDto
+{
+    public long PurchaseOrderId { get; set; }
+    public string PurchaseOrderNumber { get; set; } = string.Empty;
+    public string SupplierName { get; set; } = string.Empty;
+    public List<PurchaseOrderItemForInboundDto> Items { get; set; } = new();
+}
+
+public class PurchaseOrderItemForInboundDto
+{
+    public long ProductId { get; set; }
+    public string ProductName { get; set; } = string.Empty;
+    public string UnitName { get; set; } = string.Empty;
+    public decimal OrderedQuantity { get; set; }
+    public decimal InboundQuantity { get; set; }
+    public decimal RemainingQuantity { get; set; }
 }

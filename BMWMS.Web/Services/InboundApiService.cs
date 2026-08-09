@@ -1,6 +1,9 @@
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
+using System.Net.Http;
+using System.Net.Http.Json;
+using System.Threading.Tasks;
 using BMWMS.Web.Models;
 
 namespace BMWMS.Web.Services;
@@ -29,5 +32,60 @@ public class InboundApiService
     public async Task<InboundOrderDetailDto?> GetInboundOrderByIdAsync(long id)
     {
         return await _httpClient.GetFromJsonAsync<InboundOrderDetailDto>($"api/inbounds/{id}");
+    }
+
+    public async Task<long> CreateInboundOrderAsync(CreateInboundOrderDto dto)
+    {
+        var response = await _httpClient.PostAsJsonAsync("api/inbounds", dto);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<long>();
+    }
+
+    public async Task<PurchaseOrderForInboundDto?> GetPurchaseOrderForInboundAsync(long poId)
+    {
+        var response = await _httpClient.GetAsync($"api/inbounds/purchase-orders/{poId}");
+        if (response.IsSuccessStatusCode)
+        {
+            return await response.Content.ReadFromJsonAsync<PurchaseOrderForInboundDto>();
+        }
+        return null;
+    }
+
+    public async Task<List<ShortageInboundOrderDto>> GetShortageInboundOrdersAsync()
+    {
+        var response = await _httpClient.GetFromJsonAsync<List<ShortageInboundOrderDto>>("api/inbounds/shortages");
+        return response ?? new List<ShortageInboundOrderDto>();
+    }
+
+    public async Task<PurchaseOrderForInboundDto?> GetInboundOrderForSupplementAsync(long parentId)
+    {
+        var response = await _httpClient.GetAsync($"api/inbounds/{parentId}/supplement");
+        if (response.IsSuccessStatusCode)
+        {
+            return await response.Content.ReadFromJsonAsync<PurchaseOrderForInboundDto>();
+        }
+        return null;
+    }
+
+    public async Task<List<SourceOrderDropdownDto>> GetPendingPurchaseOrdersAsync()
+    {
+        var response = await _httpClient.GetFromJsonAsync<List<SourceOrderDropdownDto>>("api/inbounds/purchase-orders/pending");
+        return response ?? new List<SourceOrderDropdownDto>();
+    }
+
+    public async Task<List<SourceOrderDropdownDto>> GetReturnableSalesOrdersAsync()
+    {
+        var response = await _httpClient.GetFromJsonAsync<List<SourceOrderDropdownDto>>("api/inbounds/sales-orders/returnable");
+        return response ?? new List<SourceOrderDropdownDto>();
+    }
+
+    public async Task<PurchaseOrderForInboundDto?> GetSalesOrderForInboundAsync(long soId)
+    {
+        var response = await _httpClient.GetAsync($"api/inbounds/sales-orders/{soId}");
+        if (response.IsSuccessStatusCode)
+        {
+            return await response.Content.ReadFromJsonAsync<PurchaseOrderForInboundDto>();
+        }
+        return null;
     }
 }
