@@ -1,8 +1,10 @@
 ﻿using BMWMS.Business.DTOs.Inventory;
 using BMWMS.Business.Interfaces.Inventory;
+using BMWMS.Business.Services.Inventory;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using static BMWMS.Business.Interfaces.Inventory.ISalesOrderService;
 
 namespace BMWMS.API.Controllers.Inventory
 {
@@ -11,10 +13,13 @@ namespace BMWMS.API.Controllers.Inventory
     public class OutboundOrdersController : ControllerBase
     {
         private readonly IOutboundOrderService _outboundOrderService;
+        private readonly ISalesOrderService _saleService;
 
-        public OutboundOrdersController(IOutboundOrderService outboundOrderService)
+        public OutboundOrdersController(IOutboundOrderService outboundOrderService,ISalesOrderService orderService)
         {
             _outboundOrderService = outboundOrderService;
+            _saleService = orderService;
+
         }
 
         /// <summary>
@@ -120,6 +125,36 @@ namespace BMWMS.API.Controllers.Inventory
             {
                 return BadRequest(new { message = ex.Message });
             }
+        }
+        /// <summary>
+        /// Lấy thông tin chi tiết Sales Order & số lượng giữ tồn để tạo Lệnh Xuất
+        /// GET: api/SalesOrders/101
+        /// </summary>
+        [HttpGet("sales-order/{id:long}")]
+        public async Task<ActionResult<SalesOrderDetailApiResponse>> GetSalesOrderForOutbound(long id)
+        {
+            var result = await _saleService.GetSalesOrderDetailForOutboundAsync(id);
+
+            if (result == null)
+            {
+                return NotFound(new { message = $"Không tìm thấy Sales Order với ID = {id}" });
+            }
+
+            return Ok(result);
+        }
+        [HttpGet("creators")]
+        public async Task<IActionResult> GetSalesOrderCreators(
+    CancellationToken cancellationToken)
+        {
+            var users = await _saleService.GetSalesOrderCreatorsAsync(cancellationToken);
+
+            return Ok(users);
+        }
+        [HttpGet("sales-orders")]
+        public async Task<ActionResult<List<SalesOrderApiResponse>>> GetConfirmedSalesOrders()
+        {
+            var salesOrders = await _saleService.GetConfirmedSalesOrdersAsync();
+            return Ok(salesOrders);
         }
 
         #region Helper Methods

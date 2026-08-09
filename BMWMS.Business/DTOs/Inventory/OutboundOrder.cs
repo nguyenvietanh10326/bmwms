@@ -95,5 +95,37 @@ namespace BMWMS.Business.DTOs.Inventory
         public int PageSize { get; set; } = 10;
     }
 
-    
+    public class SalesOrderDetailApiResponse
+    {
+        public long SalesOrderId { get; set; }
+        public string SalesOrderNumber { get; set; } = string.Empty;
+        public string CustomerName { get; set; } = string.Empty;
+        public long? WarehouseId { get; set; }
+        public string? WarehouseName { get; set; }
+        public List<SalesOrderItemDto> Items { get; set; } = new();
+    }
+    public class UserSelectDto
+    {
+        public long UserId { get; set; }
+        public string FullName { get; set; } = null!;
+    }
+    public class SalesOrderApiResponse
+    {
+        public long SalesOrderId { get; set; }
+        public string SalesOrderNumber { get; set; } = string.Empty;
+
+        public string? CustomerName { get; set; }
+        public string? Status { get; set; }
+    }
+    public class SalesOrderItemDto
+    {
+        public long ProductId { get; set; }
+        public string ProductCode { get; set; } = string.Empty;
+        public string ProductName { get; set; } = string.Empty;
+        public decimal Quantity { get; set; }          // SL Yêu cầu
+        public decimal ReservedQuantity { get; set; }  // SL Đã giữ tồn (Available Reserved)
+        public string UnitName { get; set; } = string.Empty;
+        public string? LotBinInfo { get; set; }        // Thông tin Lot / Bin giữ tồn
+        public decimal UnitPrice { get; set; }
+    }
 }

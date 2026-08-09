@@ -52,6 +52,8 @@ builder.Services.AddScoped<IPurchaseOrderRepository, PurchaseOrderRepository>();
 builder.Services.AddScoped<IPurchaseOrderService, PurchaseOrderService>();
 builder.Services.AddScoped<IOutboundOrderRepository, OutboundOrderRepository>();
 builder.Services.AddScoped<IOutboundOrderService, OutboundOrderService>();
+builder.Services.AddScoped<ISalesOrderRepository, SalesOrderRepository>();
+builder.Services.AddScoped<ISalesOrderService, SalesOrderService>();
 
 builder.Services.AddHttpClient("WarehouseAPI", client =>
 {
