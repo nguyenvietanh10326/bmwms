@@ -105,22 +105,37 @@
                     <a href="/Inventory/Inventory" class="nav-sub-item @(Context.Request.Path == "/Inventory/Inventory" ? "active" : "")">Tồn kho theo vị trí</a>
                 </div>
 
-                <a href="#" class="nav-item" style="opacity: 0.6;" title="Iteration 2">
-                    <i class="ri-download-2-line nav-item-icon"></i>
-                    Nhập kho (Inbound)
-                </a>
-                <a href="#" class="nav-item" style="opacity: 0.6;" title="Iteration 2">
-                    <i class="ri-upload-2-line nav-item-icon"></i>
-                    Xuất kho (Outbound)
-                </a>
-                <a href="#" class="nav-item" style="opacity: 0.6;" title="Iteration 3">
-                    <i class="ri-arrow-left-right-line nav-item-icon"></i>
-                    Chuyển kho (Transfer)
-                </a>
-                <a href="#" class="nav-item" style="opacity: 0.6;" title="Iteration 3">
-                    <i class="ri-checkbox-multiple-line nav-item-icon"></i>
-                    Kiểm kê (Stocktake)
-                </a>
+                <!-- Chuyển vị trí nội bộ -->
+                @{
+                    var isTransferActive = Context.Request.Path.StartsWithSegments("/Transfer");
+                }
+                <div class="nav-item nav-item-has-sub @(isTransferActive ? "expanded active" : "")" onclick="toggleSubmenu(this)">
+                    <div class="nav-item-main">
+                        <i class="ri-arrow-left-right-line nav-item-icon"></i>
+                        Chuyển kho (Transfer)
+                    </div>
+                    <i class="ri-arrow-right-s-line nav-item-arrow"></i>
+                </div>
+                <div class="nav-submenu @(isTransferActive ? "expanded" : "")">
+                    <a href="/Transfer/Index" class="nav-sub-item @(Context.Request.Path == "/Transfer/Index" || Context.Request.Path == "/Transfer" ? "active" : "")">Danh sách phiếu chuyển kho</a>
+                    <a href="/Transfer/Create" class="nav-sub-item @(Context.Request.Path == "/Transfer/Create" ? "active" : "")">Tạo phiếu chuyển vị trí</a>
+                </div>
+
+                <!-- Kiểm kê -->
+                @{
+                    var isStocktakeActive = Context.Request.Path.StartsWithSegments("/Stocktake");
+                }
+                <div class="nav-item nav-item-has-sub @(isStocktakeActive ? "expanded active" : "")" onclick="toggleSubmenu(this)">
+                    <div class="nav-item-main">
+                        <i class="ri-checkbox-multiple-line nav-item-icon"></i>
+                        Kiểm kê (Stocktake)
+                    </div>
+                    <i class="ri-arrow-right-s-line nav-item-arrow"></i>
+                </div>
+                <div class="nav-submenu @(isStocktakeActive ? "expanded" : "")">
+                    <a href="/Stocktake/Index" class="nav-sub-item @(Context.Request.Path == "/Stocktake/Index" || Context.Request.Path == "/Stocktake" ? "active" : "")">Danh sách đợt kiểm kê</a>
+                    <a href="/Stocktake/Create" class="nav-sub-item @(Context.Request.Path == "/Stocktake/Create" ? "active" : "")">Tạo đợt kiểm kê mới</a>
+                </div>
             </div>
 
             <!-- 4. BÁO CÁO & THỐNG KÊ -->
