@@ -66,6 +66,7 @@ public class InboundService : IInboundService
             Items = order.InboundOrderItems.Select(item => new InboundOrderItemDto
             {
                 InboundOrderItemId = item.InboundOrderItemId,
+                ProductId = item.ProductId,
                 ProductCode = item.Product.ProductCode,
                 ProductName = item.Product.ProductName,
                 ExpectedQuantity = item.ExpectedQuantity,
@@ -312,15 +313,30 @@ public class InboundService : IInboundService
 
     public async Task<List<SourceOrderDropdownDto>> GetPendingPurchaseOrdersAsync()
     {
-        return await _context.PurchaseOrders
+        var pos = await _context.PurchaseOrders
             .Include(po => po.Supplier)
+            .Include(po => po.PurchaseOrderDetails)
+            .Include(po => po.InboundOrders)
+                .ThenInclude(io => io.InboundOrderItems)
             .Where(po => po.Status == "CONFIRMED" || po.Status == "PARTIALLY_RECEIVED")
+            .ToListAsync();
+
+        return pos
+            .Where(po => 
+            {
+                var totalOrdered = po.PurchaseOrderDetails.Sum(d => d.OrderedQuantity);
+                var totalExpected = po.InboundOrders
+                    .Where(io => io.Status != "CANCELLED")
+                    .SelectMany(io => io.InboundOrderItems)
+                    .Sum(i => i.ExpectedQuantity);
+                return totalOrdered > totalExpected;
+            })
             .Select(po => new SourceOrderDropdownDto
             {
                 Id = po.PurchaseOrderId,
-                Name = $"{po.PurchaseOrderNumber} — {po.Supplier.SupplierName}"
+                Name = $"{po.PurchaseOrderNumber} — {po.Supplier?.SupplierName ?? "N/A"}"
             })
-            .ToListAsync();
+            .ToList();
     }
 
     public async Task<List<SourceOrderDropdownDto>> GetReturnableSalesOrdersAsync()
@@ -378,5 +394,73 @@ public class InboundService : IInboundService
         };
 
         return dto;
+    }
+
+    public async Task UpdateInboundOrderAsync(long id, UpdateInboundOrderDto dto, long currentUserId)
+    {
+        var order = await _context.InboundOrders
+            .Include(o => o.InboundOrderItems)
+            .FirstOrDefaultAsync(o => o.InboundOrderId == id);
+
+        if (order == null) throw new Exception("Không tìm thấy lệnh nhập kho");
+        if (order.Status != "DRAFT") throw new Exception("Chỉ có thể sửa lệnh nhập kho ở trạng thái Chờ xử lý");
+
+        if (dto.Items == null || !dto.Items.Any())
+            throw new Exception("Lệnh nhập kho phải có ít nhất 1 dòng hàng.");
+
+        if (dto.Items.Any(i => i.ExpectedQuantity <= 0))
+            throw new Exception("Số lượng dự kiến phải lớn hơn 0.");
+
+        if (order.SourceType == "PURCHASE_ORDER" && order.PurchaseOrderId.HasValue)
+        {
+            var po = await GetPurchaseOrderForInboundAsync(order.PurchaseOrderId.Value);
+            foreach (var item in dto.Items)
+            {
+                var poItem = po?.Items.FirstOrDefault(i => i.ProductId == item.ProductId);
+                if (poItem == null || item.ExpectedQuantity > poItem.RemainingQuantity)
+                    throw new Exception($"Số lượng dự kiến của sản phẩm {poItem?.ProductName ?? item.ProductId.ToString()} vượt quá số lượng còn lại ({poItem?.RemainingQuantity ?? 0}).");
+            }
+        }
+        else if (order.SourceType == "SUPPLEMENT" && order.ParentInboundOrderId.HasValue)
+        {
+            var parent = await GetInboundOrderForSupplementAsync(order.ParentInboundOrderId.Value);
+            foreach (var item in dto.Items)
+            {
+                var parentItem = parent?.Items.FirstOrDefault(i => i.ProductId == item.ProductId);
+                if (parentItem == null || item.ExpectedQuantity > parentItem.RemainingQuantity)
+                    throw new Exception($"Số lượng dự kiến của sản phẩm {parentItem?.ProductName ?? item.ProductId.ToString()} vượt quá số lượng thiếu ({parentItem?.RemainingQuantity ?? 0}).");
+            }
+        }
+
+        order.ExpectedReceiptDate = dto.ExpectedReceiptDate;
+        order.Notes = dto.Notes;
+        order.AssignedToUserId = dto.AssignedToUserId;
+
+        foreach (var itemDto in dto.Items)
+        {
+            var existingItem = order.InboundOrderItems.FirstOrDefault(i => i.ProductId == itemDto.ProductId);
+            if (existingItem != null)
+            {
+                existingItem.ExpectedQuantity = itemDto.ExpectedQuantity;
+                existingItem.Notes = itemDto.Notes;
+            }
+        }
+
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task CancelInboundOrderAsync(long id, CancelInboundOrderDto dto, long currentUserId)
+    {
+        var order = await _inboundRepository.GetByIdAsync(id);
+        if (order == null) throw new Exception("Không tìm thấy lệnh nhập kho");
+        if (order.Status != "DRAFT") throw new Exception("Chỉ có thể hủy lệnh nhập kho ở trạng thái Chờ xử lý");
+
+        order.Status = "CANCELLED";
+        order.CancellationReason = dto.CancellationReason;
+        order.CancelledAt = DateTime.UtcNow;
+        order.CancelledByUserId = currentUserId;
+
+        await _inboundRepository.UpdateAsync(order);
+        await _inboundRepository.SaveChangesAsync();
     }
 }

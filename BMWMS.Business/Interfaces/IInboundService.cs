@@ -14,4 +14,6 @@ public interface IInboundService
     Task<List<SourceOrderDropdownDto>> GetPendingPurchaseOrdersAsync();
     Task<List<SourceOrderDropdownDto>> GetReturnableSalesOrdersAsync();
     Task<PurchaseOrderForInboundDto?> GetSalesOrderForInboundAsync(long salesOrderId);
+    Task UpdateInboundOrderAsync(long id, UpdateInboundOrderDto dto, long currentUserId);
+    Task CancelInboundOrderAsync(long id, CancelInboundOrderDto dto, long currentUserId);
 }

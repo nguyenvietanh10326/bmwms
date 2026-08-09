@@ -1,0 +1,135 @@
+@page "{id:long}"
+@model BMWMS.Web.Pages.Admin.Inbound.EditModel
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Sửa lệnh nhập kho";
+    ViewData["ActivePage"] = "Inbound";
+}
+
+<style>
+  :root{
+    --font-ui:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    --navy-950:#233a6b;
+    --accent:#3e5cf6; --accent-100:#e8ecff;
+    --bg:#f2f3f7; --card:#ffffff; --line:#e7e9f0; --line-strong:#d7dae5;
+    --ink:#161b2e; --ink-2:#525a72; --ink-3:#8890a6;
+    --r-sm:8px; --r-lg:16px;
+    --sh-xs:0 1px 2px rgba(16,23,42,.05);
+  }
+  
+  .inbound-page {
+    font-family: var(--font-ui);
+    color: var(--ink);
+    font-size: 14px;
+    padding: 26px 30px 64px;
+  }
+  .inbound-page .breadcrumb{font-size:11.5px;color:var(--ink-3);margin-bottom:8px;font-weight:600;text-transform:uppercase;}
+  .inbound-page .pagehead h1{font-size:20px;margin:0 0 5px;font-weight:700;}
+  .inbound-page .pagehead p{margin:0;color:var(--ink-2);font-size:13px;}
+  .inbound-page .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);padding:22px 24px;margin-bottom:16px;box-shadow:var(--sh-xs);}
+  .inbound-page .card h3{margin:0 0 14px;font-size:14px;font-weight:700;}
+  
+  .inbound-page .grid2{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
+  .inbound-page .field label{display:block;font-size:11.5px;color:var(--ink-3);margin-bottom:6px;font-weight:600;text-transform:uppercase;}
+  .inbound-page .field input, .inbound-page .field select, .inbound-page .field textarea{width:100%;padding:9px 11px;border:1px solid var(--line-strong);border-radius:var(--r-sm);font-size:13px;background:#fff;color:var(--ink);}
+  .inbound-page .field input:focus, .inbound-page .field select:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 3px var(--accent-100);}
+  .inbound-page .field input[disabled]{background:#f7f8fb;color:var(--ink-3);}
+  
+  .inbound-page .btn{display:inline-flex;align-items:center;gap:7px;border:none;border-radius:var(--r-sm);padding:9px 15px;font-size:13px;font-weight:600;cursor:pointer;text-decoration:none;}
+  .inbound-page .btn-dark{background:var(--navy-950);color:#fff;}
+  .inbound-page .btn-light{background:#fff;border:1px solid var(--line-strong);color:var(--ink);}
+  .inbound-page .actions-end{display:flex;justify-content:flex-end;gap:10px;margin-top:16px;}
+  
+  .inbound-page .note{display:flex;gap:10px;background:#fff8e8;border:1px solid #f6e2ab;border-radius:var(--r-sm);padding:13px 15px;font-size:12.5px;color:#7a5300;margin-bottom:16px;}
+</style>
+
+<div class="inbound-page">
+  <div class="breadcrumb">
+    <a asp-page="/Admin/Inbound/Index" style="color:var(--ink-3); text-decoration:none;">Nhập kho</a>
+    <span style="margin:0 4px">›</span>
+    <a asp-page="/Admin/Inbound/Details" asp-route-id="@Model.Order.InboundOrderId" style="color:var(--ink-3); text-decoration:none;">@Model.Order.InboundOrderNumber</a>
+    <span style="margin:0 4px">›</span>
+    <span>Sửa lệnh</span>
+  </div>
+  
+  <div class="pagehead" style="margin-bottom:20px;">
+    <h1>Chỉnh sửa lệnh nhập kho — @Model.Order.InboundOrderNumber</h1>
+    <p>Cập nhật ngày dự kiến, kho nhận và người phụ trách.</p>
+  </div>
+  
+  @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+  {
+      <div style="color: red; margin-bottom: 15px;">@Model.ErrorMessage</div>
+  }
+
+  <div class="note">
+    <span><b>Đang sửa:</b> Mã lệnh nhập, Purchase Order và Nhà cung cấp không thể thay đổi.</span>
+  </div>
+  
+  <form method="post">
+    <div class="card">
+      <h3>Thông tin chung (Không thể sửa)</h3>
+      <div class="grid2" style="grid-template-columns:repeat(5,1fr);">
+        <div class="field"><label>Purchase Order</label><input disabled value="@Model.Order.PurchaseOrderNumber"></div>
+        <div class="field"><label>Mã lệnh nhập</label><input disabled value="@Model.Order.InboundOrderNumber"></div>
+        <div class="field"><label>Kho nhận</label><input disabled value="@Model.Order.WarehouseName"></div>
+        <div class="field"><label>Nhà cung cấp</label><input disabled value="@Model.Order.SupplierName"></div>
+        <div class="field"><label>Nguồn bổ sung</label><input disabled value="@(Model.Order.ParentInboundOrderNumber ?? "—")"></div>
+      </div>
+    </div>
+    
+    <div class="card">
+      <h3>Thông tin cập nhật</h3>
+      <div class="grid2" style="grid-template-columns:repeat(3,1fr);">
+        <div class="field">
+            <label>Ngày dự kiến *</label>
+            <input type="date" asp-for="EditOrder.ExpectedReceiptDate" required />
+        </div>
+        <div class="field">
+            <label>Người phụ trách *</label>
+            <select asp-for="EditOrder.AssignedToUserId" asp-items="Model.Users" required>
+                <option value="">-- Chọn người --</option>
+            </select>
+            <span asp-validation-for="EditOrder.AssignedToUserId" style="color:red; font-size:12px;"></span>
+        </div>
+        <div class="field">
+            <label>Ghi chú</label>
+            <input type="text" asp-for="EditOrder.Notes" placeholder="Không bắt buộc" />
+        </div>
+      </div>
+    </div>
+    
+    <div class="card">
+      <h3>Dòng hàng & Số lượng</h3>
+      <table style="width:100%; border-collapse:collapse; margin-top:10px;">
+        <thead>
+            <tr style="border-bottom:1px solid var(--line-strong);">
+                <th style="text-align:left; padding:8px 0; font-size:12px; color:var(--ink-3); text-transform:uppercase;">Sản phẩm</th>
+                <th style="text-align:right; padding:8px 0; font-size:12px; color:var(--ink-3); text-transform:uppercase; width:150px;">Số lượng dự kiến</th>
+            </tr>
+        </thead>
+        <tbody>
+            @for (int i = 0; i < Model.EditOrder.Items.Count; i++)
+            {
+                <tr style="border-bottom:1px solid var(--line);">
+                    <td style="padding:12px 0;">
+                        <input type="hidden" asp-for="EditOrder.Items[i].ProductId" />
+                        <span style="font-weight:600;">@Model.EditOrder.Items[i].ProductName</span>
+                    </td>
+                    <td style="padding:12px 0; text-align:right;">
+                        <div class="field" style="margin:0;">
+                            <input type="number" step="0.01" min="0.01" asp-for="EditOrder.Items[i].ExpectedQuantity" style="text-align:right;" required />
+                        </div>
+                    </td>
+                </tr>
+            }
+        </tbody>
+      </table>
+      
+      <div class="actions-end">
+        <a asp-page="/Admin/Inbound/Details" asp-route-id="@Model.Order.InboundOrderId" class="btn btn-light">Hủy bỏ</a>
+        <button type="submit" class="btn btn-dark">Lưu thay đổi</button>
+      </div>
+    </div>
+  </form>
+</div>

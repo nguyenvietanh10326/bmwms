@@ -88,4 +88,25 @@ public class InboundApiService
         }
         return null;
     }
+
+    public async Task UpdateInboundOrderAsync(long id, UpdateInboundOrderDto dto)
+    {
+        var response = await _httpClient.PutAsJsonAsync($"api/inbounds/{id}", dto);
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.Content.ReadAsStringAsync();
+            throw new Exception($"Cập nhật thất bại: {error}");
+        }
+    }
+
+    public async Task CancelInboundOrderAsync(long id, string reason)
+    {
+        var dto = new CancelInboundOrderDto { CancellationReason = reason };
+        var response = await _httpClient.PutAsJsonAsync($"api/inbounds/{id}/cancel", dto);
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.Content.ReadAsStringAsync();
+            throw new Exception($"Hủy thất bại: {error}");
+        }
+    }
 }

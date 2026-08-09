@@ -91,6 +91,12 @@ public class InboundRepository : IInboundRepository
         await _context.InboundOrders.AddAsync(inboundOrder);
     }
 
+    public Task UpdateAsync(InboundOrder inboundOrder)
+    {
+        _context.InboundOrders.Update(inboundOrder);
+        return Task.CompletedTask;
+    }
+
     public async Task SaveChangesAsync()
     {
         await _context.SaveChangesAsync();

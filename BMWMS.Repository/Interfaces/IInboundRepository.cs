@@ -17,5 +17,6 @@ public interface IInboundRepository
 
     Task<InboundOrder?> GetByIdAsync(long id);
     Task AddAsync(InboundOrder inboundOrder);
+    Task UpdateAsync(InboundOrder inboundOrder);
     Task SaveChangesAsync();
 }

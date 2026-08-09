@@ -90,4 +90,34 @@ public class InboundsController : ControllerBase
         if (result == null) return NotFound();
         return Ok(result);
     }
+
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Update(long id, [FromBody] UpdateInboundOrderDto dto)
+    {
+        try
+        {
+            var userId = 1; // Tạm hardcode
+            await _inboundService.UpdateInboundOrderAsync(id, dto, userId);
+            return Ok();
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { Message = ex.Message });
+        }
+    }
+
+    [HttpPut("{id}/cancel")]
+    public async Task<IActionResult> Cancel(long id, [FromBody] CancelInboundOrderDto dto)
+    {
+        try
+        {
+            var userId = 1; // Tạm hardcode
+            await _inboundService.CancelInboundOrderAsync(id, dto, userId);
+            return Ok();
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { Message = ex.Message });
+        }
+    }
 }

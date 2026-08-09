@@ -111,14 +111,24 @@
     @{
         var statusClass = "b-gy";
         var statusName = Model.Order.Status;
-        if (Model.Order.Status == "READY") { statusClass = "b-gy"; statusName = "Sẵn sàng"; }
-        else if (Model.Order.Status == "ASSIGNED") { statusClass = "b-b"; statusName = "Chờ xử lý"; }
+        if (Model.Order.Status == "DRAFT") { statusClass = "b-gy"; statusName = "Chờ xử lý"; }
+        else if (Model.Order.Status == "READY") { statusClass = "b-gy"; statusName = "Sẵn sàng"; }
+        else if (Model.Order.Status == "ASSIGNED") { statusClass = "b-b"; statusName = "Đã giao việc"; }
         else if (Model.Order.Status == "RECEIVING") { statusClass = "b-b"; statusName = "Đang nhận hàng"; }
         else if (Model.Order.Status == "RECEIVED") { statusClass = "b-g"; statusName = "Đã nhận"; }
         else if (Model.Order.Status == "PUTAWAY_COMPLETED") { statusClass = "b-g"; statusName = "Hoàn tất"; }
         else if (Model.Order.Status == "CANCELLED") { statusClass = "b-r"; statusName = "Đã hủy"; }
     }
-    <span class="badge @statusClass"><span class="dot"></span>@statusName</span>
+    <div style="display:flex; align-items:center; gap: 10px; flex-direction:column; align-items:flex-end;">
+        <span class="badge @statusClass"><span class="dot"></span>@statusName</span>
+        @if (Model.Order.Status == "DRAFT")
+        {
+            <div style="display:flex; gap: 8px;">
+                <a href="/Admin/Inbound/Edit/@Model.Order.InboundOrderId" class="btn btn-light" style="padding: 6px 12px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg> Sửa lệnh</a>
+                <button type="button" class="btn btn-danger" onclick="cancelInbound()" style="padding: 6px 12px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg> Hủy lệnh</button>
+            </div>
+        }
+    </div>
   </div>
 
   <div class="card">
@@ -200,3 +210,36 @@
     </div>
   </div>
 </div>
+
+<script>
+    async function cancelInbound() {
+        var reason = prompt("Nhập lý do hủy lệnh nhập kho này:");
+        if (reason === null) return;
+        if (!reason.trim()) {
+            alert("Lý do hủy không được để trống!");
+            return;
+        }
+
+        if (!confirm("Bạn có chắc chắn muốn hủy lệnh nhập kho này không? Hành động này không thể hoàn tác.")) {
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/inbounds/@Model.Order.InboundOrderId/cancel', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ cancellationReason: reason })
+            });
+
+            if (response.ok) {
+                alert("Đã hủy lệnh thành công!");
+                window.location.reload();
+            } else {
+                const err = await response.json();
+                alert(err.message || "Có lỗi xảy ra khi hủy");
+            }
+        } catch (e) {
+            alert("Có lỗi xảy ra: " + e.message);
+        }
+    }
+</script>

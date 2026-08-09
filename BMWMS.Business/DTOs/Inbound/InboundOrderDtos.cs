@@ -53,6 +53,7 @@ public class InboundOrderDetailDto
 public class InboundOrderItemDto
 {
     public long InboundOrderItemId { get; set; }
+    public long ProductId { get; set; }
     public string ProductCode { get; set; } = string.Empty;
     public string ProductName { get; set; } = string.Empty;
     public decimal ExpectedQuantity { get; set; }
@@ -117,4 +118,25 @@ public class PurchaseOrderItemForInboundDto
     public decimal OrderedQuantity { get; set; }
     public decimal InboundQuantity { get; set; }
     public decimal RemainingQuantity { get; set; }
+}
+
+public class UpdateInboundOrderDto
+{
+    public DateOnly ExpectedReceiptDate { get; set; }
+    public string? Notes { get; set; }
+    [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Vui lòng chọn người phụ trách")]
+    public long? AssignedToUserId { get; set; }
+    public List<UpdateInboundOrderItemDto> Items { get; set; } = new();
+}
+
+public class UpdateInboundOrderItemDto
+{
+    public long ProductId { get; set; }
+    public decimal ExpectedQuantity { get; set; }
+    public string? Notes { get; set; }
+}
+
+public class CancelInboundOrderDto
+{
+    public string? CancellationReason { get; set; }
 }
