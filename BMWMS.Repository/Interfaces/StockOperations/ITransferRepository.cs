@@ -4,12 +4,22 @@ using System.Threading.Tasks;
 
 namespace BMWMS.Repository.Interfaces.StockOperations
 {
+    public class TransferItemParam
+    {
+        public long SourceLocationId { get; set; }
+        public long DestLocationId { get; set; }
+        public long ProductId { get; set; }
+        public long ProductLotId { get; set; }
+        public decimal Quantity { get; set; }
+    }
+
     public interface ITransferRepository
     {
-        // ── FORM DATA ──────────────────────────────────────────────────────────
+        // ── FORM & DROPDOWN DATA ───────────────────────────────────────────────
+        Task<List<WarehouseZone>> GetZonesByWarehouseAsync(long warehouseId = 1);
         Task<List<BMWMS.Repository.Models.Inventory>> GetInventoriesByLocationAsync(long locationId);
         Task<StorageLocation?> GetLocationWithInventoryAsync(long locationId);
-        Task<List<StorageLocation>> GetActiveLocationsByWarehouseAsync(long warehouseId);
+        Task<List<StorageLocation>> GetActiveLocationsByWarehouseAsync(long warehouseId = 1, long? zoneId = null);
         Task<List<Warehouse>> GetAllWarehousesAsync();
 
         // ── LIST / DETAIL ──────────────────────────────────────────────────────
@@ -18,21 +28,14 @@ namespace BMWMS.Repository.Interfaces.StockOperations
 
         Task<TransferOrder?> GetOrderWithDetailsAsync(long transferOrderId);
 
-        // ── CREATE (Staff) ─────────────────────────────────────────────────────
-        /// <summary>Tạo TransferOrder + Detail với Status = PENDING — chưa chạm Inventory.</summary>
+        // ── CREATE MULTI-ITEM (Staff) ──────────────────────────────────────────
         Task<TransferOrder> CreatePendingOrderAsync(
             long warehouseId,
-            long sourceLocationId,
-            long destLocationId,
-            long productId,
-            long productLotId,
-            decimal quantity,
+            List<TransferItemParam> items,
             long createdByUserId,
             string? notes);
 
         // ── APPROVE (Manager) ──────────────────────────────────────────────────
-        /// <summary>Duyệt: INSERT 2 InventoryTransactions → Trigger tự cập nhật Inventory.
-        /// Cập nhật TransferOrder.Status = COMPLETED.</summary>
         Task<TransferOrder> ApproveOrderAsync(long transferOrderId, long approvedByUserId, string? notes);
 
         // ── REJECT (Manager) ───────────────────────────────────────────────────

@@ -40,8 +40,7 @@ namespace BMWMS.Business.DTOs.StockOperations
         public int TotalCount { get; set; }
         public int PageIndex { get; set; }
         public int PageSize { get; set; }
-        public int TotalPages => (int)Math.Ceiling((double)TotalCount / PageSize);
-        // Stats
+        public int TotalPages => PageSize > 0 ? (int)Math.Ceiling((double)TotalCount / PageSize) : 0;
         public int PendingCount { get; set; }
         public int ApprovedCount { get; set; }
         public int RejectedCount { get; set; }
@@ -77,48 +76,40 @@ namespace BMWMS.Business.DTOs.StockOperations
         public string DestLocationCode { get; set; } = string.Empty;
         public decimal RequestedQuantity { get; set; }
         public decimal MovedQuantity { get; set; }
-        public string? StaffNote { get; set; }
     }
 
-    // ─── CREATE REQUEST ──────────────────────────────────────────────────────
+    // ─── CREATE REQUEST (MULTI-ITEM) ────────────────────────────────────────
 
-    /// <summary>Staff tạo phiếu điều chuyển — status = PENDING</summary>
-    public class CreateTransferOrderDto
+    public class CreateTransferItemDto
     {
-        public long WarehouseId { get; set; }
         public long SourceLocationId { get; set; }
         public long DestLocationId { get; set; }
         public long ProductId { get; set; }
         public long ProductLotId { get; set; }
         public decimal Quantity { get; set; }
-        public string? Notes { get; set; }
     }
 
-    /// <summary>Manager duyệt phiếu → thực thi InventoryTransaction</summary>
+    /// <summary>Staff tạo phiếu chuyển kho — hỗ trợ nhiều sản phẩm trong 1 lần chuyển</summary>
+    public class CreateTransferOrderDto
+    {
+        public long WarehouseId { get; set; } = 1;
+        public string? Notes { get; set; }
+        public List<CreateTransferItemDto> Items { get; set; } = new();
+    }
+
     public class ApproveTransferDto
     {
         public long TransferOrderId { get; set; }
         public string? Notes { get; set; }
     }
 
-    // ─── DROPDOWN / FORM DATA ────────────────────────────────────────────────
+    // ─── DROPDOWN & HELPER DTOs ─────────────────────────────────────────────
 
-    public class BinTransferRequestDto
+    public class ZoneOptionDto
     {
-        public long SourceLocationId { get; set; }
-        public long DestLocationId { get; set; }
-        public long ProductId { get; set; }
-        public long ProductLotId { get; set; }
-        public decimal Quantity { get; set; }
-        public string? Notes { get; set; }
-    }
-
-    public class TransferResultDto
-    {
-        public bool Success { get; set; }
-        public string Message { get; set; } = string.Empty;
-        public long? TransferOrderId { get; set; }
-        public string? TransferOrderNumber { get; set; }
+        public long ZoneId { get; set; }
+        public string ZoneCode { get; set; } = string.Empty;
+        public string ZoneName { get; set; } = string.Empty;
     }
 
     public class TransferInventoryItemDto
@@ -142,6 +133,7 @@ namespace BMWMS.Business.DTOs.StockOperations
         public long LocationId { get; set; }
         public string LocationCode { get; set; } = string.Empty;
         public string LocationName { get; set; } = string.Empty;
+        public long? ZoneId { get; set; }
         public string ZoneCode { get; set; } = string.Empty;
         public string RackCode { get; set; } = string.Empty;
         public bool IsPutawayAllowed { get; set; }
@@ -153,5 +145,13 @@ namespace BMWMS.Business.DTOs.StockOperations
     {
         public bool IsValid { get; set; }
         public string Message { get; set; } = string.Empty;
+    }
+
+    public class TransferResultDto
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public long? TransferOrderId { get; set; }
+        public string? TransferOrderNumber { get; set; }
     }
 }

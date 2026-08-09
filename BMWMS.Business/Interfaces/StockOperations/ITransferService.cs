@@ -6,9 +6,10 @@ namespace BMWMS.Business.Interfaces.StockOperations
 {
     public interface ITransferService
     {
-        // FORM DATA
+        // FORM & DROPDOWN DATA
+        Task<List<ZoneOptionDto>> GetZonesAsync(long warehouseId = 1);
         Task<List<TransferInventoryItemDto>> GetLocationInventoryAsync(long locationId);
-        Task<List<LocationOptionDto>> GetLocationsForDropdownAsync(long warehouseId);
+        Task<List<LocationOptionDto>> GetLocationsForDropdownAsync(long warehouseId = 1, long? zoneId = null);
         Task<BinCapacityCheckDto> ValidateDestinationAsync(long destLocationId, long sourceLocationId, long productId);
 
         // LIST
@@ -17,7 +18,7 @@ namespace BMWMS.Business.Interfaces.StockOperations
         // DETAIL
         Task<TransferOrderDetailViewDto?> GetOrderDetailAsync(long transferOrderId);
 
-        // STAFF: Tạo phiếu PENDING
+        // STAFF: Tạo phiếu PENDING (nhiều sản phẩm)
         Task<TransferResultDto> CreatePendingOrderAsync(CreateTransferOrderDto dto, long createdByUserId);
 
         // MANAGER: Duyệt

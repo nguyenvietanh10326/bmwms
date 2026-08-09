@@ -23,7 +23,7 @@
             </div>
             <h1 style="font-size: 22px; font-weight: 700; color: #0f172a; margin: 0; display: flex; align-items: center; gap: 10px;">
                 <span>Phiếu: @Model.Order?.TransferOrderNumber</span>
-                @if (Model.Order?.Status == "PENDING")
+                @if (Model.Order?.Status == "PENDING" || Model.Order?.Status == "DRAFT" || Model.Order?.Status == "ASSIGNED")
                 {
                     <span style="background: #fffbeb; color: #b45309; border: 1px solid #fde68a; padding: 4px 12px; border-radius: 20px; font-size: 13px; font-weight: 600;">
                         <i class="ri-time-line"></i> Chờ phê duyệt
@@ -35,7 +35,7 @@
                         <i class="ri-checkbox-circle-line"></i> Đã hoàn thành
                     </span>
                 }
-                else if (Model.Order?.Status == "REJECTED")
+                else if (Model.Order?.Status == "REJECTED" || Model.Order?.Status == "CANCELLED")
                 {
                     <span style="background: #fff5f5; color: #b91c1c; border: 1px solid #fecaca; padding: 4px 12px; border-radius: 20px; font-size: 13px; font-weight: 600;">
                         <i class="ri-close-circle-line"></i> Đã từ chối
@@ -49,14 +49,23 @@
                 <i class="ri-arrow-left-line"></i> Quay lại danh sách
             </a>
 
-            @if (Model.Order?.Status == "PENDING")
+            @if (Model.Order?.Status == "PENDING" || Model.Order?.Status == "DRAFT" || Model.Order?.Status == "ASSIGNED")
             {
-                <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#approveModal" style="display: inline-flex; align-items: center; gap: 6px; font-weight: 600;">
-                    <i class="ri-check-line"></i> Phê Duyệt Phiếu
-                </button>
-                <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#rejectModal" style="display: inline-flex; align-items: center; gap: 6px; font-weight: 600;">
-                    <i class="ri-close-line"></i> Từ Chối
-                </button>
+                if (Model.IsManager)
+                {
+                    <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#approveModal" style="display: inline-flex; align-items: center; gap: 6px; font-weight: 600;">
+                        <i class="ri-check-line"></i> Phê Duyệt Phiếu
+                    </button>
+                    <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#rejectModal" style="display: inline-flex; align-items: center; gap: 6px; font-weight: 600;">
+                        <i class="ri-close-line"></i> Từ Chối
+                    </button>
+                }
+                else
+                {
+                    <button type="button" class="btn btn-secondary btn-sm" disabled style="display: inline-flex; align-items: center; gap: 6px; opacity: 0.65;" title="Chỉ Quản lý (WH_MANAGER / ADMIN) mới có quyền duyệt">
+                        <i class="ri-lock-line"></i> Cần Quản Lý Duyệt
+                    </button>
+                }
             }
         </div>
     </div>
@@ -74,6 +83,17 @@
         <div style="background: #fff5f5; border: 1px solid #fecaca; border-radius: 10px; padding: 14px 18px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px;">
             <i class="ri-error-warning-fill" style="font-size: 20px; color: #dc2626;"></i>
             <div style="font-weight: 600; color: #dc2626; font-size: 14px;">@tempError</div>
+        </div>
+    }
+
+    <!-- THÔNG BÁO VAI TRÒ NẾU KHÔNG PHẢI MANAGER -->
+    @if ((Model.Order?.Status == "PENDING" || Model.Order?.Status == "DRAFT" || Model.Order?.Status == "ASSIGNED") && !Model.IsManager)
+    {
+        <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 12px 16px; margin-bottom: 20px; font-size: 13px; color: #1e40af; display: flex; align-items: center; gap: 10px;">
+            <i class="ri-shield-user-line" style="font-size: 20px; color: #2563eb;"></i>
+            <div>
+                Bạn đang xem phiếu với vai trò <strong>@Model.CurrentRole</strong>. Chỉ tài khoản Quản lý kho (<strong>WH_MANAGER</strong>) hoặc Quản trị viên (<strong>ADMIN</strong>) mới có quyền phê duyệt phiếu này.
+            </div>
         </div>
     }
 
@@ -177,7 +197,7 @@
                                         <td style="padding: 12px; text-align: right; font-weight: 700; color: #0f172a;">
                                             @item.RequestedQuantity.ToString("N2") @item.UnitName
                                         </td>
-                                        <td style="padding: 12px; text-align: right; font-weight: 700; color: #(Model.Order.Status == "COMPLETED" ? "16a34a" : "64748b");">
+                                        <td style="padding: 12px; text-align: right; font-weight: 700; color: @(Model.Order.Status == "COMPLETED" ? "#16a34a" : "#64748b");">
                                             @item.MovedQuantity.ToString("N2") @item.UnitName
                                         </td>
                                     </tr>
@@ -191,66 +211,68 @@
     }
 
     <!-- MODAL PHÊ DUYỆT -->
-    <div class="modal fade" id="approveModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content" style="border-radius: 12px;">
-                <form method="post" asp-page-handler="Approve" asp-route-id="@Model.Order?.TransferOrderId">
-                    @Html.AntiForgeryToken()
-                    <div class="modal-header" style="border-bottom: 1px solid #f1f5f9;">
-                        <h5 class="modal-title" style="font-size: 16px; font-weight: 700; color: #16a34a;">
-                            <i class="ri-checkbox-circle-line"></i> Xác Nhận Phê Duyệt Phiếu
-                        </h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body" style="font-size: 13px; color: #334155;">
-                        <p>Bạn có chắc chắn muốn phê duyệt phiếu điều chuyển <strong>@Model.Order?.TransferOrderNumber</strong> không?</p>
-                        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px; margin-bottom: 14px; font-size: 12px; color: #15803d;">
-                            ⚠️ <strong>Lưu ý:</strong> Ngay sau khi duyệt, hệ thống sẽ <strong>tự động trừ tồn ô nguồn và cộng tồn ô đích</strong> theo đúng số lượng đã yêu cầu.
+    @if (Model.IsManager)
+    {
+        <div class="modal fade" id="approveModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content" style="border-radius: 12px;">
+                    <form method="post" asp-page-handler="Approve" asp-route-id="@Model.Order?.TransferOrderId">
+                        @Html.AntiForgeryToken()
+                        <div class="modal-header" style="border-bottom: 1px solid #f1f5f9;">
+                            <h5 class="modal-title" style="font-size: 16px; font-weight: 700; color: #16a34a;">
+                                <i class="ri-checkbox-circle-line"></i> Xác Nhận Phê Duyệt Phiếu
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label" style="font-weight: 600; font-size: 12px; color: #475569;">Ghi chú phê duyệt (tùy chọn)</label>
-                            <textarea name="notes" class="form-control form-control-sm" rows="2" placeholder="Nhập ghi chú nếu có..."></textarea>
+                        <div class="modal-body" style="font-size: 13px; color: #334155;">
+                            <p>Bạn có chắc chắn muốn phê duyệt phiếu điều chuyển <strong>@Model.Order?.TransferOrderNumber</strong> không?</p>
+                            <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px; margin-bottom: 14px; font-size: 12px; color: #15803d;">
+                                ⚠️ <strong>Lưu ý:</strong> Ngay sau khi duyệt, hệ thống sẽ <strong>tự động trừ tồn ô nguồn và cộng tồn ô đích</strong> theo đúng số lượng đã yêu cầu.
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label" style="font-weight: 600; font-size: 12px; color: #475569;">Ghi chú phê duyệt (tùy chọn)</label>
+                                <textarea name="notes" class="form-control form-control-sm" rows="2" placeholder="Nhập ghi chú nếu có..."></textarea>
+                            </div>
                         </div>
-                    </div>
-                    <div class="modal-footer" style="border-top: 1px solid #f1f5f9;">
-                        <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Hủy</button>
-                        <button type="submit" class="btn btn-success btn-sm" style="font-weight: 600; padding: 6px 16px;">
-                            ✓ Phê Duyệt Ngay
-                        </button>
-                    </div>
-                </form>
+                        <div class="modal-footer" style="border-top: 1px solid #f1f5f9;">
+                            <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Hủy</button>
+                            <button type="submit" class="btn btn-success btn-sm" style="font-weight: 600; padding: 6px 16px;">
+                                ✓ Phê Duyệt Ngay
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- MODAL TỪ CHỐI -->
-    <div class="modal fade" id="rejectModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content" style="border-radius: 12px;">
-                <form method="post" asp-page-handler="Reject" asp-route-id="@Model.Order?.TransferOrderId">
-                    @Html.AntiForgeryToken()
-                    <div class="modal-header" style="border-bottom: 1px solid #f1f5f9;">
-                        <h5 class="modal-title" style="font-size: 16px; font-weight: 700; color: #dc2626;">
-                            <i class="ri-close-circle-line"></i> Từ Chối Phiếu Điều Chuyển
-                        </h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body" style="font-size: 13px; color: #334155;">
-                        <p>Từ chối yêu cầu điều chuyển <strong>@Model.Order?.TransferOrderNumber</strong>.</p>
-                        <div class="mb-3">
-                            <label class="form-label" style="font-weight: 600; font-size: 12px; color: #475569;">Lý do từ chối</label>
-                            <textarea name="notes" class="form-control form-control-sm" rows="2" placeholder="Nhập lý do từ chối..." required></textarea>
+        <div class="modal fade" id="rejectModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content" style="border-radius: 12px;">
+                    <form method="post" asp-page-handler="Reject" asp-route-id="@Model.Order?.TransferOrderId">
+                        @Html.AntiForgeryToken()
+                        <div class="modal-header" style="border-bottom: 1px solid #f1f5f9;">
+                            <h5 class="modal-title" style="font-size: 16px; font-weight: 700; color: #dc2626;">
+                                <i class="ri-close-circle-line"></i> Từ Chối Phiếu Điều Chuyển
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
-                    </div>
-                    <div class="modal-footer" style="border-top: 1px solid #f1f5f9;">
-                        <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Hủy</button>
-                        <button type="submit" class="btn btn-danger btn-sm" style="font-weight: 600; padding: 6px 16px;">
-                            ✕ Xác Nhận Từ Chối
-                        </button>
-                    </div>
-                </form>
+                        <div class="modal-body" style="font-size: 13px; color: #334155;">
+                            <p>Từ chối yêu cầu điều chuyển <strong>@Model.Order?.TransferOrderNumber</strong>.</p>
+                            <div class="mb-3">
+                                <label class="form-label" style="font-weight: 600; font-size: 12px; color: #475569;">Lý do từ chối</label>
+                                <textarea name="notes" class="form-control form-control-sm" rows="2" placeholder="Nhập lý do từ chối..." required></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer" style="border-top: 1px solid #f1f5f9;">
+                            <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Hủy</button>
+                            <button type="submit" class="btn btn-danger btn-sm" style="font-weight: 600; padding: 6px 16px;">
+                                ✕ Xác Nhận Từ Chối
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
-    </div>
+    }
 
 </div>

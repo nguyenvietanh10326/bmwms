@@ -85,21 +85,33 @@ namespace BMWMS.Web.Services
             public decimal MovedQuantity { get; set; }
         }
 
-        public class CreateTransferOrderDto
+        public class CreateTransferItemDto
         {
-            public long WarehouseId { get; set; }
             public long SourceLocationId { get; set; }
             public long DestLocationId { get; set; }
             public long ProductId { get; set; }
             public long ProductLotId { get; set; }
             public decimal Quantity { get; set; }
+        }
+
+        public class CreateTransferOrderDto
+        {
+            public long WarehouseId { get; set; } = 1;
             public string? Notes { get; set; }
+            public List<CreateTransferItemDto> Items { get; set; } = new();
         }
 
         public class ApproveTransferDto
         {
             public long TransferOrderId { get; set; }
             public string? Notes { get; set; }
+        }
+
+        public class ZoneOptionDto
+        {
+            public long ZoneId { get; set; }
+            public string ZoneCode { get; set; } = "";
+            public string ZoneName { get; set; } = "";
         }
 
         public class TransferInventoryItemDto
@@ -122,6 +134,7 @@ namespace BMWMS.Web.Services
             public long LocationId { get; set; }
             public string LocationCode { get; set; } = "";
             public string LocationName { get; set; } = "";
+            public long? ZoneId { get; set; }
             public string ZoneCode { get; set; } = "";
             public string RackCode { get; set; } = "";
             public bool IsPutawayAllowed { get; set; }
@@ -144,6 +157,17 @@ namespace BMWMS.Web.Services
         }
 
         // ── API CALLS ──────────────────────────────────────────────────────────
+
+        public async Task<List<ZoneOptionDto>> GetZonesAsync(long warehouseId = 1)
+        {
+            try
+            {
+                var response = await _httpClient.GetAsync($"api/transfers/zones?warehouseId={warehouseId}");
+                if (!response.IsSuccessStatusCode) return new();
+                return await response.Content.ReadFromJsonAsync<List<ZoneOptionDto>>(_jsonOpts) ?? new();
+            }
+            catch { return new(); }
+        }
 
         public async Task<TransferOrderPagedResultDto> GetOrdersAsync(TransferOrderFilterDto filter)
         {
@@ -186,11 +210,15 @@ namespace BMWMS.Web.Services
             catch { return new(); }
         }
 
-        public async Task<List<LocationOptionDto>> GetLocationsAsync(long warehouseId)
+        public async Task<List<LocationOptionDto>> GetLocationsAsync(long warehouseId = 1, long? zoneId = null)
         {
             try
             {
-                var response = await _httpClient.GetAsync($"api/transfers/locations?warehouseId={warehouseId}");
+                var query = $"api/transfers/locations?warehouseId={warehouseId}";
+                if (zoneId.HasValue && zoneId.Value > 0)
+                    query += $"&zoneId={zoneId.Value}";
+
+                var response = await _httpClient.GetAsync(query);
                 if (!response.IsSuccessStatusCode) return new();
                 return await response.Content.ReadFromJsonAsync<List<LocationOptionDto>>(_jsonOpts) ?? new();
             }

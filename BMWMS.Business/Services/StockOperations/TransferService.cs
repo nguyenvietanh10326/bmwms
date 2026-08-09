@@ -13,7 +13,19 @@ namespace BMWMS.Business.Services.StockOperations
             _transferRepo = transferRepo;
         }
 
-        // 1. Lấy danh sách hàng tồn trong ô nguồn
+        // 1. Danh sách Khu vực (Zones)
+        public async Task<List<ZoneOptionDto>> GetZonesAsync(long warehouseId = 1)
+        {
+            var zones = await _transferRepo.GetZonesByWarehouseAsync(warehouseId);
+            return zones.Select(z => new ZoneOptionDto
+            {
+                ZoneId   = z.ZoneId,
+                ZoneCode = z.ZoneCode,
+                ZoneName = z.ZoneName ?? z.ZoneCode
+            }).ToList();
+        }
+
+        // 2. Lấy danh sách hàng tồn trong ô nguồn
         public async Task<List<TransferInventoryItemDto>> GetLocationInventoryAsync(long locationId)
         {
             var items = await _transferRepo.GetInventoriesByLocationAsync(locationId);
@@ -34,16 +46,17 @@ namespace BMWMS.Business.Services.StockOperations
             }).ToList();
         }
 
-        // 2. Danh sách ô kho (dropdown)
-        public async Task<List<LocationOptionDto>> GetLocationsForDropdownAsync(long warehouseId)
+        // 3. Danh sách ô kho (dropdown), hỗ trợ lọc theo Zone
+        public async Task<List<LocationOptionDto>> GetLocationsForDropdownAsync(long warehouseId = 1, long? zoneId = null)
         {
-            var locations = await _transferRepo.GetActiveLocationsByWarehouseAsync(warehouseId);
+            var locations = await _transferRepo.GetActiveLocationsByWarehouseAsync(warehouseId, zoneId);
 
             return locations.Select(l => new LocationOptionDto
             {
                 LocationId       = l.StorageLocationId,
                 LocationCode     = l.LocationCode,
                 LocationName     = l.LocationName ?? l.LocationCode,
+                ZoneId           = l.StorageRack?.ZoneId,
                 ZoneCode         = l.StorageRack?.WarehouseZone?.ZoneCode ?? "",
                 RackCode         = l.StorageRack?.RackCode ?? "",
                 IsPutawayAllowed = l.IsPutawayAllowed,
@@ -51,7 +64,7 @@ namespace BMWMS.Business.Services.StockOperations
             }).ToList();
         }
 
-        // 3. Validate ô đích
+        // 4. Validate ô đích
         public async Task<BinCapacityCheckDto> ValidateDestinationAsync(
             long destLocationId, long sourceLocationId, long productId)
         {
@@ -63,7 +76,7 @@ namespace BMWMS.Business.Services.StockOperations
             if (destLocation == null)
                 return new BinCapacityCheckDto { IsValid = false, Message = "Không tìm thấy ô đích." };
 
-            if (destLocation.Status != "ACTIVE")
+            if (destLocation.Status == "INACTIVE")
                 return new BinCapacityCheckDto { IsValid = false, Message = $"Ô đích '{destLocation.LocationCode}' không ở trạng thái hoạt động." };
 
             if (!destLocation.IsPutawayAllowed)
@@ -72,7 +85,7 @@ namespace BMWMS.Business.Services.StockOperations
             return new BinCapacityCheckDto { IsValid = true, Message = "Ô đích hợp lệ." };
         }
 
-        // 4. Danh sách phiếu phân trang
+        // 5. Danh sách phiếu phân trang
         public async Task<TransferOrderPagedResultDto> GetPagedOrdersAsync(TransferOrderFilterDto filter)
         {
             var (items, totalCount, pendingCount, approvedCount, rejectedCount) =
@@ -81,7 +94,6 @@ namespace BMWMS.Business.Services.StockOperations
             var list = items.Select(o =>
             {
                 var (label, css) = GetStatusBadge(o.Status);
-                var firstDetail = o.TransferOrderDetails.FirstOrDefault();
 
                 return new TransferOrderListDto
                 {
@@ -114,7 +126,7 @@ namespace BMWMS.Business.Services.StockOperations
             };
         }
 
-        // 5. Chi tiết 1 phiếu
+        // 6. Chi tiết 1 phiếu
         public async Task<TransferOrderDetailViewDto?> GetOrderDetailAsync(long transferOrderId)
         {
             var order = await _transferRepo.GetOrderWithDetailsAsync(transferOrderId);
@@ -151,61 +163,55 @@ namespace BMWMS.Business.Services.StockOperations
             };
         }
 
-        // 6. Staff tạo phiếu (PENDING)
+        // 7. Staff tạo phiếu (PENDING) - Hỗ trợ N sản phẩm
         public async Task<TransferResultDto> CreatePendingOrderAsync(CreateTransferOrderDto dto, long createdByUserId)
         {
-            if (dto.Quantity <= 0)
-                return new TransferResultDto { Success = false, Message = "Số lượng chuyển phải lớn hơn 0." };
+            if (dto.Items == null || !dto.Items.Any())
+                return new TransferResultDto { Success = false, Message = "Danh sách hàng chuyển không được rỗng." };
 
-            var srcLocation = await _transferRepo.GetLocationWithInventoryAsync(dto.SourceLocationId);
-            if (srcLocation == null)
-                return new TransferResultDto { Success = false, Message = "Không tìm thấy ô nguồn." };
+            foreach (var item in dto.Items)
+            {
+                if (item.Quantity <= 0)
+                    return new TransferResultDto { Success = false, Message = "Số lượng chuyển của các sản phẩm phải lớn hơn 0." };
 
-            var srcInv = srcLocation.Inventories
-                .FirstOrDefault(i => i.ProductId == dto.ProductId && i.ProductLotId == dto.ProductLotId);
-
-            if (srcInv == null)
-                return new TransferResultDto { Success = false, Message = "Sản phẩm / Lô hàng không tồn tại trong ô nguồn." };
-
-            var available = srcInv.AvailableQuantity ?? (srcInv.OnHandQuantity - srcInv.ReservedQuantity);
-            if (dto.Quantity > available)
-                return new TransferResultDto
-                {
-                    Success = false,
-                    Message = $"Số lượng khả dụng tại ô nguồn chỉ còn {available:N2} — không đủ để chuyển {dto.Quantity:N2}."
-                };
-
-            var destCheck = await ValidateDestinationAsync(dto.DestLocationId, dto.SourceLocationId, dto.ProductId);
-            if (!destCheck.IsValid)
-                return new TransferResultDto { Success = false, Message = destCheck.Message };
+                var destCheck = await ValidateDestinationAsync(item.DestLocationId, item.SourceLocationId, item.ProductId);
+                if (!destCheck.IsValid)
+                    return new TransferResultDto { Success = false, Message = destCheck.Message };
+            }
 
             try
             {
+                var repoParams = dto.Items.Select(i => new TransferItemParam
+                {
+                    SourceLocationId = i.SourceLocationId,
+                    DestLocationId   = i.DestLocationId,
+                    ProductId        = i.ProductId,
+                    ProductLotId     = i.ProductLotId,
+                    Quantity         = i.Quantity
+                }).ToList();
+
                 var order = await _transferRepo.CreatePendingOrderAsync(
-                    dto.WarehouseId,
-                    dto.SourceLocationId,
-                    dto.DestLocationId,
-                    dto.ProductId,
-                    dto.ProductLotId,
-                    dto.Quantity,
+                    dto.WarehouseId > 0 ? dto.WarehouseId : 1,
+                    repoParams,
                     createdByUserId,
                     dto.Notes);
 
                 return new TransferResultDto
                 {
                     Success = true,
-                    Message = $"Đã tạo phiếu yêu cầu điều chuyển thành công (Mã phiếu: {order.TransferOrderNumber}). Đang chờ quản lý phê duyệt.",
+                    Message = $"Đã tạo phiếu yêu cầu điều chuyển gồm {dto.Items.Count} mục thành công (Mã phiếu: {order.TransferOrderNumber}). Đang chờ quản lý phê duyệt.",
                     TransferOrderId     = order.TransferOrderId,
                     TransferOrderNumber = order.TransferOrderNumber
                 };
             }
             catch (Exception ex)
             {
-                return new TransferResultDto { Success = false, Message = $"Lỗi hệ thống: {ex.Message}" };
+                var msg = ex.InnerException != null ? $"{ex.Message} ({ex.InnerException.Message})" : ex.Message;
+                return new TransferResultDto { Success = false, Message = $"Lỗi hệ thống: {msg}" };
             }
         }
 
-        // 7. Manager Duyệt
+        // 8. Manager Duyệt
         public async Task<TransferResultDto> ApproveOrderAsync(long transferOrderId, long approvedByUserId, string? notes)
         {
             try
@@ -225,11 +231,12 @@ namespace BMWMS.Business.Services.StockOperations
             }
             catch (Exception ex)
             {
-                return new TransferResultDto { Success = false, Message = $"Lỗi khi duyệt phiếu: {ex.Message}" };
+                var msg = ex.InnerException != null ? $"{ex.Message} ({ex.InnerException.Message})" : ex.Message;
+                return new TransferResultDto { Success = false, Message = $"Lỗi khi duyệt phiếu: {msg}" };
             }
         }
 
-        // 8. Manager Từ chối
+        // 9. Manager Từ chối
         public async Task<TransferResultDto> RejectOrderAsync(long transferOrderId, long rejectedByUserId, string? notes)
         {
             try
@@ -253,13 +260,15 @@ namespace BMWMS.Business.Services.StockOperations
             }
         }
 
-        // ── Helper Badge Status ────────────────────────────────────────────────
         private static (string Label, string Css) GetStatusBadge(string status)
         {
             return status?.ToUpper() switch
             {
+                "DRAFT"     => ("Chờ phê duyệt", "bg-warning text-dark"),
                 "PENDING"   => ("Chờ phê duyệt", "bg-warning text-dark"),
+                "ASSIGNED"  => ("Chờ phê duyệt", "bg-warning text-dark"),
                 "COMPLETED" => ("Đã hoàn thành", "bg-success text-white"),
+                "CANCELLED" => ("Đã từ chối", "bg-danger text-white"),
                 "REJECTED"  => ("Đã từ chối", "bg-danger text-white"),
                 _           => (status ?? "Khác", "bg-secondary text-white")
             };

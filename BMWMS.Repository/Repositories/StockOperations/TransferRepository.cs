@@ -15,6 +15,15 @@ namespace BMWMS.Repository.Repositories.StockOperations
 
         // ── FORM DATA ──────────────────────────────────────────────────────────
 
+        public async Task<List<WarehouseZone>> GetZonesByWarehouseAsync(long warehouseId = 1)
+        {
+            return await _context.WarehouseZones
+                .AsNoTracking()
+                .Where(z => (warehouseId <= 0 || z.WarehouseId == warehouseId) && z.Status == "ACTIVE")
+                .OrderBy(z => z.ZoneCode)
+                .ToListAsync();
+        }
+
         public async Task<List<BMWMS.Repository.Models.Inventory>> GetInventoriesByLocationAsync(long locationId)
         {
             return await _context.Inventories
@@ -37,7 +46,7 @@ namespace BMWMS.Repository.Repositories.StockOperations
                 .FirstOrDefaultAsync(l => l.StorageLocationId == locationId);
         }
 
-        public async Task<List<StorageLocation>> GetActiveLocationsByWarehouseAsync(long warehouseId)
+        public async Task<List<StorageLocation>> GetActiveLocationsByWarehouseAsync(long warehouseId = 1, long? zoneId = null)
         {
             var query = _context.StorageLocations
                 .AsNoTracking()
@@ -46,13 +55,31 @@ namespace BMWMS.Repository.Repositories.StockOperations
 
             if (warehouseId > 0)
             {
-                query = query.Where(l => l.WarehouseId == warehouseId);
+                query = query.Where(l => l.WarehouseId == warehouseId || (l.StorageRack != null && l.StorageRack.WarehouseZone != null && l.StorageRack.WarehouseZone.WarehouseId == warehouseId));
             }
 
-            return await query
-                .Where(l => l.Status.ToUpper() == "ACTIVE" || l.Status == "Active" || string.IsNullOrEmpty(l.Status))
+            if (zoneId.HasValue && zoneId.Value > 0)
+            {
+                query = query.Where(l => l.StorageRack != null && l.StorageRack.ZoneId == zoneId.Value);
+            }
+
+            var list = await query
+                .Where(l => l.Status == null || (l.Status != "INACTIVE" && l.Status != "DELETED"))
                 .OrderBy(l => l.LocationCode)
                 .ToListAsync();
+
+            // Fallback: Nếu không có kết quả theo Zone/Warehouse, lấy danh sách tất cả vị trí khả dụng
+            if (!list.Any())
+            {
+                list = await _context.StorageLocations
+                    .AsNoTracking()
+                    .Include(l => l.StorageRack).ThenInclude(r => r!.WarehouseZone)
+                    .Where(l => l.Status == null || l.Status != "INACTIVE")
+                    .OrderBy(l => l.LocationCode)
+                    .ToListAsync();
+            }
+
+            return list;
         }
 
         public async Task<List<Warehouse>> GetAllWarehousesAsync()
@@ -75,7 +102,7 @@ namespace BMWMS.Repository.Repositories.StockOperations
                 .Include(o => o.ConfirmedByUser)
                 .Include(o => o.SourceWarehouse)
                 .Include(o => o.TransferOrderDetails)
-                .Where(o => o.TransferType == "BIN_TRANSFER")
+                .Where(o => o.TransferType == "INTERNAL_LOCATION" || o.TransferType == "BIN_TRANSFER")
                 .AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(keyword))
@@ -86,15 +113,20 @@ namespace BMWMS.Repository.Repositories.StockOperations
             }
 
             if (!string.IsNullOrWhiteSpace(status) && status.ToUpper() != "ALL")
-                query = query.Where(o => o.Status == status.ToUpper());
+            {
+                var st = status.ToUpper();
+                if (st == "PENDING") st = "DRAFT";
+                if (st == "REJECTED") st = "CANCELLED";
+                query = query.Where(o => o.Status == st);
+            }
 
             if (warehouseId.HasValue && warehouseId > 0)
                 query = query.Where(o => o.SourceWarehouseId == warehouseId.Value);
 
             var allForStats = query;
-            int pendingCount  = await allForStats.CountAsync(o => o.Status == "PENDING");
+            int pendingCount  = await allForStats.CountAsync(o => o.Status == "DRAFT" || o.Status == "PENDING" || o.Status == "ASSIGNED");
             int approvedCount = await allForStats.CountAsync(o => o.Status == "COMPLETED");
-            int rejectedCount = await allForStats.CountAsync(o => o.Status == "REJECTED");
+            int rejectedCount = await allForStats.CountAsync(o => o.Status == "CANCELLED" || o.Status == "REJECTED");
             int totalCount    = await query.CountAsync();
 
             var items = await query
@@ -126,15 +158,11 @@ namespace BMWMS.Repository.Repositories.StockOperations
                 .FirstOrDefaultAsync(o => o.TransferOrderId == transferOrderId);
         }
 
-        // ── CREATE (Staff) ─────────────────────────────────────────────────────
+        // ── CREATE MULTI-ITEM (Staff) ──────────────────────────────────────────
 
         public async Task<TransferOrder> CreatePendingOrderAsync(
             long warehouseId,
-            long sourceLocationId,
-            long destLocationId,
-            long productId,
-            long productLotId,
-            decimal quantity,
+            List<TransferItemParam> items,
             long createdByUserId,
             string? notes)
         {
@@ -146,31 +174,34 @@ namespace BMWMS.Repository.Repositories.StockOperations
                 var order = new TransferOrder
                 {
                     TransferOrderNumber    = orderNumber,
-                    TransferType           = "BIN_TRANSFER",
-                    SourceWarehouseId      = warehouseId,
-                    DestinationWarehouseId = warehouseId, // cùng kho
+                    TransferType           = "INTERNAL_LOCATION",
+                    SourceWarehouseId      = warehouseId > 0 ? warehouseId : 1,
+                    DestinationWarehouseId = warehouseId > 0 ? warehouseId : 1,
                     RequestedDate          = DateOnly.FromDateTime(DateTime.UtcNow),
-                    Status                 = "PENDING",   // Chờ duyệt
+                    Status                 = "DRAFT",
                     Notes                  = notes,
-                    CreatedByUserId        = createdByUserId,
+                    CreatedByUserId        = createdByUserId > 0 ? createdByUserId : 1,
                     CreatedAt              = DateTime.UtcNow
                 };
                 _context.TransferOrders.Add(order);
                 await _context.SaveChangesAsync();
 
-                var detail = new TransferOrderDetail
+                foreach (var item in items)
                 {
-                    TransferOrderId       = order.TransferOrderId,
-                    ProductId             = productId,
-                    ProductLotId          = productLotId,
-                    SourceLocationId      = sourceLocationId,
-                    DestinationLocationId = destLocationId,
-                    RequestedQuantity     = quantity,
-                    MovedQuantity         = 0 // chưa chuyển, chờ duyệt
-                };
-                _context.TransferOrderDetails.Add(detail);
-                await _context.SaveChangesAsync();
+                    var detail = new TransferOrderDetail
+                    {
+                        TransferOrderId       = order.TransferOrderId,
+                        ProductId             = item.ProductId,
+                        ProductLotId          = item.ProductLotId > 0 ? item.ProductLotId : null,
+                        SourceLocationId      = item.SourceLocationId > 0 ? item.SourceLocationId : null,
+                        DestinationLocationId = item.DestLocationId > 0 ? item.DestLocationId : null,
+                        RequestedQuantity     = item.Quantity,
+                        MovedQuantity         = 0
+                    };
+                    _context.TransferOrderDetails.Add(detail);
+                }
 
+                await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
                 return order;
             }
@@ -194,14 +225,14 @@ namespace BMWMS.Repository.Repositories.StockOperations
                     .FirstOrDefaultAsync(o => o.TransferOrderId == transferOrderId)
                     ?? throw new InvalidOperationException("Không tìm thấy phiếu điều chuyển.");
 
-                if (order.Status != "PENDING")
+                if (order.Status != "DRAFT" && order.Status != "PENDING" && order.Status != "ASSIGNED")
                     throw new InvalidOperationException($"Phiếu đang ở trạng thái '{order.Status}', không thể duyệt.");
 
-                // Validate tồn kho đủ không
+                // Process each detail line in the order
                 foreach (var detail in order.TransferOrderDetails)
                 {
                     if (!detail.SourceLocationId.HasValue || !detail.DestinationLocationId.HasValue)
-                        throw new InvalidOperationException("Phiếu thiếu thông tin ô nguồn/đích.");
+                        throw new InvalidOperationException("Phiếu thiếu thông tin ô nguồn hoặc ô đích.");
 
                     var srcInv = await _context.Inventories
                         .FirstOrDefaultAsync(i =>
@@ -217,11 +248,11 @@ namespace BMWMS.Repository.Repositories.StockOperations
                         throw new InvalidOperationException(
                             $"Tồn kho tại ô nguồn không đủ. Yêu cầu: {detail.RequestedQuantity}, Khả dụng: {available}.");
 
-                    // INSERT 2 InventoryTransactions — DB Trigger tự MERGE vào Inventory
                     var now = DateTime.UtcNow;
+                    // Xuất khỏi ô nguồn (TRANSFER_OUT: OnHandDelta < 0, ReservedDelta = 0)
                     _context.InventoryTransactions.Add(new InventoryTransaction
                     {
-                        TransactionType       = "TRANSFER_BIN",
+                        TransactionType       = "TRANSFER_OUT",
                         ProductId             = detail.ProductId,
                         StorageLocationId     = detail.SourceLocationId.Value,
                         ProductLotId          = detail.ProductLotId!.Value,
@@ -232,9 +263,11 @@ namespace BMWMS.Repository.Repositories.StockOperations
                         TransactionAt         = now,
                         Notes = $"Duyệt phiếu {order.TransferOrderNumber}: xuất khỏi ô {detail.SourceLocationId}"
                     });
+
+                    // Nhập vào ô đích (TRANSFER_IN: OnHandDelta > 0, ReservedDelta = 0)
                     _context.InventoryTransactions.Add(new InventoryTransaction
                     {
-                        TransactionType       = "TRANSFER_BIN",
+                        TransactionType       = "TRANSFER_IN",
                         ProductId             = detail.ProductId,
                         StorageLocationId     = detail.DestinationLocationId.Value,
                         ProductLotId          = detail.ProductLotId!.Value,
@@ -246,9 +279,9 @@ namespace BMWMS.Repository.Repositories.StockOperations
                         Notes = $"Duyệt phiếu {order.TransferOrderNumber}: nhập vào ô {detail.DestinationLocationId}"
                     });
 
-                    detail.MovedQuantity      = detail.RequestedQuantity;
-                    detail.ConfirmedByUserId  = approvedByUserId;
-                    detail.ConfirmedAt        = now;
+                    detail.MovedQuantity     = detail.RequestedQuantity;
+                    detail.ConfirmedByUserId = approvedByUserId;
+                    detail.ConfirmedAt       = now;
                 }
 
                 order.Status            = "COMPLETED";
@@ -280,10 +313,10 @@ namespace BMWMS.Repository.Repositories.StockOperations
                     .FirstOrDefaultAsync(o => o.TransferOrderId == transferOrderId)
                     ?? throw new InvalidOperationException("Không tìm thấy phiếu điều chuyển.");
 
-                if (order.Status != "PENDING")
-                    throw new InvalidOperationException("Chỉ có thể từ chối phiếu đang ở trạng thái PENDING.");
+                if (order.Status != "DRAFT" && order.Status != "PENDING" && order.Status != "ASSIGNED")
+                    throw new InvalidOperationException("Chỉ có thể từ chối phiếu đang ở trạng thái chờ duyệt.");
 
-                order.Status            = "REJECTED";
+                order.Status            = "CANCELLED";
                 order.ConfirmedByUserId = rejectedByUserId;
                 order.ConfirmedAt       = DateTime.UtcNow;
                 if (!string.IsNullOrWhiteSpace(notes))

@@ -16,13 +16,13 @@
                 <i class="ri-arrow-right-s-line" style="font-size: 14px;"></i>
                 <a href="/Transfer/Index" style="color: #64748b; text-decoration: none;">Điều chuyển kho</a>
                 <i class="ri-arrow-right-s-line" style="font-size: 14px;"></i>
-                <span style="color: #2563eb; font-weight: 500;">Tạo phiếu mới</span>
+                <span style="color: #2563eb; font-weight: 500;">Tạo phiếu nhiều sản phẩm</span>
             </div>
             <h1 style="font-size: 22px; font-weight: 700; color: #0f172a; margin: 0;">
                 <i class="ri-add-circle-line" style="color: #2563eb; margin-right: 8px;"></i>Tạo Phiếu Chuyển Vị Trí
             </h1>
             <p style="font-size: 13px; color: #64748b; margin-top: 4px; margin-bottom: 0;">
-                Lập yêu cầu chuyển hàng giữa 2 ô kho. Phiếu sẽ được gửi tới Quản lý để duyệt trước khi thực thi tồn kho.
+                Chọn Khu vực (Zone) ➔ Ô Nguồn ➔ Chọn 1 hoặc nhiều sản phẩm ➔ Gửi yêu cầu cho Quản lý duyệt.
             </p>
         </div>
         <div style="display: flex; gap: 10px;">
@@ -41,81 +41,78 @@
         </div>
     }
 
-    <form method="post" id="transfer-form">
+    <form method="post" id="transfer-form" onsubmit="return prepareSubmit()">
         @Html.AntiForgeryToken()
+        <input type="hidden" id="itemsJson" name="itemsJson" value="" />
 
         <div class="row g-4">
 
-            <!-- ═══ CỘT TRÁI: Bước 1 + 2 ═══════════════════════════════════ -->
+            <!-- ═══ CỘT TRÁI: Bước 1 & 2 (Chọn Zone, Ô nguồn & Chọn hàng) ══════ -->
             <div class="col-lg-7">
 
-                <!-- STEP 1: Chọn Kho -->
+                <!-- STEP 1: Lọc theo Zone & Chọn Ô Nguồn -->
                 <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
                     <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px;">
                         <div style="width: 28px; height: 28px; background: #2563eb; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 13px; font-weight: 700; flex-shrink: 0;">1</div>
-                        <div style="font-size: 15px; font-weight: 600; color: #0f172a;">Chọn Kho</div>
+                        <div style="font-size: 15px; font-weight: 600; color: #0f172a;">Chọn Khu Vực (Zone) & Ô Nguồn</div>
                     </div>
-                    <label style="font-size: 12px; color: #64748b; font-weight: 500; margin-bottom: 6px; display: block;">Kho cần thực hiện điều chuyển</label>
-                    <select id="warehouse-select" class="form-select form-select-sm"
-                            style="border-color: #e2e8f0; font-size: 13px;"
-                            onchange="onWarehouseChange(this.value)">
-                        <option value="">— Chọn kho —</option>
-                        @foreach (var wh in Model.Warehouses)
-                        {
-                            if (Model.SelectedWarehouseId == wh.WarehouseId)
-                            {
-                                <option value="@wh.WarehouseId" selected="selected">@wh.WarehouseName</option>
-                            }
-                            else
-                            {
-                                <option value="@wh.WarehouseId">@wh.WarehouseName</option>
-                            }
-                        }
-                    </select>
-                    <input type="hidden" name="warehouseId" value="@Model.SelectedWarehouseId" />
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-5">
+                            <label style="font-size: 12px; color: #64748b; font-weight: 600; margin-bottom: 4px; display: block;">Khu vực (Zone)</label>
+                            <select id="zone-select" class="form-select form-select-sm"
+                                    style="border-color: #e2e8f0; font-size: 13px;"
+                                    onchange="onZoneChange(this.value)">
+                                <option value="">-- Tất cả khu vực --</option>
+                                @foreach (var z in Model.Zones)
+                                {
+                                    if (Model.SelectedZoneId == z.ZoneId)
+                                    {
+                                        <option value="@z.ZoneId" selected="selected">@z.ZoneCode - @z.ZoneName</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@z.ZoneId">@z.ZoneCode - @z.ZoneName</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+
+                        <div class="col-md-7">
+                            <label style="font-size: 12px; color: #64748b; font-weight: 600; margin-bottom: 4px; display: block;">Ô Nguồn (Bin)</label>
+                            <select id="source-location-select" class="form-select form-select-sm"
+                                    style="border-color: #e2e8f0; font-size: 13px;"
+                                    onchange="onSourceLocationChange(this.value)">
+                                <option value="">— Chọn ô nguồn —</option>
+                                @foreach (var loc in Model.Locations)
+                                {
+                                    if (Model.SelectedSourceLocationId == loc.LocationId)
+                                    {
+                                        <option value="@loc.LocationId" selected="selected">@loc.DisplayLabel — @loc.LocationName</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@loc.LocationId">@loc.DisplayLabel — @loc.LocationName</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- STEP 2: Chọn Ô Nguồn -->
+                <!-- STEP 2: Chọn Hàng Tồn & Ô Đích để thêm vào Danh Sách -->
                 <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
                     <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px;">
                         <div style="width: 28px; height: 28px; background: #2563eb; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 13px; font-weight: 700; flex-shrink: 0;">2</div>
-                        <div style="font-size: 15px; font-weight: 600; color: #0f172a;">Chọn Ô Nguồn</div>
+                        <div style="font-size: 15px; font-weight: 600; color: #0f172a;">Chọn Sản Phẩm Từ Ô Nguồn</div>
                     </div>
 
-                    <label style="font-size: 12px; color: #64748b; font-weight: 500; margin-bottom: 6px; display: block;">Ô đang chứa hàng cần chuyển</label>
-                    @if (Model.SelectedWarehouseId <= 0)
-                    {
-                        <select id="source-location-select" class="form-select form-select-sm" style="border-color: #e2e8f0; font-size: 13px;" disabled>
-                            <option value="">— Vui lòng chọn kho trước —</option>
-                        </select>
-                    }
-                    else
-                    {
-                        <select id="source-location-select" class="form-select form-select-sm"
-                                style="border-color: #e2e8f0; font-size: 13px;"
-                                onchange="onSourceLocationChange(this.value)">
-                            <option value="">— Chọn ô nguồn —</option>
-                            @foreach (var loc in Model.Locations)
-                            {
-                                if (Model.SelectedSourceLocationId == loc.LocationId)
-                                {
-                                    <option value="@loc.LocationId" selected="selected">@loc.DisplayLabel — @loc.LocationName</option>
-                                }
-                                else
-                                {
-                                    <option value="@loc.LocationId">@loc.DisplayLabel — @loc.LocationName</option>
-                                }
-                            }
-                        </select>
-                    }
-                    <input type="hidden" id="h-source-location-id" name="sourceLocationId" value="@Model.SelectedSourceLocationId" />
-
-                    <!-- Bảng hàng trong ô nguồn -->
-                    <div id="inventory-container" style="margin-top: 16px;">
+                    <!-- Bảng tồn kho ô nguồn -->
+                    <div id="inventory-container">
                         @if (Model.SelectedSourceLocationId > 0 && Model.SourceInventory.Any())
                         {
                             <div style="font-size: 12px; color: #64748b; margin-bottom: 8px; font-weight: 500;">
-                                <i class="ri-information-line"></i> Chọn dòng hàng muốn điều chuyển
+                                <i class="ri-information-line"></i> Nhấp chọn dòng hàng muốn thêm vào danh sách điều chuyển
                             </div>
                             <div style="overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 8px;">
                                 <table style="width: 100%; border-collapse: collapse; font-size: 13px;" id="inv-table">
@@ -124,7 +121,6 @@
                                             <th style="padding: 10px 12px; text-align: left; color: #475569; font-weight: 600; font-size: 12px;">Sản phẩm</th>
                                             <th style="padding: 10px 12px; text-align: left; color: #475569; font-weight: 600; font-size: 12px;">Lô hàng</th>
                                             <th style="padding: 10px 12px; text-align: left; color: #475569; font-weight: 600; font-size: 12px;">HSD</th>
-                                            <th style="padding: 10px 12px; text-align: right; color: #475569; font-weight: 600; font-size: 12px;">On Hand</th>
                                             <th style="padding: 10px 12px; text-align: right; color: #475569; font-weight: 600; font-size: 12px;">Khả dụng</th>
                                         </tr>
                                     </thead>
@@ -154,11 +150,6 @@
                                                 <td style="padding: 10px 12px; color: #2563eb; font-weight: 500;">@item.LotNumber</td>
                                                 <td style="padding: 10px 12px; color: #64748b; font-size: 12px;">@item.ExpiryDisplay</td>
                                                 <td style="padding: 10px 12px; text-align: right;">
-                                                    <span style="background: #eff6ff; color: #2563eb; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: 600;">
-                                                        @item.OnHandQuantity.ToString("N2") @item.UnitName
-                                                    </span>
-                                                </td>
-                                                <td style="padding: 10px 12px; text-align: right;">
                                                     <span style="background: #f0fdf4; color: #16a34a; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: 600;">
                                                         @item.AvailableQuantity.ToString("N2") @item.UnitName
                                                     </span>
@@ -169,122 +160,118 @@
                                 </table>
                             </div>
                         }
-                        else if (Model.SelectedSourceLocationId > 0)
-                        {
-                            <div style="text-align: center; padding: 32px; color: #94a3b8; background: #f8fafc; border-radius: 8px; border: 1px dashed #e2e8f0;">
-                                <i class="ri-inbox-line" style="font-size: 32px; display: block; margin-bottom: 8px;"></i>
-                                <span style="font-size: 13px;">Ô này không có hàng tồn kho</span>
-                            </div>
-                        }
                         else
                         {
                             <div style="text-align: center; padding: 32px; color: #94a3b8; background: #f8fafc; border-radius: 8px; border: 1px dashed #e2e8f0;">
                                 <i class="ri-cursor-line" style="font-size: 32px; display: block; margin-bottom: 8px;"></i>
-                                <span style="font-size: 13px;">Chọn ô nguồn để xem danh sách hàng hóa</span>
+                                <span style="font-size: 13px;">Vui lòng chọn Ô Nguồn để xem danh sách hàng hóa</span>
                             </div>
                         }
+                    </div>
+
+                    <!-- FORM THÊM MỤC HÀNG VÀO DANH SÁCH -->
+                    <div id="add-item-box" style="display: none; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px; margin-top: 16px;">
+                        <div style="font-size: 13px; font-weight: 700; color: #2563eb; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+                            <i class="ri-add-box-line"></i> Thêm Mục Này Vào Phiếu Điều Chuyển
+                        </div>
+
+                        <div id="sel-item-summary" style="font-size: 13px; color: #0f172a; font-weight: 600; margin-bottom: 12px;"></div>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label style="font-size: 12px; color: #475569; font-weight: 600; margin-bottom: 4px; display: block;">🎯 Ô Đích</label>
+                                <select id="item-dest-select" class="form-select form-select-sm"
+                                        style="border-color: #e2e8f0; font-size: 13px;"
+                                        onchange="onDestLocationChange(this.value)">
+                                    <option value="">— Chọn ô đích —</option>
+                                    @foreach (var loc in Model.Locations)
+                                    {
+                                        if (!loc.IsPutawayAllowed)
+                                        {
+                                            <option value="@loc.LocationId" disabled style="color:#94a3b8;">@loc.DisplayLabel — @loc.LocationName [Không nhận hàng]</option>
+                                        }
+                                        else
+                                        {
+                                            <option value="@loc.LocationId">@loc.DisplayLabel — @loc.LocationName</option>
+                                        }
+                                    }
+                                </select>
+                                <div id="dest-val-msg" style="font-size: 11px; margin-top: 4px;"></div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label style="font-size: 12px; color: #475569; font-weight: 600; margin-bottom: 4px; display: block;">🔢 Số lượng chuyển</label>
+                                <input type="number" id="item-qty-input" class="form-control form-control-sm"
+                                       min="0.0001" step="0.0001" placeholder="Nhập số lượng"
+                                       style="border-color: #e2e8f0; font-size: 13px;"
+                                       oninput="validateItemQty(this.value)" />
+                                <div id="qty-val-msg" style="font-size: 11px; color: #dc2626; margin-top: 4px; display: none;"></div>
+                            </div>
+                        </div>
+
+                        <div class="mt-3 text-end">
+                            <button type="button" id="btn-add-item" class="btn btn-primary btn-sm"
+                                    style="background: #2563eb; border: none; font-weight: 600; padding: 6px 16px;"
+                                    onclick="addItemToCart()" disabled>
+                                ➕ Thêm Vào Danh Sách Chuyển
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- ═══ CỘT PHẢI: Bước 3 — Form điều chuyển ══════════════════ -->
+            <!-- ═══ CỘT PHẢI: BƯỚC 3 — DANH SÁCH MỤC CẦN CHUYỂN & GỬI YÊU CẦU ═══ -->
             <div class="col-lg-5">
                 <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); position: sticky; top: 20px;">
-                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid #f1f5f9;">
-                        <div style="width: 28px; height: 28px; background: #16a34a; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 13px; font-weight: 700; flex-shrink: 0;">3</div>
-                        <div style="font-size: 15px; font-weight: 600; color: #0f172a;">Thông tin Điều chuyển</div>
-                    </div>
-
-                    <!-- Hàng được chọn -->
-                    <div id="selected-item-info" style="display: none; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 12px 14px; margin-bottom: 16px;">
-                        <div style="font-size: 11px; color: #2563eb; font-weight: 600; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.04em;">Hàng sẽ điều chuyển</div>
-                        <div id="sel-product-name" style="font-weight: 700; color: #1e293b; font-size: 14px;"></div>
-                        <div id="sel-lot" style="font-size: 12px; color: #64748b; margin-top: 2px;"></div>
-                        <div id="sel-available" style="font-size: 12px; color: #16a34a; font-weight: 600; margin-top: 4px;"></div>
-                    </div>
-
-                    <input type="hidden" id="h-product-id"     name="productId"    value="" />
-                    <input type="hidden" id="h-product-lot-id" name="productLotId" value="" />
-
-                    <!-- Ô đích -->
-                    <div style="margin-bottom: 14px;">
-                        <label style="font-size: 12px; color: #475569; font-weight: 600; margin-bottom: 6px; display: block;">
-                            <i class="ri-map-pin-line" style="color: #2563eb;"></i> Ô Đích
-                        </label>
-                        <select id="dest-location-select" name="destLocationId"
-                                class="form-select form-select-sm"
-                                style="border-color: #e2e8f0; font-size: 13px;"
-                                onchange="onDestLocationChange(this.value)"
-                                disabled>
-                            <option value="">— Chọn ô đích —</option>
-                            @foreach (var loc in Model.Locations)
-                            {
-                                if (!loc.IsPutawayAllowed)
-                                {
-                                    <option value="@loc.LocationId" style="color: #94a3b8;">@loc.DisplayLabel — @loc.LocationName [Không nhận hàng]</option>
-                                }
-                                else
-                                {
-                                    <option value="@loc.LocationId">@loc.DisplayLabel — @loc.LocationName</option>
-                                }
-                            }
-                        </select>
-                        <div id="dest-validation" style="margin-top: 6px; min-height: 24px;"></div>
-                    </div>
-
-                    <!-- Số lượng -->
-                    <div style="margin-bottom: 14px;">
-                        <label style="font-size: 12px; color: #475569; font-weight: 600; margin-bottom: 6px; display: block;">
-                            <i class="ri-stack-line" style="color: #2563eb;"></i> Số lượng cần chuyển
-                        </label>
-                        <input type="number" id="qty-input" name="quantity"
-                               class="form-control form-control-sm"
-                               style="border-color: #e2e8f0; font-size: 13px; max-width: 180px;"
-                               min="0.0001" step="0.0001" placeholder="Nhập số lượng"
-                               oninput="validateQty(this.value)" />
-                        <div id="qty-error" style="font-size: 12px; color: #dc2626; margin-top: 4px; display: none;"></div>
-                        <div id="qty-max-hint" style="font-size: 11px; color: #94a3b8; margin-top: 3px; display: none;">
-                            Tối đa: <span id="qty-max-val"></span>
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #f1f5f9;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div style="width: 28px; height: 28px; background: #16a34a; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 13px; font-weight: 700; flex-shrink: 0;">3</div>
+                            <div style="font-size: 15px; font-weight: 600; color: #0f172a;">Danh Sách Mục Điều Chuyển</div>
                         </div>
+                        <span id="cart-count-badge" class="badge bg-primary" style="font-size: 12px;">0 mục</span>
                     </div>
 
-                    <!-- Ghi chú -->
+                    <!-- Bảng giỏ hàng các mục điều chuyển -->
+                    <div style="overflow-x: auto; max-height: 360px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 16px;">
+                        <table class="table align-middle" style="margin: 0; font-size: 12px;" id="cart-table">
+                            <thead>
+                                <tr style="background: #f8fafc; border-bottom: 1px solid #e2e8f0; color: #475569;">
+                                    <th style="padding: 8px 10px;">Sản phẩm / Lô</th>
+                                    <th style="padding: 8px 10px;">Từ 📍 ➔ Đến 🎯</th>
+                                    <th style="padding: 8px 10px; text-align: right;">SL</th>
+                                    <th style="padding: 8px 10px; text-align: center; width: 40px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="cart-tbody">
+                                <tr>
+                                    <td colspan="4" style="text-align: center; padding: 32px 12px; color: #94a3b8;">
+                                        <i class="ri-shopping-basket-line" style="font-size: 32px; display: block; margin-bottom: 6px;"></i>
+                                        Chưa có sản phẩm nào trong danh sách.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Ghi chú chung -->
                     <div style="margin-bottom: 18px;">
                         <label style="font-size: 12px; color: #475569; font-weight: 600; margin-bottom: 6px; display: block;">
-                            <i class="ri-file-text-line" style="color: #64748b;"></i> Ghi chú (tùy chọn)
+                            <i class="ri-file-text-line" style="color: #64748b;"></i> Ghi chú phiếu (tùy chọn)
                         </label>
                         <textarea name="notes" class="form-control form-control-sm" rows="2"
                                   style="border-color: #e2e8f0; font-size: 13px; resize: none;"
-                                  placeholder="Lý do điều chuyển..."></textarea>
+                                  placeholder="Nhập ghi chú cho quản lý duyệt..."></textarea>
                     </div>
 
-                    <!-- Tóm tắt -->
-                    <div id="transfer-summary" style="display: none; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 14px; margin-bottom: 16px; font-size: 12px; color: #475569;">
-                        <div style="font-weight: 600; color: #0f172a; margin-bottom: 8px; font-size: 13px;">📋 Tóm tắt yêu cầu điều chuyển</div>
-                        <div style="display: grid; gap: 4px;">
-                            <div>📦 Hàng: <span id="sum-product" style="font-weight: 600; color: #1e293b;"></span></div>
-                            <div>📍 Từ: <span id="sum-src" style="font-weight: 600; color: #1e293b;"></span></div>
-                            <div>🎯 Đến: <span id="sum-dst" style="font-weight: 600; color: #1e293b;"></span></div>
-                            <div>🔢 Số lượng: <span id="sum-qty" style="font-weight: 700; color: #2563eb;"></span></div>
-                        </div>
-                    </div>
-
-                    <!-- Buttons -->
-                    <div style="display: flex; gap: 10px;">
-                        <button type="submit" id="btn-submit"
-                                style="flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: #2563eb; color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-weight: 600; font-size: 14px; cursor: pointer; transition: background 0.2s;"
-                                disabled>
-                            <span id="btn-text"><i class="ri-send-plane-line"></i> Gửi Yêu Cầu (Chờ Duyệt)</span>
-                            <span id="btn-spinner" style="display: none;">
-                                <span class="spinner-border spinner-border-sm" role="status"></span> Đang tạo phiếu...
-                            </span>
-                        </button>
-                        <button type="button"
-                                style="padding: 10px 16px; background: #f1f5f9; color: #64748b; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 13px; cursor: pointer;"
-                                onclick="resetForm()">
-                            <i class="ri-refresh-line"></i> Đặt lại
-                        </button>
-                    </div>
+                    <!-- Nút Gửi Yêu Cầu -->
+                    <button type="submit" id="btn-submit"
+                            style="width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: #94a3b8; color: #fff; border: none; border-radius: 8px; padding: 11px 20px; font-weight: 600; font-size: 14px; cursor: not-allowed;"
+                            disabled>
+                        <span id="btn-text"><i class="ri-send-plane-line"></i> Gửi Yêu Cầu (Chờ Duyệt)</span>
+                        <span id="btn-spinner" style="display: none;">
+                            <span class="spinner-border spinner-border-sm" role="status"></span> Đang tạo phiếu...
+                        </span>
+                    </button>
                 </div>
             </div>
         </div>
@@ -293,29 +280,56 @@
 
 @section Scripts {
 <script>
-let selectedInventory = null;
-let destIsValid       = false;
+// ─── STATE ──────────────────────────────────────────────────────────────────
+let cartItems         = []; // [{ sourceLocationId, destLocationId, productId, productLotId, quantity, productCode, productName, lotNumber, unitName, srcCode, destCode }]
+let activeInventory   = null;
 let currentSourceId   = @Model.SelectedSourceLocationId;
-let currentWarehouseId = @Model.SelectedWarehouseId;
+let currentZoneId     = @Model.SelectedZoneId;
+let isDestValid       = false;
 
-function onWarehouseChange(warehouseId) {
-    if (warehouseId) {
-        window.location.href = '?SelectedWarehouseId=' + warehouseId;
+// ─── Step 1: Đổi Zone ➔ Load danh sách Ô Nguồn ──────────────────────────────
+async function onZoneChange(zoneId) {
+    currentZoneId = zoneId;
+    const srcSel  = document.getElementById('source-location-select');
+    const destSel = document.getElementById('item-dest-select');
+
+    srcSel.innerHTML = '<option value="">— Đang tải ô... —</option>';
+
+    try {
+        const res  = await fetch('/Transfer/Create?handler=Locations&zoneId=' + (zoneId || ''));
+        const data = await res.json();
+
+        let srcHtml  = '<option value="">— Chọn ô nguồn —</option>';
+        let destHtml = '<option value="">— Chọn ô đích —</option>';
+
+        if (data && data.length > 0) {
+            data.forEach(loc => {
+                srcHtml += `<option value="${loc.locationId}">${loc.displayLabel} — ${loc.locationName}</option>`;
+                if (!loc.isPutawayAllowed) {
+                    destHtml += `<option value="${loc.locationId}" disabled style="color:#94a3b8">${loc.displayLabel} — ${loc.locationName} [Không nhận hàng]</option>`;
+                } else {
+                    destHtml += `<option value="${loc.locationId}">${loc.displayLabel} — ${loc.locationName}</option>`;
+                }
+            });
+        }
+        srcSel.innerHTML  = srcHtml;
+        if (destSel) destSel.innerHTML = destHtml;
+    } catch {
+        srcSel.innerHTML = '<option value="">— Lỗi tải dữ liệu —</option>';
     }
 }
 
+// ─── Step 2: Chọn Ô Nguồn ➔ Load Tồn Kho ─────────────────────────────────────
 async function onSourceLocationChange(locationId) {
-    document.getElementById('h-source-location-id').value = locationId;
     currentSourceId = locationId;
-    resetSelectedItem();
-    resetDestination();
+    resetItemForm();
 
     const container = document.getElementById('inventory-container');
 
     if (!locationId) {
         container.innerHTML = `<div style="text-align:center;padding:32px;color:#94a3b8;background:#f8fafc;border-radius:8px;border:1px dashed #e2e8f0;">
             <i class="ri-cursor-line" style="font-size:32px;display:block;margin-bottom:8px;"></i>
-            <span style="font-size:13px;">Chọn ô nguồn để xem danh sách hàng hóa</span></div>`;
+            <span style="font-size:13px;">Vui lòng chọn Ô Nguồn để xem danh sách hàng hóa</span></div>`;
         return;
     }
 
@@ -326,7 +340,7 @@ async function onSourceLocationChange(locationId) {
         const res  = await fetch('/Transfer/Create?handler=LocationInventory&locationId=' + locationId);
         const data = await res.json();
         renderInventoryTable(container, data);
-        updateDestDropdown(locationId);
+        filterDestDropdown(locationId);
     } catch {
         container.innerHTML = `<div style="text-align:center;padding:24px;color:#dc2626;font-size:13px;">
             <i class="ri-error-warning-line" style="font-size:24px;display:block;"></i> Lỗi tải dữ liệu</div>`;
@@ -342,7 +356,7 @@ function renderInventoryTable(container, items) {
     }
 
     let html = `<div style="font-size:12px;color:#64748b;margin-bottom:8px;font-weight:500;">
-        <i class="ri-information-line"></i> Chọn dòng hàng muốn điều chuyển</div>
+        <i class="ri-information-line"></i> Nhấp chọn dòng hàng muốn thêm vào danh sách điều chuyển</div>
     <div style="overflow-x:auto;border:1px solid #e2e8f0;border-radius:8px;">
     <table style="width:100%;border-collapse:collapse;font-size:13px;" id="inv-table">
         <thead>
@@ -350,7 +364,6 @@ function renderInventoryTable(container, items) {
                 <th style="padding:10px 12px;text-align:left;color:#475569;font-weight:600;font-size:12px;">Sản phẩm</th>
                 <th style="padding:10px 12px;text-align:left;color:#475569;font-weight:600;font-size:12px;">Lô hàng</th>
                 <th style="padding:10px 12px;text-align:left;color:#475569;font-weight:600;font-size:12px;">HSD</th>
-                <th style="padding:10px 12px;text-align:right;color:#475569;font-weight:600;font-size:12px;">On Hand</th>
                 <th style="padding:10px 12px;text-align:right;color:#475569;font-weight:600;font-size:12px;">Khả dụng</th>
             </tr>
         </thead><tbody>`;
@@ -365,11 +378,6 @@ function renderInventoryTable(container, items) {
             </td>
             <td style="padding:10px 12px;color:#2563eb;font-weight:500;">${item.lotNumber}</td>
             <td style="padding:10px 12px;color:#64748b;font-size:12px;">${item.expiryDisplay || '—'}</td>
-            <td style="padding:10px 12px;text-align:right;">
-                <span style="background:#eff6ff;color:#2563eb;padding:2px 8px;border-radius:12px;font-size:12px;font-weight:600;">
-                    ${Number(item.onHandQuantity).toLocaleString('vi-VN',{maximumFractionDigits:2})} ${item.unitName}
-                </span>
-            </td>
             <td style="padding:10px 12px;text-align:right;">
                 <span style="background:#f0fdf4;color:#16a34a;padding:2px 8px;border-radius:12px;font-size:12px;font-weight:600;">
                     ${Number(item.availableQuantity).toLocaleString('vi-VN',{maximumFractionDigits:2})} ${item.unitName}
@@ -392,160 +400,200 @@ function selectInventoryRow(row) {
     row.style.background = '#eff6ff';
     row.style.outline = '2px solid #bfdbfe';
 
-    const raw  = row.getAttribute('data-inv');
-    const item = JSON.parse(raw.replace(/&quot;/g, '"'));
-    selectedInventory = item;
+    const raw = row.getAttribute('data-inv');
+    activeInventory = JSON.parse(raw.replace(/&quot;/g, '"'));
 
-    document.getElementById('h-product-id').value     = item.productId;
-    document.getElementById('h-product-lot-id').value = item.productLotId;
+    document.getElementById('add-item-box').style.display = 'block';
+    document.getElementById('sel-item-summary').innerHTML =
+        `<span style="color:#2563eb;">${activeInventory.productCode}</span> - ${activeInventory.productName} | Lô: <span style="color:#16a34a;">${activeInventory.lotNumber}</span> (Khả dụng: <strong>${Number(activeInventory.availableQuantity).toLocaleString('vi-VN')} ${activeInventory.unitName}</strong>)`;
 
-    const infoBox = document.getElementById('selected-item-info');
-    infoBox.style.display = 'block';
-    document.getElementById('sel-product-name').textContent = `${item.productCode} — ${item.productName}`;
-    document.getElementById('sel-lot').textContent          = `Lô: ${item.lotNumber} | HSD: ${item.expiryDisplay || '—'}`;
-    document.getElementById('sel-available').textContent    = `Khả dụng: ${Number(item.availableQuantity).toLocaleString('vi-VN',{maximumFractionDigits:2})} ${item.unitName}`;
+    const qtyInput = document.getElementById('item-qty-input');
+    qtyInput.max = activeInventory.availableQuantity;
+    qtyInput.value = '';
 
-    document.getElementById('dest-location-select').disabled = false;
-    document.getElementById('qty-input').max = item.availableQuantity;
-
-    const hint = document.getElementById('qty-max-hint');
-    document.getElementById('qty-max-val').textContent = `${Number(item.availableQuantity).toLocaleString('vi-VN',{maximumFractionDigits:2})} ${item.unitName}`;
-    hint.style.display = 'block';
-
-    document.getElementById('sum-product').textContent = `${item.productCode} — ${item.productName}`;
-    updateSourceSummary();
-    checkSubmitReady();
+    checkCanAdd();
 }
 
 async function onDestLocationChange(destId) {
-    const validEl = document.getElementById('dest-validation');
-    destIsValid = false;
+    const msgEl = document.getElementById('dest-val-msg');
+    isDestValid = false;
 
-    if (!destId || !selectedInventory) { validEl.innerHTML = ''; checkSubmitReady(); return; }
+    if (!destId || !activeInventory) {
+        msgEl.innerHTML = '';
+        checkCanAdd();
+        return;
+    }
 
-    validEl.innerHTML = `<span style="font-size:12px;color:#94a3b8;"><span class="spinner-border spinner-border-sm" style="width:10px;height:10px;"></span> Đang kiểm tra...</span>`;
+    msgEl.innerHTML = `<span style="color:#94a3b8;">⏳ Đang kiểm tra...</span>`;
 
     try {
-        const res  = await fetch(`/Transfer/Create?handler=ValidateDest&destLocationId=${destId}&sourceLocationId=${currentSourceId}&productId=${selectedInventory.productId}`);
+        const res  = await fetch(`/Transfer/Create?handler=ValidateDest&destLocationId=${destId}&sourceLocationId=${currentSourceId}&productId=${activeInventory.productId}`);
         const data = await res.json();
-        destIsValid = data.isValid;
+        isDestValid = data.isValid;
 
         if (data.isValid) {
-            validEl.innerHTML = `<div style="font-size:12px;color:#16a34a;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:6px 10px;">
-                <i class="ri-checkbox-circle-line"></i> ${data.message}</div>`;
+            msgEl.innerHTML = `<span style="color:#16a34a;">✅ ${data.message}</span>`;
         } else {
-            validEl.innerHTML = `<div style="font-size:12px;color:#dc2626;background:#fff5f5;border:1px solid #fecaca;border-radius:6px;padding:6px 10px;">
-                <i class="ri-error-warning-line"></i> ${data.message}</div>`;
+            msgEl.innerHTML = `<span style="color:#dc2626;">⚠️ ${data.message}</span>`;
         }
     } catch {
-        validEl.innerHTML = `<div style="font-size:12px;color:#dc2626;">Lỗi kiểm tra ô đích</div>`;
+        msgEl.innerHTML = `<span style="color:#dc2626;">Lỗi kiểm tra ô đích</span>`;
     }
-
-    const sel = document.getElementById('dest-location-select');
-    document.getElementById('sum-dst').textContent = sel.options[sel.selectedIndex]?.text || '';
-    updateSummary();
-    checkSubmitReady();
+    checkCanAdd();
 }
 
-function validateQty(val) {
-    const errEl = document.getElementById('qty-error');
+function validateItemQty(val) {
+    const msgEl = document.getElementById('qty-val-msg');
     const qty   = parseFloat(val);
 
-    if (!selectedInventory) { checkSubmitReady(); return; }
+    if (!activeInventory) return;
 
     if (isNaN(qty) || qty <= 0) {
-        errEl.textContent = 'Số lượng phải lớn hơn 0';
-        errEl.style.display = 'block';
-    } else if (qty > selectedInventory.availableQuantity) {
-        errEl.textContent = `Vượt quá khả dụng (tối đa: ${Number(selectedInventory.availableQuantity).toLocaleString('vi-VN',{maximumFractionDigits:2})} ${selectedInventory.unitName})`;
-        errEl.style.display = 'block';
+        msgEl.textContent = 'Số lượng phải lớn hơn 0';
+        msgEl.style.display = 'block';
+    } else if (qty > activeInventory.availableQuantity) {
+        msgEl.textContent = `Tối đa ${activeInventory.availableQuantity.toLocaleString('vi-VN')} ${activeInventory.unitName}`;
+        msgEl.style.display = 'block';
     } else {
-        errEl.style.display = 'none';
-        document.getElementById('sum-qty').textContent = `${Number(qty).toLocaleString('vi-VN',{maximumFractionDigits:2})} ${selectedInventory.unitName}`;
+        msgEl.style.display = 'none';
     }
-    updateSummary();
-    checkSubmitReady();
+    checkCanAdd();
 }
 
-function checkSubmitReady() {
-    const qty     = parseFloat(document.getElementById('qty-input').value);
-    const destId  = document.getElementById('dest-location-select').value;
-    const hasErr  = document.getElementById('qty-error').style.display !== 'none';
-    const ready   = selectedInventory && destId && destIsValid && qty > 0 && !hasErr;
+function checkCanAdd() {
+    const qty = parseFloat(document.getElementById('item-qty-input').value);
+    const destId = document.getElementById('item-dest-select').value;
+    const hasErr = document.getElementById('qty-val-msg').style.display !== 'none';
 
-    const btn = document.getElementById('btn-submit');
-    btn.disabled = !ready;
-    btn.style.background = ready ? '#2563eb' : '#94a3b8';
-    btn.style.cursor = ready ? 'pointer' : 'not-allowed';
+    const canAdd = activeInventory && destId && isDestValid && qty > 0 && !hasErr;
+    document.getElementById('btn-add-item').disabled = !canAdd;
 }
 
-function updateSourceSummary() {
-    const srcSel = document.getElementById('source-location-select');
-    document.getElementById('sum-src').textContent = srcSel?.options[srcSel.selectedIndex]?.text || '';
+// ─── THÊM VÀO GIỎ HÀNG ────────────────────────────────────────────────────────
+function addItemToCart() {
+    if (!activeInventory) return;
+
+    const destSel  = document.getElementById('item-dest-select');
+    const destId   = parseInt(destSel.value);
+    const destText = destSel.options[destSel.selectedIndex]?.text || '';
+    const qty      = parseFloat(document.getElementById('item-qty-input').value);
+
+    const srcSel   = document.getElementById('source-location-select');
+    const srcText  = srcSel.options[srcSel.selectedIndex]?.text || '';
+
+    // Kiểm tra xem tổ hợp này đã có trong giỏ chưa
+    const existingIndex = cartItems.findIndex(i =>
+        i.productId === activeInventory.productId &&
+        i.productLotId === activeInventory.productLotId &&
+        i.sourceLocationId === currentSourceId &&
+        i.destLocationId === destId);
+
+    if (existingIndex >= 0) {
+        cartItems[existingIndex].quantity += qty;
+    } else {
+        cartItems.push({
+            sourceLocationId: Number(currentSourceId),
+            destLocationId:   Number(destId),
+            productId:        Number(activeInventory.productId),
+            productLotId:     Number(activeInventory.productLotId),
+            quantity:         Number(qty),
+            productCode:      activeInventory.productCode,
+            productName:      activeInventory.productName,
+            lotNumber:        activeInventory.lotNumber,
+            unitName:         activeInventory.unitName,
+            srcCode:          srcText.split('—')[0].trim(),
+            destCode:         destText.split('—')[0].trim()
+        });
+    }
+
+    renderCartTable();
+    resetItemForm();
 }
 
-function updateSummary() {
-    document.getElementById('transfer-summary').style.display = 'block';
+function removeFromCart(index) {
+    cartItems.splice(index, 1);
+    renderCartTable();
 }
 
-function updateDestDropdown(sourceId) {
-    const destSel = document.getElementById('dest-location-select');
-    Array.from(destSel.options).forEach(opt => {
-        opt.disabled = (opt.value == sourceId);
+function renderCartTable() {
+    const tbody = document.getElementById('cart-tbody');
+    const badge = document.getElementById('cart-count-badge');
+    const btnSubmit = document.getElementById('btn-submit');
+
+    badge.textContent = `${cartItems.length} mục`;
+
+    if (cartItems.length === 0) {
+        tbody.innerHTML = `<tr>
+            <td colspan="4" style="text-align: center; padding: 32px 12px; color: #94a3b8;">
+                <i class="ri-shopping-basket-line" style="font-size: 32px; display: block; margin-bottom: 6px;"></i>
+                Chưa có sản phẩm nào trong danh sách.
+            </td>
+        </tr>`;
+        btnSubmit.disabled = true;
+        btnSubmit.style.background = '#94a3b8';
+        btnSubmit.style.cursor = 'not-allowed';
+        return;
+    }
+
+    let html = '';
+    cartItems.forEach((item, idx) => {
+        html += `<tr style="border-bottom: 1px solid #f1f5f9;">
+            <td style="padding: 8px 10px;">
+                <div style="font-weight: 700; color: #1e293b;">${item.productCode}</div>
+                <div style="font-size: 11px; color: #2563eb;">Lô: ${item.lotNumber}</div>
+            </td>
+            <td style="padding: 8px 10px; font-size: 11px;">
+                <span style="color:#64748b;">📍 ${item.srcCode}</span><br/>
+                <span style="color:#16a34a;font-weight:600;">🎯 ${item.destCode}</span>
+            </td>
+            <td style="padding: 8px 10px; text-align: right; font-weight: 700; color: #2563eb;">
+                ${item.quantity.toLocaleString('vi-VN')} ${item.unitName}
+            </td>
+            <td style="padding: 8px 10px; text-align: center;">
+                <button type="button" class="btn btn-link p-0 text-danger" onclick="removeFromCart(${idx})" title="Xóa">
+                    <i class="ri-delete-bin-line" style="font-size: 16px;"></i>
+                </button>
+            </td>
+        </tr>`;
     });
-    destSel.value = '';
-    document.getElementById('dest-validation').innerHTML = '';
-    destIsValid = false;
+
+    tbody.innerHTML = html;
+    btnSubmit.disabled = false;
+    btnSubmit.style.background = '#2563eb';
+    btnSubmit.style.cursor = 'pointer';
 }
 
-function resetSelectedItem() {
-    selectedInventory = null;
-    document.getElementById('h-product-id').value     = '';
-    document.getElementById('h-product-lot-id').value = '';
-    document.getElementById('selected-item-info').style.display = 'none';
-    document.getElementById('qty-input').value  = '';
-    document.getElementById('qty-error').style.display = 'none';
-    document.getElementById('qty-max-hint').style.display = 'none';
-    document.getElementById('transfer-summary').style.display = 'none';
-    const btn = document.getElementById('btn-submit');
-    btn.disabled = true;
-    btn.style.background = '#94a3b8';
-}
+function prepareSubmit() {
+    if (cartItems.length === 0) {
+        alert('Vui lòng thêm ít nhất 1 sản phẩm vào danh sách trước khi gửi.');
+        return false;
+    }
 
-function resetDestination() {
-    const destSel = document.getElementById('dest-location-select');
-    destSel.disabled = true;
-    destSel.value    = '';
-    document.getElementById('dest-validation').innerHTML = '';
-    destIsValid = false;
-}
+    document.getElementById('itemsJson').value = JSON.stringify(cartItems);
 
-function resetForm() {
-    resetSelectedItem();
-    resetDestination();
-    const srcSel = document.getElementById('source-location-select');
-    if (srcSel) srcSel.value = '';
-    currentSourceId = 0;
-    document.getElementById('inventory-container').innerHTML =
-        `<div style="text-align:center;padding:32px;color:#94a3b8;background:#f8fafc;border-radius:8px;border:1px dashed #e2e8f0;">
-        <i class="ri-cursor-line" style="font-size:32px;display:block;margin-bottom:8px;"></i>
-        <span style="font-size:13px;">Chọn ô nguồn để xem danh sách hàng hóa</span></div>`;
-}
-
-document.getElementById('transfer-form').addEventListener('submit', function() {
     document.getElementById('btn-text').style.display    = 'none';
     document.getElementById('btn-spinner').style.display = 'inline-block';
     document.getElementById('btn-submit').disabled       = true;
-});
+    return true;
+}
 
-(function() {
-    if (currentSourceId > 0) {
-        const destSel = document.getElementById('dest-location-select');
-        if (destSel) {
-            destSel.disabled = false;
-            updateDestDropdown(currentSourceId);
-        }
-    }
-})();
+function filterDestDropdown(sourceId) {
+    const destSel = document.getElementById('item-dest-select');
+    if (!destSel) return;
+    Array.from(destSel.options).forEach(opt => {
+        opt.disabled = (opt.value == sourceId);
+    });
+}
+
+function resetItemForm() {
+    activeInventory = null;
+    document.getElementById('add-item-box').style.display = 'none';
+    document.getElementById('item-qty-input').value = '';
+    document.getElementById('item-dest-select').value = '';
+    document.getElementById('dest-val-msg').innerHTML = '';
+    document.getElementById('qty-val-msg').style.display = 'none';
+    document.getElementById('btn-add-item').disabled = true;
+    isDestValid = false;
+}
 </script>
 }
