@@ -50,6 +50,9 @@ builder.Services.AddScoped<IStorageLocationRepository, StorageLocationRepository
 builder.Services.AddScoped<IStorageLocationService, StorageLocationService>();
 builder.Services.AddScoped<IPurchaseOrderRepository, PurchaseOrderRepository>();
 builder.Services.AddScoped<IPurchaseOrderService, PurchaseOrderService>();
+builder.Services.AddScoped<IOutboundOrderRepository, OutboundOrderRepository>();
+builder.Services.AddScoped<IOutboundOrderService, OutboundOrderService>();
+
 builder.Services.AddHttpClient("WarehouseAPI", client =>
 {
     // Sử dụng URL từ launchSettings.json của API Backend
