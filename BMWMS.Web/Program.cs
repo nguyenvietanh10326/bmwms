@@ -2,9 +2,6 @@ using BMWMS.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Razor Pages
-builder.Services.AddRazorPages();
-
 // Session (8 giờ - AC-01-05)
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
@@ -14,6 +11,31 @@ builder.Services.AddSession(options =>
     options.Cookie.IsEssential = true;
     options.Cookie.Name = ".BMWMS.Session";
     options.Cookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Strict;
+});
+
+// Authentication
+builder.Services.AddAuthentication(Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/Auth/Login";
+        options.AccessDeniedPath = "/Admin/Dashboard"; // Or a specific AccessDenied page
+        options.ExpireTimeSpan = TimeSpan.FromHours(8);
+    });
+
+// Authorization
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AdminOnly", policy => policy.RequireRole("SYSTEM_ADMIN"));
+    options.AddPolicy("WriteSupplier", policy => policy.RequireRole("SYSTEM_ADMIN", "PURCHASING_STAFF"));
+});
+
+// Razor Pages
+builder.Services.AddRazorPages(options =>
+{
+    options.Conventions.AuthorizeFolder("/Admin");
+    options.Conventions.AuthorizeFolder("/Admin/Users", "AdminOnly");
+    options.Conventions.AuthorizePage("/Admin/Suppliers/Create", "WriteSupplier");
+    options.Conventions.AuthorizePage("/Admin/Suppliers/Edit", "WriteSupplier");
 });
 
 // Cần IHttpContextAccessor để TokenDelegatingHandler truy cập Session
@@ -55,6 +77,8 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
+app.UseAuthentication();
+app.UseAuthorization();
 app.UseSession();
 app.MapRazorPages();
 

@@ -68,4 +68,21 @@ public class InboundRepository : IInboundRepository
 
         return (items, totalCount);
     }
+
+    public async Task<InboundOrder?> GetByIdAsync(long id)
+    {
+        return await _context.InboundOrders
+            .Include(i => i.PurchaseOrder)
+                .ThenInclude(p => p.Supplier)
+            .Include(i => i.Warehouse)
+            .Include(i => i.AssignedToUser)
+            .Include(i => i.CreatedByUser)
+            .Include(i => i.ParentInboundOrder)
+            .Include(i => i.InboundOrderItems)
+                .ThenInclude(item => item.Product)
+            .Include(i => i.InboundOrderItems)
+                .ThenInclude(item => item.InboundOrderDetails)
+                    .ThenInclude(detail => detail.ProductLot)
+            .FirstOrDefaultAsync(i => i.InboundOrderId == id);
+    }
 }

@@ -19,9 +19,17 @@ public class InboundsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetInboundOrders([FromQuery] InboundOrderFilterDto filter)
+    public async Task<ActionResult<InboundOrderPageDto>> GetInboundOrders([FromQuery] InboundOrderFilterDto filter)
     {
         var result = await _inboundService.GetInboundOrdersPageAsync(filter);
+        return Ok(result);
+    }
+
+    [HttpGet("{id}")]
+    public async Task<ActionResult<InboundOrderDetailDto>> GetInboundOrderById(long id)
+    {
+        var result = await _inboundService.GetInboundOrderByIdAsync(id);
+        if (result == null) return NotFound();
         return Ok(result);
     }
 }

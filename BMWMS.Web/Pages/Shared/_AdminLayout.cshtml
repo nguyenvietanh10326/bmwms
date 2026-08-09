@@ -21,6 +21,12 @@
         </a>
 
         <nav class="sidebar-nav">
+            @{
+                var currentRole = Context.Session.GetString("RoleCode") ?? "";
+                var isSysAdmin = currentRole == "SYSTEM_ADMIN";
+                var isPurchasing = currentRole == "PURCHASING_STAFF";
+                var isWhManager = currentRole == "WAREHOUSE_MANAGER";
+            }
             <!-- 1. TỔNG QUAN -->
             <div class="nav-section">
                 <div class="nav-section-label">TỔNG QUAN</div>
@@ -48,7 +54,10 @@
                 <div class="nav-submenu @(isWhActive ? "expanded" : "")">
                     <a href="/Warehouse/Index" class="nav-sub-item @(Context.Request.Path == "/Warehouse/Index" || Context.Request.Path == "/Warehouse" ? "active" : "")">Danh sách kho hàng</a>
                     <a href="/StorageLocations/Index" class="nav-sub-item @(Context.Request.Path.StartsWithSegments("/StorageLocations") ? "active" : "")">Vị trí lưu trữ</a>
-                    <a href="/Warehouse/Create" class="nav-sub-item @(Context.Request.Path == "/Warehouse/Create" ? "active" : "")">Thêm kho mới</a>
+                    @if (isSysAdmin || isWhManager)
+                    {
+                        <a href="/Warehouse/Create" class="nav-sub-item @(Context.Request.Path == "/Warehouse/Create" ? "active" : "")">Thêm kho mới</a>
+                    }
                 </div>
 
                 <!-- Sản phẩm & Danh mục -->
@@ -64,7 +73,10 @@
                 </div>
                 <div class="nav-submenu @(isProductActive ? "expanded" : "")">
                     <a href="/Products/Index" class="nav-sub-item @(Context.Request.Path == "/Products" || Context.Request.Path == "/Products/Index" ? "active" : "")">Danh sách hàng hóa</a>
-                    <a href="/Products/Create" class="nav-sub-item @(Context.Request.Path == "/Products/Create" ? "active" : "")">Thêm hàng hóa mới</a>
+                    @if (isSysAdmin || isWhManager)
+                    {
+                        <a href="/Products/Create" class="nav-sub-item @(Context.Request.Path == "/Products/Create" ? "active" : "")">Thêm hàng hóa mới</a>
+                    }
                     <a href="/Categories/Index" class="nav-sub-item @(Context.Request.Path == "/Categories" || Context.Request.Path == "/Categories/Index" ? "active" : "")">Nhóm danh mục</a>
                 </div>
 
@@ -81,7 +93,10 @@
                 </div>
                 <div class="nav-submenu @(isSupplierActive ? "expanded" : "")">
                     <a href="/Admin/Suppliers" class="nav-sub-item @(Context.Request.Path == "/Admin/Suppliers" ? "active" : "")">Danh sách nhà cung cấp</a>
-                    <a href="/Admin/Suppliers/Create" class="nav-sub-item @(Context.Request.Path == "/Admin/Suppliers/Create" ? "active" : "")">Thêm nhà cung cấp</a>
+                    @if (isSysAdmin || isPurchasing)
+                    {
+                        <a href="/Admin/Suppliers/Create" class="nav-sub-item @(Context.Request.Path == "/Admin/Suppliers/Create" ? "active" : "")">Thêm nhà cung cấp</a>
+                    }
                 </div>
             </div>
 
@@ -158,20 +173,21 @@
                 <div class="nav-section-label">QUẢN TRỊ & HỆ THỐNG</div>
 
                 <!-- Người dùng -->
-                @{
+                @if (isSysAdmin)
+                {
                     var isUserActive = Context.Request.Path.StartsWithSegments("/Admin/Users");
-                }
-                <div class="nav-item nav-item-has-sub @(isUserActive ? "expanded active" : "")" onclick="toggleSubmenu(this)">
-                    <div class="nav-item-main">
-                        <i class="ri-user-settings-line nav-item-icon"></i>
-                        Tài khoản & Phân quyền
+                    <div class="nav-item nav-item-has-sub @(isUserActive ? "expanded active" : "")" onclick="toggleSubmenu(this)">
+                        <div class="nav-item-main">
+                            <i class="ri-user-settings-line nav-item-icon"></i>
+                            Tài khoản & Phân quyền
+                        </div>
+                        <i class="ri-arrow-right-s-line nav-item-arrow"></i>
                     </div>
-                    <i class="ri-arrow-right-s-line nav-item-arrow"></i>
-                </div>
-                <div class="nav-submenu @(isUserActive ? "expanded" : "")">
-                    <a href="/Admin/Users" class="nav-sub-item @(Context.Request.Path == "/Admin/Users" ? "active" : "")">Danh sách người dùng</a>
-                    <a href="/Admin/Users/Create" class="nav-sub-item @(Context.Request.Path == "/Admin/Users/Create" ? "active" : "")">Tạo tài khoản mới</a>
-                </div>
+                    <div class="nav-submenu @(isUserActive ? "expanded" : "")">
+                        <a href="/Admin/Users" class="nav-sub-item @(Context.Request.Path == "/Admin/Users" ? "active" : "")">Danh sách người dùng</a>
+                        <a href="/Admin/Users/Create" class="nav-sub-item @(Context.Request.Path == "/Admin/Users/Create" ? "active" : "")">Tạo tài khoản mới</a>
+                    </div>
+                }
 
                 <a href="/Admin/Profile" class="nav-item @(Context.Request.Path == "/Admin/Profile" ? "active" : "")">
                     <i class="ri-shield-user-line nav-item-icon"></i>

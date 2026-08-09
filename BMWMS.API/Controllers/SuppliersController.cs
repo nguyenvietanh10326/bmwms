@@ -51,7 +51,7 @@ public class SuppliersController : ControllerBase
         }
     }
 
-    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF")]
+    [Authorize(Roles = "SYSTEM_ADMIN,PURCHASING_STAFF")]
     [HttpPost]
     public async Task<IActionResult> CreateSupplier([FromBody] BMWMS.Business.DTOs.Supplier.SupplierCreateRequestDto dto)
     {
@@ -73,7 +73,7 @@ public class SuppliersController : ControllerBase
         }
     }
 
-    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF")]
+    [Authorize(Roles = "SYSTEM_ADMIN,PURCHASING_STAFF")]
     [HttpPut("{supplierCode}")]
     public async Task<IActionResult> UpdateSupplier(string supplierCode, [FromBody] BMWMS.Business.DTOs.Supplier.SupplierUpdateRequestDto dto)
     {

@@ -58,7 +58,7 @@ public class NotificationsController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "SYSTEM_ADMIN")]
     public async Task<IActionResult> CreateNotification([FromBody] CreateNotificationDto dto)
     {
         var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);

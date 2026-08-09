@@ -6,4 +6,5 @@ namespace BMWMS.Business.Interfaces;
 public interface IInboundService
 {
     Task<InboundOrderPageDto> GetInboundOrdersPageAsync(InboundOrderFilterDto filter);
+    Task<InboundOrderDetailDto?> GetInboundOrderByIdAsync(long id);
 }

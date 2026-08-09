@@ -61,6 +61,7 @@ namespace BMWMS.API.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
         public async Task<IActionResult> Create([FromBody] CreateProductGroupDto dto)
         {
             if (!ModelState.IsValid)
@@ -84,6 +85,7 @@ namespace BMWMS.API.Controllers
         }
 
         [HttpPut("{id:long}")]
+        [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
         public async Task<IActionResult> Update(long id, [FromBody] UpdateProductGroupDto dto)
         {
             if (!ModelState.IsValid)
@@ -107,6 +109,7 @@ namespace BMWMS.API.Controllers
         }
 
         [HttpPatch("{id:long}/status")]
+        [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
         public async Task<IActionResult> ToggleStatus(long id)
         {
             try
@@ -125,6 +128,7 @@ namespace BMWMS.API.Controllers
         }
 
         [HttpDelete("{id:long}")]
+        [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
         public async Task<IActionResult> Delete(long id)
         {
             try
@@ -147,6 +151,7 @@ namespace BMWMS.API.Controllers
         }
 
         [HttpPost("{id:long}/attributes")]
+        [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
         public async Task<IActionResult> UpdateGroupAttributes(long id, [FromBody] List<GroupAttributeAssignmentDto> attributes)
         {
             try

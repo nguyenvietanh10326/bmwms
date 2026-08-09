@@ -159,7 +159,7 @@
               foreach (var item in Model.Data.Items)
               {
                   <tr>
-                      <td><a href="/Admin/Inbound/Details?id=@item.InboundOrderId" class="link">@item.InboundOrderNumber</a></td>
+                      <td><a href="/Admin/Inbound/Details/@item.InboundOrderId" class="link">@item.InboundOrderNumber</a></td>
                       <td>@item.SupplierName</td>
                       <td>@item.ExpectedReceiptDate.ToString("dd/MM/yyyy")</td>
                       <td class="num">@item.TotalExpectedQuantity.ToString("N0")</td>
@@ -191,15 +191,15 @@
                       <td>
                           @if (item.Status == "DRAFT")
                           {
-                              <a href="/Admin/Inbound/Edit?id=@item.InboundOrderId" class="icon-link"><svg><use href="#i-pencil"/></svg>Sửa</a>
+                              <a href="/Admin/Inbound/Edit/@item.InboundOrderId" class="icon-link"><svg><use href="#i-pencil"/></svg>Sửa</a>
                           }
                           else if (item.Status == "PENDING" || item.Status == "IN_PROGRESS")
                           {
-                              <a href="/Admin/Inbound/Receive?id=@item.InboundOrderId" class="icon-link"><svg><use href="#i-in"/></svg>Nhận</a>
+                              <a href="/Admin/Inbound/Receive/@item.InboundOrderId" class="icon-link"><svg><use href="#i-in"/></svg>Nhận</a>
                           }
                           else
                           {
-                              <a href="/Admin/Inbound/Details?id=@item.InboundOrderId" class="icon-link"><svg><use href="#i-eye"/></svg>Xem</a>
+                              <a href="/Admin/Inbound/Details/@item.InboundOrderId" class="icon-link"><svg><use href="#i-eye"/></svg>Xem</a>
                           }
                       </td>
                   </tr>

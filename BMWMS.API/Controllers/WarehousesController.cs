@@ -52,6 +52,7 @@ namespace BMWMS.API.Controllers
         /// Tạo mới kho
         /// </summary>
         [HttpPost]
+        [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
         [ProducesResponseType(typeof(object), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
@@ -81,6 +82,7 @@ namespace BMWMS.API.Controllers
         /// Cập nhật thông tin kho
         /// </summary>
         [HttpPut("{id:long}")]
+        [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -115,6 +117,7 @@ namespace BMWMS.API.Controllers
         /// Xóa kho
         /// </summary>
         [HttpDelete("{id:long}")]
+        [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]

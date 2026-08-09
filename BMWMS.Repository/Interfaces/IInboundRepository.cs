@@ -14,4 +14,6 @@ public interface IInboundRepository
         DateTime? toDate,
         int pageIndex,
         int pageSize);
+
+    Task<InboundOrder?> GetByIdAsync(long id);
 }

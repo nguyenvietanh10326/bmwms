@@ -1,0 +1,202 @@
+@page "{id:long}"
+@model BMWMS.Web.Pages.Admin.Inbound.DetailsModel
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Chi tiết lệnh nhập kho";
+    ViewData["ActivePage"] = "Inbound";
+}
+
+<style>
+  :root{
+    --font-ui:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    --font-mono:"IBM Plex Mono",ui-monospace,monospace;
+
+    --navy-950:#233a6b; --navy-900:#1b2d56; --navy-800:#152d57;
+    --accent:#3e5cf6; --accent-600:#3149d4; --accent-100:#e8ecff;
+
+    --bg:#f2f3f7; --card:#ffffff; --line:#e7e9f0; --line-strong:#d7dae5;
+    --ink:#161b2e; --ink-2:#525a72; --ink-3:#8890a6; --ink-4:#aeb4c6;
+
+    --g-bg:#e2f8ea; --g-tx:#0f7a3e; --g-dot:#1fa855;
+    --y-bg:#fef3d6; --y-tx:#93650a; --y-dot:#e2a336;
+    --gy-bg:#eceef3; --gy-tx:#565f78; --gy-dot:#9aa1b5;
+    --r-bg:#fce3e4; --r-tx:#c1222f; --r-dot:#e2454f;
+    --b-bg:#e3eaff; --b-tx:#2c48d8; --b-dot:#5876f2;
+
+    --sh-xs:0 1px 2px rgba(16,23,42,.05);
+    --sh-sm:0 1px 2px rgba(16,23,42,.04),0 4px 10px -4px rgba(16,23,42,.07);
+    --r-sm:8px; --r-lg:16px;
+    --ease:cubic-bezier(.4,0,.2,1);
+  }
+  
+  .inbound-page {
+    font-family: var(--font-ui);
+    color: var(--ink);
+    font-size: 14px;
+    line-height: 1.45;
+    padding: 26px 30px 64px;
+  }
+  .inbound-page * { box-sizing: border-box; }
+  .inbound-page button{font-family:inherit;}
+
+  .inbound-page .breadcrumb{font-size:11.5px;color:var(--ink-3);margin-bottom:8px;font-weight:600;letter-spacing:.02em;text-transform:uppercase; display:block; padding:0; background:transparent;}
+  .inbound-page .pagehead{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;gap:20px;}
+  .inbound-page .pagehead h1{font-size:20px;margin:0 0 5px;letter-spacing:-.01em;font-weight:700;}
+  .inbound-page .pagehead p{margin:0;color:var(--ink-2);font-size:13px;max-width:560px;}
+
+  .inbound-page .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);padding:22px 24px;margin-bottom:16px;box-shadow:var(--sh-xs);}
+  .inbound-page .card h3{margin:0 0 14px;font-size:14px;font-weight:700;letter-spacing:-.005em;display:flex;align-items:center;gap:8px;}
+  .inbound-page .row{display:flex;justify-content:space-between;align-items:center;}
+
+  .inbound-page .badge{display:inline-flex;align-items:center;gap:6px;padding:3.5px 10px 3.5px 8px;border-radius:999px;font-size:11.5px;font-weight:600;}
+  .inbound-page .badge .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+  .inbound-page .b-g{background:var(--g-bg);color:var(--g-tx);} .inbound-page .b-g .dot{background:var(--g-dot);}
+  .inbound-page .b-y{background:var(--y-bg);color:var(--y-tx);} .inbound-page .b-y .dot{background:var(--y-dot);}
+  .inbound-page .b-gy{background:var(--gy-bg);color:var(--gy-tx);} .inbound-page .b-gy .dot{background:var(--gy-dot);}
+  .inbound-page .b-r{background:var(--r-bg);color:var(--r-tx);} .inbound-page .b-r .dot{background:var(--r-dot);}
+  .inbound-page .b-b{background:var(--b-bg);color:var(--b-tx);} .inbound-page .b-b .dot{background:var(--b-dot);}
+
+  .inbound-page table{width:100%;border-collapse:collapse;font-size:13px;}
+  .inbound-page th{text-align:left;color:var(--ink-3);font-weight:600;font-size:11px;letter-spacing:.03em;padding:0 10px 10px;border-bottom:1px solid var(--line);}
+  .inbound-page th.num, .inbound-page td.num{text-align:right;}
+  .inbound-page td{padding:13px 10px;border-bottom:1px solid var(--line);vertical-align:middle;color:var(--ink);}
+  .inbound-page td.num{font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-size:12.5px;}
+  .inbound-page tbody tr:hover{background:#f8f9fc;}
+  .inbound-page tr:last-child td{border-bottom:none;}
+  .inbound-page .prod-code{font-family:var(--font-mono);font-size:11px;background:var(--gy-bg);color:var(--ink-2);padding:1.5px 6px;border-radius:5px;margin-right:6px;font-weight:600;}
+  .inbound-page .muted{color:var(--ink-3);}
+  .inbound-page .small{font-size:12px;}
+  .inbound-page .stat-strip{display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:12px;border-top:1px solid var(--line);}
+
+  .inbound-page .grid2{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
+  .inbound-page .grid2 label{display:block;font-size:11.5px;color:var(--ink-3);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.02em;}
+  .inbound-page .grid2 .field input{width:100%;padding:9px 11px;border:1px solid var(--line-strong);border-radius:var(--r-sm);font-size:13px;background:#fff;color:var(--ink);}
+  .inbound-page .grid2 .field input[disabled]{background:#f7f8fb;color:var(--ink-3);border-color:var(--line);}
+
+  .inbound-page .timeline{margin-left:4px;}
+  .inbound-page .tl-item{position:relative;padding:0 0 22px 30px;border-left:2px solid var(--line);margin-left:12px;}
+  .inbound-page .tl-item:last-child{border-color:transparent;padding-bottom:2px;}
+  .inbound-page .tl-item .tl-ic{position:absolute;left:-15px;top:-2px;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 4px #fff;}
+  .inbound-page .tl-item .tl-ic svg{width:14px;height:14px;}
+  .inbound-page .tl-item .tl-top{font-size:13px;font-weight:700;display:flex;align-items:center;gap:8px;}
+  .inbound-page .tl-item .tl-meta{font-size:11.5px;color:var(--ink-3);margin-top:3px;}
+  .inbound-page .pill-tag{font-size:10.5px;background:var(--b-bg);color:var(--b-tx);padding:2px 8px;border-radius:999px;font-weight:700;margin-left:7px;letter-spacing:.01em;}
+
+  .inbound-page .btn{display:inline-flex;align-items:center;gap:7px;border:none;border-radius:var(--r-sm);padding:9px 15px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s var(--ease); text-decoration:none;}
+  .inbound-page .btn svg{width:15px;height:15px;}
+  .inbound-page .btn-dark{background:var(--navy-950);color:#fff;box-shadow:var(--sh-xs);}
+  .inbound-page .btn-dark:hover{background:#1c2340;transform:translateY(-1px);box-shadow:var(--sh-sm); color:#fff;}
+  .inbound-page .btn-light{background:#fff;border:1px solid var(--line-strong);color:var(--ink);}
+  .inbound-page .btn-light:hover{border-color:var(--ink-4);background:#fafafd; color:var(--ink);}
+  .inbound-page .sub-actions{display:flex;gap:8px;flex-wrap:wrap;}
+</style>
+
+<svg width="0" height="0" style="position:absolute; display:none;">
+    <symbol id="i-history" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5M12 7v5l4 2"/></symbol>
+    <symbol id="i-map" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12Z"/><circle cx="12" cy="9" r="2.4"/></symbol>
+    <symbol id="i-check2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 12 6 6L21 6"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="M12 7v5l3.3 2"/></symbol>
+    <symbol id="i-doc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h9l5 5v15H6z"/><path d="M15 2v5h5M8.5 13h7M8.5 17h7"/></symbol>
+    <symbol id="i-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></symbol>
+</svg>
+
+<div class="inbound-page">
+  <div class="breadcrumb">
+    <a asp-page="/Admin/Inbound/Index" style="color:var(--ink-3); text-decoration:none;">Nhập kho</a>
+    <svg style="width:12px; height:12px; display:inline-block; vertical-align:middle; margin:0 4px;"><use href="#i-chev"/></svg>
+    <span>Chi tiết lệnh nhập kho</span>
+  </div>
+  <div class="pagehead">
+    <div><h1>Chi tiết lệnh nhập kho — @Model.Order.InboundOrderNumber</h1><p>Thông tin nguồn PO, mặt hàng, số lượng dự kiến/thực nhận/đã xếp, lô hàng và tiến trình.</p></div>
+    @{
+        var statusClass = "b-gy";
+        var statusName = Model.Order.Status;
+        if (Model.Order.Status == "READY") { statusClass = "b-gy"; statusName = "Sẵn sàng"; }
+        else if (Model.Order.Status == "ASSIGNED") { statusClass = "b-b"; statusName = "Chờ xử lý"; }
+        else if (Model.Order.Status == "RECEIVING") { statusClass = "b-b"; statusName = "Đang nhận hàng"; }
+        else if (Model.Order.Status == "RECEIVED") { statusClass = "b-g"; statusName = "Đã nhận"; }
+        else if (Model.Order.Status == "PUTAWAY_COMPLETED") { statusClass = "b-g"; statusName = "Hoàn tất"; }
+        else if (Model.Order.Status == "CANCELLED") { statusClass = "b-r"; statusName = "Đã hủy"; }
+    }
+    <span class="badge @statusClass"><span class="dot"></span>@statusName</span>
+  </div>
+
+  <div class="card">
+    <h3>Thông tin chung</h3>
+    <div class="grid2">
+      <div class="field"><label>Purchase Order</label><input disabled value="@Model.Order.PurchaseOrderNumber"></div>
+      <div class="field"><label>Nhà cung cấp</label><input disabled value="@Model.Order.SupplierName"></div>
+      <div class="field"><label>Kho nhận</label><input disabled value="@Model.Order.WarehouseName"></div>
+      <div class="field"><label>Ngày dự kiến</label><input disabled value="@Model.Order.ExpectedReceiptDate.ToString("dd/MM/yyyy")"></div>
+      <div class="field"><label>Người phụ trách</label><input disabled value="@Model.Order.AssignedToUserName"></div>
+      <div class="field"><label>Lệnh bổ sung liên quan</label><input disabled value="@(string.IsNullOrEmpty(Model.Order.ParentInboundOrderNumber) ? "—" : Model.Order.ParentInboundOrderNumber)"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Dòng hàng & số lượng</h3>
+    <table>
+      <tr><th>Sản phẩm</th><th class="num">SL dự kiến</th><th class="num">SL thực nhận</th><th class="num">SL đã xếp kho</th><th>Lot / Hạn dùng</th><th>Kết quả</th></tr>
+      @foreach(var item in Model.Order.Items)
+      {
+          var resultClass = item.ReceivedQuantity >= item.ExpectedQuantity ? "b-g" : "b-y";
+          var resultText = item.ReceivedQuantity >= item.ExpectedQuantity ? "Đủ" : $"Thiếu {item.ExpectedQuantity - item.ReceivedQuantity:N0}";
+          
+          <tr>
+            <td><span class="prod-code">@item.ProductCode</span>@item.ProductName</td>
+            <td class="num">@item.ExpectedQuantity.ToString("N0")</td>
+            <td class="num">@item.ReceivedQuantity.ToString("N0")</td>
+            <td class="num">@item.PutawayQuantity.ToString("N0")</td>
+            <td>@(item.LotNumber != null ? $"{item.LotNumber} · {item.ExpiryDate?.ToString("dd/MM/yyyy")}" : "—")</td>
+            <td><span class="badge @resultClass"><span class="dot"></span>@resultText</span></td>
+          </tr>
+      }
+    </table>
+    @{
+        var sumExpected = Model.Order.Items.Sum(x => x.ExpectedQuantity);
+        var sumReceived = Model.Order.Items.Sum(x => x.ReceivedQuantity);
+        var sumPutaway = Model.Order.Items.Sum(x => x.PutawayQuantity);
+        var diff = sumExpected - sumReceived;
+    }
+    <div class="stat-strip">
+        <span class="small muted">Tổng dự kiến @sumExpected.ToString("N0") · thực nhận @sumReceived.ToString("N0") · đã xếp @sumPutaway.ToString("N0")</span>
+        @if (diff > 0)
+        {
+            <b style="color:var(--y-tx)">Thiếu: @diff.ToString("N0")</b>
+        }
+        else
+        {
+            <b style="color:var(--g-tx)">Đủ số lượng</b>
+        }
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Lịch sử trạng thái</h3>
+    <div class="timeline">
+      @foreach(var t in Model.Order.Timeline)
+      {
+          var icRef = "#i-doc";
+          if(t.StatusBadge == "READY") { icRef = "#i-doc"; }
+          if(t.StatusBadge == "ASSIGNED") { icRef = "#i-check2"; }
+          if(t.StatusBadge == "RECEIVING") { icRef = "#i-clock"; }
+          if(t.StatusBadge == "RECEIVED") { icRef = "#i-check2"; }
+          if(t.StatusBadge == "PUTAWAY") { icRef = "#i-map"; }
+          
+          <div class="tl-item">
+            <div class="tl-ic" style="background:var(--@(t.StatusBadgeColor)-bg);color:var(--@(t.StatusBadgeColor)-tx)"><svg><use href="@icRef"/></svg></div>
+            <div class="tl-top">@t.EventName <span class="pill-tag">@t.StatusBadge</span></div>
+            <div class="tl-meta">@t.EventTime.ToString("dd/MM/yyyy HH:mm") · @t.PerformedBy</div>
+          </div>
+      }
+    </div>
+  </div>
+
+  <div class="row" style="margin-top:4px">
+    <span class="small muted">Cập nhật lần cuối bởi @Model.Order.CreatedByUserName</span>
+    <div class="sub-actions">
+      <a class="btn btn-light" href="#"><svg><use href="#i-history"/></svg>Lịch sử đầy đủ</a>
+      <a class="btn btn-dark" href="#"><svg><use href="#i-map"/></svg>Xếp vị trí</a>
+    </div>
+  </div>
+</div>

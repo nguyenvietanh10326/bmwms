@@ -42,4 +42,89 @@ public class InboundService : IInboundService
             }).ToList()
         };
     }
+
+    public async Task<InboundOrderDetailDto?> GetInboundOrderByIdAsync(long id)
+    {
+        var order = await _inboundRepository.GetByIdAsync(id);
+        if (order == null) return null;
+
+        var dto = new InboundOrderDetailDto
+        {
+            InboundOrderId = order.InboundOrderId,
+            InboundOrderNumber = order.InboundOrderNumber,
+            PurchaseOrderNumber = order.PurchaseOrder?.PurchaseOrderNumber,
+            SupplierName = order.PurchaseOrder?.Supplier?.SupplierName ?? "",
+            WarehouseName = order.Warehouse?.WarehouseName ?? "",
+            ExpectedReceiptDate = order.ExpectedReceiptDate,
+            Status = order.Status,
+            AssignedToUserName = order.AssignedToUser?.FullName ?? "",
+            CreatedByUserName = order.CreatedByUser?.FullName ?? "",
+            ParentInboundOrderNumber = order.ParentInboundOrder?.InboundOrderNumber,
+            Items = order.InboundOrderItems.Select(item => new InboundOrderItemDto
+            {
+                InboundOrderItemId = item.InboundOrderItemId,
+                ProductCode = item.Product.ProductCode,
+                ProductName = item.Product.ProductName,
+                ExpectedQuantity = item.ExpectedQuantity,
+                ReceivedQuantity = item.ReceivedQuantity,
+                PutawayQuantity = item.InboundOrderDetails.Sum(d => d.ReceivedQuantity),
+                // Lấy Lot đầu tiên nếu có (vì hiển thị chi tiết thì 1 dòng thường ứng với 1 lô, hoặc list các lô. Ở đây ta lấy lô mới nhất)
+                LotNumber = item.InboundOrderDetails.FirstOrDefault()?.ProductLot?.LotNumber,
+                ExpiryDate = item.InboundOrderDetails.FirstOrDefault()?.ProductLot?.ExpiryDate
+            }).ToList()
+        };
+
+        // Tạo Timeline giả lập từ các mốc thời gian của InboundOrder
+        var timeline = new List<InboundOrderTimelineDto>();
+        
+        timeline.Add(new InboundOrderTimelineDto
+        {
+            EventTime = order.CreatedAt,
+            EventName = "Tạo lệnh nhập",
+            StatusBadge = "READY",
+            StatusBadgeColor = "gy",
+            PerformedBy = order.CreatedByUser?.FullName ?? "Hệ thống"
+        });
+
+        if (order.ConfirmedAt.HasValue)
+        {
+            timeline.Add(new InboundOrderTimelineDto
+            {
+                EventTime = order.ConfirmedAt.Value,
+                EventName = "Xác nhận lệnh nhập",
+                StatusBadge = "ASSIGNED",
+                StatusBadgeColor = "b",
+                PerformedBy = order.ConfirmedByUser?.FullName ?? "Quản lý"
+            });
+        }
+        
+        if (order.Status == "RECEIVED" || order.Status == "PUTAWAY_COMPLETED")
+        {
+            timeline.Add(new InboundOrderTimelineDto
+            {
+                EventTime = order.CreatedAt.AddHours(2), // Giả lập thời gian
+                EventName = "Nhận hàng hoàn tất",
+                StatusBadge = "RECEIVED",
+                StatusBadgeColor = "g",
+                PerformedBy = order.AssignedToUser?.FullName ?? ""
+            });
+        }
+        
+        if (order.CancelledAt.HasValue)
+        {
+            timeline.Add(new InboundOrderTimelineDto
+            {
+                EventTime = order.CancelledAt.Value,
+                EventName = "Hủy lệnh nhập",
+                StatusBadge = "CANCELLED",
+                StatusBadgeColor = "r",
+                PerformedBy = order.CancelledByUser?.FullName ?? ""
+            });
+        }
+
+        // Sắp xếp giảm dần theo thời gian (mới nhất lên trên)
+        dto.Timeline = timeline.OrderByDescending(t => t.EventTime).ToList();
+
+        return dto;
+    }
 }

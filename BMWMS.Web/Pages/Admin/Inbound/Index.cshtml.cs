@@ -20,8 +20,9 @@ public class IndexModel : PageModel
 
     public InboundOrderPageModel Data { get; set; } = new();
 
-    public async Task OnGetAsync()
+    public async Task<IActionResult> OnGetAsync()
     {
         Data = await _inboundApiService.GetInboundOrdersPageAsync(Filter);
+        return Page();
     }
 }
