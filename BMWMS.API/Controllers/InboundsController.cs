@@ -8,7 +8,7 @@ namespace BMWMS.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize]
+[Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF,PURCHASING_STAFF")]
 public class InboundsController : ControllerBase
 {
     private readonly IInboundService _inboundService;

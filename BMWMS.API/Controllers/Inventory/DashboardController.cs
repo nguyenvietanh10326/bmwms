@@ -1,9 +1,11 @@
 using BMWMS.Business.Interfaces.Inventory;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BMWMS.API.Controllers.Inventory
 {
+    [Authorize]
     [Route("api/dashboard")]
     [ApiController]
     public class InventoryDashboardController : ControllerBase
