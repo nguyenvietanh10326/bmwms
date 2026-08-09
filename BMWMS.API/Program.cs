@@ -109,6 +109,10 @@ builder.Services.AddScoped<IExcelExportService, ExcelExportService>();
 builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 
+// StockOperations (VietAnh)
+builder.Services.AddScoped<BMWMS.Repository.Interfaces.StockOperations.ITransferRepository, BMWMS.Repository.Repositories.StockOperations.TransferRepository>();
+builder.Services.AddScoped<BMWMS.Business.Interfaces.StockOperations.ITransferService, BMWMS.Business.Services.StockOperations.TransferService>();
+
 var app = builder.Build();
 
 app.UseCors("AllowAll");

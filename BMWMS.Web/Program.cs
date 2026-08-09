@@ -80,6 +80,9 @@ builder.Services.AddScoped<InboundApiService>();
 builder.Services.AddScoped<IReportApiService, ReportApiService>();
 builder.Services.AddScoped<INotificationApiService, NotificationApiService>();
 
+// StockOperations (VietAnh)
+builder.Services.AddScoped<TransferApiService>();
+
 var app = builder.Build();
 
 if (!app.Environment.IsDevelopment())
