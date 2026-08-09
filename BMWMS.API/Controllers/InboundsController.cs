@@ -1,0 +1,27 @@
+using System.Threading.Tasks;
+using BMWMS.Business.DTOs.Inbound;
+using BMWMS.Business.Interfaces;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+namespace BMWMS.API.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+[Authorize]
+public class InboundsController : ControllerBase
+{
+    private readonly IInboundService _inboundService;
+
+    public InboundsController(IInboundService inboundService)
+    {
+        _inboundService = inboundService;
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetInboundOrders([FromQuery] InboundOrderFilterDto filter)
+    {
+        var result = await _inboundService.GetInboundOrdersPageAsync(filter);
+        return Ok(result);
+    }
+}

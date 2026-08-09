@@ -105,7 +105,7 @@
                     <a href="/Inventory/Inventory" class="nav-sub-item @(Context.Request.Path == "/Inventory/Inventory" ? "active" : "")">Tồn kho theo vị trí</a>
                 </div>
 
-                <a href="#" class="nav-item" style="opacity: 0.6;" title="Iteration 2">
+                <a href="/Admin/Inbound" class="nav-item @(Context.Request.Path.StartsWithSegments("/Admin/Inbound") ? "active" : "")">
                     <i class="ri-download-2-line nav-item-icon"></i>
                     Nhập kho (Inbound)
                 </a>

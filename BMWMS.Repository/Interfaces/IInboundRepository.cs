@@ -1,0 +1,17 @@
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using BMWMS.Repository.Models;
+
+namespace BMWMS.Repository.Interfaces;
+
+public interface IInboundRepository
+{
+    Task<(IEnumerable<InboundOrder> Items, int TotalCount)> GetInboundOrdersPageAsync(
+        string? keyword,
+        string? status,
+        DateTime? fromDate,
+        DateTime? toDate,
+        int pageIndex,
+        int pageSize);
+}

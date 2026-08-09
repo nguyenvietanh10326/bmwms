@@ -1,0 +1,239 @@
+@page
+@model BMWMS.Web.Pages.Admin.Inbound.IndexModel
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Danh sách lệnh nhập kho";
+    ViewData["ActivePage"] = "Inbound";
+}
+
+<style>
+  :root{
+    --font-ui:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    --font-mono:"IBM Plex Mono",ui-monospace,monospace;
+
+    --navy-950:#233a6b; --navy-900:#1b2d56; --navy-800:#152d57;
+    --accent:#3e5cf6; --accent-600:#3149d4; --accent-100:#e8ecff;
+
+    --bg:#f2f3f7; --card:#ffffff; --line:#e7e9f0; --line-strong:#d7dae5;
+    --ink:#161b2e; --ink-2:#525a72; --ink-3:#8890a6; --ink-4:#aeb4c6;
+
+    --g-bg:#e2f8ea; --g-tx:#0f7a3e; --g-dot:#1fa855;
+    --y-bg:#fef3d6; --y-tx:#93650a; --y-dot:#e2a336;
+    --gy-bg:#eceef3; --gy-tx:#565f78; --gy-dot:#9aa1b5;
+    --r-bg:#fce3e4; --r-tx:#c1222f; --r-dot:#e2454f;
+    --b-bg:#e3eaff; --b-tx:#2c48d8; --b-dot:#5876f2;
+
+    --sh-xs:0 1px 2px rgba(16,23,42,.05);
+    --sh-sm:0 1px 2px rgba(16,23,42,.04),0 4px 10px -4px rgba(16,23,42,.07);
+    --sh-md:0 8px 24px -8px rgba(16,23,42,.14);
+    --r-sm:8px; --r-md:12px; --r-lg:16px;
+    --ease:cubic-bezier(.4,0,.2,1);
+  }
+  
+  .inbound-page {
+    font-family: var(--font-ui);
+    color: var(--ink);
+    font-size: 14px;
+    line-height: 1.45;
+    padding: 26px 30px 64px;
+    max-width: 100%;
+    background: transparent;
+  }
+  .inbound-page * {
+    box-sizing: border-box;
+  }
+  
+  .inbound-page button{font-family:inherit;}
+
+  /* ---------- page head ---------- */
+  .inbound-page .pagehead{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;gap:20px;}
+  .inbound-page .pagehead h1{font-size:20px;margin:0 0 5px;letter-spacing:-.01em;font-weight:700;}
+  .inbound-page .pagehead p{margin:0;color:var(--ink-2);font-size:13px;max-width:560px;}
+  .inbound-page .breadcrumb{font-size:11.5px;color:var(--ink-3);margin-bottom:8px;font-weight:600;letter-spacing:.02em;text-transform:uppercase; display:block; padding:0; background:transparent;}
+
+  /* ---------- buttons ---------- */
+  .inbound-page .btn{display:inline-flex;align-items:center;gap:7px;border:none;border-radius:var(--r-sm);padding:9px 15px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s var(--ease); text-decoration:none;}
+  .inbound-page .btn svg{width:15px;height:15px;}
+  .inbound-page .btn-dark{background:var(--navy-950);color:#fff;box-shadow:var(--sh-xs);}
+  .inbound-page .btn-dark:hover{background:#1c2340;transform:translateY(-1px);box-shadow:var(--sh-sm); color:#fff;}
+  .inbound-page .btn-light{background:#fff;border:1px solid var(--line-strong);color:var(--ink);}
+  .inbound-page .btn-light:hover{border-color:var(--ink-4);background:#fafafd; color:var(--ink);}
+
+  /* ---------- cards ---------- */
+  .inbound-page .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);padding:22px 24px;margin-bottom:16px;box-shadow:var(--sh-xs);}
+
+  /* ---------- badges ---------- */
+  .inbound-page .badge{display:inline-flex;align-items:center;gap:6px;padding:3.5px 10px 3.5px 8px;border-radius:999px;font-size:11.5px;font-weight:600;}
+  .inbound-page .badge .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+  .inbound-page .b-g{background:var(--g-bg);color:var(--g-tx);} .inbound-page .b-g .dot{background:var(--g-dot);}
+  .inbound-page .b-y{background:var(--y-bg);color:var(--y-tx);} .inbound-page .b-y .dot{background:var(--y-dot);}
+  .inbound-page .b-gy{background:var(--gy-bg);color:var(--gy-tx);} .inbound-page .b-gy .dot{background:var(--gy-dot);}
+  .inbound-page .b-r{background:var(--r-bg);color:var(--r-tx);} .inbound-page .b-r .dot{background:var(--r-dot);}
+  .inbound-page .b-b{background:var(--b-bg);color:var(--b-tx);} .inbound-page .b-b .dot{background:var(--b-dot);}
+
+  /* ---------- table ---------- */
+  .inbound-page table{width:100%;border-collapse:collapse;font-size:13px; margin: 0;}
+  .inbound-page th{text-align:left;color:var(--ink-3);font-weight:600;font-size:11px;letter-spacing:.03em;padding:0 10px 10px;border-bottom:1px solid var(--line); text-transform:none;}
+  .inbound-page th.num, .inbound-page td.num{text-align:right;}
+  .inbound-page td{padding:13px 10px;border-bottom:1px solid var(--line);vertical-align:middle;color:var(--ink);}
+  .inbound-page td.num{font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-size:12.5px;}
+  .inbound-page tbody tr{transition:background .12s var(--ease);}
+  .inbound-page tbody tr:hover{background:#f8f9fc;}
+  .inbound-page tr:last-child td{border-bottom:none;}
+  .inbound-page a.link{color:var(--accent);text-decoration:none;font-weight:600;}
+  .inbound-page a.link:hover{color:var(--accent-600);text-decoration:underline;}
+  .inbound-page .icon-link{display:inline-flex;align-items:center;gap:5px;color:var(--ink-2);text-decoration:none;font-weight:600;font-size:12.5px;transition:color .15s;}
+  .inbound-page .icon-link:hover{color:var(--accent);}
+  .inbound-page .icon-link svg{width:14px;height:14px;}
+  .inbound-page .muted{color:var(--ink-3);}
+  .inbound-page .small{font-size:12px;}
+
+  /* ---------- filters ---------- */
+  .inbound-page .filters{display:flex;gap:9px;margin-bottom:16px;flex-wrap:wrap;}
+  .inbound-page .filters input, .inbound-page .filters select{padding:9px 12px;border:1px solid var(--line-strong);border-radius:var(--r-sm);font-size:13px;color:var(--ink);background:#fff;transition:border-color .15s; outline: none;}
+  .inbound-page .filters input:focus, .inbound-page .filters select:focus{border-color:var(--accent);}
+  .inbound-page .filters .search-wrap{position:relative;flex:1;min-width:220px;}
+  .inbound-page .filters .search-wrap svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);width:15px;height:15px;color:var(--ink-4);}
+  .inbound-page .filters .search-wrap input{width:100%;padding-left:34px;}
+
+  .inbound-page .stat-strip{display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:12px;border-top:1px solid var(--line);}
+  .inbound-page .sub-actions{display:flex;gap:8px;flex-wrap:wrap;}
+</style>
+
+<svg width="0" height="0" style="position:absolute; display:none;">
+    <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 12S5 5 12 5s10.5 7 10.5 7-3.5 7-10.5 7-10.5-7-10.5-7Z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-pencil" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3.5a2.1 2.1 0 0 1 3 3L7.5 19 3 20l1-4.5Z"/></symbol>
+    <symbol id="i-in" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M3 21h18"/></symbol>
+    <symbol id="i-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></symbol>
+</svg>
+
+<div class="inbound-page">
+  <div class="breadcrumb">Nhân viên mua hàng · Quản lý kho · Nhân viên kho</div>
+  <div class="pagehead">
+    <div><h1>Danh sách lệnh nhập kho</h1><p>Tìm kiếm và theo dõi lệnh nhập theo mã, PO, nhà cung cấp, ngày dự kiến và trạng thái.</p></div>
+    <a href="/Admin/Inbound/Create" class="btn btn-dark"><svg><use href="#i-plus"/></svg>Tạo lệnh nhập</a>
+  </div>
+  <div class="card">
+    <form method="get" class="filters">
+      <div class="search-wrap">
+          <svg><use href="#i-search"/></svg>
+          <input asp-for="Filter.Keyword" placeholder="Tìm mã lệnh nhập hoặc PO">
+      </div>
+      <select asp-for="Filter.Status">
+          <option value="">Tất cả trạng thái</option>
+          <option value="DRAFT">Nháp</option>
+          <option value="PENDING">Chờ xử lý</option>
+          <option value="IN_PROGRESS">Đang nhận</option>
+          <option value="RECEIVED">Đã nhận</option>
+          <option value="PUTAWAY_COMPLETED">Đã cất hàng</option>
+          <option value="CANCELLED">Đã hủy</option>
+      </select>
+      
+      <input type="date" asp-for="Filter.FromDate" title="Từ ngày">
+      <input type="date" asp-for="Filter.ToDate" title="Đến ngày">
+      
+      <!-- Lọc theo kho - optional if warehouse filter needed -->
+      <!-- <select><option>Tất cả kho</option></select> -->
+
+      <button type="submit" class="btn btn-dark">Tìm kiếm</button>
+      <a href="/Admin/Inbound" class="btn btn-light">Đặt lại</a>
+    </form>
+
+    <table>
+      <thead>
+          <tr>
+              <th>Mã lệnh nhập</th>
+              <th>Nhà cung cấp</th>
+              <th>Ngày dự kiến</th>
+              <th class="num">SL dự kiến</th>
+              <th class="num">SL đã nhận</th>
+              <th>Trạng thái</th>
+              <th></th>
+          </tr>
+      </thead>
+      <tbody>
+          @if (Model.Data.Items.Any())
+          {
+              foreach (var item in Model.Data.Items)
+              {
+                  <tr>
+                      <td><a href="/Admin/Inbound/Details?id=@item.InboundOrderId" class="link">@item.InboundOrderNumber</a></td>
+                      <td>@item.SupplierName</td>
+                      <td>@item.ExpectedReceiptDate.ToString("dd/MM/yyyy")</td>
+                      <td class="num">@item.TotalExpectedQuantity.ToString("N0")</td>
+                      <td class="num">@item.TotalReceivedQuantity.ToString("N0")</td>
+                      <td>
+                          @switch (item.Status)
+                          {
+                              case "RECEIVED":
+                              case "PUTAWAY_COMPLETED":
+                                  <span class="badge b-g"><span class="dot"></span>@item.Status</span>
+                                  break;
+                              case "DRAFT":
+                                  <span class="badge b-gy"><span class="dot"></span>@item.Status</span>
+                                  break;
+                              case "PENDING":
+                                  <span class="badge b-y"><span class="dot"></span>@item.Status</span>
+                                  break;
+                              case "IN_PROGRESS":
+                                  <span class="badge b-b"><span class="dot"></span>@item.Status</span>
+                                  break;
+                              case "CANCELLED":
+                                  <span class="badge b-r"><span class="dot"></span>@item.Status</span>
+                                  break;
+                              default:
+                                  <span class="badge b-gy"><span class="dot"></span>@item.Status</span>
+                                  break;
+                          }
+                      </td>
+                      <td>
+                          @if (item.Status == "DRAFT")
+                          {
+                              <a href="/Admin/Inbound/Edit?id=@item.InboundOrderId" class="icon-link"><svg><use href="#i-pencil"/></svg>Sửa</a>
+                          }
+                          else if (item.Status == "PENDING" || item.Status == "IN_PROGRESS")
+                          {
+                              <a href="/Admin/Inbound/Receive?id=@item.InboundOrderId" class="icon-link"><svg><use href="#i-in"/></svg>Nhận</a>
+                          }
+                          else
+                          {
+                              <a href="/Admin/Inbound/Details?id=@item.InboundOrderId" class="icon-link"><svg><use href="#i-eye"/></svg>Xem</a>
+                          }
+                      </td>
+                  </tr>
+              }
+          }
+          else
+          {
+              <tr>
+                  <td colspan="7" style="text-align: center; padding: 40px; color: var(--ink-4);">
+                      <div>
+                          <svg style="width: 40px; height: 40px; margin-bottom: 10px;"><use href="#i-in"/></svg><br />
+                          <b>Không có lệnh nhập kho nào</b>
+                      </div>
+                  </td>
+              </tr>
+          }
+      </tbody>
+    </table>
+
+    @if (Model.Data.TotalCount > 0)
+    {
+        var totalPages = (int)Math.Ceiling(Model.Data.TotalCount / (double)Model.Filter.PageSize);
+        <div class="stat-strip">
+          <span class="small muted">Hiển thị @(((Model.Filter.PageIndex - 1) * Model.Filter.PageSize) + 1)–@(Math.Min(Model.Filter.PageIndex * Model.Filter.PageSize, Model.Data.TotalCount)) trong @Model.Data.TotalCount bản ghi</span>
+          <div class="sub-actions">
+            <a href="/Admin/Inbound?PageIndex=@(Model.Filter.PageIndex - 1)&Keyword=@Model.Filter.Keyword&Status=@Model.Filter.Status" class="btn btn-light" style="padding:6px 10px; @(Model.Filter.PageIndex == 1 ? "pointer-events: none; opacity: 0.5;" : "")">
+                <svg><use href="#i-chev" style="transform:rotate(180deg)"/></svg>
+            </a>
+            <span class="small" style="align-self:center; font-weight: 600;">@Model.Filter.PageIndex / @totalPages</span>
+            <a href="/Admin/Inbound?PageIndex=@(Model.Filter.PageIndex + 1)&Keyword=@Model.Filter.Keyword&Status=@Model.Filter.Status" class="btn btn-light" style="padding:6px 10px; @(Model.Filter.PageIndex >= totalPages ? "pointer-events: none; opacity: 0.5;" : "")">
+                <svg><use href="#i-chev"/></svg>
+            </a>
+          </div>
+        </div>
+    }
+  </div>
+</div>

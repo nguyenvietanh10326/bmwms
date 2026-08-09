@@ -82,6 +82,7 @@ builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<BMWMS.Repository.Interfaces.Inventory.IDashboardRepository, BMWMS.Repository.Repositories.Inventory.DashboardRepository>();
 builder.Services.AddScoped<IInventoryRepository, InventoryRepository>();
 builder.Services.AddScoped<IStorageLocationRepository, StorageLocationRepository>();
+builder.Services.AddScoped<IInboundRepository, InboundRepository>();
 
 // Services
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -96,6 +97,7 @@ builder.Services.AddScoped<BMWMS.Business.Interfaces.IDashboardService, BMWMS.Bu
 builder.Services.AddScoped<BMWMS.Business.Interfaces.Inventory.IDashboardService, BMWMS.Business.Services.Inventory.DashboardService>();
 builder.Services.AddScoped<IInventoryService, InventoryService>();
 builder.Services.AddScoped<IStorageLocationService, StorageLocationService>();
+builder.Services.AddScoped<IInboundService, InboundService>();
 builder.Services.AddScoped<IEmailService, MockEmailService>();
 
 // Report
