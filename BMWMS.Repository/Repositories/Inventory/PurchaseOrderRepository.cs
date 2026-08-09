@@ -150,7 +150,7 @@ namespace BMWMS.Repository.Repositories.Inventory
         public async Task<IEnumerable<Product>> GetAllProductAsync()
         {
             return await _context.Products
-                .AsNoTracking()
+                .AsNoTracking().Include(a=>a.UnitOfMeasure).Include(a=>a.SupplierProducts)
                 .ToListAsync();
         }
     }
