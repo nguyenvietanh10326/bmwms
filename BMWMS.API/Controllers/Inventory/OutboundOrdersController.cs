@@ -79,7 +79,13 @@ namespace BMWMS.API.Controllers.Inventory
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Lỗi hệ thống khi tạo phiếu xuất kho!", detail = ex.Message });
+                var innerError = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
+                return StatusCode(500, new
+                {
+                    message = "Lỗi hệ thống khi tạo phiếu xuất kho!",
+                    detail = innerError // <--- Trả về lỗi thật từ SQL ở đây
+                });
+              //  return StatusCode(500, new { message = "Lỗi hệ thống khi tạo phiếu xuất kho!", detail = ex.Message });
             }
         }
 

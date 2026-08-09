@@ -136,6 +136,7 @@ namespace BMWMS.Web.Models.Inventory
 
     public class SalesOrderDetailApiResponse
     {
+        public long SalesOrderItemId { get; set; }
         public long SalesOrderId { get; set; }
         public string SalesOrderNumber { get; set; } = string.Empty;
         public string CustomerName { get; set; } = string.Empty;
@@ -145,6 +146,7 @@ namespace BMWMS.Web.Models.Inventory
 
     public class SalesOrderItemApiResponse
     {
+        public long SalesOrderItemId { get; set; }
         public long ProductId { get; set; }
         public string ProductCode { get; set; } = string.Empty;
         public string ProductName { get; set; } = string.Empty;
@@ -178,7 +180,9 @@ namespace BMWMS.Web.Models.Inventory
     }
 
     public class CreateItemRowInput
+
     {
+        public long SalesOrderItemId { get; set; }
         public long ProductId { get; set; }
         public string ProductCode { get; set; } = string.Empty;
         public string ProductName { get; set; } = string.Empty;

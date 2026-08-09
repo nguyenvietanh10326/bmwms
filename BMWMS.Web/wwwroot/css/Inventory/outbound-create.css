@@ -1,26 +1,21 @@
-﻿/* =========================================================
-   OUTBOUND CREATE - ERP STYLE
+﻿
+/* =========================================================
+   UC26 - CREATE OUTBOUND
+   Clean / Professional / Bootstrap compatible
    ========================================================= */
-
 :root {
-    --erp-primary: #2563eb;
-    --erp-primary-dark: #1d4ed8;
-    --erp-primary-soft: #eff6ff;
-    --erp-text: #111827;
-    --erp-text-secondary: #4b5563;
-    --erp-text-muted: #6b7280;
-    --erp-border: #e5e7eb;
-    --erp-border-dark: #d1d5db;
-    --erp-background: #f5f7fa;
-    --erp-card: #ffffff;
-    --erp-success: #059669;
-    --erp-success-bg: #ecfdf5;
-    --erp-danger: #dc2626;
-    --erp-danger-bg: #fef2f2;
-    --erp-warning: #d97706;
-    --erp-warning-bg: #fffbeb;
-    --erp-radius: 10px;
-    --erp-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 2px 8px rgba(15, 23, 42, 0.03);
+    --uc26-bg: #f5f7fa;
+    --uc26-card: #ffffff;
+    --uc26-border: #e3e7ed;
+    --uc26-border-light: #edf0f3;
+    --uc26-text: #1f2937;
+    --uc26-muted: #6b7280;
+    --uc26-primary: #2563eb;
+    --uc26-primary-dark: #1d4ed8;
+    --uc26-success: #15803d;
+    --uc26-warning: #b45309;
+    --uc26-danger: #dc2626;
+    --uc26-radius: 12px;
 }
 
 
@@ -28,1645 +23,937 @@
    PAGE
    ========================================================= */
 
-.outbound-page {
+.container-fluid.py-3.px-4 {
     width: 100%;
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 24px 28px 40px;
-    color: var(--erp-text);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    box-sizing: border-box;
+    max-width: none;
+    min-height: calc(100vh - 60px);
+    padding: 24px 32px 40px !important;
+    background: var(--uc26-bg) !important;
+    color: var(--uc26-text);
 }
-
-    .outbound-page *,
-    .outbound-page *::before,
-    .outbound-page *::after {
-        box-sizing: border-box;
-    }
 
 
 /* =========================================================
-   PAGE HEADER
+   HEADER
    ========================================================= */
 
-.page-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 24px;
+.container-fluid > .d-flex.justify-content-between {
+    width: 100%;
     margin-bottom: 20px;
-    padding-bottom: 18px;
-    border-bottom: 1px solid var(--erp-border);
 }
 
-.page-header-left {
-    min-width: 0;
-}
+    .container-fluid > .d-flex.justify-content-between h4 {
+        margin-bottom: 4px;
+        color: #111827;
+        font-size: 1.25rem;
+        font-weight: 700;
+        line-height: 1.35;
+        letter-spacing: -0.02em;
+    }
 
-.page-title-row {
-    display: flex;
-    align-items: center;
-    gap: 13px;
-}
+    .container-fluid > .d-flex.justify-content-between p {
+        margin-bottom: 0;
+        color: #6b7280 !important;
+        font-size: 0.82rem;
+        line-height: 1.5;
+    }
 
-.page-title-icon {
-    width: 42px;
-    height: 42px;
-    flex: 0 0 42px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 10px;
-    background: var(--erp-primary-soft);
-    color: var(--erp-primary);
-    font-size: 19px;
-}
-
-.page-title {
-    margin: 0 0 4px;
-    font-size: 21px;
-    line-height: 1.25;
-    font-weight: 700;
-    color: #111827;
-}
-
-.page-subtitle {
-    margin: 0;
-    color: var(--erp-text-muted);
-    font-size: 13px;
-    line-height: 1.5;
-}
-
-.dot-separator {
-    padding: 0 4px;
-    color: #9ca3af;
-}
-
-
-/* =========================================================
-   STATUS
-   ========================================================= */
-
-.page-status {
-    flex: 0 0 auto;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 7px 13px;
-    border-radius: 999px;
-    background: var(--erp-warning-bg);
-    border: 1px solid #fde68a;
-    color: #92400e;
-    font-size: 12px;
-    font-weight: 700;
-    white-space: nowrap;
-}
-
-    .page-status i {
-        font-size: 13px;
+    .container-fluid > .d-flex.justify-content-between .badge {
+        display: inline-flex;
+        align-items: center;
+        min-height: 32px;
+        padding: 6px 13px !important;
+        background: #ffffff !important;
+        border: 1px solid #dfe3e8 !important;
+        border-radius: 999px;
+        color: #4b5563 !important;
+        font-size: 0.76rem !important;
+        font-weight: 500 !important;
+        white-space: nowrap;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
     }
 
 
 /* =========================================================
-   ERROR ALERT
+   FORM
    ========================================================= */
 
-.error-alert {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    margin-bottom: 20px;
-    padding: 12px 14px;
-    border: 1px solid #fecaca;
-    border-radius: 9px;
-    background: #fef2f2;
-    color: #991b1b;
-    font-size: 13px;
-}
-
-.error-alert-content {
-    display: flex;
-    align-items: center;
-    gap: 9px;
-    min-width: 0;
-}
-
-    .error-alert-content i {
-        flex: 0 0 auto;
-        font-size: 15px;
-    }
-
-.error-close {
-    width: 28px;
-    height: 28px;
-    flex: 0 0 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: none;
-    background: transparent;
-    color: #991b1b;
-    border-radius: 6px;
-    cursor: pointer;
-}
-
-    .error-close:hover {
-        background: rgba(153, 27, 27, 0.08);
-    }
-
-
-/* =========================================================
-   CARD
-   ========================================================= */
-
-.content-card {
+#createOutboundForm {
     width: 100%;
-    margin-bottom: 18px;
-    background: var(--erp-card);
-    border: 1px solid var(--erp-border);
-    border-radius: var(--erp-radius);
-    box-shadow: var(--erp-shadow);
-    overflow: hidden;
-}
-
-.card-header {
-    min-height: 64px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 20px;
-    padding: 14px 20px;
-    border-bottom: 1px solid var(--erp-border);
-    background: #ffffff;
-}
-
-.card-header-title {
-    min-width: 0;
-    display: flex;
-    align-items: center;
-    gap: 11px;
-}
-
-.section-icon {
-    width: 34px;
-    height: 34px;
-    flex: 0 0 34px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 8px;
-    background: var(--erp-primary-soft);
-    color: var(--erp-primary);
-    font-size: 15px;
-}
-
-.card-header-title h2 {
-    margin: 0 0 2px;
-    font-size: 15px;
-    line-height: 1.3;
-    font-weight: 700;
-    color: #1f2937;
-}
-
-.card-header-title span {
-    display: block;
-    color: var(--erp-text-muted);
-    font-size: 12px;
-    line-height: 1.35;
-}
-
-.card-body {
-    padding: 20px;
+    max-width: none;
 }
 
 
-/* =========================================================
-   FORM GRID
+    /* =========================================================
+   CARDS
    ========================================================= */
 
-.form-grid {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    column-gap: 18px;
-    row-gap: 17px;
-    width: 100%;
-}
+    #createOutboundForm > .card {
+        width: 100%;
+        margin-bottom: 20px !important;
+        background: var(--uc26-card);
+        border: 1px solid var(--uc26-border) !important;
+        border-radius: var(--uc26-radius) !important;
+        box-shadow: 0 1px 2px rgba(16, 24, 40, 0.025), 0 4px 12px rgba(16, 24, 40, 0.025) !important;
+        overflow: hidden;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
 
-.form-field {
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-}
+        #createOutboundForm > .card:hover {
+            border-color: #d8dde5 !important;
+            box-shadow: 0 2px 4px rgba(16, 24, 40, 0.035), 0 8px 20px rgba(16, 24, 40, 0.035) !important;
+        }
 
-.form-label {
-    min-height: 18px;
-    margin: 0 0 6px;
-    color: #374151;
-    font-size: 12px;
-    font-weight: 600;
-    line-height: 18px;
-}
-
-.required {
-    margin-left: 2px;
-    color: #dc2626;
-}
+    #createOutboundForm .card-body {
+        padding: 22px 24px !important;
+    }
 
 
-/* =========================================================
+    /* =========================================================
+   CARD TITLE
+   ========================================================= */
+
+    #createOutboundForm .card h6 {
+        margin-bottom: 18px !important;
+        color: #111827;
+        font-size: 0.92rem;
+        font-weight: 700;
+        line-height: 1.4;
+        letter-spacing: -0.01em;
+    }
+
+
+    /* =========================================================
+   CARD 1 - THÔNG TIN LỆNH XUẤT
+   IMPORTANT:
+   Không dùng :first-of-type.
+   Target trực tiếp card đầu tiên của form.
+   ========================================================= */
+
+    #createOutboundForm > .card:first-of-type .row {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 18px 16px;
+        margin: 0 !important;
+    }
+
+
+        /* Bootstrap .row / .col reset */
+
+        #createOutboundForm > .card:first-of-type .row > [class*="col-"] {
+            width: auto;
+            max-width: none;
+            margin: 0;
+            padding-left: 0;
+            padding-right: 0;
+        }
+
+
+        /* =========================================================
+   FORM GROUP
+   ========================================================= */
+
+        #createOutboundForm > .card:first-of-type .row > [class*="col-"] {
+            min-width: 0;
+        }
+
+
+    /* =========================================================
+   LABEL
+   ========================================================= */
+
+    #createOutboundForm .form-label {
+        display: block;
+        margin-bottom: 7px !important;
+        color: #374151;
+        font-size: 0.78rem !important;
+        font-weight: 600 !important;
+        line-height: 1.4;
+    }
+
+        #createOutboundForm .form-label .text-danger {
+            margin-left: 2px;
+            color: #ef4444 !important;
+        }
+
+
+    /* =========================================================
    INPUT / SELECT
    ========================================================= */
 
-.form-control-custom {
-    width: 100%;
-    height: 38px;
-    min-width: 0;
-    padding: 0 11px;
-    border: 1px solid var(--erp-border-dark);
-    border-radius: 7px;
-    outline: none;
-    background: #ffffff;
-    color: #111827;
-    font-family: inherit;
-    font-size: 13px;
-    line-height: 38px;
-    transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
-}
-
-    .form-control-custom:hover {
-        border-color: #b7bec8;
-    }
-
-    .form-control-custom:focus {
-        border-color: var(--erp-primary);
-        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.10);
-    }
-
-select.form-control-custom {
-    padding-right: 34px;
-    cursor: pointer;
-    line-height: normal;
-}
-
-input.form-control-custom::placeholder {
-    color: #9ca3af;
-}
-
-
-/* =========================================================
-   INPUT WITH ICON
-   ========================================================= */
-
-.input-with-icon {
-    position: relative;
-    width: 100%;
-}
-
-    .input-with-icon > i {
-        position: absolute;
-        left: 11px;
-        top: 50%;
-        z-index: 2;
-        transform: translateY(-50%);
-        color: #9ca3af;
-        font-size: 13px;
-        pointer-events: none;
-    }
-
-    .input-with-icon .form-control-custom {
-        padding-left: 32px;
-    }
-
-.readonly-control .form-control-custom {
-    background: #f8fafc;
-    color: #6b7280;
-    cursor: default;
-}
-
-    .readonly-control .form-control-custom:focus {
-        border-color: var(--erp-border-dark);
+    #createOutboundForm .form-control,
+    #createOutboundForm .form-select {
+        display: block;
+        width: 100%;
+        min-width: 0;
+        min-height: 40px;
+        padding: 8px 11px;
+        background-color: #ffffff;
+        border: 1px solid #d8dee6;
+        border-radius: 7px;
+        color: #1f2937;
+        font-size: 0.84rem;
+        line-height: 1.4;
         box-shadow: none;
+        transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
     }
 
+        #createOutboundForm .form-control::placeholder {
+            color: #a0a7b1;
+        }
 
-/* =========================================================
-   INVENTORY BUTTON
+        #createOutboundForm .form-control:hover,
+        #createOutboundForm .form-select:hover {
+            border-color: #bfc6d0;
+        }
+
+        #createOutboundForm .form-control:focus,
+        #createOutboundForm .form-select:focus {
+            border-color: var(--uc26-primary);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.10);
+        }
+
+
+        /* =========================================================
+   READONLY
    ========================================================= */
 
-.inventory-button {
-    flex: 0 0 auto;
-    height: 34px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 7px;
-    padding: 0 12px;
-    border: 1px solid var(--erp-border-dark);
-    border-radius: 7px;
-    background: #ffffff;
-    color: #374151;
-    font-family: inherit;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
-}
+        #createOutboundForm .form-control.bg-light,
+        #createOutboundForm .form-control[readonly] {
+            background-color: #f8fafc !important;
+            color: #6b7280;
+            border-color: #e3e7ed;
+        }
 
-    .inventory-button:hover {
-        background: #f9fafb;
-        border-color: #9ca3af;
-        color: #111827;
-    }
-
-    .inventory-button i {
-        color: #6b7280;
-        font-size: 13px;
-    }
+        #createOutboundForm .form-control[readonly] {
+            cursor: default;
+        }
 
 
-/* =========================================================
-   ITEMS CARD
+        /* =========================================================
+   DISABLED
    ========================================================= */
 
-.items-card {
-    overflow: visible;
-}
+        #createOutboundForm .form-select:disabled {
+            background-color: #f8fafc;
+            color: #6b7280;
+            border-color: #e3e7ed;
+            opacity: 1;
+            cursor: not-allowed;
+        }
 
-.items-header {
-    min-height: 66px;
-}
+
+    /* =========================================================
+   DATE / SELECT
+   ========================================================= */
+
+    #createOutboundForm input[type="date"] {
+        cursor: pointer;
+    }
+
+    #createOutboundForm select {
+        cursor: pointer;
+    }
 
 
-/* =========================================================
+    /* =========================================================
+   VALIDATION
+   ========================================================= */
+
+    #createOutboundForm .field-validation-error {
+        display: block;
+        margin-top: 5px;
+        color: #dc2626;
+        font-size: 0.72rem;
+        line-height: 1.4;
+    }
+
+    #createOutboundForm .validation-summary-errors {
+        margin: 0;
+    }
+
+        #createOutboundForm .validation-summary-errors ul {
+            margin-bottom: 0;
+            padding-left: 18px;
+        }
+
+
+    /* =========================================================
+   TABLE CARD
+   ========================================================= */
+
+    /* Header của card 2 */
+    #createOutboundForm > .card:nth-of-type(2) .card-body > .d-flex {
+        margin-bottom: 16px !important;
+    }
+
+    #createOutboundForm > .card:nth-of-type(2) h6 {
+        margin-bottom: 0 !important;
+    }
+
+
+    /* =========================================================
+   CHỌN TỒN KHO BUTTON
+   ========================================================= */
+
+    #createOutboundForm .btn-light {
+        background: #ffffff;
+        border-color: #dfe3e8;
+        color: #6b7280 !important;
+    }
+
+        #createOutboundForm .btn-light:hover {
+            background: #f9fafb;
+            border-color: #cbd1d8;
+            color: #374151 !important;
+        }
+
+        #createOutboundForm .btn-light:disabled {
+            background: #ffffff;
+            opacity: 0.65;
+            cursor: not-allowed;
+        }
+
+
+    /* =========================================================
    TABLE WRAPPER
    ========================================================= */
 
-.items-table-wrapper {
-    width: 100%;
-    overflow-x: auto;
-    border-bottom: 1px solid var(--erp-border);
-}
-
-.items-table {
-    width: 100%;
-    min-width: 920px;
-    border-collapse: separate;
-    border-spacing: 0;
-    table-layout: fixed;
-    background: #ffffff;
-}
+    #createOutboundForm .table-responsive {
+        width: 100%;
+        border: 1px solid var(--uc26-border-light);
+        border-radius: 9px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        background: #ffffff;
+    }
 
 
     /* =========================================================
-   TABLE COLUMNS
+   TABLE
    ========================================================= */
 
-    .items-table .col-product {
-        width: 28%;
-    }
-
-    .items-table .col-number {
-        width: 11%;
-    }
-
-    .items-table .col-unit {
-        width: 8%;
-    }
-
-    .items-table .col-lot {
-        width: 17%;
-    }
-
-    .items-table .col-status {
-        width: 13%;
-    }
-
-    .items-table .col-price {
-        width: 12%;
+    #createOutboundForm .table {
+        width: 100%;
+        min-width: 900px;
+        margin: 0 !important;
+        table-layout: fixed;
+        border-collapse: separate;
+        border-spacing: 0;
+        color: #374151;
+        font-size: 0.82rem;
     }
 
 
-    /* =========================================================
+        /* =========================================================
    TABLE HEADER
    ========================================================= */
 
-    .items-table thead th {
-        height: 42px;
-        padding: 0 14px;
-        border-bottom: 1px solid var(--erp-border);
-        background: #f8fafc;
-        color: #6b7280;
-        font-size: 10.5px;
-        font-weight: 700;
-        letter-spacing: 0.045em;
-        line-height: 1;
-        white-space: nowrap;
-        vertical-align: middle;
-    }
+        #createOutboundForm .table thead {
+            background: #f8fafc;
+        }
+
+            #createOutboundForm .table thead th {
+                padding: 11px 14px;
+                color: #6b7280 !important;
+                font-size: 0.70rem;
+                font-weight: 600;
+                line-height: 1.4;
+                text-transform: uppercase;
+                letter-spacing: 0.025em;
+                white-space: nowrap;
+                vertical-align: middle;
+                border-bottom: 1px solid #e5e7eb !important;
+            }
 
 
-    /* =========================================================
+        /* =========================================================
    TABLE BODY
    ========================================================= */
 
-    .items-table tbody td {
-        height: 66px;
-        padding: 10px 14px;
-        border-bottom: 1px solid #f0f2f5;
-        color: #374151;
-        font-size: 13px;
-        vertical-align: middle;
-        overflow: hidden;
+        #createOutboundForm .table tbody td {
+            padding: 14px;
+            color: #374151;
+            font-size: 0.82rem;
+            line-height: 1.45;
+            vertical-align: middle;
+            border-bottom: 1px solid #f0f2f4 !important;
+            background: #ffffff;
+        }
+
+        #createOutboundForm .table tbody tr {
+            transition: background-color 0.15s ease;
+        }
+
+            #createOutboundForm .table tbody tr:hover td {
+                background-color: #fafcff;
+            }
+
+            #createOutboundForm .table tbody tr:last-child td {
+                border-bottom: 0 !important;
+            }
+
+
+        /* =========================================================
+   TABLE COLUMN WIDTH
+   Khớp với HTML hiện tại
+   ========================================================= */
+
+        #createOutboundForm .table th:nth-child(1),
+        #createOutboundForm .table td:nth-child(1) {
+            width: 25%;
+        }
+
+        #createOutboundForm .table th:nth-child(2),
+        #createOutboundForm .table td:nth-child(2) {
+            width: 10%;
+        }
+
+        #createOutboundForm .table th:nth-child(3),
+        #createOutboundForm .table td:nth-child(3) {
+            width: 10%;
+        }
+
+        #createOutboundForm .table th:nth-child(4),
+        #createOutboundForm .table td:nth-child(4) {
+            width: 8%;
+        }
+
+        #createOutboundForm .table th:nth-child(5),
+        #createOutboundForm .table td:nth-child(5) {
+            width: 15%;
+        }
+
+        #createOutboundForm .table th:nth-child(6),
+        #createOutboundForm .table td:nth-child(6) {
+            width: 10%;
+        }
+
+        #createOutboundForm .table th:nth-child(7),
+        #createOutboundForm .table td:nth-child(7) {
+            width: 15%;
+        }
+
+
+        /* =========================================================
+   PRODUCT
+   ========================================================= */
+
+        #createOutboundForm .table tbody td:first-child {
+            line-height: 1.45;
+        }
+
+            #createOutboundForm .table tbody td:first-child .text-primary {
+                color: #1d4ed8 !important;
+                font-size: 0.82rem;
+                font-weight: 600;
+            }
+
+            #createOutboundForm .table tbody td:first-child .text-secondary {
+                color: #4b5563 !important;
+            }
+
+
+        /* =========================================================
+   TABLE NUMBERS
+   ========================================================= */
+
+        #createOutboundForm .table .text-end {
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+        }
+
+
+        /* =========================================================
+   UNIT / LOT / BIN
+   ========================================================= */
+
+        #createOutboundForm .table .text-center.text-muted {
+            color: #6b7280 !important;
+        }
+
+        #createOutboundForm .table td .small {
+            font-size: 0.76rem;
+        }
+
+        #createOutboundForm .table td:nth-child(5) {
+            color: #6b7280;
+        }
+
+
+        /* =========================================================
+   RESULT STATUS
+   ========================================================= */
+
+        #createOutboundForm .table tbody td:nth-child(6) span {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 24px;
+            padding: 3px 9px;
+            border-radius: 999px;
+            font-size: 0.70rem !important;
+            font-weight: 600;
+            line-height: 1.3;
+            white-space: nowrap;
+        }
+
+
+            /* Đủ */
+
+            #createOutboundForm .table tbody td:nth-child(6) span.text-dark {
+                color: #166534 !important;
+                background: #f0fdf4;
+                border: 1px solid #dcfce7;
+            }
+
+
+            /* Thiếu */
+
+            #createOutboundForm .table tbody td:nth-child(6) span.text-secondary {
+                color: #92400e !important;
+                background: #fffbeb;
+                border: 1px solid #fef3c7;
+            }
+
+
+        /* =========================================================
+   EMPTY TABLE
+   ========================================================= */
+
+        #createOutboundForm .table tbody td[colspan] {
+            padding: 32px 20px;
+            color: #9ca3af !important;
+            background: #ffffff;
+        }
+
+
+    /* =========================================================
+   TABLE FOOTER
+   ========================================================= */
+
+    #createOutboundForm
+    .card-body > .d-flex.justify-content-between.align-items-center.mt-3 {
+        min-height: 40px;
+        margin-top: 14px !important;
+        padding: 0 2px !important;
+        color: #6b7280;
     }
 
-    .items-table tbody tr:last-child td {
-        border-bottom: none;
+        #createOutboundForm
+        .card-body > .d-flex.justify-content-between.align-items-center.mt-3 > span {
+            font-size: 0.76rem;
+            line-height: 1.4;
+        }
+
+        #createOutboundForm
+        .card-body > .d-flex.justify-content-between.align-items-center.mt-3 > div {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 7px 11px;
+            background: #f8fafc;
+            border: 1px solid #e9edf1;
+            border-radius: 8px;
+            white-space: nowrap;
+        }
+
+        #createOutboundForm
+        .card-body > .d-flex.justify-content-between.align-items-center.mt-3
+        .fw-bold {
+            color: #374151;
+        }
+
+        #createOutboundForm
+        .card-body > .d-flex.justify-content-between.align-items-center.mt-3
+        .fs-6 {
+            font-size: 0.80rem !important;
+        }
+
+
+    /* =========================================================
+   INFO ALERT
+   ========================================================= */
+
+    #createOutboundForm .alert-primary.bg-primary-subtle {
+        display: flex;
+        align-items: center;
+        min-height: 48px;
+        margin-bottom: 20px !important;
+        padding: 11px 15px !important;
+        background: #eff6ff !important;
+        border: 1px solid #dbeafe !important;
+        border-radius: 9px;
+        color: #1e40af !important;
     }
 
-    .items-table tbody tr {
-        transition: background-color 0.12s ease;
+        #createOutboundForm .alert-primary.bg-primary-subtle i {
+            flex-shrink: 0;
+            margin-right: 9px !important;
+            color: #3b82f6;
+            font-size: 0.48rem !important;
+        }
+
+        #createOutboundForm .alert-primary.bg-primary-subtle span {
+            color: #1e40af !important;
+            font-size: 0.77rem !important;
+            line-height: 1.5;
+        }
+
+
+    /* =========================================================
+   ERROR ALERT
+   ========================================================= */
+
+    .container-fluid > .alert-danger,
+    #createOutboundForm .alert-danger {
+        background: #fef2f2 !important;
+        border: 1px solid #fecaca !important;
+        border-radius: 9px;
+        color: #991b1b !important;
     }
 
-        .items-table tbody tr:hover {
-            background: #fafcff;
+.container-fluid > .alert-danger {
+    margin-bottom: 18px !important;
+}
+
+#createOutboundForm .alert-danger .btn-close {
+    font-size: 0.7rem;
+}
+
+
+/* =========================================================
+   FOOTER ACTIONS
+   ========================================================= */
+
+#createOutboundForm
+.d-flex.justify-content-end.align-items-center.gap-2.mb-5 {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    width: 100%;
+    gap: 8px !important;
+    margin-top: 4px;
+    margin-bottom: 20px !important;
+    padding-top: 0;
+}
+
+
+    /* General button */
+
+    #createOutboundForm
+    .d-flex.justify-content-end.align-items-center.gap-2.mb-5
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 40px;
+        padding: 8px 17px;
+        border-radius: 7px;
+        font-size: 0.80rem;
+        font-weight: 600;
+        line-height: 1.3;
+        transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
+    }
+
+        #createOutboundForm
+        .d-flex.justify-content-end.align-items-center.gap-2.mb-5
+        .btn:active {
+            transform: translateY(1px);
+        }
+
+
+    /* Cancel */
+
+    #createOutboundForm
+    .d-flex.justify-content-end.align-items-center.gap-2.mb-5
+    .btn-link {
+        padding-left: 10px;
+        padding-right: 10px;
+        color: #6b7280 !important;
+        font-weight: 500;
+    }
+
+        #createOutboundForm
+        .d-flex.justify-content-end.align-items-center.gap-2.mb-5
+        .btn-link:hover {
+            color: #111827 !important;
+            background: #f3f4f6;
+            text-decoration: none !important;
+        }
+
+
+    /* Save draft */
+
+    #createOutboundForm
+    .d-flex.justify-content-end.align-items-center.gap-2.mb-5
+    .btn-light {
+        background: #ffffff;
+        border: 1px solid #d1d5db;
+        color: #374151 !important;
+    }
+
+        #createOutboundForm
+        .d-flex.justify-content-end.align-items-center.gap-2.mb-5
+        .btn-light:hover {
+            background: #f9fafb;
+            border-color: #9ca3af;
+            color: #111827 !important;
+        }
+
+
+    /* Create outbound */
+
+    #createOutboundForm
+    .d-flex.justify-content-end.align-items-center.gap-2.mb-5
+    .btn-dark {
+        background: #111827;
+        border-color: #111827;
+        color: #ffffff;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+    }
+
+        #createOutboundForm
+        .d-flex.justify-content-end.align-items-center.gap-2.mb-5
+        .btn-dark:hover {
+            background: #1f2937;
+            border-color: #1f2937;
+            color: #ffffff;
+            box-shadow: 0 3px 8px rgba(17, 24, 39, 0.15);
         }
 
 
 /* =========================================================
-   TEXT ALIGNMENT
+   SCROLLBAR
    ========================================================= */
 
-.text-right {
-    text-align: right !important;
+#createOutboundForm .table-responsive::-webkit-scrollbar {
+    height: 7px;
 }
 
-.text-center {
-    text-align: center !important;
-}
-
-
-/* =========================================================
-   PRODUCT CELL
-   ========================================================= */
-
-.product-cell {
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-}
-
-.product-code {
-    display: block;
-    overflow: hidden;
-    color: #1d4ed8;
-    font-size: 12px;
-    font-weight: 700;
-    line-height: 16px;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-}
-
-.product-name {
-    display: block;
-    overflow: hidden;
-    color: #4b5563;
-    font-size: 12.5px;
-    line-height: 17px;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-}
-
-
-/* =========================================================
-   QUANTITY
-   ========================================================= */
-
-.quantity-value {
-    display: inline-block;
-    color: #1f2937;
-    font-size: 13px;
-    font-weight: 600;
-}
-
-    .quantity-value.reserved {
-        color: var(--erp-primary);
-    }
-
-
-/* =========================================================
-   UNIT BADGE
-   ========================================================= */
-
-.unit-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 34px;
-    height: 25px;
-    padding: 0 8px;
-    border: 1px solid #e5e7eb;
-    border-radius: 6px;
+#createOutboundForm .table-responsive::-webkit-scrollbar-track {
     background: #f8fafc;
-    color: #4b5563;
-    font-size: 11px;
-    font-weight: 600;
-    white-space: nowrap;
 }
 
-
-/* =========================================================
-   LOT / BIN
-   ========================================================= */
-
-.lot-bin {
-    max-width: 100%;
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 5px 8px;
-    border-radius: 6px;
-    background: #f3f4f6;
-    color: #4b5563;
-    font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-    font-size: 10.5px;
-    line-height: 15px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+#createOutboundForm .table-responsive::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 10px;
 }
 
-    .lot-bin i {
-        flex: 0 0 auto;
-        color: #6b7280;
-        font-size: 11px;
-    }
-
-    .lot-bin span {
-        overflow: hidden;
-        text-overflow: ellipsis;
+    #createOutboundForm .table-responsive::-webkit-scrollbar-thumb:hover {
+        background: #9ca3af;
     }
 
 
 /* =========================================================
-   RESULT BADGES
+   TEXT SELECTION
    ========================================================= */
 
-.result-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 5px;
-    min-width: 58px;
-    height: 25px;
-    padding: 0 8px;
-    border-radius: 999px;
-    font-size: 10.5px;
-    font-weight: 700;
-    white-space: nowrap;
-}
-
-    .result-badge i {
-        font-size: 11px;
-    }
-
-.result-success {
-    background: var(--erp-success-bg);
-    color: #047857;
-}
-
-.result-danger {
-    background: var(--erp-danger-bg);
-    color: #b91c1c;
+#createOutboundForm ::selection {
+    background: rgba(37, 99, 235, 0.15);
 }
 
 
 /* =========================================================
-   PRICE
+   LARGE DESKTOP
    ========================================================= */
 
-.total-price {
-    color: #111827;
-    font-size: 12.5px;
-    font-weight: 700;
-    white-space: nowrap;
-}
+@media (min-width: 1400px) {
 
-.currency {
-    margin-left: 2px;
-    color: #6b7280;
-    font-size: 11px;
-    font-weight: 500;
-}
-
-
-/* =========================================================
-   EMPTY STATE
-   ========================================================= */
-
-.empty-state {
-    min-height: 220px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 30px 20px;
-    text-align: center;
-}
-
-.empty-icon {
-    width: 48px;
-    height: 48px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 10px;
-    border-radius: 50%;
-    background: #f3f4f6;
-    color: #9ca3af;
-    font-size: 21px;
-}
-
-.empty-title {
-    margin-bottom: 4px;
-    color: #4b5563;
-    font-size: 13px;
-    font-weight: 600;
-}
-
-.empty-description {
-    color: #9ca3af;
-    font-size: 12px;
-}
-
-
-/* =========================================================
-   TABLE SUMMARY
-   ========================================================= */
-
-.items-summary {
-    min-height: 52px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 20px;
-    padding: 10px 20px;
-    background: #fafbfc;
-}
-
-.summary-check {
-    min-width: 0;
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    color: #6b7280;
-    font-size: 12px;
-}
-
-    .summary-check i {
-        flex: 0 0 auto;
-        color: var(--erp-success);
-        font-size: 14px;
+    .container-fluid.py-3.px-4 {
+        padding-left: 40px !important;
+        padding-right: 40px !important;
     }
 
-    .summary-check strong {
-        color: #374151;
-        font-weight: 700;
+    #createOutboundForm .card-body {
+        padding: 24px 28px !important;
     }
 
-.summary-total {
-    flex: 0 0 auto;
-    display: flex;
-    align-items: baseline;
-    gap: 6px;
-}
-
-.summary-label {
-    color: #6b7280;
-    font-size: 12px;
-}
-
-.summary-value {
-    color: var(--erp-primary);
-    font-size: 16px;
-    font-weight: 700;
-}
-
-.summary-unit {
-    color: #6b7280;
-    font-size: 11px;
-}
-
-
-/* =========================================================
-   INFO NOTE
-   ========================================================= */
-
-.info-note {
-    width: 100%;
-    min-height: 54px;
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    margin-bottom: 18px;
-    padding: 11px 14px;
-    border: 1px solid #bfdbfe;
-    border-radius: 8px;
-    background: #eff6ff;
-    color: #1e40af;
-    font-size: 12px;
-    line-height: 1.55;
-}
-
-.info-note-icon {
-    flex: 0 0 auto;
-    padding-top: 1px;
-    color: #2563eb;
-    font-size: 15px;
-}
-
-.info-note-content {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 4px;
-    min-width: 0;
-}
-
-    .info-note-content strong {
-        color: #1e3a8a;
-        font-weight: 700;
-    }
-
-    .info-note-content em {
-        font-style: normal;
-        font-family: "SFMono-Regular", Consolas, monospace;
-        font-size: 11px;
-        font-weight: 600;
-        color: #1d4ed8;
-    }
-
-
-/* =========================================================
-   ACTION BAR
-   ========================================================= */
-
-.action-bar {
-    min-height: 58px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 20px;
-    padding-top: 2px;
-}
-
-.action-left {
-    min-width: 0;
-}
-
-.action-hint {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    color: #9ca3af;
-    font-size: 11px;
-}
-
-    .action-hint i {
-        color: #10b981;
-        font-size: 13px;
-    }
-
-.action-buttons {
-    flex: 0 0 auto;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-
-/* =========================================================
-   ACTION BUTTONS
-   ========================================================= */
-
-.btn-cancel,
-.btn-draft,
-.btn-submit {
-    height: 38px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 7px;
-    padding: 0 15px;
-    border-radius: 7px;
-    font-family: inherit;
-    font-size: 12.5px;
-    font-weight: 600;
-    line-height: 1;
-    text-decoration: none;
-    white-space: nowrap;
-    cursor: pointer;
-    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, transform 0.05s ease;
-}
-
-.btn-cancel {
-    border: 1px solid transparent;
-    background: transparent;
-    color: #6b7280;
-}
-
-    .btn-cancel:hover {
-        background: #f3f4f6;
-        color: #374151;
-        text-decoration: none;
-    }
-
-.btn-draft {
-    border: 1px solid #d1d5db;
-    background: #ffffff;
-    color: #374151;
-    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.03);
-}
-
-    .btn-draft:hover {
-        border-color: #9ca3af;
-        background: #f9fafb;
-        color: #111827;
-    }
-
-.btn-submit {
-    border: 1px solid var(--erp-primary);
-    background: var(--erp-primary);
-    color: #ffffff;
-    box-shadow: 0 1px 2px rgba(37, 99, 235, 0.20);
-}
-
-    .btn-submit:hover {
-        border-color: var(--erp-primary-dark);
-        background: var(--erp-primary-dark);
-        color: #ffffff;
-        box-shadow: 0 2px 5px rgba(37, 99, 235, 0.22);
-    }
-
-    .btn-submit:active,
-    .btn-draft:active,
-    .btn-cancel:active {
-        transform: translateY(1px);
-    }
-
-    .btn-submit i,
-    .btn-draft i {
-        font-size: 13px;
-    }
-
-
-/* =========================================================
-   RESPONSIVE - 1200px
-   ========================================================= */
-
-@media (max-width: 1200px) {
-
-    .outbound-page {
-        padding-left: 20px;
-        padding-right: 20px;
-    }
-
-    .form-grid {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        column-gap: 14px;
-    }
-
-    .card-body {
-        padding: 18px;
-    }
-
-    .card-header {
-        padding-left: 18px;
-        padding-right: 18px;
-    }
-
-    .items-table thead th,
-    .items-table tbody td {
-        padding-left: 11px;
-        padding-right: 11px;
-    }
-}
-
-
-/* =========================================================
-   RESPONSIVE - 992px
-   ========================================================= */
-
-@media (max-width: 992px) {
-
-    .outbound-page {
-        padding: 18px 16px 32px;
-    }
-
-    .form-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+    #createOutboundForm > .card:first-of-type .row {
         column-gap: 18px;
-        row-gap: 16px;
-    }
-
-    .page-title {
-        font-size: 19px;
-    }
-
-    .page-subtitle {
-        font-size: 12px;
-    }
-
-    .action-hint {
-        display: none;
+        row-gap: 20px;
     }
 }
 
 
 /* =========================================================
-   RESPONSIVE - 768px
+   TABLET
    ========================================================= */
 
-@media (max-width: 768px) {
+@media (min-width: 768px) and (max-width: 1199.98px) {
 
-    .outbound-page {
-        padding: 15px 12px 28px;
+    .container-fluid.py-3.px-4 {
+        padding-left: 20px !important;
+        padding-right: 20px !important;
     }
 
-    .page-header {
-        align-items: flex-start;
+    #createOutboundForm > .card:first-of-type .row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px 16px;
+    }
+
+    #createOutboundForm .table {
+        min-width: 900px;
+    }
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 767.98px) {
+
+    .container-fluid.py-3.px-4 {
+        padding: 15px !important;
+    }
+
+
+    /* Header */
+
+    .container-fluid > .d-flex.justify-content-between {
+        align-items: flex-start !important;
         gap: 12px;
-        padding-bottom: 15px;
+        margin-bottom: 16px;
     }
 
-    .page-title-row {
-        align-items: flex-start;
+        .container-fluid > .d-flex.justify-content-between h4 {
+            font-size: 1.05rem;
+        }
+
+        .container-fluid > .d-flex.justify-content-between p {
+            max-width: 100%;
+            line-height: 1.45;
+        }
+
+        .container-fluid > .d-flex.justify-content-between .badge {
+            flex-shrink: 0;
+            min-height: 29px;
+            padding: 5px 9px !important;
+            font-size: 0.68rem !important;
+        }
+
+
+    /* Cards */
+
+    #createOutboundForm > .card {
+        margin-bottom: 16px !important;
+        border-radius: 10px !important;
     }
 
-    .page-title-icon {
-        width: 36px;
-        height: 36px;
-        flex-basis: 36px;
-        font-size: 16px;
+    #createOutboundForm .card-body {
+        padding: 16px !important;
     }
 
-    .page-title {
-        font-size: 17px;
+
+    /* Form */
+
+    #createOutboundForm > .card:first-of-type .row {
+        grid-template-columns: 1fr;
+        gap: 14px;
     }
 
-    .page-subtitle {
-        max-width: 520px;
-        line-height: 1.45;
+
+    /* Table */
+
+    #createOutboundForm .table-responsive {
+        border-radius: 8px;
     }
 
-    .page-status {
-        padding: 6px 10px;
-        font-size: 11px;
+    #createOutboundForm .table {
+        min-width: 900px;
     }
 
-    .card-header {
-        min-height: 58px;
-        padding: 12px 14px;
-    }
 
-    .card-body {
-        padding: 14px;
-    }
+    /* Table footer */
 
-    .section-icon {
-        width: 31px;
-        height: 31px;
-        flex-basis: 31px;
-    }
-
-    .card-header-title h2 {
-        font-size: 14px;
-    }
-
-    .card-header-title span {
-        font-size: 11px;
-    }
-
-    .items-header {
-        align-items: center;
-    }
-
-    .inventory-button span {
-        display: none;
-    }
-
-    .inventory-button {
-        width: 34px;
-        padding: 0;
-    }
-
-    .items-summary {
-        align-items: flex-start;
-        flex-direction: column;
-        gap: 7px;
-        padding: 11px 14px;
-    }
-
-    .summary-total {
-        width: 100%;
-        justify-content: flex-end;
-    }
-
-    .action-bar {
-        align-items: stretch;
+    #createOutboundForm
+    .card-body > .d-flex.justify-content-between.align-items-center.mt-3 {
+        align-items: flex-start !important;
         flex-direction: column;
         gap: 10px;
     }
 
-    .action-buttons {
-        width: 100%;
-    }
-
-    .btn-cancel,
-    .btn-draft,
-    .btn-submit {
-        flex: 1;
-    }
-}
-
-
-/* =========================================================
-   RESPONSIVE - 576px
-   ========================================================= */
-
-@media (max-width: 576px) {
-
-    .outbound-page {
-        padding: 12px 10px 24px;
-    }
-
-    .page-header {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    .page-status {
-        align-self: flex-start;
-    }
-
-    .page-title-row {
-        gap: 9px;
-    }
-
-    .page-title-icon {
-        width: 34px;
-        height: 34px;
-        flex-basis: 34px;
-    }
-
-    .page-title {
-        font-size: 16px;
-    }
-
-    .page-subtitle {
-        font-size: 11px;
-    }
-
-    .form-grid {
-        grid-template-columns: 1fr;
-        row-gap: 14px;
-    }
-
-    .form-control-custom {
-        height: 39px;
-    }
-
-    .info-note {
-        padding: 11px 12px;
-    }
-
-    .info-note-content {
-        display: block;
-    }
-
-        .info-note-content strong {
-            margin-right: 3px;
-        }
-
-    .action-buttons {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-    }
-
-    .btn-cancel {
-        grid-column: 1 / -1;
-    }
-
-    .btn-draft,
-    .btn-submit {
-        width: 100%;
-    }
-}
-/* =========================================================
-   ITEMS TABLE
-   ========================================================= */
-.items-table-wrapper {
-    width: 100%;
-    overflow-x: auto;
-    overflow-y: hidden;
-    border-bottom: 1px solid var(--erp-border);
-    scrollbar-width: thin;
-}
-
-
-/* =========================================================
-   TABLE BASE
-   ========================================================= */
-
-.items-table {
-    width: 100%;
-    /*
-        Không cho bảng tự tính lại width theo nội dung.
-        Width được kiểm soát bởi colgroup.
-    */
-    table-layout: fixed;
-    border-collapse: separate;
-    border-spacing: 0;
-    background: #ffffff;
-    /*
-        Desktop tối thiểu để bảng không bị ép quá nhỏ.
-    */
-    min-width: 920px;
-}
-
-
-    /* =========================================================
-   COLUMN WIDTH
-   ========================================================= */
-
-    /*
-    Tổng = 100%
-
-    Product       28%
-    Requested     10%
-    Reserved      10%
-    Unit           8%
-    Lot/Bin       17%
-    Status        13%
-    Price         14%
-*/
-
-    .items-table .column-product {
-        width: 28%;
-    }
-
-    .items-table .column-requested {
-        width: 10%;
-    }
-
-    .items-table .column-reserved {
-        width: 10%;
-    }
-
-    .items-table .column-unit {
-        width: 8%;
-    }
-
-    .items-table .column-lot {
-        width: 17%;
-    }
-
-    .items-table .column-status {
-        width: 13%;
-    }
-
-    .items-table .column-price {
-        width: 14%;
-    }
-
-
-    /* =========================================================
-   HEADER
-   ========================================================= */
-
-    .items-table thead th {
-        height: 44px;
-        padding: 0 14px;
-        background: #f8fafc;
-        border-bottom: 1px solid var(--erp-border);
-        color: #6b7280;
-        font-size: 10.5px;
-        font-weight: 700;
-        letter-spacing: 0.045em;
-        line-height: 1;
-        vertical-align: middle;
-        white-space: nowrap;
-        /*
-        Quan trọng:
-        không để text header ảnh hưởng width.
-    */
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-
-    /* =========================================================
-   BODY
-   ========================================================= */
-
-    .items-table tbody td {
-        height: 66px;
-        padding: 10px 14px;
-        border-bottom: 1px solid #f0f2f5;
-        color: #374151;
-        font-size: 13px;
-        line-height: 1.4;
-        vertical-align: middle;
-        /*
-        Cực kỳ quan trọng cho table-layout fixed.
-    */
-        overflow: hidden;
-    }
-
-    .items-table tbody tr:last-child td {
-        border-bottom: none;
-    }
-
-    .items-table tbody tr {
-        transition: background-color 0.12s ease;
-    }
-
-        .items-table tbody tr:hover {
-            background: #fafcff;
+        #createOutboundForm
+        .card-body > .d-flex.justify-content-between.align-items-center.mt-3 > div {
+            align-self: flex-end;
         }
 
 
-    /* =========================================================
-   ALIGNMENT
-   ========================================================= */
+    /* Alert */
 
-    .items-table .text-left {
-        text-align: left;
-    }
-
-    .items-table .text-right {
-        text-align: right;
-    }
-
-    .items-table .text-center {
-        text-align: center;
-    }
-
-
-/* =========================================================
-   PRODUCT
-   ========================================================= */
-
-.product-cell {
-    width: 100%;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    gap: 3px;
-    overflow: hidden;
-}
-
-.product-code {
-    display: block;
-    width: 100%;
-    overflow: hidden;
-    color: #1d4ed8;
-    font-size: 12px;
-    font-weight: 700;
-    line-height: 16px;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-}
-
-.product-name {
-    display: block;
-    width: 100%;
-    overflow: hidden;
-    color: #4b5563;
-    font-size: 12.5px;
-    line-height: 17px;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-}
-
-
-/* =========================================================
-   QUANTITY
-   ========================================================= */
-
-.quantity-value {
-    display: inline-block;
-    color: #1f2937;
-    font-size: 13px;
-    font-weight: 600;
-    line-height: 1;
-    white-space: nowrap;
-}
-
-    .quantity-value.reserved {
-        color: var(--erp-primary);
-    }
-
-
-/* =========================================================
-   UNIT
-   ========================================================= */
-
-.unit-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 34px;
-    max-width: 100%;
-    height: 25px;
-    padding: 0 8px;
-    border: 1px solid #e5e7eb;
-    border-radius: 6px;
-    background: #f8fafc;
-    color: #4b5563;
-    font-size: 11px;
-    font-weight: 600;
-    line-height: 1;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-
-/* =========================================================
-   LOT / BIN
-   ========================================================= */
-
-.lot-bin {
-    width: 100%;
-    max-width: 100%;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    padding: 5px 8px;
-    border-radius: 6px;
-    background: #f3f4f6;
-    color: #4b5563;
-    font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-    font-size: 10.5px;
-    line-height: 15px;
-    overflow: hidden;
-}
-
-    .lot-bin i {
-        flex: 0 0 auto;
-        color: #6b7280;
-        font-size: 11px;
-    }
-
-.lot-bin-text {
-    min-width: 0;
-    display: block;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-}
-
-
-/* =========================================================
-   RESULT
-   ========================================================= */
-
-.result-badge {
-    max-width: 100%;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 5px;
-    min-width: 58px;
-    height: 25px;
-    padding: 0 8px;
-    border-radius: 999px;
-    font-size: 10.5px;
-    font-weight: 700;
-    line-height: 1;
-    white-space: nowrap;
-    overflow: hidden;
-}
-
-    .result-badge i {
-        flex: 0 0 auto;
-        font-size: 11px;
-    }
-
-    .result-badge span {
-        min-width: 0;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-
-.result-success {
-    background: #ecfdf5;
-    color: #047857;
-}
-
-.result-danger {
-    background: #fef2f2;
-    color: #b91c1c;
-}
-
-
-/* =========================================================
-   PRICE
-   ========================================================= */
-
-.total-price {
-    display: inline-block;
-    max-width: 100%;
-    color: #111827;
-    font-size: 12.5px;
-    font-weight: 700;
-    line-height: 1;
-    white-space: nowrap;
-}
-
-.currency {
-    margin-left: 2px;
-    color: #6b7280;
-    font-size: 11px;
-    font-weight: 500;
-}
-
-
-/* =========================================================
-   EMPTY STATE
-   ========================================================= */
-
-.items-table tbody td[colspan="7"] {
-    padding: 0;
-    overflow: visible;
-}
-
-.empty-state {
-    width: 100%;
-    min-height: 220px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 30px 20px;
-    text-align: center;
-}
-
-.empty-icon {
-    width: 48px;
-    height: 48px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 10px;
-    border-radius: 50%;
-    background: #f3f4f6;
-    color: #9ca3af;
-    font-size: 21px;
-}
-
-.empty-title {
-    margin-bottom: 4px;
-    color: #4b5563;
-    font-size: 13px;
-    font-weight: 600;
-}
-
-.empty-description {
-    color: #9ca3af;
-    font-size: 12px;
-}
-
-
-/* =========================================================
-   TABLE SUMMARY
-   ========================================================= */
-
-.items-summary {
-    min-height: 52px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 20px;
-    padding: 10px 20px;
-    background: #fafbfc;
-}
-
-.summary-check {
-    min-width: 0;
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    color: #6b7280;
-    font-size: 12px;
-}
-
-    .summary-check i {
-        flex: 0 0 auto;
-        color: #059669;
-        font-size: 14px;
-    }
-
-    .summary-check strong {
-        color: #374151;
-        font-weight: 700;
-    }
-
-.summary-total {
-    flex: 0 0 auto;
-    display: flex;
-    align-items: baseline;
-    gap: 6px;
-}
-
-.summary-label {
-    color: #6b7280;
-    font-size: 12px;
-}
-
-.summary-value {
-    color: #2563eb;
-    font-size: 16px;
-    font-weight: 700;
-}
-
-.summary-unit {
-    color: #6b7280;
-    font-size: 11px;
-}
-
-
-/* =========================================================
-   TABLE RESPONSIVE
-   ========================================================= */
-
-@media (max-width: 1200px) {
-
-    .items-table {
-        min-width: 900px;
-    }
-
-        .items-table thead th,
-        .items-table tbody td {
-            padding-left: 11px;
-            padding-right: 11px;
-        }
-}
-
-
-@media (max-width: 768px) {
-
-    /*
-        Không ép bảng co nhỏ.
-        Chỉ scroll riêng phần bảng.
-    */
-    .items-table {
-        min-width: 900px;
-    }
-
-        .items-table thead th {
-            height: 42px;
-            padding-left: 10px;
-            padding-right: 10px;
-            font-size: 10px;
-        }
-
-        .items-table tbody td {
-            height: 62px;
-            padding-left: 10px;
-            padding-right: 10px;
-        }
-
-    .items-summary {
+    #createOutboundForm .alert-primary.bg-primary-subtle {
         align-items: flex-start;
-        flex-direction: column;
-        gap: 7px;
+        padding: 11px 13px !important;
     }
 
-    .summary-total {
-        width: 100%;
-        justify-content: flex-end;
+
+    /* Buttons */
+
+    #createOutboundForm
+    .d-flex.justify-content-end.align-items-center.gap-2.mb-5 {
+        flex-wrap: wrap;
+        justify-content: flex-end !important;
+        gap: 8px !important;
     }
+
+        #createOutboundForm
+        .d-flex.justify-content-end.align-items-center.gap-2.mb-5
+        .btn {
+            padding-left: 15px !important;
+            padding-right: 15px !important;
+        }
 }
+
 
 /* =========================================================
-   VERY SMALL SCREEN
+   SMALL MOBILE
    ========================================================= */
-@media (max-width: 380px) {
-    .action-buttons {
-        grid-template-columns: 1fr;
+
+@media (max-width: 480px) {
+
+    .container-fluid.py-3.px-4 {
+        padding: 12px !important;
     }
 
-    .btn-cancel {
-        grid-column: auto;
+    #createOutboundForm .card-body {
+        padding: 14px !important;
     }
 
-    .btn-draft,
-    .btn-submit {
+    .container-fluid > .d-flex.justify-content-between {
+        gap: 8px;
+    }
+
+        .container-fluid > .d-flex.justify-content-between h4 {
+            font-size: 0.98rem;
+        }
+
+        .container-fluid > .d-flex.justify-content-between p {
+            font-size: 0.75rem;
+        }
+
+
+    /* Footer buttons */
+
+    #createOutboundForm
+    .d-flex.justify-content-end.align-items-center.gap-2.mb-5 {
         width: 100%;
     }
+
+        #createOutboundForm
+        .d-flex.justify-content-end.align-items-center.gap-2.mb-5
+        .btn {
+            flex: 1;
+            min-width: 0;
+            padding-left: 12px !important;
+            padding-right: 12px !important;
+        }
+
+        #createOutboundForm
+        .d-flex.justify-content-end.align-items-center.gap-2.mb-5
+        .btn-link {
+            flex: 0 0 auto;
+        }
 }
+

@@ -1,627 +1,202 @@
 ﻿@page
 @model BMWMS.Web.Pages.OutboundOrders.CreateModel
-
 @{
     Layout = "/Pages/Shared/Inventory/_Layout.cshtml";
-    ViewData["Title"] = "UC26 · Tạo lệnh xuất kho";
+
+    ViewData["Title"] = "UC26 - Tạo lệnh xuất kho";
 }
 
-<link rel="stylesheet" href="~/css/Inventory/outbound-create.css" />
+@section Styles {
+    <link rel="stylesheet"
+          href="~/css/Inventory/outbound-create.css"
+          asp-append-version="true" />
+}
 
-<div class="outbound-page">
-
-    <form method="post" class="outbound-form">
-
-        <!-- =========================================================
-             PAGE HEADER
-        ========================================================== -->
-        <div class="page-header">
-
-            <div class="page-header-left">
-
-                <div class="page-title-row">
-                    <div class="page-title-icon">
-                        <i class="bi bi-box-arrow-up"></i>
-                    </div>
-
-                    <div>
-                        <h1 class="page-title">
-                            UC26 · Tạo lệnh xuất kho
-                        </h1>
-
-                        <p class="page-subtitle">
-                            Tạo lệnh xuất từ Sales Order đã xác nhận và giữ tồn
-                            <span class="dot-separator">•</span>
-                            Actor chính: Nhân viên bán hàng
-                        </p>
-                    </div>
-                </div>
-
-            </div>
-
-            <div class="page-status">
-                <i class="bi bi-pencil-square"></i>
-                <span>Nháp</span>
-            </div>
-
+<div class="container-fluid py-3 px-4" style="background-color: #f8f9fa;">
+    <!-- HEADER -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h4 class="fw-bold mb-1">UC26 · Tạo lệnh xuất kho</h4>
+            <p class="text-muted small mb-0">Tạo lệnh xuất từ Sales Order đã xác nhận và giữ tồn • Actor chính: Nhân viên bán hàng</p>
         </div>
+        <div>
+            <span class="badge bg-light text-dark border fs-6 px-3 py-2 fw-normal">Nháp</span>
+        </div>
+    </div>
 
+    @if (!ModelState.IsValid)
+    {
+        <div class="alert alert-danger alert-dismissible fade show mb-3" role="alert">
+            <div asp-validation-summary="All" class="small m-0"></div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
 
-        <!-- =========================================================
-             ERROR MESSAGE
-        ========================================================== -->
-        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
-        {
-            <div class="error-alert" role="alert">
+    <form method="post" id="createOutboundForm">
+        @Html.AntiForgeryToken()
 
-                <div class="error-alert-content">
-                    <i class="bi bi-exclamation-triangle-fill"></i>
+        <!-- CARD 1: THÔNG TIN LỆNH XUẤT -->
+        <div class="card border-0 shadow-sm rounded-3 mb-4">
+            <div class="card-body p-4">
+                <h6 class="fw-bold mb-3">Thông tin lệnh xuất</h6>
 
-                    <span>
-                        @Model.ErrorMessage
-                    </span>
-                </div>
-
-                <button type="button"
-                        class="error-close"
-                        data-bs-dismiss="alert"
-                        aria-label="Đóng">
-                    <i class="bi bi-x-lg"></i>
-                </button>
-
-            </div>
-        }
-
-
-        <!-- =========================================================
-             GENERAL INFORMATION
-        ========================================================== -->
-        <section class="content-card">
-
-            <div class="card-header">
-
-                <div class="card-header-title">
-                    <div class="section-icon">
-                        <i class="bi bi-info-circle"></i>
-                    </div>
-
-                    <div>
-                        <h2>Thông tin lệnh xuất</h2>
-                        <span>Thông tin cơ bản của lệnh xuất kho</span>
-                    </div>
-                </div>
-
-            </div>
-
-
-            <div class="card-body">
-
-                <div class="form-grid">
-
-                    <!-- Sales Order -->
-                    <div class="form-field">
-
-                        <label asp-for="Input.SalesOrderId" class="form-label">
-                            Sales Order
-                            <span class="required">*</span>
-                        </label>
-
+                <div class="row g-3">
+                    <!-- Row 1 -->
+                    <div class="col-md-3">
+                        <label asp-for="Input.SalesOrderId" class="form-label small fw-semibold">Sales Order <span class="text-danger">*</span></label>
                         <select asp-for="Input.SalesOrderId"
                                 asp-items="Model.SalesOrderOptions"
-                                class="form-control-custom"
-                                onchange="location.href='?selectedSalesOrderId=' + this.value;">
+                                class="form-select"
+                                onchange="window.location.href='?selectedSalesOrderId=' + this.value;">
                         </select>
-
+                        <span asp-validation-for="Input.SalesOrderId" class="text-danger small"></span>
                     </div>
 
-
-                    <!-- Mã lệnh xuất -->
-                    <div class="form-field">
-
-                        <label class="form-label">
-                            Mã lệnh xuất
-                        </label>
-
-                        <div class="input-with-icon readonly-control">
-
-                            <i class="bi bi-hash"></i>
-
-                            <input type="text"
-                                   class="form-control-custom"
-                                   value="@Model.Input.OrderNumberAuto"
-                                   readonly
-                                   placeholder="Hệ thống tự tạo" />
-
-                        </div>
-
+                    <div class="col-md-3">
+                        <label class="form-label small fw-semibold">Mã lệnh xuất</label>
+                        <input type="text" class="form-control bg-light" value="Tự động" readonly />
                     </div>
 
-
-                    <!-- Khách hàng -->
-                    <div class="form-field">
-
-                        <label asp-for="Input.CustomerName" class="form-label">
-                            Khách hàng
-                        </label>
-
-                        <div class="input-with-icon readonly-control">
-
-                            <i class="bi bi-person"></i>
-
-                            <input type="text"
-                                   asp-for="Input.CustomerName"
-                                   class="form-control-custom"
-                                   placeholder="Tên khách hàng"
-                                   readonly />
-
-                        </div>
-
+                    <div class="col-md-3">
+                        <label class="form-label small fw-semibold">Khách hàng</label>
+                        <input type="text" asp-for="Input.CustomerName" class="form-control bg-light" readonly placeholder="---" />
                     </div>
 
+                    <div class="col-md-3">
+                        <label asp-for="Input.WarehouseId" class="form-label small fw-semibold">Kho xuất <span class="text-danger">*</span></label>
+                        <select asp-for="Input.WarehouseId" asp-items="Model.WarehouseOptions" class="form-select"></select>
+                        <span asp-validation-for="Input.WarehouseId" class="text-danger small"></span>
+                    </div>
 
-                    <!-- Kho xuất -->
-                    <div class="form-field">
+                    <!-- Row 2 -->
+                    <div class="col-md-3">
+                        <label asp-for="Input.ExpectedIssueDate" class="form-label small fw-semibold">Ngày dự kiến <span class="text-danger">*</span></label>
+                        <input asp-for="Input.ExpectedIssueDate" type="date" class="form-control" />
+                        <span asp-validation-for="Input.ExpectedIssueDate" class="text-danger small"></span>
+                    </div>
 
-                        <label asp-for="Input.WarehouseId" class="form-label">
-                            Kho xuất
-                            <span class="required">*</span>
-                        </label>
+                    <div class="col-md-3">
+                        <label asp-for="Input.AssignedToUserId" class="form-label small fw-semibold">Người phụ trách</label>
+                        <select asp-for="Input.AssignedToUserId" asp-items="Model.AssigneeOptions" class="form-select"></select>
+                    </div>
 
-                        <select asp-for="Input.WarehouseId"
-                                asp-items="Model.WarehouseOptions"
-                                class="form-control-custom">
+                    <div class="col-md-3">
+                        <label class="form-label small fw-semibold">Chiến lược picking</label>
+                        <select class="form-select" disabled>
+                            <option selected>FEFO</option>
                         </select>
-
                     </div>
 
-
-                    <!-- Ngày dự kiến -->
-                    <div class="form-field">
-
-                        <label asp-for="Input.ExpectedIssueDate" class="form-label">
-                            Ngày dự kiến
-                        </label>
-
-                        <div class="input-with-icon">
-
-                            <i class="bi bi-calendar3"></i>
-
-                            <input type="date"
-                                   asp-for="Input.ExpectedIssueDate"
-                                   class="form-control-custom" />
-
-                        </div>
-
+                    <div class="col-md-3">
+                        <label asp-for="Input.ReferenceCode" class="form-label small fw-semibold">Tham chiếu</label>
+                        <input asp-for="Input.ReferenceCode" class="form-control" placeholder="Mã tham chiếu..." />
                     </div>
-
-
-                    <!-- Người phụ trách -->
-                    <div class="form-field">
-
-                        <label asp-for="Input.AssignedToUserId" class="form-label">
-                            Người phụ trách
-                        </label>
-
-                        <select asp-for="Input.AssignedToUserId"
-                                asp-items="Model.UserOptions"
-                                class="form-control-custom">
-                        </select>
-
-                    </div>
-
-
-                    <!-- Chiến lược picking -->
-                    <div class="form-field">
-
-                        <label asp-for="Input.PickingStrategy" class="form-label">
-                            Chiến lược picking
-                        </label>
-
-                        <select asp-for="Input.PickingStrategy"
-                                asp-items="Model.PickingStrategyOptions"
-                                class="form-control-custom">
-                        </select>
-
-                    </div>
-
-
-                    <!-- Tham chiếu -->
-                    <div class="form-field">
-
-                        <label asp-for="Input.ReferenceCode" class="form-label">
-                            Tham chiếu
-                        </label>
-
-                        <div class="input-with-icon">
-
-                            <i class="bi bi-link-45deg"></i>
-
-                            <input type="text"
-                                   asp-for="Input.ReferenceCode"
-                                   class="form-control-custom"
-                                   placeholder="Mã SO / Tham chiếu" />
-
-                        </div>
-
-                    </div>
-
                 </div>
-
             </div>
+        </div>
 
-        </section>
-
-
-        <!-- =========================================================
-             OUTBOUND ITEMS
-        ========================================================== -->
-        <section class="content-card items-card">
-           
-        
-            <section class="content-card items-card">
-
-                <div class="card-header items-header">
-
-                    <div class="card-header-title">
-
-                       
-
-                        <div>
-                            <h2>Hàng xuất theo Sales Order</h2>
-                            <span>Danh sách sản phẩm cần xuất từ Sales Order</span>
-                        </div>
-
-                    </div>
-
-                    <button type="button"
-                            class="inventory-button">
-                        <i class="bi bi-search"></i>
-                        <span>Chọn tồn kho</span>
-                    </button>
-
+        <!-- CARD 2: HÀNG XUẤT THEO SALES ORDER -->
+        <div class="card border-0 shadow-sm rounded-3 mb-4">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="fw-bold mb-0">Hàng xuất theo Sales Order</h6>
+                    <button type="button" class="btn btn-light border text-secondary px-3 btn-sm" disabled>Chọn tồn kho</button>
                 </div>
 
-
-                <!-- =====================================================
-                     TABLE
-                ====================================================== -->
-                <div class="items-table-wrapper">
-
-                    <table class="items-table">
-
-                    
-                        <colgroup>
-                            <col class="column-product" />
-                            <col class="column-requested" />
-                            <col class="column-reserved" />
-                            <col class="column-unit" />
-                            <col class="column-lot" />
-                            <col class="column-status" />
-                            <col class="column-price" />
-                        </colgroup>
-
-
-                        <thead>
+                <div class="table-responsive">
+                    <table class="table table-borderless align-middle mb-0">
+                        <thead class="text-muted border-bottom small">
                             <tr>
-
-                                <th class="text-left">
-                                    SẢN PHẨM
-                                </th>
-
-                                <th class="text-right">
-                                    SL YÊU CẦU
-                                </th>
-
-                                <th class="text-right">
-                                    ĐÃ GIỮ
-                                </th>
-
-                                <th class="text-center">
-                                    ĐVT
-                                </th>
-
-                                <th class="text-left">
-                                    LOT / BIN
-                                </th>
-
-                                <th class="text-center">
-                                    KẾT QUẢ
-                                </th>
-
-                                <th class="text-right">
-                                    THÀNH TIỀN
-                                </th>
-
+                                <th style="width: 25%;">Sản phẩm</th>
+                                <th class="text-end" style="width: 10%;">SL yêu cầu</th>
+                                <th class="text-end" style="width: 10%;">Đã giữ</th>
+                                <th class="text-center" style="width: 8%;">ĐVT</th>
+                                <th style="width: 15%;">Lot / Bin</th>
+                                <th style="width: 10%;">Kết quả</th>
+                                <th class="text-end" style="width: 15%;">Thành tiền</th>
                             </tr>
                         </thead>
-
-
                         <tbody>
-
                             @if (Model.Input.Items != null && Model.Input.Items.Any())
                             {
-                                @for (int i = 0; i < Model.Input.Items.Count; i++)
+                                for (int i = 0; i < Model.Input.Items.Count; i++)
                                 {
-                                    <tr>
-
-                                        <!-- =================================================
-                                             PRODUCT
-                                        ================================================== -->
+                                    <tr class="border-bottom">
                                         <td>
+                                            <span class="fw-semibold text-primary">@Model.Input.Items[i].ProductCode</span>
+                                            <span class="text-secondary"> — @Model.Input.Items[i].ProductName</span>
 
-                                            <input type="hidden"
-                                                   asp-for="Input.Items[i].ProductId" />
-
-                                            <input type="hidden"
-                                                   asp-for="Input.Items[i].RequestedQuantity" />
-
-                                            <div class="product-cell">
-
-                                                <span class="product-code">
-                                                    @Model.Input.Items[i].ProductCode
-                                                </span>
-
-                                                <span class="product-name">
-                                                    @Model.Input.Items[i].ProductName
-                                                </span>
-
-                                            </div>
-
+                                            <!-- Hidden Inputs gửi Payload cho Controller -->
+                                            <input type="hidden" asp-for="Input.Items[i].ProductId" />
+                                            <input type="hidden" asp-for="Input.Items[i].RequestedQuantity" />
+                                            <input type="hidden" asp-for="Input.Items[i].ReservedQuantity" />
+                                            <input type="hidden" asp-for="Input.Items[i].ProductCode" />
+                                            <input type="hidden" asp-for="Input.Items[i].ProductName" />
+                                            <input type="hidden" asp-for="Input.Items[i].UnitName" />
+                                            <input type="hidden" asp-for="Input.Items[i].LotBin" />
+                                            <input type="hidden" asp-for="Input.Items[i].TotalPrice" />
+                                            <input type="hidden" asp-for="Input.Items[i].Notes" />
                                         </td>
-
-
-                                        <!-- =================================================
-                                             REQUESTED QUANTITY
-                                        ================================================== -->
-                                        <td class="text-right">
-
-                                            <span class="quantity-value">
-                                                @Model.Input.Items[i].RequestedQuantity.ToString("N0")
-                                            </span>
-
-                                        </td>
-
-
-                                        <!-- =================================================
-                                             RESERVED QUANTITY
-                                        ================================================== -->
-                                        <td class="text-right">
-
-                                            <span class="quantity-value reserved">
-                                                @Model.Input.Items[i].ReservedQuantity.ToString("N0")
-                                            </span>
-
-                                        </td>
-
-
-                                        <!-- =================================================
-                                             UNIT
-                                        ================================================== -->
-                                        <td class="text-center">
-
-                                            <span class="unit-badge">
-                                                @Model.Input.Items[i].UnitName
-                                            </span>
-
-                                        </td>
-
-
-                                        <!-- =================================================
-                                             LOT / BIN
-                                        ================================================== -->
+                                        <td class="text-end fw-normal">@Model.Input.Items[i].RequestedQuantity.ToString("N0")</td>
+                                        <td class="text-end fw-normal">@Model.Input.Items[i].ReservedQuantity.ToString("N0")</td>
+                                        <td class="text-center text-muted">@Model.Input.Items[i].UnitName</td>
+                                        <td class="text-muted small">@Model.Input.Items[i].LotBin</td>
                                         <td>
-
-                                            <div class="lot-bin">
-
-                                                <i class="bi bi-geo-alt"></i>
-
-                                                <span class="lot-bin-text">
-                                                    @Model.Input.Items[i].LotBin
-                                                </span>
-
-                                            </div>
-
-                                        </td>
-
-
-                                        <!-- =================================================
-                                             RESULT
-                                        ================================================== -->
-                                        <td class="text-center">
-
-                                            @if (Model.Input.Items[i].IsEnough)
+                                            @if (Model.Input.Items[i].ReservedQuantity >= Model.Input.Items[i].RequestedQuantity)
                                             {
-                                                <span class="result-badge result-success">
-
-                                                    <i class="bi bi-check-circle-fill"></i>
-
-                                                    <span>Đủ</span>
-
-                                                </span>
+                                                <span class="text-dark small">Đủ</span>
                                             }
                                             else
                                             {
-                                                <span class="result-badge result-danger">
-
-                                                    <i class="bi bi-x-circle-fill"></i>
-
-                                                    <span>
-                                                        @Model.Input.Items[i].CheckResult
-                                                    </span>
-
-                                                </span>
+                                                <span class="text-secondary small">Thiếu @((Model.Input.Items[i].RequestedQuantity - Model.Input.Items[i].ReservedQuantity).ToString("N0"))</span>
                                             }
-
                                         </td>
-
-
-                                        <!-- =================================================
-                                             TOTAL PRICE
-                                        ================================================== -->
-                                        <td class="text-right">
-
-                                            <span class="total-price">
-                                                @Model.Input.Items[i].TotalPrice.ToString("N0")
-                                                <span class="currency">đ</span>
-                                            </span>
-
-                                        </td>
-
+                                        <td class="text-end fw-bold">@Model.Input.Items[i].TotalPrice.ToString("N0")</td>
                                     </tr>
                                 }
                             }
                             else
                             {
                                 <tr>
-
-                                    <td colspan="7">
-
-                                        <div class="empty-state">
-
-                                            <div class="empty-icon">
-                                                <i class="bi bi-inbox"></i>
-                                            </div>
-
-                                            <div class="empty-title">
-                                                Chưa có sản phẩm
-                                            </div>
-
-                                            <div class="empty-description">
-                                                Chưa chọn Sales Order hoặc Sales Order không có sản phẩm nào.
-                                            </div>
-
-                                        </div>
-
+                                    <td colspan="7" class="text-center text-muted py-4">
+                                        Vui lòng chọn Sales Order để tải danh sách sản phẩm.
                                     </td>
-
                                 </tr>
                             }
-
                         </tbody>
-
                     </table>
-
                 </div>
 
-
-                <!-- =====================================================
-                     TABLE SUMMARY
-                ====================================================== -->
-                <div class="items-summary">
-
-                    <div class="summary-check">
-
-                        <i class="bi bi-check2-circle"></i>
-
-                        <span>
-                            Đã kiểm tra giữ tồn cho
-                            <strong>@(Model.Input.Items?.Count ?? 0)</strong>
-                            dòng sản phẩm
-                        </span>
-
+                <!-- FOOTER BẢNG -->
+                <div class="d-flex justify-content-between align-items-center mt-3 pt-2">
+                    <span class="text-muted small">
+                        Đã kiểm tra giữ tồn cho @(Model.Input.Items?.Count ?? 0)/@(Model.Input.Items?.Count ?? 0) dòng Sales Order
+                    </span>
+                    <div>
+                        <span class="fw-bold fs-6">Tổng đã giữ: </span>
+                        <span class="fw-bold fs-6">@(Model.Input.Items?.Sum(x => x.ReservedQuantity).ToString("N0") ?? "0")</span>
                     </div>
-
-
-                    <div class="summary-total">
-
-                        <span class="summary-label">
-                            Tổng đã giữ
-                        </span>
-
-                        <span class="summary-value">
-                            @(Model.Input.Items?.Sum(x => x.ReservedQuantity).ToString("N0") ?? "0")
-                        </span>
-
-                        <span class="summary-unit">
-                            đơn vị
-                        </span>
-
-                    </div>
-
                 </div>
-
-            </section>
-            
-
-
-
-        </section>
-
-
-        <!-- =========================================================
-             INFORMATION NOTE
-        ========================================================== -->
-        <div class="info-note">
-
-            <div class="info-note-icon">
-                <i class="bi bi-info-circle-fill"></i>
             </div>
-
-            <div class="info-note-content">
-
-                <strong>Lưu ý</strong>
-
-                <span>
-                    Sales Order phải được xác nhận và giữ tồn
-                    <em>Available</em>
-                    trước khi tạo lệnh xuất; xác nhận xuất thực tế mới chính thức trừ tồn kho.
-                </span>
-
-            </div>
-
         </div>
 
-
-        <!-- =========================================================
-             ACTION BAR
-        ========================================================== -->
-        <div class="action-bar">
-
-            <div class="action-left">
-                <span class="action-hint">
-                    <i class="bi bi-shield-check"></i>
-                    Kiểm tra lại thông tin trước khi tạo lệnh
-                </span>
-            </div>
-
-
-            <div class="action-buttons">
-
-                <a asp-page="./Index"
-                   class="btn-cancel">
-
-                    Hủy
-
-                </a>
-
-
-                <button type="submit"
-                        name="actionType"
-                        value="draft"
-                        class="btn-draft">
-
-                    <i class="bi bi-bookmark"></i>
-
-                    <span>Lưu nháp</span>
-
-                </button>
-
-
-                <button type="submit"
-                        name="actionType"
-                        value="submit"
-                        class="btn-submit">
-
-                    <i class="bi bi-check-lg"></i>
-
-                    <span>Tạo lệnh xuất</span>
-
-                </button>
-
-            </div>
-
+        <!-- CALLOUT ALERT -->
+        <div class="alert alert-primary bg-primary-subtle border-0 text-primary rounded-3 mb-4 d-flex align-items-center" role="alert">
+            <i class="bi bi-circle-fill me-2 fs-6"></i>
+            <span class="small">Sales Order phải được xác nhận và giữ tồn Available trước khi tạo lệnh xuất; xác nhận xuất mới trừ tồn.</span>
         </div>
 
+        <!-- BUTTONS FOOTER -->
+        <div class="d-flex justify-content-end align-items-center gap-2 mb-5">
+            <a asp-page="./Index" class="btn btn-link text-decoration-none text-secondary me-2">Hủy</a>
+
+            <button type="submit" name="actionType" value="draft" class="btn btn-light border px-4 py-2 text-dark fw-semibold">
+                Lưu nháp
+            </button>
+
+            <button type="submit" name="actionType" value="submit" class="btn btn-dark px-4 py-2 fw-semibold">
+                Tạo lệnh xuất
+            </button>
+        </div>
     </form>
-
 </div>

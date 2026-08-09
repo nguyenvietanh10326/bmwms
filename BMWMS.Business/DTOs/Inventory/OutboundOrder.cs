@@ -60,7 +60,7 @@ namespace BMWMS.Business.DTOs.Inventory
     public class CreateOutboundOrderRequest
     {
         public long WarehouseId { get; set; }
-        public string SourceType { get; set; } = "SalesOrder"; // "SalesOrder" hoặc "Direct"
+        public string SourceType { get; set; } = "SALES_ORDER"; // "SalesOrder" hoặc "Direct"
         public long? SalesOrderId { get; set; }
         public DateOnly ExpectedIssueDate { get; set; }
         public long? AssignedToUserId { get; set; }
