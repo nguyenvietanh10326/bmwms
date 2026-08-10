@@ -99,6 +99,16 @@ public class InboundApiService
         }
     }
 
+    public async Task ConfirmInboundOrderAsync(long id)
+    {
+        var response = await _httpClient.PutAsync($"api/inbounds/{id}/confirm", null);
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.Content.ReadAsStringAsync();
+            throw new Exception($"Xác nhận thất bại: {error}");
+        }
+    }
+
     public async Task CancelInboundOrderAsync(long id, string reason)
     {
         var dto = new CancelInboundOrderDto { CancellationReason = reason };

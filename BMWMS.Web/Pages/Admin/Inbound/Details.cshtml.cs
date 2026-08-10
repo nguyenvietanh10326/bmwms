@@ -28,4 +28,37 @@ public class DetailsModel : PageModel
         Order = data;
         return Page();
     }
+    public async Task<IActionResult> OnPostConfirmAsync(long id)
+    {
+        try
+        {
+            await _inboundApiService.ConfirmInboundOrderAsync(id);
+            TempData["SuccessMessage"] = "Lệnh nhập kho đã được xác nhận thành công.";
+        }
+        catch (System.Exception ex)
+        {
+            TempData["ErrorMessage"] = ex.Message;
+        }
+        return RedirectToPage(new { id });
+    }
+
+    public async Task<IActionResult> OnPostCancelAsync(long id, string reason)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(reason))
+            {
+                TempData["ErrorMessage"] = "Vui lòng nhập lý do hủy lệnh.";
+                return RedirectToPage(new { id });
+            }
+
+            await _inboundApiService.CancelInboundOrderAsync(id, reason);
+            TempData["SuccessMessage"] = "Lệnh nhập kho đã được hủy thành công.";
+        }
+        catch (System.Exception ex)
+        {
+            TempData["ErrorMessage"] = ex.Message;
+        }
+        return RedirectToPage(new { id });
+    }
 }

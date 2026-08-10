@@ -123,10 +123,20 @@
         <span class="badge @statusClass"><span class="dot"></span>@statusName</span>
         @if (Model.Order.Status == "DRAFT")
         {
-            <div style="display:flex; gap: 8px;">
+            <form method="post" style="display:flex; gap: 8px;">
                 <a href="/Admin/Inbound/Edit/@Model.Order.InboundOrderId" class="btn btn-light" style="padding: 6px 12px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg> Sửa lệnh</a>
-                <button type="button" class="btn btn-danger" onclick="cancelInbound()" style="padding: 6px 12px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg> Hủy lệnh</button>
-            </div>
+                
+                <button type="submit" asp-page-handler="Confirm" asp-route-id="@Model.Order.InboundOrderId" class="btn btn-dark" style="padding: 6px 12px; background:var(--accent-600); border:none;" onclick="return confirm('Bạn có chắc chắn muốn xác nhận lệnh này?');">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg> Xác nhận
+                </button>
+
+                <button type="button" class="btn btn-dark" onclick="submitCancelForm()" style="padding: 6px 12px; background:var(--r-tx); border:none;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg> Hủy lệnh
+                </button>
+                
+                <input type="hidden" name="reason" id="cancelReason" />
+                <button type="submit" asp-page-handler="Cancel" asp-route-id="@Model.Order.InboundOrderId" id="btnSubmitCancel" style="display:none;"></button>
+            </form>
         }
     </div>
   </div>
@@ -212,7 +222,7 @@
 </div>
 
 <script>
-    async function cancelInbound() {
+    function submitCancelForm() {
         var reason = prompt("Nhập lý do hủy lệnh nhập kho này:");
         if (reason === null) return;
         if (!reason.trim()) {
@@ -224,22 +234,7 @@
             return;
         }
 
-        try {
-            const response = await fetch('/api/inbounds/@Model.Order.InboundOrderId/cancel', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ cancellationReason: reason })
-            });
-
-            if (response.ok) {
-                alert("Đã hủy lệnh thành công!");
-                window.location.reload();
-            } else {
-                const err = await response.json();
-                alert(err.message || "Có lỗi xảy ra khi hủy");
-            }
-        } catch (e) {
-            alert("Có lỗi xảy ra: " + e.message);
-        }
+        document.getElementById('cancelReason').value = reason;
+        document.getElementById('btnSubmitCancel').click();
     }
 </script>

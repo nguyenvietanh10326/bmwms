@@ -120,4 +120,19 @@ public class InboundsController : ControllerBase
             return BadRequest(new { Message = ex.Message });
         }
     }
+
+    [HttpPut("{id}/confirm")]
+    public async Task<IActionResult> Confirm(long id)
+    {
+        try
+        {
+            var userId = 1; // Tạm hardcode
+            await _inboundService.ConfirmInboundOrderAsync(id, userId);
+            return Ok();
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { Message = ex.Message });
+        }
+    }
 }

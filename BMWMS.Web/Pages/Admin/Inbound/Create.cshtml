@@ -163,18 +163,18 @@
 
         <div class="card">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                <h3 style="margin:0;font-size:15px;">Dòng hàng dự kiến (theo PO còn lại)</h3>
-                <button type="button" class="btn btn-light" onclick="addRow()" style="padding:6px 10px; font-size:12px;"><svg><use href="#i-plus"/></svg>Thêm dòng</button>
+                <h3 style="margin:0;font-size:15px;">Dòng hàng dự kiến</h3>
             </div>
             
             <table class="items-table" id="itemsTable">
                 <thead>
                     <tr>
-                        <th style="width: 40%">Sản phẩm</th>
-                        <th class="num" style="width: 15%">SL còn lại theo PO</th>
-                        <th class="num" style="width: 15%">SL dự kiến nhập</th>
+                        <th style="width: 35%">Sản phẩm</th>
+                        <th class="num" style="width: 12%">SL PO ban đầu</th>
+                        <th class="num" style="width: 12%">SL còn lại (thiếu)</th>
+                        <th class="num" style="width: 12%">SL dự kiến nhập</th>
                         <th style="width: 5%">ĐVT</th>
-                        <th style="width: 20%">Ghi chú</th>
+                        <th style="width: 19%">Ghi chú</th>
                         <th style="width: 5%"></th>
                     </tr>
                 </thead>
@@ -311,15 +311,21 @@
                         const remainingQuantity = item.remainingQuantity !== undefined ? item.remainingQuantity : item.RemainingQuantity;
                         const unitName = item.unitName || item.UnitName || '--';
                         
+                        const productCode = item.productCode || item.ProductCode || '';
+                        const orderedQuantity = item.orderedQuantity !== undefined ? item.orderedQuantity : item.OrderedQuantity;
+                        
                         // Nếu số lượng còn lại = 0 thì bỏ qua không load lên
                         if(remainingQuantity <= 0) return;
 
                         var html = `
                             <tr id="row_${rowCount}">
                                 <td>
-                                    <select name="InboundOrder.Items[${rowCount}].ProductId" required>
-                                        <option value="${productId}">${productName}</option>
-                                    </select>
+                                    <input type="hidden" name="InboundOrder.Items[${rowCount}].ProductId" value="${productId}" />
+                                    <span style="display:inline-block; background:#e2e8f0; color:#475569; padding:2px 6px; border-radius:4px; font-size:11px; font-weight:700; font-family:var(--font-mono); margin-right:6px;">${productCode}</span>
+                                    <span style="font-weight:600; font-size:13px;">${productName}</span>
+                                </td>
+                                <td class="num">
+                                    <input type="text" disabled value="${orderedQuantity}" class="cell-input" style="background:transparent; color:var(--ink); text-align:right; border:none; font-weight:600;" />
                                 </td>
                                 <td class="num">
                                     <input type="hidden" class="remaining-hidden" value="${remainingQuantity}" />
