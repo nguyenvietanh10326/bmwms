@@ -9,6 +9,7 @@ public class InboundOrderFilterDto
     public string? Status { get; set; }
     public DateTime? FromDate { get; set; }
     public DateTime? ToDate { get; set; }
+    public long? AssignedToUserId { get; set; }
     public int PageIndex { get; set; } = 1;
     public int PageSize { get; set; } = 10;
 }
@@ -61,6 +62,16 @@ public class InboundOrderItemDto
     public decimal PutawayQuantity { get; set; }
     public string? LotNumber { get; set; }
     public DateOnly? ExpiryDate { get; set; }
+    public List<InboundReceiptDto> Receipts { get; set; } = new();
+}
+
+public class InboundReceiptDto
+{
+    public long ProductLotId { get; set; }
+    public string LotNumber { get; set; } = string.Empty;
+    public DateOnly? ExpiryDate { get; set; }
+    public decimal ReceivedQuantity { get; set; }
+    public decimal PutawayQuantity { get; set; }
 }
 
 public class InboundOrderTimelineDto
@@ -140,4 +151,25 @@ public class UpdateInboundOrderItemDto
 public class CancelInboundOrderDto
 {
     public string? CancellationReason { get; set; }
+}
+
+public class ReceiveInboundItemDto
+{
+    public long InboundOrderItemId { get; set; }
+    [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Vui lòng nhập số lượng thực giao")]
+    public decimal DeliveredQuantity { get; set; }
+    public decimal DamagedQuantity { get; set; }
+    [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Vui lòng nhập số Lot")]
+    public string LotNumber { get; set; } = string.Empty;
+    public DateOnly? ExpiryDate { get; set; }
+}
+
+public class PutawayInboundItemDto
+{
+    public long InboundOrderItemId { get; set; }
+    public long ProductLotId { get; set; }
+    [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Vui lòng chọn vị trí lưu trữ")]
+    public long StorageLocationId { get; set; }
+    [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Vui lòng nhập số lượng xếp vị trí")]
+    public decimal PutawayQuantity { get; set; }
 }

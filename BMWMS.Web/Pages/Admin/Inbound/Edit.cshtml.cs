@@ -6,9 +6,11 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using BMWMS.Web.Services;
 using BMWMS.Web.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace BMWMS.Web.Pages.Admin.Inbound
 {
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
     public class EditModel : PageModel
     {
         private readonly InboundApiService _apiService;

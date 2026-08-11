@@ -12,6 +12,7 @@ public interface IInboundRepository
         string? status,
         DateTime? fromDate,
         DateTime? toDate,
+        long? assignedToUserId,
         int pageIndex,
         int pageSize);
 

@@ -17,4 +17,6 @@ public interface IInboundService
     Task UpdateInboundOrderAsync(long id, UpdateInboundOrderDto dto, long currentUserId);
     Task CancelInboundOrderAsync(long id, CancelInboundOrderDto dto, long currentUserId);
     Task ConfirmInboundOrderAsync(long id, long currentUserId);
+    Task ReceiveItemAsync(long inboundOrderId, ReceiveInboundItemDto dto, long currentUserId);
+    Task PutawayItemAsync(long inboundOrderId, PutawayInboundItemDto dto, long currentUserId);
 }

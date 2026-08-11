@@ -21,6 +21,19 @@ public class InboundsController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<InboundOrderPageDto>> GetInboundOrders([FromQuery] InboundOrderFilterDto filter)
     {
+        if (User.IsInRole("WAREHOUSE_STAFF"))
+        {
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (long.TryParse(userIdClaim, out var currentUserId))
+            {
+                filter.AssignedToUserId = currentUserId;
+            }
+            else
+            {
+                return Unauthorized();
+            }
+        }
+
         var result = await _inboundService.GetInboundOrdersPageAsync(filter);
         return Ok(result);
     }
@@ -34,6 +47,7 @@ public class InboundsController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
     public async Task<ActionResult<long>> CreateInboundOrder([FromBody] CreateInboundOrderDto dto)
     {
         var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
@@ -92,6 +106,7 @@ public class InboundsController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
     public async Task<IActionResult> Update(long id, [FromBody] UpdateInboundOrderDto dto)
     {
         try
@@ -107,6 +122,7 @@ public class InboundsController : ControllerBase
     }
 
     [HttpPut("{id}/cancel")]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
     public async Task<IActionResult> Cancel(long id, [FromBody] CancelInboundOrderDto dto)
     {
         try
@@ -122,12 +138,45 @@ public class InboundsController : ControllerBase
     }
 
     [HttpPut("{id}/confirm")]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
     public async Task<IActionResult> Confirm(long id)
     {
         try
         {
             var userId = 1; // Tạm hardcode
             await _inboundService.ConfirmInboundOrderAsync(id, userId);
+            return Ok();
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { Message = ex.Message });
+        }
+    }
+
+    [HttpPost("{id}/receive")]
+    public async Task<IActionResult> Receive(long id, [FromBody] ReceiveInboundItemDto dto)
+    {
+        try
+        {
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            var currentUserId = long.TryParse(userIdClaim, out var parsed) ? parsed : 1; // Fallback to 1 if not parsed
+            await _inboundService.ReceiveItemAsync(id, dto, currentUserId);
+            return Ok();
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { Message = ex.Message });
+        }
+    }
+
+    [HttpPost("{id}/putaway")]
+    public async Task<IActionResult> Putaway(long id, [FromBody] PutawayInboundItemDto dto)
+    {
+        try
+        {
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            var currentUserId = long.TryParse(userIdClaim, out var parsed) ? parsed : 1; // Fallback to 1 if not parsed
+            await _inboundService.PutawayItemAsync(id, dto, currentUserId);
             return Ok();
         }
         catch (Exception ex)

@@ -7,8 +7,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
 
+using Microsoft.AspNetCore.Authorization;
+
 namespace BMWMS.Web.Pages.Admin.Inbound;
 
+[Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
 public class CreateModel : PageModel
 {
     private readonly InboundApiService _inboundApiService;

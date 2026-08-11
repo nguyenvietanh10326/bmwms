@@ -113,7 +113,10 @@
   <div class="breadcrumb">Nhân viên mua hàng · Quản lý kho · Nhân viên kho</div>
   <div class="pagehead">
     <div><h1>Danh sách lệnh nhập kho</h1><p>Tìm kiếm và theo dõi lệnh nhập theo mã, PO, nhà cung cấp, ngày dự kiến và trạng thái.</p></div>
-    <a href="/Admin/Inbound/Create" class="btn btn-dark"><svg><use href="#i-plus"/></svg>Tạo lệnh nhập</a>
+    @if (User.IsInRole("SYSTEM_ADMIN") || User.IsInRole("WAREHOUSE_MANAGER"))
+    {
+        <a href="/Admin/Inbound/Create" class="btn btn-dark"><svg><use href="#i-plus"/></svg>Tạo lệnh nhập</a>
+    }
   </div>
   <div class="card">
     <form method="get" class="filters">
