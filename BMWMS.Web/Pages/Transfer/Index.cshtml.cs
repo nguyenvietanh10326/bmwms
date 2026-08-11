@@ -18,6 +18,7 @@ namespace BMWMS.Web.Pages.Transfer
 
         public TransferOrderPagedResultDto PagedResult { get; set; } = new();
         public List<BMWMS.Web.Models.WarehouseModel> Warehouses { get; set; } = new();
+        public bool IsManager { get; set; } = false;
 
         [BindProperty(SupportsGet = true)]
         public string? Keyword { get; set; }
@@ -43,6 +44,7 @@ namespace BMWMS.Web.Pages.Transfer
 
         public async Task<IActionResult> OnGetAsync()
         {
+            CheckUserRole();
             Warehouses = await _warehouseSvc.GetWarehousesAsync();
 
             var filter = new TransferOrderFilterDto
@@ -56,6 +58,12 @@ namespace BMWMS.Web.Pages.Transfer
 
             PagedResult = await _transferSvc.GetOrdersAsync(filter);
             return Page();
+        }
+
+        private void CheckUserRole()
+        {
+            var roleCode = HttpContext.Session.GetString("RoleCode")?.ToUpper() ?? "";
+            IsManager = roleCode.Contains("ADMIN") || roleCode.Contains("MANAGER") || roleCode == "WAREHOUSE_MANAGER";
         }
     }
 }

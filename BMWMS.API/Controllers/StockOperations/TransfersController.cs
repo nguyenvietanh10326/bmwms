@@ -8,7 +8,7 @@ namespace BMWMS.API.Controllers.StockOperations
 {
     [Route("api/[controller]")]
     [ApiController]
-    // [Authorize]
+    [Authorize]
     public class TransfersController : ControllerBase
     {
         private readonly ITransferService _transferService;
@@ -26,22 +26,6 @@ namespace BMWMS.API.Controllers.StockOperations
             return long.TryParse(claim, out var id) ? id : 1;
         }
 
-        private bool IsManagerOrAdmin()
-        {
-            var role = User.FindFirst(ClaimTypes.Role)?.Value
-                    ?? User.FindFirst("role")?.Value
-                    ?? User.FindFirst("RoleCode")?.Value;
-
-            if (string.IsNullOrEmpty(role)) return true;
-
-            var upper = role.ToUpper();
-            return upper.Contains("ADMIN") || upper.Contains("MANAGER") || upper == "WH_MANAGER";
-        }
-
-        /// <summary>
-        /// Lấy danh sách Khu vực (Zones) trong kho.
-        /// GET: api/transfers/zones?warehouseId=1
-        /// </summary>
         [HttpGet("zones")]
         public async Task<IActionResult> GetZones([FromQuery] long warehouseId = 1)
         {
@@ -49,35 +33,31 @@ namespace BMWMS.API.Controllers.StockOperations
             return Ok(result);
         }
 
-        /// <summary>
-        /// Lấy danh sách ô kho cho dropdown (hỗ trợ lọc theo Zone).
-        /// GET: api/transfers/locations?warehouseId=1&zoneId=2
-        /// </summary>
-        [HttpGet("locations")]
-        public async Task<IActionResult> GetLocations([FromQuery] long warehouseId = 1, [FromQuery] long? zoneId = null)
+        [HttpGet("racks")]
+        public async Task<IActionResult> GetRacks([FromQuery] long warehouseId = 1, [FromQuery] long? zoneId = null)
         {
-            var result = await _transferService.GetLocationsForDropdownAsync(warehouseId, zoneId);
+            var result = await _transferService.GetRacksAsync(warehouseId, zoneId);
             return Ok(result);
         }
 
-        /// <summary>
-        /// Lấy danh sách hàng tồn trong ô nguồn.
-        /// GET: api/transfers/location-inventory?locationId=5
-        /// </summary>
+        [HttpGet("locations")]
+        public async Task<IActionResult> GetLocations(
+            [FromQuery] long warehouseId = 1,
+            [FromQuery] long? zoneId = null,
+            [FromQuery] long? rackId = null)
+        {
+            var result = await _transferService.GetLocationsForDropdownAsync(warehouseId, zoneId, rackId);
+            return Ok(result);
+        }
+
         [HttpGet("location-inventory")]
         public async Task<IActionResult> GetLocationInventory([FromQuery] long locationId)
         {
-            if (locationId <= 0)
-                return BadRequest(new { message = "LocationId không hợp lệ." });
-
+            if (locationId <= 0) return BadRequest(new { message = "LocationId khong hop le." });
             var result = await _transferService.GetLocationInventoryAsync(locationId);
             return Ok(result);
         }
 
-        /// <summary>
-        /// Validate ô đích trước khi chuyển.
-        /// GET: api/transfers/validate-destination?destLocationId=5&sourceLocationId=3&productId=10
-        /// </summary>
         [HttpGet("validate-destination")]
         public async Task<IActionResult> ValidateDestination(
             [FromQuery] long destLocationId,
@@ -88,10 +68,21 @@ namespace BMWMS.API.Controllers.StockOperations
             return Ok(result);
         }
 
-        /// <summary>
-        /// Lấy danh sách phiếu điều chuyển có phân trang & tìm kiếm.
-        /// GET: api/transfers?keyword=BT&status=PENDING&warehouseId=1&pageIndex=1&pageSize=15
-        /// </summary>
+        [HttpGet("staff-users")]
+        [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
+        public async Task<IActionResult> GetStaffUsers()
+        {
+            var result = await _transferService.GetStaffUsersAsync();
+            return Ok(result);
+        }
+
+        [HttpGet("use-cases")]
+        public async Task<IActionResult> GetUseCases()
+        {
+            var result = await _transferService.GetUseCasesAsync();
+            return Ok(result);
+        }
+
         [HttpGet]
         public async Task<IActionResult> GetOrders([FromQuery] TransferOrderFilterDto filter)
         {
@@ -99,78 +90,84 @@ namespace BMWMS.API.Controllers.StockOperations
             return Ok(result);
         }
 
-        /// <summary>
-        /// Lấy chi tiết 1 phiếu điều chuyển.
-        /// GET: api/transfers/5
-        /// </summary>
         [HttpGet("{id}")]
         public async Task<IActionResult> GetOrderById(long id)
         {
             var result = await _transferService.GetOrderDetailAsync(id);
-            if (result == null)
-                return NotFound(new { message = "Không tìm thấy phiếu điều chuyển." });
-
+            if (result == null) return NotFound(new { message = "Khong tim thay phieu dieu chuyen." });
             return Ok(result);
         }
 
-        /// <summary>
-        /// [Staff/Manager] Tạo phiếu yêu cầu điều chuyển (Status = PENDING, hỗ trợ nhiều sản phẩm).
-        /// POST: api/transfers/create
-        /// </summary>
         [HttpPost("create")]
+        [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
         public async Task<IActionResult> CreateOrder([FromBody] CreateTransferOrderDto request)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
+            if (!ModelState.IsValid) return BadRequest(ModelState);
             var userId = GetCurrentUserId();
             var result = await _transferService.CreatePendingOrderAsync(request, userId);
-
-            if (!result.Success)
-                return BadRequest(new { message = result.Message });
-
+            if (!result.Success) return BadRequest(new { message = result.Message });
             return Ok(result);
         }
 
-        /// <summary>
-        /// [Manager/Admin] Phê duyệt phiếu điều chuyển (thực thi cộng trừ tồn kho).
-        /// POST: api/transfers/5/approve
-        /// Authorization Validate: Role = WH_MANAGER, MANAGER, ADMIN
-        /// </summary>
+        [HttpPut("{id}")]
+        [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
+        public async Task<IActionResult> UpdateDraftOrder(long id, [FromBody] UpdateTransferOrderDto request)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            var userId = GetCurrentUserId();
+            var result = await _transferService.UpdateDraftOrderAsync(id, request, userId);
+            if (!result.Success) return BadRequest(new { message = result.Message });
+            return Ok(result);
+        }
+
         [HttpPost("{id}/approve")]
-        // [Authorize(Roles = "ADMIN,WH_MANAGER,MANAGER")]
+        [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
         public async Task<IActionResult> ApproveOrder(long id, [FromBody] ApproveTransferDto dto)
         {
-            if (!IsManagerOrAdmin())
-                return StatusCode(403, new { message = "Bạn không có quyền duyệt phiếu điều chuyển. Yêu cầu quyền Manager/Admin." });
-
             var userId = GetCurrentUserId();
-            var result = await _transferService.ApproveOrderAsync(id, userId, dto.Notes);
-
-            if (!result.Success)
-                return BadRequest(new { message = result.Message });
-
+            var result = await _transferService.ApproveOrderAsync(id, userId, dto);
+            if (!result.Success) return BadRequest(new { message = result.Message });
             return Ok(result);
         }
 
-        /// <summary>
-        /// [Manager/Admin] Từ chối phiếu điều chuyển.
-        /// POST: api/transfers/5/reject
-        /// Authorization Validate: Role = WH_MANAGER, MANAGER, ADMIN
-        /// </summary>
         [HttpPost("{id}/reject")]
-        // [Authorize(Roles = "ADMIN,WH_MANAGER,MANAGER")]
+        [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
         public async Task<IActionResult> RejectOrder(long id, [FromBody] ApproveTransferDto dto)
         {
-            if (!IsManagerOrAdmin())
-                return StatusCode(403, new { message = "Bạn không có quyền từ chối phiếu điều chuyển. Yêu cầu quyền Manager/Admin." });
-
             var userId = GetCurrentUserId();
             var result = await _transferService.RejectOrderAsync(id, userId, dto.Notes);
+            if (!result.Success) return BadRequest(new { message = result.Message });
+            return Ok(result);
+        }
 
-            if (!result.Success)
-                return BadRequest(new { message = result.Message });
+        [HttpPost("{id}/issue")]
+        [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF")]
+        public async Task<IActionResult> ConfirmIssue(long id, [FromBody] ConfirmTransferDto dto)
+        {
+            var userId = GetCurrentUserId();
+            var result = await _transferService.ConfirmTransferIssueAsync(id, userId, dto.Notes);
+            if (!result.Success) return BadRequest(new { message = result.Message });
+            return Ok(result);
+        }
 
+        [HttpPost("{id}/receive")]
+        [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF")]
+        public async Task<IActionResult> ConfirmReceipt(long id, [FromBody] ConfirmTransferDto dto)
+        {
+            var userId = GetCurrentUserId();
+            var result = await _transferService.ConfirmTransferReceiptAsync(id, userId, dto.Notes);
+            if (!result.Success) return BadRequest(new { message = result.Message });
+            return Ok(result);
+        }
+
+        // Legacy one-shot confirm for existing clients.
+        [HttpPost("{id}/confirm")]
+        [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF")]
+        public async Task<IActionResult> ConfirmTransfer(long id, [FromBody] ConfirmTransferDto dto)
+        {
+            var userId = GetCurrentUserId();
+            var result = await _transferService.ConfirmTransferAsync(id, userId, dto.Notes);
+            if (!result.Success) return BadRequest(new { message = result.Message });
             return Ok(result);
         }
     }
