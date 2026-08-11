@@ -120,19 +120,30 @@ public class InboundApiService
         }
     }
 
-    public async Task ReceiveItemAsync(long id, ReceiveInboundItemDto dto)
+    public async Task<long> ReceiveItemAsync(long id, ReceiveInboundItemDto dto)
     {
-        var response = await _httpClient.PostAsJsonAsync($"api/inbounds/{id}/receive", dto);
+        var response = await _httpClient.PostAsJsonAsync($"/api/inbounds/{id}/receive", dto);
+        if (response.IsSuccessStatusCode)
+        {
+            return await response.Content.ReadFromJsonAsync<long>();
+        }
+        var error = await response.Content.ReadAsStringAsync();
+        throw new Exception(error);
+    }
+
+    public async Task ReceiveBatchAsync(long inboundOrderId, ReceiveBatchInboundDto dto)
+    {
+        var response = await _httpClient.PostAsJsonAsync($"/api/inbounds/{inboundOrderId}/receive-batch", dto);
         if (!response.IsSuccessStatusCode)
         {
             var error = await response.Content.ReadAsStringAsync();
-            throw new Exception($"Lưu tạm thất bại: {error}");
+            throw new Exception($"Lỗi khi nhận hàng hàng loạt: {error}");
         }
     }
 
-    public async Task PutawayItemAsync(long id, PutawayInboundItemDto dto)
+    public async Task PutawayBatchAsync(long id, List<PutawayInboundItemDto> dtos)
     {
-        var response = await _httpClient.PostAsJsonAsync($"api/inbounds/{id}/putaway", dto);
+        var response = await _httpClient.PostAsJsonAsync($"/api/inbounds/{id}/putaway", dtos);
         if (!response.IsSuccessStatusCode)
         {
             var error = await response.Content.ReadAsStringAsync();

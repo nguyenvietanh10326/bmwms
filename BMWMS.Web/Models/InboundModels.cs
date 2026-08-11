@@ -80,6 +80,11 @@ public class ReceiveInboundItemDto
     public DateOnly? ExpiryDate { get; set; }
 }
 
+public class ReceiveBatchInboundDto
+{
+    public List<ReceiveInboundItemDto> Items { get; set; } = new();
+}
+
 public class PutawayInboundItemDto
 {
     public long InboundOrderItemId { get; set; }

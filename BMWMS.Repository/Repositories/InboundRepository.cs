@@ -49,7 +49,8 @@ public class InboundRepository : IInboundRepository
 
         if (!string.IsNullOrWhiteSpace(status) && status != "All")
         {
-            query = query.Where(x => x.Status == status);
+            var statuses = status.Split(',').Select(s => s.Trim()).ToList();
+            query = query.Where(x => statuses.Contains(x.Status));
         }
 
         if (fromDate.HasValue)
