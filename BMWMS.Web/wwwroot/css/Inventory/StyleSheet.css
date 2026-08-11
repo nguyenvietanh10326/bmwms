@@ -1,0 +1,700 @@
+﻿/* =========================================================
+OUTBOUND ORDER DETAILS PAGE
+Không ảnh hưởng Header / Sidebar / Layout chung
+========================================================= */
+/* =========================================================
+HEADER ACTIONS - MODERN WMS STYLE
+========================================================= */
+
+.page-container .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-top: 2px;
+}
+
+    /* Tất cả button/link trong khu vực action */
+
+    .page-container .header-actions .btn {
+        height: 38px;
+        min-height: 38px;
+        padding: 0 15px;
+        ``` display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        border-radius: 7px;
+        font-size: 13px;
+        font-weight: 600;
+        line-height: 1;
+        box-shadow: none;
+        transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
+        ```
+    }
+
+    /* ---------------------------------------------------------
+HỦY LỆNH
+--------------------------------------------------------- */
+
+    .page-container .header-actions .btn-outline-danger {
+        border: 1px solid #fecaca;
+        background: #fff;
+        color: #dc2626;
+    }
+
+        .page-container .header-actions .btn-outline-danger i {
+            font-size: 14px;
+        }
+
+        .page-container .header-actions .btn-outline-danger:hover {
+            border-color: #fca5a5;
+            background: #fef2f2;
+            color: #b91c1c;
+        }
+
+        .page-container .header-actions .btn-outline-danger:active {
+            background: #fee2e2;
+        }
+
+    /* ---------------------------------------------------------
+QUAY LẠI
+--------------------------------------------------------- */
+
+    .page-container .header-actions .btn-secondary {
+        border: 1px solid #d9dee5;
+        background: #fff;
+        color: #475569;
+        
+        /* bỏ margin bootstrap */
+        margin-left: 0 !important;
+        
+    }
+
+        .page-container .header-actions .btn-secondary:hover {
+            border-color: #cbd5e1;
+            background: #f8fafc;
+            color: #1e293b;
+        }
+
+        .page-container .header-actions .btn-secondary:active {
+            background: #f1f5f9;
+        }
+
+/* ---------------------------------------------------------
+MOBILE
+--------------------------------------------------------- */
+
+@media (max-width: 767.98px) {
+
+    
+    .page-container .header-actions {
+        width: 100%;
+        gap: 8px;
+    }
+
+    .page-container .header-actions .btn {
+        flex: 1;
+    }
+
+    
+}
+
+.page-container {
+    padding: 24px 28px 40px;
+    max-width: 1600px;
+    margin: 0 auto;
+    color: #212529;
+}
+
+    /* =========================================================
+PAGE HEADER
+========================================================= */
+
+    .page-container .page-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 24px;
+        margin-bottom: 24px;
+    }
+
+    .page-container .page-header-content {
+        min-width: 0;
+    }
+
+    .page-container .page-title-row {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .page-container .page-header-title {
+        margin: 0;
+        font-size: 25px;
+        font-weight: 700;
+        line-height: 1.3;
+        color: #1f2937;
+    }
+
+    .page-container .page-header-sub {
+        margin: 8px 0 0 42px;
+        color: #6b7280;
+        font-size: 14px;
+    }
+
+    .page-container .header-dot {
+        margin: 0 7px;
+        color: #adb5bd;
+    }
+
+    /* Back button */
+
+    .page-container .btn-back {
+        width: 36px;
+        height: 36px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        ``` border: 1px solid #dee2e6;
+        border-radius: 8px;
+        background: #fff;
+        color: #495057;
+        text-decoration: none;
+        transition: all 0.2s ease;
+        ```
+    }
+
+        .page-container .btn-back:hover {
+            background: #f8f9fa;
+            border-color: #adb5bd;
+            color: #212529;
+            transform: translateX(-2px);
+        }
+
+    /* Header actions */
+
+    .page-container .header-actions {
+        display: flex;
+        align-items: center;
+        flex-shrink: 0;
+    }
+
+        .page-container .header-actions .btn {
+            min-height: 38px;
+            border-radius: 7px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+    /* =========================================================
+STATUS PILLS
+========================================================= */
+
+    .page-container .status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        ``` padding: 5px 11px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 600;
+        line-height: 1;
+        white-space: nowrap;
+        ```
+    }
+
+    .page-container .status-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        display: inline-block;
+    }
+
+    /* Completed */
+
+    .page-container .status-completed {
+        color: #087f5b;
+        background: #e6fcf5;
+    }
+
+        .page-container .status-completed .status-dot {
+            background: #12b886;
+        }
+
+    /* In progress */
+
+    .page-container .status-in-progress {
+        color: #b45309;
+        background: #fff7ed;
+    }
+
+        .page-container .status-in-progress .status-dot {
+            background: #f59e0b;
+        }
+
+    /* Assigned */
+
+    .page-container .status-assigned {
+        color: #1d4ed8;
+        background: #eff6ff;
+    }
+
+        .page-container .status-assigned .status-dot {
+            background: #3b82f6;
+        }
+
+    /* Draft */
+
+    .page-container .status-draft {
+        color: #64748b;
+        background: #f1f5f9;
+    }
+
+        .page-container .status-draft .status-dot {
+            background: #94a3b8;
+        }
+
+    /* Cancelled */
+
+    .page-container .status-cancelled {
+        color: #b91c1c;
+        background: #fef2f2;
+    }
+
+        .page-container .status-cancelled .status-dot {
+            background: #ef4444;
+        }
+
+    /* =========================================================
+ALERT
+========================================================= */
+
+    .page-container .custom-alert {
+        position: relative;
+        ``` display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 13px 16px;
+        margin-bottom: 20px;
+        border: 1px solid transparent;
+        border-radius: 9px;
+        font-size: 14px;
+        ```
+    }
+
+    .page-container .custom-alert-content {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        min-width: 0;
+    }
+
+    .page-container .custom-alert-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        font-size: 18px;
+    }
+
+    .page-container .custom-alert-message {
+        line-height: 1.5;
+    }
+
+    .page-container .custom-alert-close {
+        width: 30px;
+        height: 30px;
+        ``` display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 0;
+        border-radius: 6px;
+        background: transparent;
+        cursor: pointer;
+        opacity: 0.65;
+        transition: all 0.2s ease;
+        ```
+    }
+
+        .page-container .custom-alert-close:hover {
+            opacity: 1;
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+    .page-container .custom-alert-success {
+        color: #087f5b;
+        background: #ecfdf5;
+        border-color: #a7f3d0;
+    }
+
+        .page-container .custom-alert-success .custom-alert-icon {
+            color: #10b981;
+        }
+
+    .page-container .custom-alert-error {
+        color: #b91c1c;
+        background: #fef2f2;
+        border-color: #fecaca;
+    }
+
+        .page-container .custom-alert-error .custom-alert-icon {
+            color: #ef4444;
+        }
+
+    /* =========================================================
+GENERAL INFORMATION CARD
+========================================================= */
+
+    .page-container .card {
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        overflow: hidden;
+        background: #fff;
+    }
+
+    .page-container .card-header {
+        padding: 15px 20px;
+        border-bottom: 1px solid #e5e7eb;
+        background: #f8fafc !important;
+    }
+
+        .page-container .card-header .card-title {
+            display: flex;
+            align-items: center;
+            ``` color: #1f2937;
+            font-size: 15px;
+            font-weight: 700;
+            ```
+        }
+
+            .page-container .card-header .card-title i {
+                color: #2563eb;
+                font-size: 17px;
+            }
+
+    .page-container .card-body {
+        padding: 21px 20px;
+    }
+
+        .page-container .card-body .row {
+            margin-bottom: -4px;
+        }
+
+        .page-container .card-body .col-md-4 {
+            padding-bottom: 8px;
+        }
+
+        .page-container .card-body label {
+            margin-bottom: 5px;
+            color: #6b7280 !important;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .page-container .card-body strong {
+            display: block;
+            color: #1f2937;
+            font-size: 14px !important;
+            font-weight: 600;
+            line-height: 1.5;
+        }
+
+        .page-container .card-body span {
+            color: #374151;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+    /* =========================================================
+PRODUCT TABLE CARD
+========================================================= */
+
+    .page-container .data-table-card {
+        overflow: hidden;
+        ``` background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+        ```
+    }
+
+        .page-container .data-table-card > .p-3 {
+            min-height: 58px;
+            padding: 15px 18px !important;
+            background: #fff;
+        }
+
+        .page-container .data-table-card h5 {
+            color: #1f2937;
+            font-size: 15px !important;
+            font-weight: 700;
+        }
+
+            .page-container .data-table-card h5 i {
+                color: #2563eb;
+            }
+
+        .page-container .data-table-card .badge {
+            padding: 6px 10px;
+            ``` border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            ```
+        }
+
+    /* =========================================================
+TABLE
+========================================================= */
+
+    .page-container .custom-table {
+        width: 100%;
+        margin: 0;
+        border-collapse: separate;
+        border-spacing: 0;
+        font-size: 13px;
+    }
+
+        .page-container .custom-table thead th {
+            padding: 12px 14px;
+            ``` border-bottom: 1px solid #dee2e6;
+            background: #f8fafc;
+            color: #64748b;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.025em;
+            text-transform: uppercase;
+            white-space: nowrap;
+            vertical-align: middle;
+            ```
+        }
+
+        .page-container .custom-table tbody td {
+            padding: 13px 14px;
+            ``` border-bottom: 1px solid #f1f3f5;
+            color: #374151;
+            vertical-align: middle;
+            ```
+        }
+
+        .page-container .custom-table tbody tr:last-child td {
+            border-bottom: 0;
+        }
+
+        .page-container .custom-table tbody tr {
+            transition: background-color 0.15s ease;
+        }
+
+            .page-container .custom-table tbody tr:hover {
+                background: #f8fafc;
+            }
+
+        /* Number column */
+
+        .page-container .custom-table tbody td:first-child {
+            color: #94a3b8;
+            font-weight: 500;
+        }
+
+        /* Product code */
+
+        .page-container .custom-table tbody td .fw-bold {
+            color: #1f2937;
+            font-weight: 600 !important;
+        }
+
+        /* Quantity */
+
+        .page-container .custom-table .text-end {
+            font-variant-numeric: tabular-nums;
+        }
+
+        .page-container .custom-table .text-success {
+            color: #059669 !important;
+        }
+
+        /* Lot / Bin */
+
+        .page-container .custom-table .badge.bg-light {
+            display: inline-flex;
+            align-items: center;
+            ``` padding: 5px 8px;
+            background: #f8fafc !important;
+            border: 1px solid #e2e8f0 !important;
+            border-radius: 5px;
+            color: #475569 !important;
+            font-size: 11px;
+            font-weight: 500;
+            ```
+        }
+
+        /* Notes */
+
+        .page-container .custom-table .text-muted.small {
+            color: #94a3b8 !important;
+            font-size: 12px !important;
+        }
+
+    /* =========================================================
+BOOTSTRAP BUTTON OVERRIDES - CHỈ TRONG PAGE
+========================================================= */
+
+    .page-container .btn-secondary {
+        border-color: #d1d5db;
+        background: #6b7280;
+        color: #fff;
+    }
+
+        .page-container .btn-secondary:hover {
+            border-color: #4b5563;
+            background: #4b5563;
+        }
+
+    .page-container .btn-outline-danger {
+        border-color: #fca5a5;
+        color: #dc2626;
+        background: #fff;
+    }
+
+        .page-container .btn-outline-danger:hover {
+            border-color: #dc2626;
+            background: #dc2626;
+            color: #fff;
+        }
+
+/* =========================================================
+RESPONSIVE - TABLET
+========================================================= */
+
+@media (max-width: 991.98px) {
+
+    ```
+    .page-container {
+        padding: 20px;
+    }
+
+    .page-container .page-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .page-container .header-actions {
+        justify-content: flex-end;
+    }
+
+    .page-container .page-header-sub {
+        margin-left: 42px;
+    }
+
+    .page-container .custom-table {
+        min-width: 950px;
+    }
+
+    ```
+}
+
+/* =========================================================
+RESPONSIVE - MOBILE
+========================================================= */
+
+@media (max-width: 767.98px) {
+
+    ```
+    .page-container {
+        padding: 16px 12px 30px;
+    }
+
+    .page-container .page-header {
+        margin-bottom: 18px;
+    }
+
+    .page-container .page-title-row {
+        align-items: flex-start;
+    }
+
+    .page-container .page-header-title {
+        font-size: 20px;
+        padding-top: 5px;
+    }
+
+    .page-container .page-header-sub {
+        margin: 8px 0 0 0;
+        padding-left: 44px;
+        font-size: 12px;
+    }
+
+    .page-container .header-actions {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+        .page-container .header-actions .btn {
+            flex: 1;
+        }
+
+    .page-container .card-body {
+        padding: 16px;
+    }
+
+        .page-container .card-body .col-md-4 {
+            padding-bottom: 4px;
+        }
+
+    .page-container .data-table-card > .p-3 {
+        padding: 13px 14px !important;
+    }
+
+    .page-container .data-table-card .p-3 {
+        gap: 10px;
+    }
+
+    .page-container .data-table-card h5 {
+        font-size: 14px !important;
+    }
+
+    .page-container .custom-table {
+        min-width: 950px;
+    }
+
+    ```
+}
+
+/* =========================================================
+SMALL MOBILE
+========================================================= */
+
+@media (max-width: 480px) {
+
+    ```
+    .page-container .page-title-row .ms-3 {
+        width: 100%;
+        margin-left: 44px !important;
+        margin-top: -2px;
+    }
+
+    .page-container .page-header-sub {
+        padding-left: 0;
+    }
+
+    .page-container .header-actions {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+        .page-container .header-actions .btn {
+            width: 100%;
+            margin-left: 0 !important;
+        }
+
+    .page-container .card-header {
+        padding: 13px 15px;
+    }
+
+    .page-container .card-body {
+        padding: 15px;
+    }
+
+   
+}
