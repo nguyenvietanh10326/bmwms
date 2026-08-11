@@ -82,8 +82,9 @@ public class CreateModel : PageModel
         
         var allUsers = usersResult?.Items ?? new List<UserListItem>();
         var warehouseUsers = allUsers.Where(u => 
-            u.RoleName.Contains("Kho", StringComparison.OrdinalIgnoreCase) || 
-            u.RoleName.Contains("Warehouse", StringComparison.OrdinalIgnoreCase)).ToList();
+            (u.RoleName.Contains("Kho", StringComparison.OrdinalIgnoreCase) || 
+             u.RoleName.Contains("Warehouse", StringComparison.OrdinalIgnoreCase)) &&
+            u.Status == "ACTIVE").ToList();
 
         Users = new SelectList(warehouseUsers, "UserId", "FullName");
 

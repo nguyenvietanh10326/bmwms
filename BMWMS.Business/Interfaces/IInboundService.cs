@@ -16,4 +16,5 @@ public interface IInboundService
     Task<PurchaseOrderForInboundDto?> GetSalesOrderForInboundAsync(long salesOrderId);
     Task UpdateInboundOrderAsync(long id, UpdateInboundOrderDto dto, long currentUserId);
     Task CancelInboundOrderAsync(long id, CancelInboundOrderDto dto, long currentUserId);
+    Task ConfirmInboundOrderAsync(long id, long currentUserId);
 }

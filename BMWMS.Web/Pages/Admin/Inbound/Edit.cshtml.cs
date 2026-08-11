@@ -110,7 +110,11 @@ namespace BMWMS.Web.Pages.Admin.Inbound
         private async Task LoadDropdowns()
         {
             var usersResult = await _userApiService.GetUsersAsync(new UserFilterModel { PageSize = 1000 });
-            var warehouseUsers = usersResult?.Items ?? new System.Collections.Generic.List<UserListItem>();
+            var allUsers = usersResult?.Items ?? new System.Collections.Generic.List<UserListItem>();
+            var warehouseUsers = allUsers.Where(u => 
+            (u.RoleName.Contains("Kho", StringComparison.OrdinalIgnoreCase) || 
+             u.RoleName.Contains("Warehouse", StringComparison.OrdinalIgnoreCase)) &&
+            u.Status == "ACTIVE").ToList();
             Users = new SelectList(warehouseUsers, "UserId", "FullName", EditOrder.AssignedToUserId);
         }
     }

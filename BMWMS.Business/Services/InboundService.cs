@@ -231,6 +231,7 @@ public class InboundService : IInboundService
             dto.Items.Add(new PurchaseOrderItemForInboundDto
             {
                 ProductId = detail.ProductId,
+                ProductCode = detail.Product.ProductCode,
                 ProductName = detail.Product.ProductName,
                 UnitName = detail.Product.UnitOfMeasure?.UnitName ?? string.Empty,
                 OrderedQuantity = detail.OrderedQuantity,
@@ -299,9 +300,10 @@ public class InboundService : IInboundService
                 dto.Items.Add(new PurchaseOrderItemForInboundDto
                 {
                     ProductId = item.ProductId,
+                    ProductCode = item.Product.ProductCode,
                     ProductName = item.Product.ProductName,
                     UnitName = item.Product.UnitOfMeasure?.UnitName ?? string.Empty,
-                    OrderedQuantity = shortage, // Treat the initial shortage as ordered
+                    OrderedQuantity = item.ExpectedQuantity, // Treat the initial shortage as ordered
                     InboundQuantity = existingSupplements,
                     RemainingQuantity = remaining > 0 ? remaining : 0
                 });
@@ -385,6 +387,7 @@ public class InboundService : IInboundService
                 return new PurchaseOrderItemForInboundDto
                 {
                     ProductId = d.ProductId,
+                    ProductCode = d.Product.ProductCode,
                     ProductName = d.Product.ProductName,
                     UnitName = d.Product.UnitOfMeasure?.UnitName ?? "",
                     OrderedQuantity = d.FulfilledQuantity, // Gán tạm OrderedQuantity = FulfilledQuantity để frontend hiển thị đúng
@@ -459,6 +462,20 @@ public class InboundService : IInboundService
         order.CancellationReason = dto.CancellationReason;
         order.CancelledAt = DateTime.UtcNow;
         order.CancelledByUserId = currentUserId;
+
+        await _inboundRepository.UpdateAsync(order);
+        await _inboundRepository.SaveChangesAsync();
+    }
+
+    public async Task ConfirmInboundOrderAsync(long id, long currentUserId)
+    {
+        var order = await _inboundRepository.GetByIdAsync(id);
+        if (order == null) throw new Exception("Không tìm thấy lệnh nhập kho");
+        if (order.Status != "DRAFT") throw new Exception("Chỉ có thể xác nhận lệnh nhập kho ở trạng thái Chờ xử lý (DRAFT)");
+
+        order.Status = "ASSIGNED";
+        order.ConfirmedAt = DateTime.UtcNow;
+        order.ConfirmedByUserId = currentUserId;
 
         await _inboundRepository.UpdateAsync(order);
         await _inboundRepository.SaveChangesAsync();
