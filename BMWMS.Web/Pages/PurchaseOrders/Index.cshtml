@@ -1,76 +1,76 @@
-﻿@page
+@page
 @model BMWMS.Web.Pages.PurchaseOrders.IndexModel
 @{
-    Layout = "/Pages/Shared/Inventory/_Layout.cshtml";
-    ViewData["Title"] = "Đơn mua hàng";
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "�on mua h�ng";
 }
 
 <!-- Header Breadcrumb & Title -->
 <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px;">
     <div>
-        <div style="font-size: 13px; color: #64748b; margin-bottom: 4px;">Đơn hàng &rsaquo; Đơn mua hàng</div>
-        <h1 style="font-size: 24px; font-weight: 700; color: #0f172a; margin: 0 0 6px 0;">Đơn mua hàng</h1>
-        <p style="font-size: 13px; color: #64748b; margin: 0;">Purchase Order là chứng từ nguồn bắt buộc trước khi tạo lệnh nhập kho.</p>
+        <div style="font-size: 13px; color: #64748b; margin-bottom: 4px;">�on h�ng &rsaquo; �on mua h�ng</div>
+        <h1 style="font-size: 24px; font-weight: 700; color: #0f172a; margin: 0 0 6px 0;">�on mua h�ng</h1>
+        <p style="font-size: 13px; color: #64748b; margin: 0;">Purchase Order l� ch?ng t? ngu?n b?t bu?c tru?c khi t?o l?nh nh?p kho.</p>
     </div>
     <a href="/PurchaseOrders/Create" class="btn-create" style="background: #1e293b; color: #fff; padding: 10px 20px; border-radius: 8px; font-weight: 600; text-decoration: none; font-size: 14px;">
-        + Tạo đơn mua hàng
+        + T?o don mua h�ng
     </a>
 </div>
 
-<!-- Bộ Lọc (Filter Card) -->
+<!-- B? L?c (Filter Card) -->
 <div style="background: #fff; padding: 16px 20px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 20px;">
     <form id="filterForm" onsubmit="event.preventDefault(); loadPurchaseOrders(1);" style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
-        <!-- Input Tìm kiếm -->
+        <!-- Input T�m ki?m -->
         <div style="position: relative; flex: 1; min-width: 280px;">
-            <input type="text" id="searchTerm" placeholder="Tìm theo mã hoặc đối tác" class="filter-input" style="width: 100%; padding: 10px 36px 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; outline: none; font-size: 13px;" />
-            <span style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8;">🔍</span>
+            <input type="text" id="searchTerm" placeholder="T�m theo m� ho?c d?i t�c" class="filter-input" style="width: 100%; padding: 10px 36px 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; outline: none; font-size: 13px;" />
+            <span style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8;">??</span>
         </div>
 
-        <!-- Filter Trạng thái -->
+        <!-- Filter Tr?ng th�i -->
         <select id="statusFilter" class="filter-select" style="min-width: 180px; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px;">
-            <option value="">Tất cả trạng thái</option>
-            <option value="Draft">Nháp</option>
-            <option value="Confirmed">Đã xác nhận</option>
-            <option value="Partial">Nhận một phần</option>
-            <option value="Completed">Hoàn tất</option>
-            <option value="Cancelled">Đã hủy</option>
+            <option value="">T?t c? tr?ng th�i</option>
+            <option value="Draft">Nh�p</option>
+            <option value="Confirmed">�� x�c nh?n</option>
+            <option value="Partial">Nh?n m?t ph?n</option>
+            <option value="Completed">Ho�n t?t</option>
+            <option value="Cancelled">�� h?y</option>
         </select>
 
-        <!-- Filter Kho (Load động từ API) -->
+        <!-- Filter Kho (Load d?ng t? API) -->
         <select id="warehouseFilter" class="filter-select" style="min-width: 180px; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px;">
-            <option value="">Tất cả kho</option>
+            <option value="">T?t c? kho</option>
         </select>
 
         <!-- Action Buttons -->
-        <button type="button" onclick="loadPurchaseOrders(1)" style="background: #1e293b; color: #fff; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px;">Tìm kiếm</button>
-        <button type="button" onclick="resetFilter()" style="background: #e2e8f0; color: #334155; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px;">Đặt lại</button>
+        <button type="button" onclick="loadPurchaseOrders(1)" style="background: #1e293b; color: #fff; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px;">T�m ki?m</button>
+        <button type="button" onclick="resetFilter()" style="background: #e2e8f0; color: #334155; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px;">�?t l?i</button>
     </form>
 </div>
 
-<!-- Bảng Dữ Liệu Grid -->
+<!-- B?ng D? Li?u Grid -->
 <div style="background: #fff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); overflow: hidden;">
     <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13px;">
         <thead>
             <tr style="background: #f8fafc; border-bottom: 1px solid #e2e8f0; color: #64748b; font-weight: 600;">
-                <th style="padding: 14px 20px;">Mã PO</th>
-                <th style="padding: 14px 20px;">Nhà cung cấp</th>
-                <th style="padding: 14px 20px;">Ngày đặt</th>
-                <th style="padding: 14px 20px;">Giao dự kiến</th>
-                <th style="padding: 14px 20px; text-align: center;">Trạng thái</th>
-                <th style="padding: 14px 20px;">Tổng SL</th>
-                <th style="padding: 14px 20px; text-align: right;">Thao tác</th>
+                <th style="padding: 14px 20px;">M� PO</th>
+                <th style="padding: 14px 20px;">Nh� cung c?p</th>
+                <th style="padding: 14px 20px;">Ng�y d?t</th>
+                <th style="padding: 14px 20px;">Giao d? ki?n</th>
+                <th style="padding: 14px 20px; text-align: center;">Tr?ng th�i</th>
+                <th style="padding: 14px 20px;">T?ng SL</th>
+                <th style="padding: 14px 20px; text-align: right;">Thao t�c</th>
             </tr>
         </thead>
         <tbody id="poTableBody">
-            <!-- Data render bằng JS -->
+            <!-- Data render b?ng JS -->
         </tbody>
     </table>
 
     <!-- Pagination Footer -->
     <div style="padding: 16px 20px; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #64748b;">
-        <div id="paginationInfo">Hiển thị 0-0 trong 0 bản ghi</div>
+        <div id="paginationInfo">Hi?n th? 0-0 trong 0 b?n ghi</div>
         <div id="paginationControls" style="display: flex; gap: 6px;">
-            <!-- Render nút phân trang -->
+            <!-- Render n�t ph�n trang -->
         </div>
     </div>
 </div>
@@ -85,24 +85,24 @@
             await loadPurchaseOrders(1);
         });
 
-        // 1. Tải danh sách kho thực tế từ API 3 tầng
+        // 1. T?i danh s�ch kho th?c t? t? API 3 t?ng
         async function loadWarehousesDropdown() {
             try {
                 const res = await fetch(`${API_DOMAIN}/AllWarehouse`);
                 if (res.ok) {
                     const warehouses = await res.json();
                     const select = document.getElementById('warehouseFilter');
-                    select.innerHTML = '<option value="">Tất cả kho</option>';
+                    select.innerHTML = '<option value="">T?t c? kho</option>';
                     warehouses.forEach(w => {
                         select.innerHTML += `<option value="${w.warehouseId}">${w.warehouseName}</option>`;
                     });
                 }
             } catch (err) {
-                console.error("Lỗi khi tải danh sách kho:", err);
+                console.error("L?i khi t?i danh s�ch kho:", err);
             }
         }
 
-        // 2. Tải danh sách Purchase Orders
+        // 2. T?i danh s�ch Purchase Orders
         async function loadPurchaseOrders(page = 1) {
             currentPage = page;
             const search = document.getElementById('searchTerm').value;
@@ -113,7 +113,7 @@
 
             try {
                 const res = await fetch(url);
-                if (!res.ok) throw new Error("Lỗi khi tải dữ liệu từ API");
+                if (!res.ok) throw new Error("L?i khi t?i d? li?u t? API");
                 const data = await res.json();
 
                 renderTable(data.items);
@@ -121,17 +121,17 @@
             } catch (err) {
                 console.error(err);
                 const tbody = document.getElementById('poTableBody');
-                tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 24px; color: #ef4444;">Không thể kết nối đến máy chủ API.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 24px; color: #ef4444;">Kh�ng th? k?t n?i d?n m�y ch? API.</td></tr>`;
             }
         }
 
-        // 3. Render danh sách bảng
+        // 3. Render danh s�ch b?ng
         function renderTable(items) {
             const tbody = document.getElementById('poTableBody');
             tbody.innerHTML = '';
 
             if (!items || items.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 24px; color: #94a3b8;">Không tìm thấy đơn mua hàng nào</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 24px; color: #94a3b8;">Kh�ng t�m th?y don mua h�ng n�o</td></tr>`;
                 return;
             }
 
@@ -145,49 +145,49 @@
                     <td style="padding: 14px 20px; color: #64748b;">${formatDate(item.orderDate)}</td>
                     <td style="padding: 14px 20px; color: #64748b;">${formatDate(item.expectedDeliveryDate)}</td>
                     <td style="padding: 14px 20px; text-align: center;">${getStatusBadge(item.status)}</td>
-                    <td style="padding: 14px 20px; font-weight: 600; color: #334155;">${item.displayTotalQuantity || '—'}</td>
+                    <td style="padding: 14px 20px; font-weight: 600; color: #334155;">${item.displayTotalQuantity || '�'}</td>
                     <td style="padding: 14px 20px; text-align: right;">
-                        <a href="/PurchaseOrders/Detail/${item.purchaseOrderId}" style="color: #2563eb; font-weight: 600; text-decoration: none;">Xem chi tiết</a>
+                        <a href="/PurchaseOrders/Detail/${item.purchaseOrderId}" style="color: #2563eb; font-weight: 600; text-decoration: none;">Xem chi ti?t</a>
                     </td>
                 `;
                 tbody.appendChild(row);
             });
         }
 
-        // 4. Định dạng Tag Trạng Thái theo chuẩn màu sắc UI mẫu
+        // 4. �?nh d?ng Tag Tr?ng Th�i theo chu?n m�u s?c UI m?u
         function getStatusBadge(status) {
             switch (status) {
                 case 'Draft':
-                    return `<span style="background: #f1f5f9; color: #475569; padding: 6px 16px; border-radius: 20px; font-weight: 600; display: inline-block;">Nháp</span>`;
+                    return `<span style="background: #f1f5f9; color: #475569; padding: 6px 16px; border-radius: 20px; font-weight: 600; display: inline-block;">Nh�p</span>`;
                 case 'Confirmed':
-                    return `<span style="background: #f1f5f9; color: #334155; padding: 6px 16px; border-radius: 20px; font-weight: 700; display: inline-block;">Đã xác nhận</span>`;
+                    return `<span style="background: #f1f5f9; color: #334155; padding: 6px 16px; border-radius: 20px; font-weight: 700; display: inline-block;">�� x�c nh?n</span>`;
                 case 'Partial':
-                    return `<span style="background: #fef3c7; color: #d97706; padding: 6px 16px; border-radius: 20px; font-weight: 600; display: inline-block;">Nhận một phần</span>`;
+                    return `<span style="background: #fef3c7; color: #d97706; padding: 6px 16px; border-radius: 20px; font-weight: 600; display: inline-block;">Nh?n m?t ph?n</span>`;
                 case 'Completed':
-                    return `<span style="background: #dcfce7; color: #15803d; padding: 6px 16px; border-radius: 20px; font-weight: 600; display: inline-block;">Hoàn tất</span>`;
+                    return `<span style="background: #dcfce7; color: #15803d; padding: 6px 16px; border-radius: 20px; font-weight: 600; display: inline-block;">Ho�n t?t</span>`;
                 case 'Cancelled':
-                    return `<span style="background: #fee2e2; color: #dc2626; padding: 6px 16px; border-radius: 20px; font-weight: 600; display: inline-block;">Đã hủy</span>`;
+                    return `<span style="background: #fee2e2; color: #dc2626; padding: 6px 16px; border-radius: 20px; font-weight: 600; display: inline-block;">�� h?y</span>`;
                 default:
                     return `<span style="background: #f1f5f9; color: #64748b; padding: 6px 16px; border-radius: 20px; display: inline-block;">${status}</span>`;
             }
         }
 
-        // 5. Định dạng ngày DD/MM/YYYY
+        // 5. �?nh d?ng ng�y DD/MM/YYYY
         function formatDate(dateStr) {
-            if (!dateStr) return '—';
+            if (!dateStr) return '�';
             const [year, month, day] = dateStr.split('-');
             if (year && month && day) {
                 return `${day}/${month}/${year}`;
             }
             const d = new Date(dateStr);
-            return isNaN(d) ? '—' : d.toLocaleDateString('vi-VN');
+            return isNaN(d) ? '�' : d.toLocaleDateString('vi-VN');
         }
 
-        // 6. Phân trang
+        // 6. Ph�n trang
         function renderPagination(data) {
             const start = data.totalCount === 0 ? 0 : (data.pageIndex - 1) * data.pageSize + 1;
             const end = Math.min(data.pageIndex * data.pageSize, data.totalCount);
-            document.getElementById('paginationInfo').innerText = `Hiển thị ${start}–${end} trong ${data.totalCount} bản ghi`;
+            document.getElementById('paginationInfo').innerText = `Hi?n th? ${start}�${end} trong ${data.totalCount} b?n ghi`;
 
             const ctrl = document.getElementById('paginationControls');
             ctrl.innerHTML = '';
@@ -203,7 +203,7 @@
             }
         }
 
-        // 7. Reset bộ lọc
+        // 7. Reset b? l?c
         function resetFilter() {
             document.getElementById('searchTerm').value = '';
             document.getElementById('statusFilter').value = '';

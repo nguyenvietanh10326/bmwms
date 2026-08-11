@@ -1,9 +1,9 @@
-﻿@page "{id:long}"
+@page "{id:long}"
 @model BMWMS.Web.Pages.OutboundOrders.DetailsModel
 
 @{
-    Layout = "/Pages/Shared/Inventory/_Layout.cshtml";
-    ViewData["Title"] = $"Chi tiết lệnh xuất {Model.Order.OutboundOrderNumber}";
+    Layout = "_AdminLayout";
+    ViewData["Title"] = $"Chi ti?t l?nh xu?t {Model.Order.OutboundOrderNumber}";
 }
 
 
@@ -24,7 +24,7 @@
                     <i class="bi bi-arrow-left"></i>
                 </a>
                 <h1 class="page-header-title">
-                    Lệnh xuất: @Model.Order.OutboundOrderNumber
+                    L?nh xu?t: @Model.Order.OutboundOrderNumber
                 </h1>
 
                 <span class="ms-3">
@@ -32,27 +32,27 @@
                     {
                         case "COMPLETED":
                             <span class="status-pill status-completed">
-                                <span class="status-dot"></span> Đã xuất
+                                <span class="status-dot"></span> �� xu?t
                             </span>
                             break;
                         case "IN_PROGRESS":
                             <span class="status-pill status-in-progress">
-                                <span class="status-dot"></span> Đang picking
+                                <span class="status-dot"></span> �ang picking
                             </span>
                             break;
                         case "ASSIGNED":
                             <span class="status-pill status-assigned">
-                                <span class="status-dot"></span> Chờ xử lý
+                                <span class="status-dot"></span> Ch? x? l�
                             </span>
                             break;
                         case "DRAFT":
                             <span class="status-pill status-draft">
-                                <span class="status-dot"></span> Nháp
+                                <span class="status-dot"></span> Nh�p
                             </span>
                             break;
                         case "CANCELLED":
                             <span class="status-pill status-cancelled">
-                                <span class="status-dot"></span> Đã hủy
+                                <span class="status-dot"></span> �� h?y
                             </span>
                             break;
                         default:
@@ -65,23 +65,23 @@
             </div>
 
             <p class="page-header-sub">
-                Ngày tạo: @Model.Order.CreatedAt.ToString("dd/MM/yyyy HH:mm")
-                <span class="header-dot">•</span>
-                Tạo bởi: @(string.IsNullOrEmpty(Model.Order.CreatedByName) ? "N/A" : Model.Order.CreatedByName)
+                Ng�y t?o: @Model.Order.CreatedAt.ToString("dd/MM/yyyy HH:mm")
+                <span class="header-dot">�</span>
+                T?o b?i: @(string.IsNullOrEmpty(Model.Order.CreatedByName) ? "N/A" : Model.Order.CreatedByName)
             </p>
         </div>
 
         <div class="header-actions">
             @if (Model.Order.Status != "CANCELLED" && Model.Order.Status != "COMPLETED")
             {
-                <form method="post" asp-page-handler="CancelOrder" asp-route-id="@Model.Order.OutboundOrderId" onsubmit="return confirm('Bạn có chắc chắn muốn hủy lệnh xuất kho này?');" class="d-inline">
+                <form method="post" asp-page-handler="CancelOrder" asp-route-id="@Model.Order.OutboundOrderId" onsubmit="return confirm('B?n c� ch?c ch?n mu?n h?y l?nh xu?t kho n�y?');" class="d-inline">
                     <button type="submit" class="btn btn-outline-danger">
-                        <i class="bi bi-x-circle me-1"></i> Hủy lệnh
+                        <i class="bi bi-x-circle me-1"></i> H?y l?nh
                     </button>
                 </form>
             }
             <a asp-page="./Index" >
-                Quay lại
+                Quay l?i
             </a>
         </div>
     </div>
@@ -116,33 +116,33 @@
     ====================================================== -->
     <div class="card shadow-sm mb-4">
         <div class="card-header bg-light">
-            <h5 class="card-title mb-0"><i class="bi bi-info-circle me-2"></i>Thông tin chung</h5>
+            <h5 class="card-title mb-0"><i class="bi bi-info-circle me-2"></i>Th�ng tin chung</h5>
         </div>
         <div class="card-body">
             <div class="row g-3">
                 <div class="col-md-4">
-                    <label class="text-muted d-block small">Mã Sales Order (SO)</label>
+                    <label class="text-muted d-block small">M� Sales Order (SO)</label>
                     <strong class="fs-6">@(string.IsNullOrEmpty(Model.Order.SalesOrderNumber) ? "N/A" : Model.Order.SalesOrderNumber)</strong>
                 </div>
                 <div class="col-md-4">
-                    <label class="text-muted d-block small">Khách hàng</label>
+                    <label class="text-muted d-block small">Kh�ch h�ng</label>
                     <strong class="fs-6">@(string.IsNullOrEmpty(Model.Order.CustomerName) ? "N/A" : Model.Order.CustomerName)</strong>
                 </div>
                 <div class="col-md-4">
-                    <label class="text-muted d-block small">Kho xuất</label>
+                    <label class="text-muted d-block small">Kho xu?t</label>
                     <strong class="fs-6">@(string.IsNullOrEmpty(Model.Order.WarehouseName) ? "N/A" : Model.Order.WarehouseName)</strong>
                 </div>
                 <div class="col-md-4">
-                    <label class="text-muted d-block small">Ngày dự kiến xuất</label>
+                    <label class="text-muted d-block small">Ng�y d? ki?n xu?t</label>
                     <span>@(Model.Order.ExpectedIssueDate?.ToString("dd/MM/yyyy") ?? "N/A")</span>
                 </div>
                 <div class="col-md-4">
-                    <label class="text-muted d-block small">Người phụ trách (Pick/Pack)</label>
-                    <span>@(string.IsNullOrEmpty(Model.Order.AssignedToUserName) ? "Chưa phân công" : Model.Order.AssignedToUserName)</span>
+                    <label class="text-muted d-block small">Ngu?i ph? tr�ch (Pick/Pack)</label>
+                    <span>@(string.IsNullOrEmpty(Model.Order.AssignedToUserName) ? "Chua ph�n c�ng" : Model.Order.AssignedToUserName)</span>
                 </div>
                 <div class="col-md-4">
-                    <label class="text-muted d-block small">Ghi chú</label>
-                    <span>@(string.IsNullOrEmpty(Model.Order.Notes) ? "Không có" : Model.Order.Notes)</span>
+                    <label class="text-muted d-block small">Ghi ch�</label>
+                    <span>@(string.IsNullOrEmpty(Model.Order.Notes) ? "Kh�ng c�" : Model.Order.Notes)</span>
                 </div>
             </div>
         </div>
@@ -153,8 +153,8 @@
     ====================================================== -->
     <div class="data-table-card">
         <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
-            <h5 class="mb-0 fs-6 fw-bold"><i class="bi bi-box-seam me-2"></i>Danh sách sản phẩm xuất kho</h5>
-            <span class="badge bg-primary">Tổng sản phẩm: @(Model.Order.Items?.Count ?? 0)</span>
+            <h5 class="mb-0 fs-6 fw-bold"><i class="bi bi-box-seam me-2"></i>Danh s�ch s?n ph?m xu?t kho</h5>
+            <span class="badge bg-primary">T?ng s?n ph?m: @(Model.Order.Items?.Count ?? 0)</span>
         </div>
 
         <div class="table-responsive">
@@ -162,13 +162,13 @@
                 <thead>
                     <tr>
                         <th style="width: 50px;">#</th>
-                        <th>Mã sản phẩm</th>
-                        <th>Tên sản phẩm</th>
-                        <th>Đơn vị tính</th>
-                        <th class="text-end">SL Yêu cầu</th>
-                        <th class="text-end">SL Đã Pick</th>
-                        <th>Vị trí (Lot/Bin)</th>
-                        <th>Ghi chú</th>
+                        <th>M� s?n ph?m</th>
+                        <th>T�n s?n ph?m</th>
+                        <th>�on v? t�nh</th>
+                        <th class="text-end">SL Y�u c?u</th>
+                        <th class="text-end">SL �� Pick</th>
+                        <th>V? tr� (Lot/Bin)</th>
+                        <th>Ghi ch�</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -197,7 +197,7 @@
                     {
                         <tr>
                             <td colspan="8" class="text-center py-4 text-muted">
-                                Không có chi tiết sản phẩm nào trong lệnh xuất kho này.
+                                Kh�ng c� chi ti?t s?n ph?m n�o trong l?nh xu?t kho n�y.
                             </td>
                         </tr>
                     }

@@ -1,87 +1,87 @@
-﻿@page
+@page
 @model BMWMS.Web.Pages.PurchaseOrders.CreateModel
 @{
-    Layout = "/Pages/Shared/Inventory/_Layout.cshtml";
-    ViewData["Title"] = "Tạo đơn mua hàng";
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "T?o don mua h�ng";
 }
 
 <!-- Header -->
 <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px;">
     <div>
-        <h1 style="font-size: 24px; font-weight: 700; color: #0f172a; margin: 0 0 6px 0;">Tạo đơn mua hàng</h1>
-        <p style="font-size: 13px; color: #64748b; margin: 0;">PO phải được xác nhận trước khi sinh Inbound Order.</p>
+        <h1 style="font-size: 24px; font-weight: 700; color: #0f172a; margin: 0 0 6px 0;">T?o don mua h�ng</h1>
+        <p style="font-size: 13px; color: #64748b; margin: 0;">PO ph?i du?c x�c nh?n tru?c khi sinh Inbound Order.</p>
     </div>
-    <span style="background: #f1f5f9; color: #475569; padding: 6px 16px; border-radius: 20px; font-weight: 600; font-size: 13px;">Nháp</span>
+    <span style="background: #f1f5f9; color: #475569; padding: 6px 16px; border-radius: 20px; font-weight: 600; font-size: 13px;">Nh�p</span>
 </div>
 
-<!-- Card 1: Thông tin chứng từ -->
+<!-- Card 1: Th�ng tin ch?ng t? -->
 <div style="background: #fff; padding: 24px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 20px;">
-    <h3 style="font-size: 15px; font-weight: 700; color: #0f172a; margin: 0 0 16px 0;">Thông tin chứng từ</h3>
+    <h3 style="font-size: 15px; font-weight: 700; color: #0f172a; margin: 0 0 16px 0;">Th�ng tin ch?ng t?</h3>
 
     <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;">
         <div>
-            <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">Nhà cung cấp *</label>
+            <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">Nh� cung c?p *</label>
             <select id="supplierSelect" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px;">
-                <option value="">-- Đang tải nhà cung cấp... --</option>
+                <option value="">-- �ang t?i nh� cung c?p... --</option>
             </select>
         </div>
         <div>
-            <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">Ngày đặt hàng *</label>
+            <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">Ng�y d?t h�ng *</label>
             <input type="date" id="orderDate" style="width: 100%; padding: 9px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px;" />
         </div>
         <div>
-            <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">Ngày giao dự kiến</label>
+            <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">Ng�y giao d? ki?n</label>
             <input type="date" id="expectedDate" style="width: 100%; padding: 9px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px;" />
         </div>
         <div>
-            <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">Kho dự kiến *</label>
+            <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">Kho d? ki?n *</label>
             <select id="warehouseSelect" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px;">
-                <option value="">-- Đang tải kho hàng... --</option>
+                <option value="">-- �ang t?i kho h�ng... --</option>
             </select>
         </div>
     </div>
 </div>
 
-<!-- Card 2: Danh sách sản phẩm -->
+<!-- Card 2: Danh s�ch s?n ph?m -->
 <div style="background: #fff; padding: 24px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 20px;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-        <h3 style="font-size: 15px; font-weight: 700; color: #0f172a; margin: 0;">Danh sách sản phẩm</h3>
-        <button type="button" onclick="addProductRow()" style="background: #e2e8f0; color: #0f172a; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px;">+ Thêm sản phẩm</button>
+        <h3 style="font-size: 15px; font-weight: 700; color: #0f172a; margin: 0;">Danh s�ch s?n ph?m</h3>
+        <button type="button" onclick="addProductRow()" style="background: #e2e8f0; color: #0f172a; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px;">+ Th�m s?n ph?m</button>
     </div>
 
     <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
         <thead>
             <tr style="background: #f8fafc; border-bottom: 1px solid #e2e8f0; color: #64748b; text-align: left;">
-                <th style="padding: 12px;">Sản phẩm *</th>
-                <th style="padding: 12px; width: 140px;">Số lượng *</th>
-                <th style="padding: 12px; width: 100px;">ĐVT</th>
-                <th style="padding: 12px; width: 160px;">Đơn giá (đ)</th>
-                <th style="padding: 12px; width: 180px; text-align: right;">Thành tiền</th>
+                <th style="padding: 12px;">S?n ph?m *</th>
+                <th style="padding: 12px; width: 140px;">S? lu?ng *</th>
+                <th style="padding: 12px; width: 100px;">�VT</th>
+                <th style="padding: 12px; width: 160px;">�on gi� (d)</th>
+                <th style="padding: 12px; width: 180px; text-align: right;">Th�nh ti?n</th>
                 <th style="padding: 12px; width: 50px;"></th>
             </tr>
         </thead>
         <tbody id="productItemsTable">
-            <!-- Dynamic rows sẽ thêm bằng JavaScript -->
+            <!-- Dynamic rows s? th�m b?ng JavaScript -->
         </tbody>
     </table>
 
-    <!-- Tổng tiền -->
+    <!-- T?ng ti?n -->
     <div style="display: flex; justify-content: flex-end; align-items: center; margin-top: 20px; font-size: 16px; font-weight: 700; color: #0f172a;">
-        <span>Tổng cộng: </span>
-        <span id="grandTotalText" style="margin-left: 12px; color: #2563eb; font-size: 18px;">0 đ</span>
+        <span>T?ng c?ng: </span>
+        <span id="grandTotalText" style="margin-left: 12px; color: #2563eb; font-size: 18px;">0 d</span>
     </div>
 </div>
 
 <!-- Notice banner -->
 <div style="background: #f3e8ff; border-radius: 8px; padding: 12px 16px; font-size: 13px; color: #6b21a8; margin-bottom: 24px;">
-    ● Sau khi xác nhận, PO được phép tạo lệnh nhập kho. Hàng thiếu/hỏng được xử lý bằng lệnh nhập bổ sung tham chiếu PO này.
+    ? Sau khi x�c nh?n, PO du?c ph�p t?o l?nh nh?p kho. H�ng thi?u/h?ng du?c x? l� b?ng l?nh nh?p b? sung tham chi?u PO n�y.
 </div>
 
 <!-- Actions Footer -->
 <div style="display: flex; justify-content: flex-end; gap: 12px;">
-    <a href="/PurchaseOrders" style="background: #fff; border: 1px solid #cbd5e1; color: #334155; padding: 10px 24px; border-radius: 8px; font-weight: 600; text-decoration: none; font-size: 13px;">Hủy</a>
-    <button type="button" onclick="submitPO(false)" style="background: #e2e8f0; color: #0f172a; border: none; padding: 10px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px;">Lưu nháp</button>
-    <button type="button" onclick="submitPO(true)" style="background: #1e293b; color: #fff; border: none; padding: 10px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px;">Xác nhận đơn mua</button>
+    <a href="/PurchaseOrders" style="background: #fff; border: 1px solid #cbd5e1; color: #334155; padding: 10px 24px; border-radius: 8px; font-weight: 600; text-decoration: none; font-size: 13px;">H?y</a>
+    <button type="button" onclick="submitPO(false)" style="background: #e2e8f0; color: #0f172a; border: none; padding: 10px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px;">Luu nh�p</button>
+    <button type="button" onclick="submitPO(true)" style="background: #1e293b; color: #fff; border: none; padding: 10px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px;">X�c nh?n don mua</button>
 </div>
 
 @section Scripts {
@@ -93,52 +93,52 @@
             // Set mac dinh ngay hom nay
             document.getElementById('orderDate').valueAsDate = new Date();
 
-            // Tải đồng thời 3 danh sách Master Data từ API chuẩn 3 tầng
+            // T?i d?ng th?i 3 danh s�ch Master Data t? API chu?n 3 t?ng
             await Promise.all([
                 loadSuppliers(),
                 loadWarehouses(),
                 loadProducts()
             ]);
 
-            // Thêm 1 dòng trống ban đầu sau khi đã tải xong dữ liệu sản phẩm
+            // Th�m 1 d�ng tr?ng ban d?u sau khi d� t?i xong d? li?u s?n ph?m
             addProductRow();
         });
 
-        // 1. Tải danh sách Nhà cung cấp
+        // 1. T?i danh s�ch Nh� cung c?p
         async function loadSuppliers() {
             try {
                 const res = await fetch(`${API_DOMAIN}/AllSupplier`);
                 if (res.ok) {
                     const suppliers = await res.json();
                     const select = document.getElementById('supplierSelect');
-                    select.innerHTML = '<option value="">-- Chọn nhà cung cấp --</option>';
+                    select.innerHTML = '<option value="">-- Ch?n nh� cung c?p --</option>';
                     suppliers.forEach(s => {
                         select.innerHTML += `<option value="${s.supplierId}">${s.displayName}</option>`;
                     });
                 }
             } catch (e) {
-                console.error("Lỗi khi tải danh sách nhà cung cấp:", e);
+                console.error("L?i khi t?i danh s�ch nh� cung c?p:", e);
             }
         }
 
-        // 2. Tải danh sách Kho hàng
+        // 2. T?i danh s�ch Kho h�ng
         async function loadWarehouses() {
             try {
                 const res = await fetch(`${API_DOMAIN}/AllWarehouse`);
                 if (res.ok) {
                     const warehouses = await res.json();
                     const select = document.getElementById('warehouseSelect');
-                    select.innerHTML = '<option value="">-- Chọn kho nhận hàng --</option>';
+                    select.innerHTML = '<option value="">-- Ch?n kho nh?n h�ng --</option>';
                     warehouses.forEach(w => {
                         select.innerHTML += `<option value="${w.warehouseId}">${w.warehouseName}</option>`;
                     });
                 }
             } catch (e) {
-                console.error("Lỗi khi tải danh sách kho:", e);
+                console.error("L?i khi t?i danh s�ch kho:", e);
             }
         }
 
-        // 3. Tải danh sách Sản phẩm
+        // 3. T?i danh s�ch S?n ph?m
         async function loadProducts() {
             try {
                 const res = await fetch(`${API_DOMAIN}/AllProduct`);
@@ -146,14 +146,14 @@
                     globalProductsList = await res.json();
                 }
             } catch (e) {
-                console.error("Lỗi khi tải danh sách sản phẩm:", e);
+                console.error("L?i khi t?i danh s�ch s?n ph?m:", e);
             }
         }
 
-        // 4. Thêm một dòng mới vào bảng sản phẩm
+        // 4. Th�m m?t d�ng m?i v�o b?ng s?n ph?m
         function addProductRow() {
             if (!globalProductsList || globalProductsList.length === 0) {
-                alert("Dữ liệu sản phẩm chưa sẵn sàng hoặc hệ thống chưa có sản phẩm nào.");
+                alert("D? li?u s?n ph?m chua s?n s�ng ho?c h? th?ng chua c� s?n ph?m n�o.");
                 return;
             }
 
@@ -178,40 +178,40 @@
                 <td style="padding: 10px;">
                     <input type="number" class="prod-price" value="0" min="0" step="any" oninput="calculateRow(this)" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px;" />
                 </td>
-                <td style="padding: 10px; text-align: right; font-weight: 700; color: #0f172a;" class="prod-total">0 đ</td>
+                <td style="padding: 10px; text-align: right; font-weight: 700; color: #0f172a;" class="prod-total">0 d</td>
                 <td style="padding: 10px; text-align: center;">
                     <button type="button" onclick="this.closest('tr').remove(); calculateGrandTotal();" style="border: none; background: transparent; color: #ef4444; cursor: pointer; font-size: 18px; font-weight: bold;">&times;</button>
                 </td>
             `;
             tbody.appendChild(row);
 
-            // Kích hoạt sự kiện gán ĐVT và Giá của option đầu tiên
+            // K�ch ho?t s? ki?n g�n �VT v� Gi� c?a option d?u ti�n
             onProductChange(row.querySelector('.prod-select'));
         }
 
-        // 5. Tự động điền ĐVT và Đơn giá mua từ Master Data khi chọn sản phẩm
+        // 5. T? d?ng di?n �VT v� �on gi� mua t? Master Data khi ch?n s?n ph?m
         function onProductChange(selectEl) {
             const row = selectEl.closest('tr');
             const prod = globalProductsList.find(p => p.productId == selectEl.value);
             if (prod) {
-                row.querySelector('.prod-unit').innerText = prod.unitOfMeasure || '—';
+                row.querySelector('.prod-unit').innerText = prod.unitOfMeasure || '�';
                 row.querySelector('.prod-price').value = prod.purchasePrice || 0;
                 calculateRow(selectEl);
             }
         }
 
-        // 6. Tính toán số tiền từng dòng
+        // 6. T�nh to�n s? ti?n t?ng d�ng
         function calculateRow(el) {
             const row = el.closest('tr');
             const qty = parseFloat(row.querySelector('.prod-qty').value) || 0;
             const price = parseFloat(row.querySelector('.prod-price').value) || 0;
             const total = qty * price;
 
-            row.querySelector('.prod-total').innerText = total.toLocaleString('vi-VN') + ' đ';
+            row.querySelector('.prod-total').innerText = total.toLocaleString('vi-VN') + ' d';
             calculateGrandTotal();
         }
 
-        // 7. Tính tổng tiền cho toàn bộ đơn hàng
+        // 7. T�nh t?ng ti?n cho to�n b? don h�ng
         function calculateGrandTotal() {
             let grandTotal = 0;
             document.querySelectorAll('#productItemsTable tr').forEach(row => {
@@ -219,31 +219,31 @@
                 const price = parseFloat(row.querySelector('.prod-price').value) || 0;
                 grandTotal += qty * price;
             });
-            document.getElementById('grandTotalText').innerText = grandTotal.toLocaleString('vi-VN') + ' đ';
+            document.getElementById('grandTotalText').innerText = grandTotal.toLocaleString('vi-VN') + ' d';
         }
 
-        // 8. Submit dữ liệu về Server
+        // 8. Submit d? li?u v? Server
         async function submitPO(isConfirm) {
             const supplierId = document.getElementById('supplierSelect').value;
             const warehouseId = document.getElementById('warehouseSelect').value;
             const orderDate = document.getElementById('orderDate').value;
 
             if (!supplierId) {
-                alert('Vui lòng chọn Nhà cung cấp!');
+                alert('Vui l�ng ch?n Nh� cung c?p!');
                 return;
             }
             if (!warehouseId) {
-                alert('Vui lòng chọn Kho dự kiến!');
+                alert('Vui l�ng ch?n Kho d? ki?n!');
                 return;
             }
             if (!orderDate) {
-                alert('Vui lòng chọn Ngày đặt hàng!');
+                alert('Vui l�ng ch?n Ng�y d?t h�ng!');
                 return;
             }
 
             const rows = document.querySelectorAll('#productItemsTable tr');
             if (rows.length === 0) {
-                alert('Vui lòng thêm ít nhất 1 sản phẩm!');
+                alert('Vui l�ng th�m �t nh?t 1 s?n ph?m!');
                 return;
             }
 
@@ -267,7 +267,7 @@
             });
 
             if (!isValid) {
-                alert('Vui lòng kiểm tra lại số lượng các sản phẩm (phải lớn hơn 0).');
+                alert('Vui l�ng ki?m tra l?i s? lu?ng c�c s?n ph?m (ph?i l?n hon 0).');
                 return;
             }
 
@@ -289,15 +289,15 @@
 
                 if (res.ok) {
                     const result = await res.json();
-                    alert(result.message || 'Thao tác thành công!');
+                    alert(result.message || 'Thao t�c th�nh c�ng!');
                     window.location.href = '/PurchaseOrders';
                 } else {
                     const err = await res.json();
-                    alert('Lỗi: ' + (err.message || 'Không thể tạo đơn mua hàng'));
+                    alert('L?i: ' + (err.message || 'Kh�ng th? t?o don mua h�ng'));
                 }
             } catch (e) {
-                console.error("Lỗi Submit PO:", e);
-                alert('Lỗi kết nối Server API');
+                console.error("L?i Submit PO:", e);
+                alert('L?i k?t n?i Server API');
             }
         }
     </script>

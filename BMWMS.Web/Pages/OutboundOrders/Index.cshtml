@@ -1,10 +1,10 @@
-﻿
+
 @page
 @model BMWMS.Web.Pages.OutboundOrders.IndexModel
 
 @{
-    Layout = "/Pages/Shared/Inventory/_Layout.cshtml";
-    ViewData["Title"] = "Quản lý Lệnh Xuất Kho";
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Qu?n l� L?nh Xu?t Kho";
 }
 
 @section Styles {
@@ -24,21 +24,21 @@
 
             <div class="page-title-row">
                 <h1 class="page-header-title">
-                    Xem danh sách lệnh xuất kho
+                    Xem danh s�ch l?nh xu?t kho
                 </h1>
             </div>
 
             <p class="page-header-sub">
-                Tìm kiếm và theo dõi các lệnh xuất kho
-                <span class="header-dot">•</span>
-                Actor chính: Nhân viên bán hàng
+                T�m ki?m v� theo d�i c�c l?nh xu?t kho
+                <span class="header-dot">�</span>
+                Actor ch�nh: Nh�n vi�n b�n h�ng
             </p>
 
         </div>
 
         <a asp-page="./Create" class="btn-create-order">
             <i class="bi bi-plus-lg"></i>
-            <span>Tạo lệnh xuất</span>
+            <span>T?o l?nh xu?t</span>
         </a>
 
     </div>
@@ -114,7 +114,7 @@
             <div class="filter-search">
 
                 <label class="filter-label">
-                    Tìm kiếm
+                    T�m ki?m
                 </label>
 
                 <div class="search-box">
@@ -124,7 +124,7 @@
                     <input type="text"
                            asp-for="Filter.Search"
                            class="form-control"
-                           placeholder="Tìm mã lệnh xuất hoặc SO..." />
+                           placeholder="T�m m� l?nh xu?t ho?c SO..." />
 
                 </div>
 
@@ -135,7 +135,7 @@
             <div class="filter-item filter-status">
 
                 <label class="filter-label">
-                    Trạng thái
+                    Tr?ng th�i
                 </label>
 
                 <select asp-for="Filter.Status"
@@ -150,7 +150,7 @@
             <div class="filter-item filter-warehouse">
 
                 <label class="filter-label">
-                    Kho xuất
+                    Kho xu?t
                 </label>
 
                <select asp-for="Filter.WarehouseId"
@@ -168,7 +168,7 @@
                         class="btn-search">
 
                     <i class="bi bi-search"></i>
-                    <span>Tìm kiếm</span>
+                    <span>T�m ki?m</span>
 
                 </button>
 
@@ -176,7 +176,7 @@
                    class="btn-reset">
 
                     <i class="bi bi-arrow-counterclockwise"></i>
-                    <span>Đặt lại</span>
+                    <span>�?t l?i</span>
 
                 </a>
 
@@ -208,13 +208,13 @@
 
                 <thead>
                     <tr>
-                        <th>Mã lệnh</th>
+                        <th>M� l?nh</th>
                         <th>Sales Order</th>
-                        <th>Khách hàng</th>
-                        <th>Kho xuất</th>
-                        <th>Trạng thái</th>
-                        <th>Tổng SL</th>
-                        <th class="text-end">Thao tác</th>
+                        <th>Kh�ch h�ng</th>
+                        <th>Kho xu?t</th>
+                        <th>Tr?ng th�i</th>
+                        <th>T?ng SL</th>
+                        <th class="text-end">Thao t�c</th>
                     </tr>
                 </thead>
 
@@ -226,7 +226,7 @@
                         {
                             <tr>
 
-                                <!-- MÃ LỆNH -->
+                                <!-- M� L?NH -->
                                 <td>
                                     <a asp-page="./Details"
                                        asp-route-id="@item.OutboundOrderId"
@@ -242,7 +242,7 @@
                                     </span>
                                 </td>
 
-                                <!-- KHÁCH HÀNG -->
+                                <!-- KH�CH H�NG -->
                                 <td>
                                     <span class="customer-name">
                                         @item.CustomerName
@@ -263,35 +263,35 @@
                                         case "COMPLETED":
                                             <span class="status-pill status-completed">
                                                 <span class="status-dot"></span>
-                                                Đã xuất
+                                                �� xu?t
                                             </span>
                                             break;
 
                                         case "IN_PROGRESS":
                                             <span class="status-pill status-in-progress">
                                                 <span class="status-dot"></span>
-                                                Đang picking
+                                                �ang picking
                                             </span>
                                             break;
 
                                         case "ASSIGNED":
                                             <span class="status-pill status-assigned">
                                                 <span class="status-dot"></span>
-                                                Chờ xử lý
+                                                Ch? x? l�
                                             </span>
                                             break;
 
                                         case "DRAFT":
                                             <span class="status-pill status-draft">
                                                 <span class="status-dot"></span>
-                                                Nháp
+                                                Nh�p
                                             </span>
                                             break;
 
                                         case "CANCELLED":
                                             <span class="status-pill status-cancelled">
                                                 <span class="status-dot"></span>
-                                                Đã hủy
+                                                �� h?y
                                             </span>
                                             break;
 
@@ -304,7 +304,7 @@
                                     }
                                 </td>
 
-                                <!-- TỔNG SL -->
+                                <!-- T?NG SL -->
                                 <td>
                                     <span class="quantity-value">
                                         @item.TotalRequestedQuantity.ToString("N0")
@@ -316,7 +316,7 @@
                                     <a asp-page="./Details"
                                        asp-route-id="@item.OutboundOrderId"
                                        class="action-link">
-                                        Xem chi tiết
+                                        Xem chi ti?t
                                         <i class="bi bi-chevron-right"></i>
                                     </a>
                                 </td>
@@ -334,11 +334,11 @@
                                 </div>
 
                                 <div class="empty-state-title">
-                                    Không tìm thấy lệnh xuất kho
+                                    Kh�ng t�m th?y l?nh xu?t kho
                                 </div>
 
                                 <div class="empty-state-text">
-                                    Không có dữ liệu phù hợp với điều kiện tìm kiếm.
+                                    Kh�ng c� d? li?u ph� h?p v?i di?u ki?n t�m ki?m.
                                 </div>
 
                             </td>
@@ -360,14 +360,14 @@
 
                 <div class="pagination-text">
 
-                    Hiển thị
+                    Hi?n th?
 
                     <strong>
                         @((Model.PagedResult.PageIndex - 1)
                             * Model.PagedResult.PageSize + 1)
                     </strong>
 
-                    –
+                    �
 
                     <strong>
                         @Math.Min(
@@ -383,7 +383,7 @@
                         @Model.PagedResult.TotalCount
                     </strong>
 
-                    bản ghi
+                    b?n ghi
 
                 </div>
 
@@ -403,7 +403,7 @@
                                    asp-route-Filter.Status="@Model.Filter.Status"
                                    asp-route-Filter.WarehouseId="@Model.Filter.WarehouseId"
                                    asp-route-Filter.PageIndex="@(Model.PagedResult.PageIndex - 1)"
-                                   aria-label="Trang trước">
+                                   aria-label="Trang tru?c">
 
                                     <i class="bi bi-chevron-left"></i>
 
