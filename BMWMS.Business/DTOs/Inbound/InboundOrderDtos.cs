@@ -39,6 +39,7 @@ public class InboundOrderDetailDto
     public string? PurchaseOrderNumber { get; set; }
     public string SupplierName { get; set; } = string.Empty;
     public string WarehouseName { get; set; } = string.Empty;
+    public long WarehouseId { get; set; }
     public DateOnly ExpectedReceiptDate { get; set; }
     public string Status { get; set; } = string.Empty;
     public string AssignedToUserName { get; set; } = string.Empty;
@@ -162,6 +163,11 @@ public class ReceiveInboundItemDto
     [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Vui lòng nhập số Lot")]
     public string LotNumber { get; set; } = string.Empty;
     public DateOnly? ExpiryDate { get; set; }
+}
+
+public class ReceiveBatchInboundDto
+{
+    public List<ReceiveInboundItemDto> Items { get; set; } = new();
 }
 
 public class PutawayInboundItemDto

@@ -154,34 +154,57 @@ public class InboundsController : ControllerBase
     }
 
     [HttpPost("{id}/receive")]
-    public async Task<IActionResult> Receive(long id, [FromBody] ReceiveInboundItemDto dto)
+    public async Task<ActionResult<long>> ReceiveItem(long id, [FromBody] ReceiveInboundItemDto dto)
     {
+        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (!long.TryParse(userIdClaim, out var currentUserId)) return Unauthorized();
+
         try
         {
-            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            var currentUserId = long.TryParse(userIdClaim, out var parsed) ? parsed : 1; // Fallback to 1 if not parsed
-            await _inboundService.ReceiveItemAsync(id, dto, currentUserId);
-            return Ok();
+            var lotId = await _inboundService.ReceiveItemAsync(id, dto, currentUserId);
+            return Ok(new { ProductLotId = lotId });
         }
         catch (Exception ex)
         {
-            return BadRequest(new { Message = ex.Message });
+            return BadRequest(ex.Message);
+        }
+    }
+
+    [HttpPost("{id}/receive-batch")]
+    public async Task<IActionResult> ReceiveBatch(long id, [FromBody] ReceiveBatchInboundDto dto)
+    {
+        var currentUserId = 1; // Fake logic for current user
+        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (long.TryParse(userIdClaim, out var parsedId))
+        {
+            currentUserId = (int)parsedId;
+        }
+
+        try
+        {
+            await _inboundService.ReceiveBatchAsync(id, dto, currentUserId);
+            return Ok(new { Message = "Đã nhận hàng thành công" });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ex.Message);
         }
     }
 
     [HttpPost("{id}/putaway")]
-    public async Task<IActionResult> Putaway(long id, [FromBody] PutawayInboundItemDto dto)
+    public async Task<IActionResult> PutawayBatch(long id, [FromBody] List<PutawayInboundItemDto> dtos)
     {
+        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (!long.TryParse(userIdClaim, out var currentUserId)) return Unauthorized();
+
         try
         {
-            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            var currentUserId = long.TryParse(userIdClaim, out var parsed) ? parsed : 1; // Fallback to 1 if not parsed
-            await _inboundService.PutawayItemAsync(id, dto, currentUserId);
+            await _inboundService.PutawayBatchAsync(id, dtos, currentUserId);
             return Ok();
         }
         catch (Exception ex)
         {
-            return BadRequest(new { Message = ex.Message });
+            return BadRequest(ex.Message);
         }
     }
 }

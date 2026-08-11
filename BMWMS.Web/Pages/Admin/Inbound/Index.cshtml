@@ -193,15 +193,19 @@
                       </td>
                       <td>
                           <div style="display: flex; gap: 10px; align-items: center;">
-                              <a href="/Admin/Inbound/Details/@item.InboundOrderId" class="icon-link"><svg><use href="#i-eye"/></svg>Xem</a>
                               
                               @if (item.Status == "DRAFT")
                               {
+                                  <a href="/Admin/Inbound/Details/@item.InboundOrderId" class="icon-link"><svg><use href="#i-eye"/></svg>Xem</a>
                                   <a href="/Admin/Inbound/Edit/@item.InboundOrderId" class="icon-link" style="color: var(--accent);"><svg><use href="#i-pencil"/></svg>Sửa</a>
                               }
-                              else if (item.Status == "PENDING" || item.Status == "IN_PROGRESS")
+                              else if (item.Status == "ASSIGNED" || item.Status == "RECEIVING" || item.Status == "PENDING" || item.Status == "IN_PROGRESS")
                               {
-                                  <a href="/Admin/Inbound/Receive/@item.InboundOrderId" class="icon-link" style="color: var(--accent);"><svg><use href="#i-in"/></svg>Nhận</a>
+                                  <a href="/Admin/Inbound/Receive/@item.InboundOrderId" class="icon-link" style="color: var(--accent);"><svg><use href="#i-in"/></svg>Nhận hàng</a>
+                              }
+                              else 
+                              {
+                                  <a href="/Admin/Inbound/Details/@item.InboundOrderId" class="icon-link"><svg><use href="#i-eye"/></svg>Chi tiết</a>
                               }
                           </div>
                       </td>

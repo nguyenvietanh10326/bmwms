@@ -61,6 +61,7 @@ public class InboundService : IInboundService
             PurchaseOrderNumber = order.PurchaseOrder?.PurchaseOrderNumber,
             SupplierName = order.PurchaseOrder?.Supplier?.SupplierName ?? "",
             WarehouseName = order.Warehouse?.WarehouseName ?? "",
+            WarehouseId = order.WarehouseId,
             ExpectedReceiptDate = order.ExpectedReceiptDate,
             Status = order.Status,
             AssignedToUserName = order.AssignedToUser?.FullName ?? "",
@@ -208,7 +209,7 @@ public class InboundService : IInboundService
             {
                 Title = "Bạn được giao một lệnh nhập kho mới",
                 Message = $"Lệnh nhập kho {inboundOrder.InboundOrderNumber} đã được giao cho bạn. Vui lòng kiểm tra.",
-                NotificationType = "ASSIGNMENT",
+                NotificationType = "WORK_ASSIGNMENT",
                 TargetUserId = inboundOrder.AssignedToUserId.Value,
                 ReferenceType = "INBOUND",
                 ReferenceId = inboundOrder.InboundOrderId.ToString()
@@ -487,7 +488,7 @@ public class InboundService : IInboundService
             {
                 Title = "Bạn được giao một lệnh nhập kho mới",
                 Message = $"Lệnh nhập kho {order.InboundOrderNumber} đã được giao cho bạn. Vui lòng kiểm tra.",
-                NotificationType = "ASSIGNMENT",
+                NotificationType = "WORK_ASSIGNMENT",
                 TargetUserId = order.AssignedToUserId.Value,
                 ReferenceType = "INBOUND",
                 ReferenceId = order.InboundOrderId.ToString()
@@ -524,15 +525,15 @@ public class InboundService : IInboundService
         await _inboundRepository.SaveChangesAsync();
     }
 
-    public async Task ReceiveItemAsync(long inboundOrderId, ReceiveInboundItemDto dto, long currentUserId)
+    public async Task<long> ReceiveItemAsync(long inboundOrderId, ReceiveInboundItemDto dto, long currentUserId)
     {
         var order = await _context.InboundOrders
             .Include(o => o.InboundOrderItems)
             .FirstOrDefaultAsync(o => o.InboundOrderId == inboundOrderId);
 
         if (order == null) throw new Exception("Không tìm thấy lệnh nhập kho.");
-        if (order.Status != "ASSIGNED" && order.Status != "RECEIVING") 
-            throw new Exception("Chỉ có thể nhận hàng khi lệnh ở trạng thái ASSIGNED hoặc RECEIVING.");
+        if (order.Status != "ASSIGNED" && order.Status != "IN_PROGRESS") 
+            throw new Exception("Chỉ có thể nhận hàng khi lệnh ở trạng thái ASSIGNED hoặc IN_PROGRESS.");
 
         var item = order.InboundOrderItems.FirstOrDefault(i => i.InboundOrderItemId == dto.InboundOrderItemId);
         if (item == null) throw new Exception("Không tìm thấy sản phẩm trong lệnh nhập kho.");
@@ -557,7 +558,7 @@ public class InboundService : IInboundService
                 LotNumber = dto.LotNumber,
                 ExpiryDate = dto.ExpiryDate,
                 FirstReceivedDate = DateOnly.FromDateTime(DateTime.UtcNow),
-                Status = "ACTIVE",
+                Status = "AVAILABLE",
                 CreatedAt = DateTime.UtcNow
             };
             _context.ProductLots.Add(lot);
@@ -605,19 +606,108 @@ public class InboundService : IInboundService
         // Update Order Status
         if (order.Status == "ASSIGNED")
         {
-            order.Status = "RECEIVING";
+            order.Status = "IN_PROGRESS";
         }
 
         // Check if fully received
         if (order.InboundOrderItems.All(i => i.ReceivedQuantity >= i.ExpectedQuantity))
         {
-            order.Status = "RECEIVED";
+            order.Status = "COMPLETED";
+        }
+
+        await _context.SaveChangesAsync();
+        return lot.ProductLotId;
+    }
+
+    public async Task ReceiveBatchAsync(long inboundOrderId, ReceiveBatchInboundDto dto, long currentUserId)
+    {
+        var order = await _context.InboundOrders
+            .Include(o => o.InboundOrderItems)
+            .FirstOrDefaultAsync(o => o.InboundOrderId == inboundOrderId);
+
+        if (order == null) throw new Exception("Không tìm thấy lệnh nhập kho.");
+        if (order.Status != "ASSIGNED" && order.Status != "IN_PROGRESS") 
+            throw new Exception("Chỉ có thể nhận hàng khi lệnh ở trạng thái ASSIGNED hoặc IN_PROGRESS.");
+
+        var stagingLocation = await _context.StorageLocations
+            .FirstOrDefaultAsync(l => l.WarehouseId == order.WarehouseId);
+
+        if (stagingLocation == null) throw new Exception("Không tìm thấy vị trí lưu trữ nào trong kho này để nhận tạm.");
+
+        foreach (var reqItem in dto.Items)
+        {
+            var item = order.InboundOrderItems.FirstOrDefault(i => i.InboundOrderItemId == reqItem.InboundOrderItemId);
+            if (item == null) continue;
+
+            decimal acceptedQuantity = reqItem.DeliveredQuantity - reqItem.DamagedQuantity;
+            if (acceptedQuantity <= 0) continue;
+
+            item.ReceivedQuantity += acceptedQuantity;
+            item.DamagedQuantity += reqItem.DamagedQuantity;
+
+            var lot = await _context.ProductLots
+                .FirstOrDefaultAsync(l => l.ProductId == item.ProductId && l.LotNumber == reqItem.LotNumber);
+
+            if (lot == null)
+            {
+                lot = new BMWMS.Repository.Models.ProductLot
+                {
+                    ProductId = item.ProductId,
+                    LotNumber = reqItem.LotNumber,
+                    ExpiryDate = reqItem.ExpiryDate,
+                    FirstReceivedDate = DateOnly.FromDateTime(DateTime.UtcNow),
+                    Status = "AVAILABLE",
+                    CreatedAt = DateTime.UtcNow
+                };
+                _context.ProductLots.Add(lot);
+                await _context.SaveChangesAsync();
+            }
+
+            var detail = new BMWMS.Repository.Models.InboundOrderDetail
+            {
+                InboundOrderItemId = item.InboundOrderItemId,
+                InboundOrderId = inboundOrderId,
+                ProductId = item.ProductId,
+                StorageLocationId = stagingLocation.StorageLocationId,
+                ProductLotId = lot.ProductLotId,
+                ReceivedQuantity = acceptedQuantity,
+                ConditionStatus = "GOOD",
+                RecordedByUserId = currentUserId,
+                RecordedAt = DateTime.UtcNow
+            };
+            _context.InboundOrderDetails.Add(detail);
+            await _context.SaveChangesAsync();
+
+            var transaction = new BMWMS.Repository.Models.InventoryTransaction
+            {
+                TransactionType = "RECEIPT",
+                ProductId = item.ProductId,
+                StorageLocationId = stagingLocation.StorageLocationId,
+                ProductLotId = lot.ProductLotId,
+                OnHandDelta = acceptedQuantity,
+                ReservedDelta = 0,
+                InboundOrderDetailId = detail.InboundOrderDetailId,
+                TransactionAt = DateTime.UtcNow,
+                PerformedByUserId = currentUserId
+            };
+            _context.InventoryTransactions.Add(transaction);
+        }
+
+        if (order.Status == "ASSIGNED")
+        {
+            order.Status = "IN_PROGRESS";
+        }
+
+        // Check if fully received
+        if (order.InboundOrderItems.All(i => i.ReceivedQuantity >= i.ExpectedQuantity))
+        {
+            order.Status = "COMPLETED";
         }
 
         await _context.SaveChangesAsync();
     }
 
-    public async Task PutawayItemAsync(long inboundOrderId, PutawayInboundItemDto dto, long currentUserId)
+    public async Task PutawayBatchAsync(long inboundOrderId, List<PutawayInboundItemDto> dtos, long currentUserId)
     {
         var order = await _context.InboundOrders
             .Include(o => o.InboundOrderItems)
@@ -625,40 +715,64 @@ public class InboundService : IInboundService
 
         if (order == null) throw new Exception("Không tìm thấy lệnh nhập kho.");
 
-        var item = order.InboundOrderItems.FirstOrDefault(i => i.InboundOrderItemId == dto.InboundOrderItemId);
-        if (item == null) throw new Exception("Không tìm thấy sản phẩm trong lệnh nhập kho.");
+        decimal totalPutawayCurrentBatch = 0;
 
-        // Create InventoryTransaction for putaway (Move to actual bin)
-        // Technically, this means we are adding to the actual bin. 
-        // If we strictly follow staging, we should deduct from staging and add to bin, but for simplicity we just add to the bin.
-        var transaction = new BMWMS.Repository.Models.InventoryTransaction
+        foreach (var dto in dtos)
         {
-            TransactionType = "PUTAWAY",
-            ProductId = item.ProductId,
-            StorageLocationId = dto.StorageLocationId,
-            ProductLotId = dto.ProductLotId,
-            OnHandDelta = dto.PutawayQuantity,
-            ReservedDelta = 0,
-            InboundOrderDetailId = dto.InboundOrderItemId,
-            TransactionAt = DateTime.UtcNow,
-            PerformedByUserId = currentUserId
-        };
-        _context.InventoryTransactions.Add(transaction);
+            var item = order.InboundOrderItems.FirstOrDefault(i => i.InboundOrderItemId == dto.InboundOrderItemId);
+            if (item == null) continue;
 
-        // Update Putaway Quantity (Wait, InboundOrderItem currently doesn't have PutawayQuantity field! 
-        // We will just calculate it dynamically or not track it on the item level, since we track transactions.
-        // Actually, the requirements mentioned checking if all putaway is done. 
-        // Let's just update the order status if all items are fully putaway.)
+            var transaction = new BMWMS.Repository.Models.InventoryTransaction
+            {
+                TransactionType = "PUTAWAY",
+                ProductId = item.ProductId,
+                StorageLocationId = dto.StorageLocationId,
+                ProductLotId = dto.ProductLotId,
+                OnHandDelta = dto.PutawayQuantity,
+                ReservedDelta = 0,
+                InboundOrderDetailId = null,
+                TransactionAt = DateTime.UtcNow,
+                PerformedByUserId = currentUserId
+            };
+            _context.InventoryTransactions.Add(transaction);
 
-        // We can check if total Putaway == total Expected
+            // Cập nhật tồn kho (Inventory)
+            var inventory = await _context.Inventories.FirstOrDefaultAsync(inv => 
+                inv.ProductId == item.ProductId && 
+                inv.StorageLocationId == dto.StorageLocationId && 
+                inv.ProductLotId == dto.ProductLotId);
+            
+            if (inventory == null)
+            {
+                inventory = new BMWMS.Repository.Models.Inventory
+                {
+                    ProductId = item.ProductId,
+                    StorageLocationId = dto.StorageLocationId,
+                    ProductLotId = dto.ProductLotId,
+                    OnHandQuantity = dto.PutawayQuantity,
+                    AvailableQuantity = dto.PutawayQuantity,
+                    ReservedQuantity = 0,
+                    LastUpdatedAt = DateTime.UtcNow
+                };
+                _context.Inventories.Add(inventory);
+            }
+            else
+            {
+                inventory.OnHandQuantity += dto.PutawayQuantity;
+                inventory.AvailableQuantity += dto.PutawayQuantity;
+                inventory.LastUpdatedAt = DateTime.UtcNow;
+            }
+
+            totalPutawayCurrentBatch += dto.PutawayQuantity;
+        }
+
         var totalPutaway = await _context.InventoryTransactions
-            .Where(t => t.InboundOrderDetailId != null && t.TransactionType == "PUTAWAY")
+            .Where(t => t.TransactionType == "PUTAWAY" && _context.InboundOrderItems.Where(i => i.InboundOrderId == inboundOrderId).Select(i => i.ProductId).Contains(t.ProductId))
             .SumAsync(t => t.OnHandDelta);
 
         var totalExpected = order.InboundOrderItems.Sum(i => i.ExpectedQuantity);
 
-        // Include this transaction
-        if (totalPutaway + dto.PutawayQuantity >= totalExpected)
+        if (totalPutaway + totalPutawayCurrentBatch >= totalExpected)
         {
             order.Status = "PUTAWAY_COMPLETED";
         }

@@ -30,7 +30,7 @@ public class PutawayModel : PageModel
     public InboundReceiptDto Receipt { get; set; } = default!;
 
     [BindProperty]
-    public PutawayInboundItemDto PutawayDto { get; set; } = new();
+    public List<PutawayInboundItemDto> PutawayDtos { get; set; } = new();
 
     public SelectList Locations { get; set; } = default!;
 
@@ -47,11 +47,14 @@ public class PutawayModel : PageModel
         Receipt = Item.Receipts.FirstOrDefault(r => r.ProductLotId == lotId)!;
         if (Receipt == null) return NotFound();
 
-        PutawayDto.InboundOrderItemId = itemId;
-        PutawayDto.ProductLotId = lotId;
-        PutawayDto.PutawayQuantity = Receipt.ReceivedQuantity - Receipt.PutawayQuantity;
+        PutawayDtos.Add(new PutawayInboundItemDto 
+        {
+            InboundOrderItemId = itemId,
+            ProductLotId = lotId,
+            PutawayQuantity = Receipt.ReceivedQuantity - Receipt.PutawayQuantity
+        });
 
-        await LoadLocations();
+        await LoadLocations(Order.WarehouseId);
         
         return Page();
     }
@@ -66,9 +69,20 @@ public class PutawayModel : PageModel
 
         try
         {
-            await _inboundApiService.PutawayItemAsync(id, PutawayDto);
+            await _inboundApiService.PutawayBatchAsync(id, PutawayDtos);
             TempData["SuccessMessage"] = "Xếp vị trí thành công.";
-            return RedirectToPage("Details", new { id });
+            
+            // Fetch order again to find if there are more items needing putaway
+            var order = await _inboundApiService.GetInboundOrderByIdAsync(id);
+            var nextItemNeedingPutaway = order?.Items.FirstOrDefault(i => i.Receipts.Any(r => r.ReceivedQuantity > r.PutawayQuantity));
+            
+            if (nextItemNeedingPutaway != null)
+            {
+                var nextReceipt = nextItemNeedingPutaway.Receipts.First(r => r.ReceivedQuantity > r.PutawayQuantity);
+                return RedirectToPage("Putaway", new { id = id, itemId = nextItemNeedingPutaway.InboundOrderItemId, lotId = nextReceipt.ProductLotId });
+            }
+
+            return RedirectToPage("Receive", new { id });
         }
         catch (Exception ex)
         {
@@ -78,9 +92,9 @@ public class PutawayModel : PageModel
         }
     }
 
-    private async Task LoadLocations()
+    private async Task LoadLocations(long warehouseId)
     {
-        var response = await _httpClient.GetAsync($"/api/storagelocations?pageIndex=1&pageSize=100");
+        var response = await _httpClient.GetAsync($"/api/storagelocations?warehouseId={warehouseId}&locationType=BIN&status=AVAILABLE&pageIndex=1&pageSize=100");
         if (response.IsSuccessStatusCode)
         {
             var result = await response.Content.ReadFromJsonAsync<PagedResultModel<StorageLocationModel>>();
