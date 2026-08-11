@@ -22,6 +22,7 @@ public class InboundRepository : IInboundRepository
         string? status,
         DateTime? fromDate,
         DateTime? toDate,
+        long? assignedToUserId,
         int pageIndex,
         int pageSize)
     {
@@ -31,6 +32,11 @@ public class InboundRepository : IInboundRepository
             .Include(x => x.InboundOrderItems)
             .AsNoTracking()
             .AsQueryable();
+
+        if (assignedToUserId.HasValue)
+        {
+            query = query.Where(x => x.AssignedToUserId == assignedToUserId.Value);
+        }
 
         if (!string.IsNullOrWhiteSpace(keyword))
         {

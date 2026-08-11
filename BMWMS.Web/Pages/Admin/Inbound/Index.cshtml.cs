@@ -22,6 +22,15 @@ public class IndexModel : PageModel
 
     public async Task<IActionResult> OnGetAsync()
     {
+        if (User.IsInRole("WAREHOUSE_STAFF"))
+        {
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (long.TryParse(userIdClaim, out var currentUserId))
+            {
+                Filter.AssignedToUserId = currentUserId;
+            }
+        }
+
         Data = await _inboundApiService.GetInboundOrdersPageAsync(Filter);
         return Page();
     }

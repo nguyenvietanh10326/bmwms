@@ -241,6 +241,17 @@
 
             @if (isLoggedIn)
             {
+                <!-- Notification Bell -->
+                <div class="notification-wrapper" style="position: relative; cursor: pointer; margin-right: 8px;" title="Thông báo">
+                    <a href="/Admin/Reports/Notifications" style="text-decoration: none; color: inherit; display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 50%; background: #f1f5f9; transition: all 0.2s;">
+                        <i class="ri-notification-3-line" style="font-size: 18px; color: #475569;"></i>
+                        <span class="notification-badge" style="position: absolute; top: 0; right: 0; background: #ef4444; color: white; border-radius: 50%; font-size: 10px; font-weight: bold; width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; border: 2px solid white; box-sizing: content-box;">1</span>
+                    </a>
+                </div>
+            }
+
+            @if (isLoggedIn)
+            {
                 <div class="header-user" onclick="document.getElementById('userDropdown').classList.toggle('show')">
                     <div class="header-user-info">
                         <div class="header-user-name">@fullName</div>

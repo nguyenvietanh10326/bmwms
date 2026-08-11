@@ -16,4 +16,10 @@ public class CreateNotificationDto
     public string NotificationType { get; set; } = "SYSTEM";
 
     public int? TargetRoleId { get; set; }
+
+    public long? TargetUserId { get; set; }
+
+    public string? ReferenceType { get; set; }
+
+    public string? ReferenceId { get; set; }
 }

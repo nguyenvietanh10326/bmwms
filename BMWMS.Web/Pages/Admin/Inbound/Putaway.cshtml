@@ -1,0 +1,95 @@
+@page "{id:long}"
+@model BMWMS.Web.Pages.Admin.Inbound.PutawayModel
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Xếp vị trí kho";
+    ViewData["ActivePage"] = "Inbound";
+}
+
+<style>
+  :root{
+    --font-ui:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    --navy-950:#233a6b; --navy-900:#1b2d56; 
+    --accent:#3e5cf6; --accent-600:#3149d4; --accent-100:#e8ecff;
+    --bg:#f2f3f7; --card:#ffffff; --line:#e7e9f0; --line-strong:#d7dae5;
+    --ink:#161b2e; --ink-2:#525a72; --ink-3:#8890a6;
+    --sh-xs:0 1px 2px rgba(16,23,42,.05);
+    --r-sm:8px; --r-lg:16px;
+  }
+  .putaway-page { padding: 26px 30px 64px; font-family: var(--font-ui); color: var(--ink); }
+  .putaway-page .breadcrumb { font-size: 11.5px; color: var(--ink-3); margin-bottom: 8px; font-weight: 600; text-transform: uppercase; }
+  .putaway-page .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 22px 24px; margin-bottom: 16px; box-shadow: var(--sh-xs); }
+  .putaway-page h3 { font-size: 16px; margin-top: 0; margin-bottom: 15px; }
+  
+  .putaway-page .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+  .putaway-page .info-box { background: var(--bg); padding: 12px 16px; border-radius: var(--r-sm); }
+  .putaway-page .info-label { font-size: 11.5px; color: var(--ink-3); font-weight: 600; text-transform: uppercase; margin-bottom: 4px; }
+  .putaway-page .info-value { font-size: 14px; font-weight: 600; color: var(--ink); }
+  
+  .putaway-page .field { margin-bottom: 15px; }
+  .putaway-page .field label { display: block; font-size: 12.5px; font-weight: 600; margin-bottom: 6px; }
+  .putaway-page .field input, .putaway-page .field select { width: 100%; padding: 10px; border: 1px solid var(--line-strong); border-radius: var(--r-sm); font-size: 13px; }
+  
+  .putaway-page .btn { display: inline-flex; align-items: center; justify-content: center; border: none; border-radius: var(--r-sm); padding: 10px 20px; font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: none; }
+  .putaway-page .btn-dark { background: var(--accent-600); color: #fff; }
+  .putaway-page .btn-light { background: #fff; border: 1px solid var(--line-strong); color: var(--ink); }
+</style>
+
+<div class="putaway-page">
+    <div class="breadcrumb">
+        <a asp-page="/Admin/Inbound/Index" style="color:var(--ink-3); text-decoration:none;">Nhập kho</a> &rsaquo;
+        <a asp-page="/Admin/Inbound/Details" asp-route-id="@Model.Order.InboundOrderId" style="color:var(--ink-3); text-decoration:none;">@Model.Order.InboundOrderNumber</a> &rsaquo;
+        <span>Xếp vị trí</span>
+    </div>
+
+    <div class="card" style="max-width: 600px;">
+        <h3>Xếp vị trí vào kho</h3>
+        
+        <div class="info-grid">
+            <div class="info-box">
+                <div class="info-label">Sản phẩm</div>
+                <div class="info-value">@Model.Item.ProductCode - @Model.Item.ProductName</div>
+            </div>
+            <div class="info-box">
+                <div class="info-label">Số Lot</div>
+                <div class="info-value">@Model.Receipt.LotNumber</div>
+            </div>
+            <div class="info-box">
+                <div class="info-label">SL Đã nhận chờ xếp</div>
+                <div class="info-value" style="color: var(--accent-600);">@(Model.Receipt.ReceivedQuantity - Model.Receipt.PutawayQuantity)</div>
+            </div>
+            <div class="info-box">
+                <div class="info-label">Kho</div>
+                <div class="info-value">@Model.Order.WarehouseName</div>
+            </div>
+        </div>
+
+        <form method="post">
+            <input type="hidden" asp-for="PutawayDto.InboundOrderItemId" />
+            <input type="hidden" asp-for="PutawayDto.ProductLotId" />
+
+            <div class="field">
+                <label>Chọn vị trí lưu trữ (Bin)</label>
+                <select asp-for="PutawayDto.StorageLocationId" asp-items="Model.Locations" required>
+                    <option value="">-- Chọn vị trí --</option>
+                </select>
+                <span asp-validation-for="PutawayDto.StorageLocationId" style="color:red; font-size:11px;"></span>
+            </div>
+
+            <div class="field">
+                <label>Số lượng xếp vào vị trí này</label>
+                <input type="number" asp-for="PutawayDto.PutawayQuantity" required min="1" max="@(Model.Receipt.ReceivedQuantity - Model.Receipt.PutawayQuantity)" />
+                <span asp-validation-for="PutawayDto.PutawayQuantity" style="color:red; font-size:11px;"></span>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 25px;">
+                <a asp-page="Details" asp-route-id="@Model.Order.InboundOrderId" class="btn btn-light" style="flex:1;">Hủy</a>
+                <button type="submit" class="btn btn-dark" style="flex:1;">Xác nhận Xếp vị trí</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -61,4 +61,28 @@ public class DetailsModel : PageModel
         }
         return RedirectToPage(new { id });
     }
+
+    [BindProperty]
+    public ReceiveInboundItemDto ReceiveDto { get; set; } = new();
+
+    public async Task<IActionResult> OnPostReceiveAsync(long id)
+    {
+        try
+        {
+            if (!ModelState.IsValid)
+            {
+                var errors = string.Join(", ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
+                TempData["ErrorMessage"] = $"Dữ liệu không hợp lệ: {errors}";
+                return RedirectToPage(new { id });
+            }
+
+            await _inboundApiService.ReceiveItemAsync(id, ReceiveDto);
+            TempData["SuccessMessage"] = "Lưu tạm thành công.";
+        }
+        catch (System.Exception ex)
+        {
+            TempData["ErrorMessage"] = ex.Message;
+        }
+        return RedirectToPage(new { id });
+    }
 }
