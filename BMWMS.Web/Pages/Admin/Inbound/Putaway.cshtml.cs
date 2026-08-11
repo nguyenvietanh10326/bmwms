@@ -82,7 +82,7 @@ public class PutawayModel : PageModel
                 return RedirectToPage("Putaway", new { id = id, itemId = nextItemNeedingPutaway.InboundOrderItemId, lotId = nextReceipt.ProductLotId });
             }
 
-            return RedirectToPage("Receive", new { id });
+            return RedirectToPage("Index");
         }
         catch (Exception ex)
         {
