@@ -39,6 +39,7 @@ public class InboundOrderDetailDto
     public string? PurchaseOrderNumber { get; set; }
     public string SupplierName { get; set; } = string.Empty;
     public string WarehouseName { get; set; } = string.Empty;
+    public long WarehouseId { get; set; }
     public DateOnly ExpectedReceiptDate { get; set; }
     public string Status { get; set; } = string.Empty;
     public string AssignedToUserName { get; set; } = string.Empty;

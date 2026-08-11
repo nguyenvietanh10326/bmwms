@@ -61,6 +61,7 @@ public class InboundService : IInboundService
             PurchaseOrderNumber = order.PurchaseOrder?.PurchaseOrderNumber,
             SupplierName = order.PurchaseOrder?.Supplier?.SupplierName ?? "",
             WarehouseName = order.Warehouse?.WarehouseName ?? "",
+            WarehouseId = order.WarehouseId,
             ExpectedReceiptDate = order.ExpectedReceiptDate,
             Status = order.Status,
             AssignedToUserName = order.AssignedToUser?.FullName ?? "",
@@ -729,13 +730,39 @@ public class InboundService : IInboundService
                 ProductLotId = dto.ProductLotId,
                 OnHandDelta = dto.PutawayQuantity,
                 ReservedDelta = 0,
-                // Assuming InboundOrderItemId maps to detail, but correctly it should be null or map to the specific receipt. 
-                // We leave it null for PUTAWAY since PUTAWAY doesn't strictly need detail link.
                 InboundOrderDetailId = null,
                 TransactionAt = DateTime.UtcNow,
                 PerformedByUserId = currentUserId
             };
             _context.InventoryTransactions.Add(transaction);
+
+            // Cập nhật tồn kho (Inventory)
+            var inventory = await _context.Inventories.FirstOrDefaultAsync(inv => 
+                inv.ProductId == item.ProductId && 
+                inv.StorageLocationId == dto.StorageLocationId && 
+                inv.ProductLotId == dto.ProductLotId);
+            
+            if (inventory == null)
+            {
+                inventory = new BMWMS.Repository.Models.Inventory
+                {
+                    ProductId = item.ProductId,
+                    StorageLocationId = dto.StorageLocationId,
+                    ProductLotId = dto.ProductLotId,
+                    OnHandQuantity = dto.PutawayQuantity,
+                    AvailableQuantity = dto.PutawayQuantity,
+                    ReservedQuantity = 0,
+                    LastUpdatedAt = DateTime.UtcNow
+                };
+                _context.Inventories.Add(inventory);
+            }
+            else
+            {
+                inventory.OnHandQuantity += dto.PutawayQuantity;
+                inventory.AvailableQuantity += dto.PutawayQuantity;
+                inventory.LastUpdatedAt = DateTime.UtcNow;
+            }
+
             totalPutawayCurrentBatch += dto.PutawayQuantity;
         }
 

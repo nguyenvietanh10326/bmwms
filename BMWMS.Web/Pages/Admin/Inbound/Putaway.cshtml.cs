@@ -54,7 +54,7 @@ public class PutawayModel : PageModel
             PutawayQuantity = Receipt.ReceivedQuantity - Receipt.PutawayQuantity
         });
 
-        await LoadLocations();
+        await LoadLocations(Order.WarehouseId);
         
         return Page();
     }
@@ -92,9 +92,9 @@ public class PutawayModel : PageModel
         }
     }
 
-    private async Task LoadLocations()
+    private async Task LoadLocations(long warehouseId)
     {
-        var response = await _httpClient.GetAsync($"/api/storagelocations?pageIndex=1&pageSize=100");
+        var response = await _httpClient.GetAsync($"/api/storagelocations?warehouseId={warehouseId}&locationType=BIN&status=AVAILABLE&pageIndex=1&pageSize=100");
         if (response.IsSuccessStatusCode)
         {
             var result = await response.Content.ReadFromJsonAsync<PagedResultModel<StorageLocationModel>>();
