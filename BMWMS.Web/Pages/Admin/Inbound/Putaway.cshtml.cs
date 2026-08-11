@@ -41,6 +41,13 @@ public class PutawayModel : PageModel
             return NotFound();
 
         Order = data;
+
+        var userIdClaimForCheck = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (User.IsInRole("WAREHOUSE_STAFF") && long.TryParse(userIdClaimForCheck, out var userId) && Order.AssignedToUserId != userId)
+        {
+            TempData["ErrorMessage"] = "Bạn không có quyền xếp vị trí cho lệnh này vì nó không được phân công cho bạn.";
+            return RedirectToPage("Index");
+        }
         Item = Order.Items.FirstOrDefault(x => x.InboundOrderItemId == itemId)!;
         if (Item == null) return NotFound();
 
