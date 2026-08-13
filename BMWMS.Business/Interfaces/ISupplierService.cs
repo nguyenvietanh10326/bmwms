@@ -12,4 +12,5 @@ public interface ISupplierService
     Task<PagedResultDto<SupplierProductResponseDto>> GetSupplierProductsAsync(string supplierCode, SupplierProductFilterDto filter);
     Task<PagedResultDto<SupplierInboundHistoryResponseDto>> GetSupplierInboundHistoryAsync(string supplierCode, SupplierInboundHistoryFilterDto filter);
     Task<SupplierInboundHistoryDetailDto?> GetSupplierInboundHistoryDetailAsync(string supplierCode, string inboundOrderNumber);
+    Task AssignProductsToSupplierAsync(string supplierCode, BMWMS.Business.DTOs.Inventory.AssignSupplierProductsDto dto);
 }

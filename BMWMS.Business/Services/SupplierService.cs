@@ -279,4 +279,12 @@ public class SupplierService : ISupplierService
             }).ToList()
         };
     }
+
+    public async Task AssignProductsToSupplierAsync(string supplierCode, BMWMS.Business.DTOs.Inventory.AssignSupplierProductsDto dto)
+    {
+        var supplier = await _supplierRepository.GetSupplierByCodeAsync(supplierCode);
+        if (supplier == null) throw new ArgumentException($"Nhà cung cấp {supplierCode} không tồn tại.");
+
+        await _supplierRepository.AssignProductsAsync(supplier.SupplierId, dto.ProductIds);
+    }
 }

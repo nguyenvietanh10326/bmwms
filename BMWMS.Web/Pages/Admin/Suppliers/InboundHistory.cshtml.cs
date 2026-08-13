@@ -31,6 +31,12 @@ public class InboundHistoryModel : PageModel
 
     public async Task<IActionResult> OnGetAsync()
     {
+        var roleCode = HttpContext.Session.GetString("RoleCode");
+        if (roleCode != "SYSTEM_ADMIN" && roleCode != "WAREHOUSE_MANAGER" && roleCode != "PURCHASING_STAFF")
+        {
+            return Forbid();
+        }
+
         // Get dropdown options
         var warehouses = await _warehouseApiService.GetWarehousesAsync();
         WarehouseOptions = new SelectList(warehouses, "WarehouseId", "WarehouseName", Filter.WarehouseId);

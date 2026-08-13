@@ -186,4 +186,25 @@ public class SupplierRepository : ISupplierRepository
                     .ThenInclude(p => p.UnitOfMeasure)
             .FirstOrDefaultAsync(x => x.InboundOrderNumber == inboundOrderNumber && x.PurchaseOrder != null && x.PurchaseOrder.SupplierId == supplierId);
     }
+
+    public async Task AssignProductsAsync(long supplierId, List<long> productIds)
+    {
+        // Delete all old mappings
+        var existingMappings = await _context.SupplierProducts.Where(x => x.SupplierId == supplierId).ToListAsync();
+        _context.SupplierProducts.RemoveRange(existingMappings);
+
+        // Add new mappings
+        foreach (var productId in productIds)
+        {
+            _context.SupplierProducts.Add(new SupplierProduct
+            {
+                SupplierId = supplierId,
+                ProductId = productId,
+                Status = "ACTIVE",
+                IsPreferred = false
+            });
+        }
+
+        await _context.SaveChangesAsync();
+    }
 }

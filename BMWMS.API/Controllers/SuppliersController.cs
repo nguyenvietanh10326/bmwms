@@ -152,4 +152,23 @@ public class SuppliersController : ControllerBase
             return StatusCode(500, ex.Message);
         }
     }
+
+    [Authorize(Roles = "SYSTEM_ADMIN,PURCHASING_MANAGER,PURCHASING_STAFF")]
+    [HttpPost("{supplierCode}/products")]
+    public async Task<IActionResult> AssignProducts(string supplierCode, [FromBody] BMWMS.Business.DTOs.Inventory.AssignSupplierProductsDto dto)
+    {
+        try
+        {
+            await _supplierService.AssignProductsToSupplierAsync(supplierCode, dto);
+            return Ok(new { message = "Gán danh mục vật tư thành công." });
+        }
+        catch (ArgumentException ex)
+        {
+            return NotFound(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ex.Message);
+        }
+    }
 }
