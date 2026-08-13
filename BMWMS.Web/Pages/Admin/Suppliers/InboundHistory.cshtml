@@ -1,6 +1,7 @@
 @page "/Admin/Suppliers/{supplierCode}/InboundHistory"
 @model BMWMS.Web.Pages.Admin.Suppliers.InboundHistoryModel
 @{
+    Layout = "_AdminLayout";
     ViewData["Title"] = "Xem lịch sử nhập theo nhà cung cấp";
     ViewData["ActiveMenu"] = "Suppliers";
 }
@@ -152,11 +153,6 @@
             <p class="mb-0" style="color: #94a3b8; font-size: 15px;">
                 <i class="ri-user-3-line align-bottom me-1"></i> Actor chính: @(HttpContext.Session.GetString("RoleName") ?? "Nhân viên mua hàng")
             </p>
-        </div>
-        <div>
-            <a href="#" class="btn premium-btn-outline" style="background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); color: white;">
-                <i class="ri-download-line me-1"></i> Xuất lịch sử
-            </a>
         </div>
     </div>
 </div>
