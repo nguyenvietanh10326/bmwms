@@ -233,15 +233,4 @@ namespace BMWMS.Web.Models
         public decimal OnHandQuantity { get; set; }
         public string DisplayLabel => $"{ProductCode} - {ProductName} / Lot {LotNumber}";
     }
-
-    public class StocktakeUseCaseModel
-    {
-        public string Code { get; set; } = string.Empty;
-        public string Name { get; set; } = string.Empty;
-        public string Actor { get; set; } = string.Empty;
-        public string Preconditions { get; set; } = string.Empty;
-        public string MainFlow { get; set; } = string.Empty;
-        public string ResultStatus { get; set; } = string.Empty;
-        public string ApiEndpoint { get; set; } = string.Empty;
-    }
 }

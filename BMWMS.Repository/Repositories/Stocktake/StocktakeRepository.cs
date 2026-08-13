@@ -545,10 +545,12 @@ namespace BMWMS.Repository.Repositories.Stocktake
             try
             {
                 var session = await GetTrackedSessionForMutationAsync(stocktakeSessionId);
-                if (session.Status != SessionCounted && session.Status != SessionPendingApproval)
-                    throw new InvalidOperationException("Chi co the ghi nhan xu ly chenhlech khi dot kiem da COUNTED.");
+                if (session.Status != SessionCounted && session.Status != SessionPendingApproval && session.Status != SessionInProgress)
+                    throw new InvalidOperationException("Chi co the ghi nhan xu ly chenhlech khi dot kiem da COUNTED hoac IN_PROGRESS.");
 
-                if (session.StocktakeLocations.Any(l => l.CountStatus != LocationCounted))
+                var allRecount = resolutions.All(r =>
+                    r.Resolution?.Trim().ToUpperInvariant() == ResolutionRecount);
+                if (!allRecount && session.StocktakeLocations.Any(l => l.CountStatus != LocationCounted))
                     throw new InvalidOperationException("Van con bin chua submit hoac dang yeu cau recount.");
 
                 var anyRecount = false;
@@ -709,9 +711,14 @@ namespace BMWMS.Repository.Repositories.Stocktake
 
         private async Task<StocktakeSession> GetTrackedSessionForMutationAsync(long stocktakeSessionId)
         {
-            return await BuildSessionDetailQuery()
+            return await _context.StocktakeSessions
+                .Include(s => s.StocktakeLocations)
+                    .ThenInclude(l => l.StocktakeItems)
+                        .ThenInclude(i => i.ProductLot)
+                            .ThenInclude(pl => pl.Product)
+                .Include(s => s.StocktakeItems)
                 .FirstOrDefaultAsync(s => s.StocktakeSessionId == stocktakeSessionId)
-                ?? throw new InvalidOperationException("Khong tim thay dot kiem kho.");
+                ?? throw new InvalidOperationException("Khong tim thay phien kiem kho.");
         }
 
         private async Task ValidateAssignableUserAsync(long userId)

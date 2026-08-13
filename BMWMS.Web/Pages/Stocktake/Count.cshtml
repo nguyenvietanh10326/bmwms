@@ -61,7 +61,7 @@
     @* ── COUNTING FORM ── *@
     @if (task?.Lines?.Any() == true || canEdit)
     {
-        <form method="post" id="countForm">
+        <form method="post" id="countForm" asp-page="/Stocktake/Count" asp-route-id="@task?.StocktakeSessionId" asp-route-locationId="@task?.StorageLocationId">
             @Html.AntiForgeryToken()
             <input type="hidden" name="Id" value="@task?.StocktakeSessionId" />
             <input type="hidden" name="LocationId" value="@task?.StorageLocationId" />
@@ -176,10 +176,10 @@
                         "Save draft" lưu tạm, chưa khoá. "Submit" khoá bin và gửi kết quả.
                     </div>
                     <div class="d-flex gap-2">
-                        <button type="submit" name="handler" value="Save" class="btn btn-outline-primary">
+                        <button type="submit" asp-page-handler="Save" class="btn btn-outline-primary">
                             <i class="ri-save-line me-1"></i>Save draft
                         </button>
-                        <button type="submit" name="handler" value="Submit" class="btn btn-success"
+                        <button type="submit" asp-page-handler="Submit" class="btn btn-success"
                                 onclick="return confirm('Submit bin @task?.LocationCode? Sau khi submit không thể sửa (trừ khi Manager yêu cầu đếm lại).')">
                             <i class="ri-check-line me-1"></i>Submit bin
                         </button>

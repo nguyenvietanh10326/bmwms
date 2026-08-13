@@ -4,7 +4,6 @@ namespace BMWMS.Web.Services
 {
     public interface IStocktakeApiService
     {
-        Task<List<StocktakeUseCaseModel>> GetUseCasesAsync();
         Task<List<StocktakeLocationOptionModel>> GetLocationsAsync(long warehouseId);
         Task<List<StocktakeStaffOptionModel>> GetStaffUsersAsync();
         Task<List<StocktakeProductLotOptionModel>> SearchProductLotsAsync(string? keyword, int take = 20);

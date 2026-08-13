@@ -17,20 +17,6 @@ namespace BMWMS.Web.Services
             _httpClient = httpClientFactory.CreateClient("ApiClient");
         }
 
-        public async Task<List<StocktakeUseCaseModel>> GetUseCasesAsync()
-        {
-            try
-            {
-                var response = await _httpClient.GetAsync("api/stocktakes/use-cases");
-                if (!response.IsSuccessStatusCode) return new();
-                return await response.Content.ReadFromJsonAsync<List<StocktakeUseCaseModel>>(JsonOptions) ?? new();
-            }
-            catch
-            {
-                return new();
-            }
-        }
-
         public async Task<List<StocktakeLocationOptionModel>> GetLocationsAsync(long warehouseId)
         {
             try
@@ -108,11 +94,17 @@ namespace BMWMS.Web.Services
             try
             {
                 var response = await _httpClient.GetAsync($"api/stocktakes/{id}");
-                if (!response.IsSuccessStatusCode) return null;
+                if (!response.IsSuccessStatusCode)
+                {
+                    var error = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"[StocktakeApi] GetSessionById failed: {response.StatusCode} - {error}");
+                    return null;
+                }
                 return await response.Content.ReadFromJsonAsync<StocktakeSessionDetailModel>(JsonOptions);
             }
-            catch
+            catch (Exception ex)
             {
+                Console.WriteLine($"[StocktakeApi] GetSessionById exception: {ex.Message}");
                 return null;
             }
         }
@@ -122,11 +114,17 @@ namespace BMWMS.Web.Services
             try
             {
                 var response = await _httpClient.GetAsync($"api/stocktakes/{id}/locations/{locationId}/count-task");
-                if (!response.IsSuccessStatusCode) return null;
+                if (!response.IsSuccessStatusCode)
+                {
+                    var error = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"[StocktakeApi] GetCountTask failed: {response.StatusCode} - {error}");
+                    return null;
+                }
                 return await response.Content.ReadFromJsonAsync<StocktakeCountTaskModel>(JsonOptions);
             }
-            catch
+            catch (Exception ex)
             {
+                Console.WriteLine($"[StocktakeApi] GetCountTask exception: {ex.Message}");
                 return null;
             }
         }
@@ -175,10 +173,16 @@ namespace BMWMS.Web.Services
             try
             {
                 var response = await _httpClient.PutAsJsonAsync($"api/stocktakes/{id}/locations/{locationId}/counts", lines);
+                if (!response.IsSuccessStatusCode)
+                {
+                    var error = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"[StocktakeApi] SaveCounts failed: {response.StatusCode} - {error}");
+                }
                 return await ReadActionResultAsync(response);
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"[StocktakeApi] SaveCounts exception: {ex.Message}");
                 return Failure($"Loi ket noi: {ex.Message}");
             }
         }
@@ -190,10 +194,16 @@ namespace BMWMS.Web.Services
                 var response = await _httpClient.PostAsJsonAsync(
                     $"api/stocktakes/{id}/locations/{locationId}/submit",
                     new StocktakeNoteModel { Notes = notes });
+                if (!response.IsSuccessStatusCode)
+                {
+                    var error = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"[StocktakeApi] SubmitLocation failed: {response.StatusCode} - {error}");
+                }
                 return await ReadActionResultAsync(response);
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"[StocktakeApi] SubmitLocation exception: {ex.Message}");
                 return Failure($"Loi ket noi: {ex.Message}");
             }
         }
@@ -211,7 +221,6 @@ namespace BMWMS.Web.Services
             }
         }
 
-        // BP-05: Manager requests recount for a specific bin
         public async Task<StocktakeActionResultModel> RequestRecountAsync(long id, long locationId)
         {
             try
@@ -225,7 +234,6 @@ namespace BMWMS.Web.Services
             }
         }
 
-        // BP-05: Manager submits session for review (COUNTED → PENDING_APPROVAL)
         public async Task<StocktakeActionResultModel> SubmitForReviewAsync(long id)
         {
             try
@@ -289,7 +297,6 @@ namespace BMWMS.Web.Services
             }
             catch
             {
-                // Keep the raw response when it is not JSON.
             }
 
             return string.IsNullOrWhiteSpace(body) ? "API tra ve loi khong xac dinh." : body;

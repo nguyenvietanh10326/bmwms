@@ -4,7 +4,6 @@ namespace BMWMS.Business.Interfaces.Stocktake
 {
     public interface IStocktakeService
     {
-        Task<List<StocktakeUseCaseDto>> GetUseCasesAsync();
         Task<List<StocktakeLocationOptionDto>> GetLocationOptionsAsync(long warehouseId);
         Task<List<StocktakeStaffOptionDto>> GetStaffUsersAsync();
         Task<List<StocktakeProductLotOptionDto>> SearchProductLotsAsync(string? keyword, int take = 20);

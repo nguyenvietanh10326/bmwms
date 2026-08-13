@@ -30,65 +30,6 @@ namespace BMWMS.Business.Services.Stocktake
             _stocktakeRepo = stocktakeRepo;
         }
 
-        public Task<List<StocktakeUseCaseDto>> GetUseCasesAsync()
-        {
-            var items = new List<StocktakeUseCaseDto>
-            {
-                new()
-                {
-                    Code = "UC33",
-                    Name = "Lap va xem danh sach dot kiem kho",
-                    Actor = "Warehouse Manager",
-                    Preconditions = "Kho va bin da duoc cau hinh",
-                    MainFlow = "Manager tao dot kiem kho, chon kho, ngay du kien, nhan vien va optional danh sach bin",
-                    ResultStatus = "SCHEDULED",
-                    ApiEndpoint = "POST /api/stocktakes"
-                },
-                new()
-                {
-                    Code = "UC34",
-                    Name = "Nhan vien kiem dem theo bin",
-                    Actor = "Warehouse Staff",
-                    Preconditions = "Dot kiem kho da START va staff duoc assign",
-                    MainFlow = "Staff mo count-task, nhap so thuc te theo che do dem mu va submit bin",
-                    ResultStatus = "IN_PROGRESS / COUNTED",
-                    ApiEndpoint = "GET /api/stocktakes/{id}/locations/{locationId}/count-task"
-                },
-                new()
-                {
-                    Code = "UC35",
-                    Name = "Ghi nhan hang phat sinh",
-                    Actor = "Warehouse Staff",
-                    Preconditions = "Hang co thuc te trong bin nhung khong co trong snapshot",
-                    MainFlow = "Staff tao unexpected item voi BookQuantity = 0",
-                    ResultStatus = "IN_PROGRESS",
-                    ApiEndpoint = "POST /api/stocktakes/{id}/unexpected-items"
-                },
-                new()
-                {
-                    Code = "UC36",
-                    Name = "Review va phe duyet dieu chinh ton",
-                    Actor = "Warehouse Manager",
-                    Preconditions = "Tat ca bin da submit",
-                    MainFlow = "Manager chon ACCEPT_DIFFERENCE, NO_ADJUSTMENT hoac RECOUNT; approve ghi STOCKTAKE_ADJUSTMENT",
-                    ResultStatus = "PENDING_APPROVAL / COMPLETED",
-                    ApiEndpoint = "PUT /api/stocktakes/{id}/resolutions | POST /api/stocktakes/{id}/approve"
-                },
-                new()
-                {
-                    Code = "UC37",
-                    Name = "Xem lich su kiem kho",
-                    Actor = "Warehouse Manager / Staff",
-                    Preconditions = "Da co dot kiem kho hoan tat hoac da huy",
-                    MainFlow = "Loc danh sach theo COMPLETED/CANCELLED de xem lich su",
-                    ResultStatus = "COMPLETED / CANCELLED",
-                    ApiEndpoint = "GET /api/stocktakes?status=HISTORY"
-                }
-            };
-
-            return Task.FromResult(items);
-        }
-
         public async Task<List<StocktakeLocationOptionDto>> GetLocationOptionsAsync(long warehouseId)
         {
             var locations = await _stocktakeRepo.GetActiveLocationsByWarehouseAsync(warehouseId);
@@ -535,8 +476,8 @@ namespace BMWMS.Business.Services.Stocktake
         {
             return status switch
             {
-                SessionScheduled => ("Len lich", "bg-secondary"),
-                SessionInProgress => ("Dang kiem dem", "bg-primary"),
+                SessionScheduled => ("Da len lich", "bg-secondary"),
+                SessionInProgress => ("Dang kiem", "bg-primary"),
                 SessionCounted => ("Da dem xong", "bg-info text-dark"),
                 SessionPendingApproval => ("Cho phe duyet", "bg-warning text-dark"),
                 SessionCompleted => ("Hoan tat", "bg-success"),
