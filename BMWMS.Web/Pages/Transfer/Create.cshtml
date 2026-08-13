@@ -2,74 +2,99 @@
 @model BMWMS.Web.Pages.Transfer.CreateModel
 @{
     Layout = "_AdminLayout";
-    ViewData["Title"] = Model.IsEditMode ? "Sua Phieu Dieu Chuyen Kho" : "Tao Lenh Dieu Chuyen Kho";
+    ViewData["Title"] = Model.IsEditMode ? "Sửa Phiếu Điều Chuyển Kho" : "Tạo Lệnh Điều Chuyển Kho";
+    ViewData["ActivePage"] = "Transfer";
 }
 
-<div class="container-fluid" style="padding:24px; max-width:1440px; margin:0 auto;">
+<style>
+  :root{
+    --font-ui:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    --font-mono:"IBM Plex Mono",ui-monospace,monospace;
 
-    <!-- BREADCRUMB & HEADER -->
-    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px; flex-wrap:wrap; gap:16px;">
+    --navy-950:#233a6b; --navy-900:#1b2d56;
+    --accent:#3e5cf6; --accent-600:#3149d4;
+
+    --bg:#f2f3f7; --card:#ffffff; --line:#e7e9f0; --line-strong:#d7dae5;
+    --ink:#161b2e; --ink-2:#525a72; --ink-3:#8890a6; --ink-4:#aeb4c6;
+
+    --sh-xs:0 1px 2px rgba(16,23,42,.05);
+    --sh-sm:0 1px 2px rgba(16,23,42,.04),0 4px 10px -4px rgba(16,23,42,.07);
+    --r-sm:8px; --r-md:12px; --r-lg:16px;
+    --ease:cubic-bezier(.4,0,.2,1);
+  }
+  
+  .transfer-page {
+    font-family: var(--font-ui);
+    color: var(--ink);
+    font-size: 14px;
+    line-height: 1.45;
+    padding: 26px 30px 64px;
+  }
+
+  .transfer-page .pagehead{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;gap:20px;}
+  .transfer-page .pagehead h1{font-size:20px;margin:0 0 5px;font-weight:700;}
+  .transfer-page .breadcrumb{font-size:11.5px;color:var(--ink-3);margin-bottom:8px;font-weight:600;letter-spacing:.02em;text-transform:uppercase;}
+
+  .transfer-page .btn{display:inline-flex;align-items:center;gap:7px;border:none;border-radius:var(--r-sm);padding:9px 15px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;text-decoration:none;}
+  .transfer-page .btn-dark{background:var(--navy-950);color:#fff;box-shadow:var(--sh-xs);}
+  .transfer-page .btn-dark:hover{background:#1c2340;color:#fff;transform:translateY(-1px);box-shadow:var(--sh-sm);}
+  .transfer-page .btn-primary{background:#2563eb;color:#fff;box-shadow:var(--sh-xs);}
+  .transfer-page .btn-primary:hover{background:#1d4ed8;color:#fff;transform:translateY(-1px);box-shadow:var(--sh-sm);}
+  .transfer-page .btn-light{background:#fff;border:1px solid var(--line-strong);color:var(--ink);}
+  .transfer-page .btn-light:hover{border-color:var(--ink-4);background:#fafafd;}
+
+  .transfer-page .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);padding:24px;margin-bottom:16px;box-shadow:var(--sh-xs);}
+
+  .grid2 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field label { font-size: 12.5px; font-weight: 600; color: var(--ink-2); }
+  .field input, .field select, .field textarea { width: 100%; padding: 9px 12px; border: 1px solid var(--line-strong); border-radius: var(--r-sm); font-size: 13px; color: var(--ink); font-family: inherit; }
+  .field input:disabled { background: var(--bg); color: var(--ink-3); }
+  .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--accent); }
+
+  /* Table styling */
+  .items-table{width:100%;border-collapse:collapse;font-size:13px; margin: 0; margin-bottom: 15px;}
+  .items-table th{text-align:left;color:var(--ink-3);font-weight:600;font-size:11px;padding:0 10px 10px;border-bottom:1px solid var(--line);}
+  .items-table td{padding:10px;border-bottom:1px solid var(--line);vertical-align:middle;}
+  .items-table input, .items-table select { width: 100%; padding: 7px 10px; border: 1px solid var(--line-strong); border-radius: 4px; font-size: 13px; }
+  .items-table .btn-remove { background: #fce3e4; color: #c1222f; padding: 6px; border-radius: 4px; border: none; cursor: pointer; }
+</style>
+
+<div class="transfer-page">
+    <div class="pagehead">
         <div>
-            <div style="font-size:13px; color:#64748b; margin-bottom:4px; display:flex; align-items:center; gap:6px;">
-                <span>Nghiệp vụ kho</span>
-                <i class="ri-arrow-right-s-line"></i>
-                <a href="/Transfer/Index" style="color:#64748b; text-decoration:none;">Điều chuyển kho</a>
-                <i class="ri-arrow-right-s-line"></i>
-                <span style="color:#2563eb; font-weight:500;">@(Model.IsEditMode ? "Sua phieu chuyen" : "Tao lenh chuyen")</span>
-            </div>
-            <h1 style="font-size:22px; font-weight:700; color:#0f172a; margin:0;">
-                <i class="ri-arrow-left-right-line" style="color:#2563eb; margin-right:8px;"></i>@(Model.IsEditMode ? "Sua Phieu Dieu Chuyen Kho" : "Tao Lenh Dieu Chuyen Kho")
-            </h1>
-            <p style="font-size:13px; color:#64748b; margin-top:4px; margin-bottom:0;">
-                Tạo lệnh chuyển vị trí nội bộ • Actor chính: Quản lý kho
-            </p>
+            <div class="breadcrumb">Nghiệp vụ kho / Điều chuyển kho / @(Model.IsEditMode ? "Sửa phiếu" : "Tạo lệnh")</div>
+            <h1>@(Model.IsEditMode ? "Sửa Phiếu Điều Chuyển Kho" : "Tạo Lệnh Điều Chuyển Kho")</h1>
+            <p>Tạo lệnh chuyển vị trí nội bộ • Người thực hiện: Quản lý kho</p>
         </div>
-        <div>
-            <span style="font-size:13px; background:#eff6ff; color:#2563eb; border:1px solid #bfdbfe; padding:6px 14px; border-radius:20px; font-weight:600;">
-                <i class="ri-arrow-left-right-line"></i> Chuyển kho
-            </span>
+        <div style="display: flex; gap: 10px;">
+            <a href="/Transfer/Index" class="btn btn-light">Hủy bỏ</a>
+            <button type="submit" form="transfer-form" name="action" value="draft" class="btn btn-dark" onclick="return prepareSubmit()">Lưu nháp</button>
+            <button type="submit" form="transfer-form" name="action" value="assign" class="btn btn-primary" onclick="return prepareSubmit()">Tạo và giao luôn</button>
         </div>
     </div>
 
-    <!-- ERROR TOAST -->
-    @if (Model.TransferSuccess.HasValue && !Model.TransferSuccess.Value)
-    {
-        <div style="background:#fff5f5; border:1px solid #fecaca; border-radius:10px; padding:14px 18px; margin-bottom:20px; display:flex; align-items:center; gap:12px;">
-            <i class="ri-error-warning-fill" style="font-size:20px; color:#dc2626;"></i>
-            <div style="font-weight:600; color:#dc2626; font-size:14px;">@Model.TransferMessage</div>
-        </div>
-    }
 
-    <form method="post" id="transfer-form" onsubmit="return prepareSubmit()">
+
+    <form method="post" id="transfer-form">
         @Html.AntiForgeryToken()
         <input type="hidden" id="itemsJson" name="itemsJson" value="" />
         <input type="hidden" name="transferOrderId" value="@Model.Id" />
 
-        <!-- ═══ THÔNG TIN LỆNH CHUYỂN ══════════════════════════════════════ -->
-        <div style="background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:24px; margin-bottom:20px; box-shadow:0 1px 3px rgba(0,0,0,0.04);">
-            <h3 style="font-size:15px; font-weight:700; color:#0f172a; margin-bottom:18px; padding-bottom:12px; border-bottom:1px solid #f1f5f9;">
-                <i class="ri-file-list-3-line" style="color:#2563eb; margin-right:6px;"></i>Thông tin lệnh chuyển
-            </h3>
-
-            <div class="row g-3">
-                <!-- Mã lệnh -->
-                <div class="col-md-3">
-                    <label style="font-size:12px; color:#64748b; font-weight:600; margin-bottom:4px; display:block;">Mã lệnh chuyển</label>
-                    <input type="text" class="form-control form-control-sm" value="Tự động" readonly
-                           style="background:#f8fafc; border-color:#e2e8f0; font-size:13px; color:#94a3b8;" />
+        <div class="card">
+            <h3 style="font-size:15px; font-weight:700; color:var(--ink); margin-top:0; margin-bottom:18px;">Thông tin lệnh chuyển</h3>
+            <div class="grid2">
+                <div class="field">
+                    <label>Mã lệnh chuyển</label>
+                    <input type="text" value="Tự động sinh khi tạo" disabled />
                 </div>
-
-                <!-- Kho hàng -->
-                <div class="col-md-3">
-                    <label style="font-size:12px; color:#64748b; font-weight:600; margin-bottom:4px; display:block;">Kho hàng <span style="color:#ef4444;">*</span></label>
-                    <input type="text" class="form-control form-control-sm" value="Kho chính" readonly
-                           style="background:#f8fafc; border-color:#e2e8f0; font-size:13px; color:#475569;" />
+                <div class="field">
+                    <label>Kho hàng *</label>
+                    <input type="text" value="Kho chính" disabled />
                 </div>
-
-                <!-- Assign Staff -->
-                <div class="col-md-3">
-                    <label style="font-size:12px; color:#64748b; font-weight:600; margin-bottom:4px; display:block;">Nhân viên phụ trách</label>
-                    <select name="assignedToUserId" class="form-select form-select-sm" style="border-color:#e2e8f0; font-size:13px;">
+                <div class="field">
+                    <label>Nhân viên phụ trách</label>
+                    <select name="assignedToUserId">
                         <option value="">-- Chọn nhân viên --</option>
                         @foreach (var staff in Model.StaffUsers)
                         {
@@ -77,61 +102,43 @@
                         }
                     </select>
                 </div>
-
-                <!-- Ngày dự kiến -->
-                <div class="col-md-3">
-                    <label style="font-size:12px; color:#64748b; font-weight:600; margin-bottom:4px; display:block;">Ngày dự kiến hoàn thành</label>
-                    <input type="date" name="dueDate" class="form-control form-control-sm"
-                           value="@Model.SelectedDueDate"
-                           min="@DateTime.Today.ToString("yyyy-MM-dd")"
-                           style="border-color:#e2e8f0; font-size:13px;" />
+                <div class="field">
+                    <label>Ngày dự kiến hoàn thành</label>
+                    <input type="date" name="dueDate" value="@Model.SelectedDueDate" min="@DateTime.Today.ToString("yyyy-MM-dd")" />
                 </div>
-
-                <!-- Ghi chú -->
-                <div class="col-12">
-                    <label style="font-size:12px; color:#64748b; font-weight:600; margin-bottom:4px; display:block;">Ghi chú</label>
-                    <input type="text" name="notes" class="form-control form-control-sm"
-                           value="@Model.ExistingNotes"
-                           placeholder="Nhập ghi chú cho lệnh chuyển kho..."
-                           style="border-color:#e2e8f0; font-size:13px;" />
+            </div>
+            <div class="grid2" style="margin-top:14px">
+                <div class="field" style="grid-column: span 4;">
+                    <label>Ghi chú</label>
+                    <input type="text" name="notes" value="@Model.ExistingNotes" placeholder="Nhập ghi chú cho lệnh chuyển kho..." />
                 </div>
             </div>
         </div>
 
-        <!-- ═══ THÊM DÒNG HÀNG HÓA ════════════════════════════════════════ -->
-        <div style="background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:24px; margin-bottom:20px; box-shadow:0 1px 3px rgba(0,0,0,0.04);">
-
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; padding-bottom:12px; border-bottom:1px solid #f1f5f9;">
-                <h3 style="font-size:15px; font-weight:700; color:#0f172a; margin:0;">
-                    <i class="ri-box-3-line" style="color:#2563eb; margin-right:6px;"></i>Hàng hóa điều chuyển
-                </h3>
-                <button type="button" onclick="addItemRow()"
-                        style="display:inline-flex; align-items:center; gap:6px; background:#eff6ff; color:#2563eb; border:1px solid #bfdbfe; padding:7px 14px; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;">
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <h3 style="margin:0;font-size:15px; font-weight:700; color:var(--ink);">Hàng hóa điều chuyển</h3>
+                <button type="button" onclick="addItemRow()" class="btn btn-light" style="font-size: 12px; padding: 6px 12px;">
                     <i class="ri-add-line"></i> Thêm dòng hàng
                 </button>
             </div>
-
-            <!-- ── BẢNG CHỌN HÀNG HÓA ── -->
+            
             <div style="overflow-x:auto;">
-                <table class="table align-middle" style="font-size:13px; margin:0;" id="items-table">
+                <table class="items-table" id="items-table">
                     <thead>
-                        <tr style="background:#f8fafc; border-bottom:2px solid #e2e8f0; color:#475569; font-size:11px; text-transform:uppercase; letter-spacing:0.04em;">
-                            <th style="padding:10px 12px; width:30px;">#</th>
-                            <!-- SOURCE -->
-                            <th style="padding:10px 12px; min-width:110px; background:#fef9ee; border-left:3px solid #f59e0b;">Zone Nguồn</th>
-                            <th style="padding:10px 12px; min-width:110px; background:#fef9ee;">Kệ Nguồn</th>
-                            <th style="padding:10px 12px; min-width:120px; background:#fef9ee;">Ô Nguồn</th>
-                            <th style="padding:10px 12px; min-width:180px; background:#fef9ee;">Sản phẩm / Lô hàng</th>
-                            <!-- ARROW -->
-                            <th style="padding:10px 8px; text-align:center; color:#94a3b8;">→</th>
-                            <!-- DEST -->
-                            <th style="padding:10px 12px; min-width:110px; background:#eff6ff; border-left:3px solid #2563eb;">Zone Đích</th>
-                            <th style="padding:10px 12px; min-width:110px; background:#eff6ff;">Kệ Đích</th>
-                            <th style="padding:10px 12px; min-width:120px; background:#eff6ff;">Ô Đích</th>
-                            <!-- QTY -->
-                            <th style="padding:10px 12px; min-width:100px; text-align:right;">Số lượng</th>
-                            <th style="padding:10px 12px; min-width:50px; text-align:center;">ĐVT</th>
-                            <th style="padding:10px 12px; width:40px;"></th>
+                        <tr>
+                            <th style="width:3%;">#</th>
+                            <th style="width:10%; border-left:3px solid #f59e0b; padding-left: 10px;">Zone Nguồn</th>
+                            <th style="width:10%;">Kệ Nguồn</th>
+                            <th style="width:10%;">Ô Nguồn</th>
+                            <th style="width:18%;">Sản phẩm / Lô hàng</th>
+                            <th style="width:2%; text-align:center;">→</th>
+                            <th style="width:10%; border-left:3px solid #2563eb; padding-left: 10px;">Zone Đích</th>
+                            <th style="width:10%;">Kệ Đích</th>
+                            <th style="width:10%;">Ô Đích</th>
+                            <th style="width:10%; text-align:right;">Số lượng</th>
+                            <th style="width:4%; text-align:center;">ĐVT</th>
+                            <th style="width:3%;"></th>
                         </tr>
                     </thead>
                     <tbody id="items-tbody">
@@ -140,42 +147,18 @@
                 </table>
             </div>
 
-            <!-- Empty state -->
             <div id="empty-hint" style="text-align:center; padding:32px; color:#94a3b8;">
                 <i class="ri-add-box-line" style="font-size:32px; display:block; margin-bottom:8px;"></i>
                 <span>Nhấn <strong>"Thêm dòng hàng"</strong> để thêm mặt hàng cần điều chuyển</span>
             </div>
 
-            <!-- Cart summary -->
             <div id="items-summary" style="display:none; margin-top:12px; padding-top:12px; border-top:1px solid #f1f5f9; text-align:right; font-size:13px; color:#64748b;">
                 Tổng <strong id="items-count">0</strong> dòng điều chuyển
             </div>
         </div>
-
-        <!-- ═══ INFO BAR ════════════════════════════════════════════════════ -->
-        <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:14px 18px; margin-bottom:24px; font-size:13px; color:#1e40af; display:flex; align-items:flex-start; gap:10px;">
-            <i class="ri-information-line" style="font-size:18px; color:#2563eb; flex-shrink:0; margin-top:1px;"></i>
-            <div>
-                Chỉ <strong>Quản lý kho (WH_MANAGER / ADMIN)</strong> mới được tạo lệnh điều chuyển. Sau khi tạo, lệnh sẽ ở trạng thái <strong>Chờ phê duyệt</strong>. Nhân viên được assign sẽ thực hiện di chuyển sau khi được duyệt.
-            </div>
-        </div>
-
-        <!-- ═══ ACTION BUTTONS ══════════════════════════════════════════════ -->
-        <div style="display:flex; justify-content:flex-end; gap:12px; flex-wrap:wrap;">
-            <a href="/Transfer/Index" style="display:inline-flex; align-items:center; gap:6px; background:#f1f5f9; color:#475569; padding:9px 20px; border-radius:8px; font-weight:600; font-size:13px; text-decoration:none; border:1px solid #e2e8f0;">
-                <i class="ri-close-line"></i> Hủy
-            </a>
-            <button type="submit" id="btn-submit"
-                    style="display:inline-flex; align-items:center; gap:8px; background:#2563eb; color:#fff; padding:9px 24px; border-radius:8px; font-weight:700; font-size:14px; border:none; cursor:pointer; box-shadow:0 2px 6px rgba(37,99,235,0.25);">
-                <i class="ri-arrow-left-right-line"></i> @(Model.IsEditMode ? "Luu phieu dieu chuyen" : "Tao lenh dieu chuyen")
-            </button>
-        </div>
     </form>
 </div>
 
-<!-- ════════════════════════════════════════════════════════════
-     JAVASCRIPT — CASCADE DROPDOWNS & TABLE MANAGEMENT
-════════════════════════════════════════════════════════════ -->
 <script>
     // Global zones data from server
     const ZONES = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
@@ -201,7 +184,6 @@
 
         const tr = document.createElement('tr');
         tr.id = `row-${ri}`;
-        tr.style.borderBottom = '1px solid #f1f5f9';
         tr.innerHTML = buildRowHtml(ri);
         tbody.appendChild(tr);
 
@@ -220,68 +202,59 @@
         const zoneOptions = buildZoneOptions();
         return `
         <!-- SOURCE -->
-        <td style="padding:10px 12px; font-weight:700; color:#94a3b8;">${ri}</td>
-        <td style="padding:8px 10px; background:#fef9ee;">
-            <select id="src-zone-${ri}" class="form-select form-select-sm" style="font-size:12px; border-color:#fde68a; min-width:100px;"
-                    onchange="onSrcZoneChange(${ri}, this.value)">
+        <td style="font-weight:700; color:#94a3b8;">${ri}</td>
+        <td style="background:#fef9ee;">
+            <select id="src-zone-${ri}" onchange="onSrcZoneChange(${ri}, this.value)" style="border-color:#fde68a;">
                 <option value="">-- Zone --</option>
                 ${zoneOptions}
             </select>
         </td>
-        <td style="padding:8px 10px; background:#fef9ee;">
-            <select id="src-rack-${ri}" class="form-select form-select-sm" style="font-size:12px; border-color:#fde68a; min-width:100px;" disabled
-                    onchange="onSrcRackChange(${ri}, this.value)">
+        <td style="background:#fef9ee;">
+            <select id="src-rack-${ri}" disabled onchange="onSrcRackChange(${ri}, this.value)" style="border-color:#fde68a;">
                 <option value="">-- Kệ --</option>
             </select>
         </td>
-        <td style="padding:8px 10px; background:#fef9ee;">
-            <select id="src-loc-${ri}" class="form-select form-select-sm" style="font-size:12px; border-color:#fde68a; min-width:110px;" disabled
-                    onchange="onSrcLocChange(${ri}, this.value)">
+        <td style="background:#fef9ee;">
+            <select id="src-loc-${ri}" disabled onchange="onSrcLocChange(${ri}, this.value)" style="border-color:#fde68a;">
                 <option value="">-- Ô chứa --</option>
             </select>
         </td>
-        <td style="padding:8px 10px; background:#fef9ee;">
-            <select id="src-product-${ri}" class="form-select form-select-sm" style="font-size:12px; border-color:#fde68a; min-width:160px;" disabled
-                    onchange="onProductChange(${ri}, this.value)">
+        <td style="background:#fef9ee;">
+            <select id="src-product-${ri}" disabled onchange="onProductChange(${ri}, this.value)" style="border-color:#fde68a;">
                 <option value="">-- Chọn SP / Lô --</option>
             </select>
         </td>
 
         <!-- ARROW -->
-        <td style="padding:8px; text-align:center; color:#94a3b8; font-size:16px;">→</td>
+        <td style="text-align:center; color:#94a3b8; font-size:16px;">→</td>
 
         <!-- DEST -->
-        <td style="padding:8px 10px; background:#eff6ff;">
-            <select id="dst-zone-${ri}" class="form-select form-select-sm" style="font-size:12px; border-color:#bfdbfe; min-width:100px;"
-                    onchange="onDstZoneChange(${ri}, this.value)">
+        <td style="background:#eff6ff;">
+            <select id="dst-zone-${ri}" onchange="onDstZoneChange(${ri}, this.value)" style="border-color:#bfdbfe;">
                 <option value="">-- Zone --</option>
                 ${zoneOptions}
             </select>
         </td>
-        <td style="padding:8px 10px; background:#eff6ff;">
-            <select id="dst-rack-${ri}" class="form-select form-select-sm" style="font-size:12px; border-color:#bfdbfe; min-width:100px;" disabled
-                    onchange="onDstRackChange(${ri}, this.value)">
+        <td style="background:#eff6ff;">
+            <select id="dst-rack-${ri}" disabled onchange="onDstRackChange(${ri}, this.value)" style="border-color:#bfdbfe;">
                 <option value="">-- Kệ --</option>
             </select>
         </td>
-        <td style="padding:8px 10px; background:#eff6ff;">
-            <select id="dst-loc-${ri}" class="form-select form-select-sm" style="font-size:12px; border-color:#bfdbfe; min-width:110px;" disabled>
+        <td style="background:#eff6ff;">
+            <select id="dst-loc-${ri}" disabled style="border-color:#bfdbfe;">
                 <option value="">-- Ô đích --</option>
             </select>
         </td>
 
         <!-- QTY & UOM -->
-        <td style="padding:8px 10px;">
-            <input type="number" id="qty-${ri}" min="0.001" step="0.001"
-                   class="form-control form-control-sm" placeholder="0"
-                   style="font-size:13px; font-weight:700; text-align:right; min-width:80px;" />
+        <td>
+            <input type="text" id="qty-${ri}" placeholder="0" style="font-weight:700; text-align:right; width: 100%; padding: 7px 10px; border: 1px solid var(--line-strong); border-radius: 4px;" oninput="this.value = this.value.replace(/[^0-9.,]/g, '')" />
         </td>
-        <td style="padding:8px 10px; text-align:center;">
+        <td style="text-align:center;">
             <span id="uom-${ri}" style="font-size:12px; color:#64748b; font-weight:500;">—</span>
         </td>
-        <td style="padding:8px 10px; text-align:center;">
-            <button type="button" onclick="removeRow(${ri})"
-                    style="background:none; border:none; color:#ef4444; font-size:16px; cursor:pointer; padding:4px;">
+        <td style="text-align:center;">
+            <button type="button" class="btn-remove" onclick="removeRow(${ri})">
                 <i class="ri-delete-bin-line"></i>
             </button>
         </td>`;
@@ -306,7 +279,6 @@
         rackSel.disabled = false;
         const racks = await fetchRacks(zoneId);
         populateSelect(rackSel, racks, r => r.rackId, r => `${r.rackCode} - ${r.rackName}`, '-- Kệ --');
-        // Also load locations directly by zone (for locations not in a rack)
         locSel.disabled = false;
         const locs = await fetchLocations(null, zoneId, null);
         populateSelect(locSel, locs, l => l.locationId, l => l.locationCode, '-- Ô chứa --');
@@ -363,7 +335,7 @@
         const avail = selectedOpt?.dataset.avail || '';
         document.getElementById(`uom-${ri}`).textContent = unit;
         const qtyInput = document.getElementById(`qty-${ri}`);
-        if (avail) qtyInput.max = avail;
+        // if (avail) qtyInput.max = avail;
     }
 
     // ── Cascade: Dest Zone → Rack ──────────────────────────────────────────
@@ -466,7 +438,10 @@
             const srcLocId  = document.getElementById(`src-loc-${ri}`)?.value;
             const dstLocId  = document.getElementById(`dst-loc-${ri}`)?.value;
             const productVal = document.getElementById(`src-product-${ri}`)?.value; // "productId|lotId"
-            const qty = parseFloat(document.getElementById(`qty-${ri}`)?.value || '0');
+            
+            let qtyStr = document.getElementById(`qty-${ri}`)?.value || '0';
+            qtyStr = qtyStr.replace(',', '.');
+            const qty = parseFloat(qtyStr);
 
             if (!srcLocId || !dstLocId || !productVal || qty <= 0) {
                 valid = false;
@@ -499,10 +474,7 @@
     }
 
     // ── API Fetch helpers ──────────────────────────────────────────────────
-
-    function initZoneDropdown(selectId, ri, side) {
-        // already populated via buildRowHtml with ZONES
-    }
+    function initZoneDropdown(selectId, ri, side) {}
 
     async function fetchRacks(zoneId) {
         try {
@@ -535,7 +507,6 @@
     }
 
     // ── DOM helpers ────────────────────────────────────────────────────────
-
     function resetSelect(sel, placeholder) {
         sel.innerHTML = `<option value="">${placeholder}</option>`;
         sel.disabled = true;

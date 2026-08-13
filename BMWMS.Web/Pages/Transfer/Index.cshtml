@@ -31,21 +31,7 @@
         </div>
     </div>
 
-    <!-- TOAST THÔNG BÁO -->
-    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
-    {
-        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 14px 18px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px;">
-            <i class="ri-checkbox-circle-fill" style="font-size: 20px; color: #16a34a;"></i>
-            <div style="font-weight: 600; color: #15803d; font-size: 14px;">@Model.SuccessMessage</div>
-        </div>
-    }
-    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
-    {
-        <div style="background: #fff5f5; border: 1px solid #fecaca; border-radius: 10px; padding: 14px 18px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px;">
-            <i class="ri-error-warning-fill" style="font-size: 20px; color: #dc2626;"></i>
-            <div style="font-weight: 600; color: #dc2626; font-size: 14px;">@Model.ErrorMessage</div>
-        </div>
-    }
+
 
     <!-- 4 CARD THỐNG KÊ -->
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 20px;">
@@ -259,40 +245,26 @@
         </div>
 
         <!-- PHÂN TRANG -->
-        @if (Model.PagedResult.TotalPages > 1)
+        @if (Model.PagedResult.TotalCount > 0)
         {
+            var totalPages = Model.PagedResult.TotalPages > 0 ? Model.PagedResult.TotalPages : 1;
             <div style="display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; background: #f8fafc; border-top: 1px solid #e2e8f0; font-size: 13px; color: #64748b;">
                 <div>
                     Hiển thị <strong>@(((Model.PagedResult.PageIndex - 1) * Model.PagedResult.PageSize) + 1)</strong> -
                     <strong>@(Math.Min(Model.PagedResult.PageIndex * Model.PagedResult.PageSize, Model.PagedResult.TotalCount))</strong>
                     trong tổng số <strong>@Model.PagedResult.TotalCount</strong> phiếu
                 </div>
-                <nav>
-                    <ul class="pagination pagination-sm mb-0" style="gap: 4px;">
-                        <!-- First & Prev -->
-                        <li class="page-item @(Model.PagedResult.PageIndex == 1 ? "disabled" : "")">
-                            <a class="page-link" href="/Transfer/Index?PageIndex=1&PageSize=@Model.PageSize&Keyword=@Model.Keyword&Status=@Model.Status&WarehouseId=@Model.WarehouseId">««</a>
-                        </li>
-                        <li class="page-item @(Model.PagedResult.PageIndex == 1 ? "disabled" : "")">
-                            <a class="page-link" href="/Transfer/Index?PageIndex=@(Model.PagedResult.PageIndex - 1)&PageSize=@Model.PageSize&Keyword=@Model.Keyword&Status=@Model.Status&WarehouseId=@Model.WarehouseId">«</a>
-                        </li>
-
-                        @for (int p = Math.Max(1, Model.PagedResult.PageIndex - 2); p <= Math.Min(Model.PagedResult.TotalPages, Model.PagedResult.PageIndex + 2); p++)
-                        {
-                            <li class="page-item @(p == Model.PagedResult.PageIndex ? "active" : "")">
-                                <a class="page-link" href="/Transfer/Index?PageIndex=@p&PageSize=@Model.PageSize&Keyword=@Model.Keyword&Status=@Model.Status&WarehouseId=@Model.WarehouseId">@p</a>
-                            </li>
-                        }
-
-                        <!-- Next & Last -->
-                        <li class="page-item @(Model.PagedResult.PageIndex == Model.PagedResult.TotalPages ? "disabled" : "")">
-                            <a class="page-link" href="/Transfer/Index?PageIndex=@(Model.PagedResult.PageIndex + 1)&PageSize=@Model.PageSize&Keyword=@Model.Keyword&Status=@Model.Status&WarehouseId=@Model.WarehouseId">»</a>
-                        </li>
-                        <li class="page-item @(Model.PagedResult.PageIndex == Model.PagedResult.TotalPages ? "disabled" : "")">
-                            <a class="page-link" href="/Transfer/Index?PageIndex=@Model.PagedResult.TotalPages&PageSize=@Model.PageSize&Keyword=@Model.Keyword&Status=@Model.Status&WarehouseId=@Model.WarehouseId">»»</a>
-                        </li>
-                    </ul>
-                </nav>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <a href="/Transfer/Index?PageIndex=@(Model.PagedResult.PageIndex - 1)&PageSize=@Model.PageSize&Keyword=@Model.Keyword&Status=@Model.Status&WarehouseId=@Model.WarehouseId" 
+                       class="btn btn-light btn-sm" style="padding:6px 10px; border: 1px solid #e2e8f0; border-radius: 6px; @(Model.PagedResult.PageIndex == 1 ? "pointer-events: none; opacity: 0.5;" : "")">
+                        <i class="ri-arrow-left-s-line" style="font-size: 16px;"></i>
+                    </a>
+                    <span style="font-weight: 600; color: #0f172a; padding: 0 4px;">@Model.PagedResult.PageIndex / @totalPages</span>
+                    <a href="/Transfer/Index?PageIndex=@(Model.PagedResult.PageIndex + 1)&PageSize=@Model.PageSize&Keyword=@Model.Keyword&Status=@Model.Status&WarehouseId=@Model.WarehouseId" 
+                       class="btn btn-light btn-sm" style="padding:6px 10px; border: 1px solid #e2e8f0; border-radius: 6px; @(Model.PagedResult.PageIndex >= totalPages ? "pointer-events: none; opacity: 0.5;" : "")">
+                        <i class="ri-arrow-right-s-line" style="font-size: 16px;"></i>
+                    </a>
+                </div>
             </div>
         }
     </div>

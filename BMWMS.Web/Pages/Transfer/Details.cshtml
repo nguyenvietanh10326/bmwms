@@ -2,7 +2,8 @@
 @model BMWMS.Web.Pages.Transfer.DetailsModel
 @{
     Layout = "_AdminLayout";
-    ViewData["Title"] = $"Chi Tiết Phiếu {Model.Order?.TransferOrderNumber}";
+    ViewData["Title"] = $"Chi tiết phiếu điều chuyển {Model.Order?.TransferOrderNumber}";
+    ViewData["ActivePage"] = "Transfer";
 
     var status = Model.Order?.Status ?? "";
     var isDraft    = status == "DRAFT";
@@ -16,322 +17,268 @@
     var tempError   = TempData["ErrorMessage"] as string;
 }
 
-<div class="container-fluid" style="padding:24px; max-width:1440px; margin:0 auto;">
+<style>
+  :root{
+    --font-ui:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    --font-mono:"IBM Plex Mono",ui-monospace,monospace;
 
-    <!-- ── BREADCRUMB & HEADER ──────────────────────────────────────────── -->
-    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px; flex-wrap:wrap; gap:16px;">
+    --navy-950:#233a6b; --navy-900:#1b2d56; --navy-800:#152d57;
+    --accent:#3e5cf6; --accent-600:#3149d4; --accent-100:#e8ecff;
+
+    --bg:#f2f3f7; --card:#ffffff; --line:#e7e9f0; --line-strong:#d7dae5;
+    --ink:#161b2e; --ink-2:#525a72; --ink-3:#8890a6; --ink-4:#aeb4c6;
+
+    --g-bg:#e2f8ea; --g-tx:#0f7a3e; --g-dot:#1fa855;
+    --y-bg:#fef3d6; --y-tx:#93650a; --y-dot:#e2a336;
+    --gy-bg:#eceef3; --gy-tx:#565f78; --gy-dot:#9aa1b5;
+    --r-bg:#fce3e4; --r-tx:#c1222f; --r-dot:#e2454f;
+    --b-bg:#e3eaff; --b-tx:#2c48d8; --b-dot:#5876f2;
+
+    --sh-xs:0 1px 2px rgba(16,23,42,.05);
+    --sh-sm:0 1px 2px rgba(16,23,42,.04),0 4px 10px -4px rgba(16,23,42,.07);
+    --r-sm:8px; --r-lg:16px;
+    --ease:cubic-bezier(.4,0,.2,1);
+  }
+  
+  .transfer-page {
+    font-family: var(--font-ui);
+    color: var(--ink);
+    font-size: 14px;
+    line-height: 1.45;
+    padding: 26px 30px 64px;
+  }
+  .transfer-page * { box-sizing: border-box; }
+  .transfer-page button{font-family:inherit;}
+
+  .transfer-page .breadcrumb{font-size:11.5px;color:var(--ink-3);margin-bottom:8px;font-weight:600;letter-spacing:.02em;text-transform:uppercase; display:block; padding:0; background:transparent;}
+  .transfer-page .pagehead{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;gap:20px;}
+  .transfer-page .pagehead h1{font-size:20px;margin:0 0 5px;letter-spacing:-.01em;font-weight:700;}
+  .transfer-page .pagehead p{margin:0;color:var(--ink-2);font-size:13px;max-width:560px;}
+
+  .transfer-page .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);padding:22px 24px;margin-bottom:16px;box-shadow:var(--sh-xs);}
+  .transfer-page .card h3{margin:0 0 14px;font-size:14px;font-weight:700;letter-spacing:-.005em;display:flex;align-items:center;gap:8px;}
+  .transfer-page .row{display:flex;justify-content:space-between;align-items:center;}
+
+  .transfer-page .badge{display:inline-flex;align-items:center;gap:6px;padding:3.5px 10px 3.5px 8px;border-radius:999px;font-size:11.5px;font-weight:600;}
+  .transfer-page .badge .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+  .transfer-page .b-g{background:var(--g-bg);color:var(--g-tx);} .transfer-page .b-g .dot{background:var(--g-dot);}
+  .transfer-page .b-y{background:var(--y-bg);color:var(--y-tx);} .transfer-page .b-y .dot{background:var(--y-dot);}
+  .transfer-page .b-gy{background:var(--gy-bg);color:var(--gy-tx);} .transfer-page .b-gy .dot{background:var(--gy-dot);}
+  .transfer-page .b-r{background:var(--r-bg);color:var(--r-tx);} .transfer-page .b-r .dot{background:var(--r-dot);}
+  .transfer-page .b-b{background:var(--b-bg);color:var(--b-tx);} .transfer-page .b-b .dot{background:var(--b-dot);}
+
+  .transfer-page table{width:100%;border-collapse:collapse;font-size:13px;}
+  .transfer-page th{text-align:left;color:var(--ink-3);font-weight:600;font-size:11px;letter-spacing:.03em;padding:0 10px 10px;border-bottom:1px solid var(--line);}
+  .transfer-page th.num, .transfer-page td.num{text-align:right;}
+  .transfer-page td{padding:13px 10px;border-bottom:1px solid var(--line);vertical-align:middle;color:var(--ink);}
+  .transfer-page td.num{font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-size:12.5px;}
+  .transfer-page tbody tr:hover{background:#f8f9fc;}
+  .transfer-page tr:last-child td{border-bottom:none;}
+  .transfer-page .prod-code{font-family:var(--font-mono);font-size:11px;background:var(--gy-bg);color:var(--ink-2);padding:1.5px 6px;border-radius:5px;margin-right:6px;font-weight:600;}
+  .transfer-page .muted{color:var(--ink-3);}
+  .transfer-page .small{font-size:12px;}
+  .transfer-page .stat-strip{display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:12px;border-top:1px solid var(--line);}
+
+  .transfer-page .grid2{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
+  .transfer-page .grid2 label{display:block;font-size:11.5px;color:var(--ink-3);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.02em;}
+  .transfer-page .grid2 .field input{width:100%;padding:9px 11px;border:1px solid var(--line-strong);border-radius:var(--r-sm);font-size:13px;background:#fff;color:var(--ink);}
+  .transfer-page .grid2 .field input[disabled]{background:#f7f8fb;color:var(--ink-3);border-color:var(--line);}
+  
+  .transfer-page .btn{display:inline-flex;align-items:center;gap:7px;border:none;border-radius:var(--r-sm);padding:9px 15px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s var(--ease); text-decoration:none;}
+  .transfer-page .btn svg{width:15px;height:15px;}
+  .transfer-page .btn-dark{background:var(--navy-950);color:#fff;box-shadow:var(--sh-xs);}
+  .transfer-page .btn-dark:hover{background:#1c2340;transform:translateY(-1px);box-shadow:var(--sh-sm); color:#fff;}
+  .transfer-page .btn-primary{background:var(--accent-600);color:#fff;box-shadow:var(--sh-xs);}
+  .transfer-page .btn-primary:hover{background:#1d4ed8;color:#fff;}
+  .transfer-page .btn-success{background:#16a34a;color:#fff;}
+  .transfer-page .btn-success:hover{background:#15803d;color:#fff;}
+  .transfer-page .btn-danger{background:#dc2626;color:#fff;}
+  .transfer-page .btn-danger:hover{background:#b91c1c;color:#fff;}
+  .transfer-page .btn-light{background:#fff;border:1px solid var(--line-strong);color:var(--ink);}
+  .transfer-page .btn-light:hover{border-color:var(--ink-4);background:#fafafd; color:var(--ink);}
+</style>
+
+<svg width="0" height="0" style="position:absolute; display:none;">
+    <symbol id="i-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></symbol>
+</svg>
+
+<div class="transfer-page">
+    <div class="breadcrumb">
+        <a href="/Transfer/Index" style="color:var(--ink-3); text-decoration:none;">Điều chuyển kho</a>
+        <svg style="width:12px; height:12px; display:inline-block; vertical-align:middle; margin:0 4px;"><use href="#i-chev"/></svg>
+        <span>Chi tiết phiếu</span>
+    </div>
+    <div class="pagehead">
         <div>
-            <div style="font-size:13px; color:#64748b; margin-bottom:4px; display:flex; align-items:center; gap:6px;">
-                <span>Nghiệp vụ kho</span>
-                <i class="ri-arrow-right-s-line"></i>
-                <a href="/Transfer/Index" style="color:#64748b; text-decoration:none;">Điều chuyển kho</a>
-                <i class="ri-arrow-right-s-line"></i>
-                <span style="color:#2563eb; font-weight:500;">Chi tiết phiếu</span>
-            </div>
-            <h1 style="font-size:22px; font-weight:700; color:#0f172a; margin:0; display:flex; align-items:center; gap:10px;">
-                <span>@Model.Order?.TransferOrderNumber</span>
-
-                @if (isDraft)
-                {
-                    <span style="background:#fffbeb; color:#b45309; border:1px solid #fde68a; padding:4px 12px; border-radius:20px; font-size:13px; font-weight:600;">
-                        <i class="ri-time-line"></i> Chờ phê duyệt
-                    </span>
-                }
-                else if (isApproved)
-                {
-                    <span style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; padding:4px 12px; border-radius:20px; font-size:13px; font-weight:600;">
-                        <i class="ri-checkbox-circle-line"></i> Đã duyệt — Chờ thực hiện
-                    </span>
-                }
-                else if (isInProgress)
-                {
-                    <span style="background:#ecfeff; color:#0e7490; border:1px solid #a5f3fc; padding:4px 12px; border-radius:20px; font-size:13px; font-weight:600;">
-                        <i class="ri-truck-line"></i> @(inventoryPosted ? "Da nhap - hoan thanh" : "Da xuat - dang di chuyen")
-                    </span>
-                }
-                else if (isDone)
-                {
-                    <span style="background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; padding:4px 12px; border-radius:20px; font-size:13px; font-weight:600;">
-                        <i class="ri-checkbox-circle-fill"></i> Đã hoàn thành
-                    </span>
-                }
-                else if (isCancelled)
-                {
-                    <span style="background:#fff5f5; color:#b91c1c; border:1px solid #fecaca; padding:4px 12px; border-radius:20px; font-size:13px; font-weight:600;">
-                        <i class="ri-close-circle-line"></i> Đã hủy
-                    </span>
-                }
-            </h1>
+            <h1>Chi tiết lệnh điều chuyển — @Model.Order?.TransferOrderNumber</h1>
+            <p>Thông tin phiếu, hàng hóa, vị trí lưu trữ và kết quả thực hiện.</p>
         </div>
+        @{
+            var statusClass = "b-gy";
+            var statusName = status;
+            if (isDraft) { statusClass = "b-y"; statusName = "Chờ phê duyệt"; }
+            else if (isApproved) { statusClass = "b-b"; statusName = "Đã duyệt"; }
+            else if (isInProgress) { statusClass = "b-b"; statusName = inventoryPosted ? "Đã nhập" : "Đã xuất"; }
+            else if (isDone) { statusClass = "b-g"; statusName = "Hoàn thành"; }
+            else if (isCancelled) { statusClass = "b-r"; statusName = "Đã hủy"; }
+        }
+        <div style="display:flex; align-items:flex-end; flex-direction:column; gap:10px;">
+            <span class="badge @statusClass"><span class="dot"></span>@statusName</span>
+            <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-start;">
+                @if (Model.Order?.CanEdit == true && Model.IsManager)
+                {
+                    <a href="/Transfer/Create?id=@Model.Order.TransferOrderId" class="btn btn-light" style="padding: 6px 12px; color: var(--accent-600);">
+                        <i class="ri-edit-line"></i> Sửa phiếu
+                    </a>
+                }
 
-        <!-- ACTION BUTTONS -->
-        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-start;">
-            <a href="/Transfer/Index" class="btn btn-outline-secondary btn-sm" style="display:inline-flex; align-items:center; gap:6px;">
-                <i class="ri-arrow-left-line"></i> Danh sách
-            </a>
+                @if (isDraft && Model.IsManager)
+                {
+                    <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#approveModal" style="padding: 6px 12px;">
+                        <i class="ri-check-line"></i> Phê duyệt
+                    </button>
+                    <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#rejectModal" style="padding: 6px 12px;">
+                        <i class="ri-close-line"></i> Từ chối
+                    </button>
+                }
 
-            @if (Model.Order?.CanEdit == true && Model.IsManager)
-            {
-                <a href="/Transfer/Create?id=@Model.Order.TransferOrderId" class="btn btn-outline-primary btn-sm"
-                   style="display:inline-flex; align-items:center; gap:6px; font-weight:600;">
-                    <i class="ri-edit-line"></i> Sua phieu
-                </a>
-            }
+                @if (Model.Order?.CanIssue == true && Model.IsStaff)
+                {
+                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#issueModal" style="padding: 6px 12px;">
+                        <i class="ri-logout-box-r-line"></i> Xác nhận xuất
+                    </button>
+                }
 
-            @if (isDraft && Model.IsManager)
-            {
-                <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#approveModal"
-                        style="display:inline-flex; align-items:center; gap:6px; font-weight:600;">
-                    <i class="ri-check-line"></i> Phê duyệt
-                </button>
-                <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#rejectModal"
-                        style="display:inline-flex; align-items:center; gap:6px; font-weight:600;">
-                    <i class="ri-close-line"></i> Từ chối
-                </button>
-            }
-
-            @if (Model.Order?.CanIssue == true && Model.IsStaff)
-            {
-                <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#issueModal"
-                        style="display:inline-flex; align-items:center; gap:6px; font-weight:700; background:#2563eb; border:none; padding:8px 18px; box-shadow:0 2px 6px rgba(37,99,235,0.25);">
-                    <i class="ri-logout-box-r-line"></i> Xác nhận xuất
-                </button>
-            }
-
-            @if (Model.Order?.CanReceive == true && Model.IsStaff)
-            {
-                <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#receiveModal"
-                        style="display:inline-flex; align-items:center; gap:6px; font-weight:700; background:#0e7490; border:none; padding:8px 18px; box-shadow:0 2px 6px rgba(14,116,144,0.25);">
-                    <i class="ri-login-box-line"></i> Xac nhan nhap
-                </button>
-            }
-
+                @if (Model.Order?.CanReceive == true && Model.IsStaff)
+                {
+                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#receiveModal" style="padding: 6px 12px; background: #0e7490;">
+                        <i class="ri-login-box-line"></i> Xác nhận nhập
+                    </button>
+                }
+            </div>
         </div>
     </div>
 
-    <!-- TOASTS -->
-    @if (!string.IsNullOrEmpty(tempSuccess))
-    {
-        <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:14px 18px; margin-bottom:20px; display:flex; align-items:center; gap:12px;">
-            <i class="ri-checkbox-circle-fill" style="font-size:20px; color:#16a34a;"></i>
-            <div style="font-weight:600; color:#15803d; font-size:14px;">@tempSuccess</div>
-        </div>
-    }
-    @if (!string.IsNullOrEmpty(tempError))
-    {
-        <div style="background:#fff5f5; border:1px solid #fecaca; border-radius:10px; padding:14px 18px; margin-bottom:20px; display:flex; align-items:center; gap:12px;">
-            <i class="ri-error-warning-fill" style="font-size:20px; color:#dc2626;"></i>
-            <div style="font-weight:600; color:#dc2626; font-size:14px;">@tempError</div>
-        </div>
-    }
 
-    <!-- STATUS GUIDE (khi APPROVED, staff chưa confirm) -->
-    @if (Model.Order?.CanIssue == true && Model.IsStaff)
-    {
-        <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:12px 16px; margin-bottom:20px; font-size:13px; color:#1e40af; display:flex; align-items:center; gap:10px;">
-            <i class="ri-truck-line" style="font-size:20px; color:#2563eb;"></i>
-            <div>Phiếu đã được <strong>phê duyệt</strong>. Nhân viên phụ trách xuất hàng khỏi ô nguồn rồi nhấn <strong>"Xác nhận xuất"</strong> để chuyển sang bước đang di chuyển.</div>
-        </div>
-    }
-    @if (Model.Order?.CanReceive == true && Model.IsStaff)
-    {
-        <div style="background:#ecfeff; border:1px solid #a5f3fc; border-radius:10px; padding:12px 16px; margin-bottom:20px; font-size:13px; color:#0e7490; display:flex; align-items:center; gap:10px;">
-            <i class="ri-login-box-line" style="font-size:20px; color:#0e7490;"></i>
-            <div>Hang da xuat kho nguon. Khi hang den vi tri dich, nhan <strong>"Xac nhan nhap"</strong> de cap nhat ton kho.</div>
-        </div>
-    }
+
     @if (Model.Order != null)
     {
-        <div class="row g-4">
+        <div class="card">
+            <h3>Thông tin chung</h3>
+            <div class="grid2">
+                <div class="field"><label>Mã phiếu</label><input disabled value="@Model.Order.TransferOrderNumber"></div>
+                <div class="field"><label>Kho hàng</label><input disabled value="@Model.Order.WarehouseName"></div>
+                <div class="field"><label>Ngày tạo</label><input disabled value="@Model.Order.RequestedDate.ToString("dd/MM/yyyy")"></div>
+                <div class="field"><label>Ngày dự kiến hoàn thành</label><input disabled value="@(Model.Order.DueDate.HasValue ? Model.Order.DueDate.Value.ToString("dd/MM/yyyy") : "—")"></div>
+                
+                <div class="field"><label>Người lập lệnh</label><input disabled value="@Model.Order.CreatedByName"></div>
+                <div class="field"><label>Nhân viên phụ trách</label><input disabled value="@(string.IsNullOrEmpty(Model.Order.AssignedToName) ? "—" : Model.Order.AssignedToName)"></div>
+                
+                @if (!string.IsNullOrEmpty(Model.Order.ConfirmedByName))
+                {
+                    <div class="field"><label>@(isDone ? "Người xác nhận" : "Người duyệt")</label><input disabled value="@Model.Order.ConfirmedByName"></div>
+                }
+                @if (!string.IsNullOrEmpty(Model.Order.Notes))
+                {
+                    <div class="field" style="grid-column: span 4;"><label>Ghi chú</label><input disabled value="@Model.Order.Notes"></div>
+                }
+            </div>
+        </div>
 
-            <!-- ── CỘT THÔNG TIN ──────────────────────────────────────────── -->
-            <div class="col-lg-4">
-                <div style="background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.04);">
-                    <h3 style="font-size:15px; font-weight:700; color:#0f172a; margin-bottom:16px; border-bottom:1px solid #f1f5f9; padding-bottom:10px;">
-                        <i class="ri-file-info-line" style="color:#2563eb; margin-right:6px;"></i>Thông Tin Phiếu
-                    </h3>
-
-                    <div style="display:grid; gap:13px; font-size:13px;">
-                        <!-- Mã phiếu -->
-                        <div>
-                            <span style="color:#64748b; font-size:11px; font-weight:600; display:block; text-transform:uppercase;">Mã phiếu</span>
-                            <strong style="color:#2563eb; font-size:15px;">@Model.Order.TransferOrderNumber</strong>
-                        </div>
-
-                        <!-- Kho hàng -->
-                        <div>
-                            <span style="color:#64748b; font-size:11px; font-weight:600; display:block; text-transform:uppercase;">Kho hàng</span>
-                            <span style="font-weight:600; color:#1e293b;">@Model.Order.WarehouseName</span>
-                        </div>
-
-                        <!-- Ngày tạo -->
-                        <div>
-                            <span style="color:#64748b; font-size:11px; font-weight:600; display:block; text-transform:uppercase;">Ngày tạo</span>
-                            <span style="color:#1e293b;">@Model.Order.RequestedDate.ToString("dd/MM/yyyy")</span>
-                        </div>
-
-                        @if (Model.Order.DueDate.HasValue)
+        <div class="card">
+            <h3>Dòng hàng & số lượng (@Model.Order.Details.Count dòng)</h3>
+            <div style="overflow-x:auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 5%">#</th>
+                            <th style="width: 25%">Sản phẩm</th>
+                            <th style="width: 15%">Lô hàng</th>
+                            <th style="width: 15%; padding-left: 10px;">Ô nguồn</th>
+                            <th style="width: 15%; padding-left: 10px;">Ô đích</th>
+                            <th class="num" style="width: 15%;">SL Yêu cầu</th>
+                            <th style="width: 10%; text-align:center;">Kết quả</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (int i = 0; i < Model.Order.Details.Count; i++)
                         {
-                            <!-- Ngày dự kiến -->
-                            <div>
-                                <span style="color:#64748b; font-size:11px; font-weight:600; display:block; text-transform:uppercase;">Ngày dự kiến hoàn thành</span>
-                                <span style="color:#d97706; font-weight:600;">
-                                    <i class="ri-calendar-event-line"></i> @Model.Order.DueDate.Value.ToString("dd/MM/yyyy")
-                                </span>
-                            </div>
+                            var d = Model.Order.Details[i];
+                            bool fullMoved = (isInProgress || isDone) && d.MovedQuantity >= d.RequestedQuantity;
+                            <tr>
+                                <td style="color:var(--ink-3); font-weight:700;">@(i + 1)</td>
+                                <td>
+                                    <span class="prod-code">@d.ProductCode</span>
+                                    <span style="font-weight:600;">@d.ProductName</span>
+                                </td>
+                                <td>
+                                    <span style="background:var(--bg); border: 1px solid var(--line-strong); padding:3px 8px; border-radius:6px; font-size:12px; font-weight: 600;">@d.LotNumber</span>
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(d.SourceZoneCode))
+                                    {
+                                        <div style="font-size:11px; color:var(--ink-3); margin-bottom: 2px;">@d.SourceZoneCode / @d.SourceRackCode</div>
+                                    }
+                                    <span style="background:#fef3c7; color:#92400e; padding:3px 8px; border-radius:6px; font-weight:700; font-size:12px;">@d.SourceLocationCode</span>
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(d.DestZoneCode))
+                                    {
+                                        <div style="font-size:11px; color:var(--ink-3); margin-bottom: 2px;">@d.DestZoneCode / @d.DestRackCode</div>
+                                    }
+                                    <span style="background:#dbeafe; color:#1e40af; padding:3px 8px; border-radius:6px; font-weight:700; font-size:12px;">@d.DestLocationCode</span>
+                                </td>
+                                <td class="num">
+                                    <div style="font-weight:700;">@d.RequestedQuantity.ToString("N2") @d.UnitName</div>
+                                    @if (isInProgress || isDone)
+                                    {
+                                        <div style="font-size: 11px; color: var(--ink-3); margin-top: 3px;">Đã chuyển: <span style="color: @(fullMoved ? "#16a34a" : "#64748b"); font-family:var(--font-mono);">@d.MovedQuantity.ToString("N2")</span></div>
+                                    }
+                                </td>
+                                <td style="text-align:center;">
+                                    @if (isInProgress || isDone)
+                                    {
+                                        if (fullMoved)
+                                        {
+                                            <span class="badge b-g">✓ Đủ</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge b-r">⚠ Thiếu</span>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <span class="muted" style="font-size:11px;">—</span>
+                                    }
+                                </td>
+                            </tr>
                         }
-
-                        <hr style="margin:4px 0; border-color:#f1f5f9;" />
-
-                        <!-- Người tạo -->
-                        <div>
-                            <span style="color:#64748b; font-size:11px; font-weight:600; display:block; text-transform:uppercase;">Người lập lệnh</span>
-                            <span style="font-weight:600; color:#1e293b;">@Model.Order.CreatedByName</span>
-                            <span style="display:block; font-size:11px; color:#94a3b8;">@Model.Order.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
-                        </div>
-
-                        <!-- Staff được assign -->
-                        <div>
-                            <span style="color:#64748b; font-size:11px; font-weight:600; display:block; text-transform:uppercase;">Nhân viên phụ trách</span>
-                            @if (!string.IsNullOrEmpty(Model.Order.AssignedToName))
-                            {
-                                <span style="background:#eff6ff; color:#1d4ed8; padding:3px 10px; border-radius:20px; font-size:12px; font-weight:600; display:inline-flex; align-items:center; gap:4px;">
-                                    <i class="ri-user-line"></i> @Model.Order.AssignedToName
-                                </span>
-                            }
-                            else
-                            {
-                                <span style="color:#94a3b8; font-style:italic; font-size:12px;">Chưa assign</span>
-                            }
-                        </div>
-
-                        <!-- Người duyệt / confirm -->
-                        @if (!string.IsNullOrEmpty(Model.Order.ConfirmedByName))
-                        {
-                            <div>
-                                <span style="color:#64748b; font-size:11px; font-weight:600; display:block; text-transform:uppercase;">
-                                    @(isDone ? "Người xác nhận" : "Người duyệt")
-                                </span>
-                                <span style="font-weight:600; color:#1e293b;">@Model.Order.ConfirmedByName</span>
-                                @if (Model.Order.ConfirmedAt.HasValue)
-                                {
-                                    <span style="display:block; font-size:11px; color:#94a3b8;">@Model.Order.ConfirmedAt.Value.ToString("dd/MM/yyyy HH:mm")</span>
-                                }
-                            </div>
-                        }
-
-                        <!-- Ghi chú -->
-                        @if (!string.IsNullOrEmpty(Model.Order.Notes))
-                        {
-                            <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:10px 12px;">
-                                <span style="color:#64748b; font-size:11px; font-weight:600; display:block; text-transform:uppercase; margin-bottom:4px;">Ghi chú</span>
-                                <span style="color:#334155; white-space:pre-line; font-size:12px;">@Model.Order.Notes</span>
-                            </div>
-                        }
-                    </div>
-                </div>
+                    </tbody>
+                </table>
             </div>
 
-            <!-- ── BẢNG HÀNG HÓA ────────────────────────────────────────── -->
-            <div class="col-lg-8">
-                <div style="background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.04);">
-                    <h3 style="font-size:15px; font-weight:700; color:#0f172a; margin-bottom:16px; border-bottom:1px solid #f1f5f9; padding-bottom:10px;">
-                        <i class="ri-box-3-line" style="color:#2563eb; margin-right:6px;"></i>Chi Tiết Hàng Hóa Điều Chuyển
-                        <span style="font-size:13px; font-weight:500; color:#64748b;">(@Model.Order.Details.Count dòng)</span>
-                    </h3>
-
-                    <div style="overflow-x:auto;">
-                        <table class="table align-middle" style="margin:0; font-size:13px;">
-                            <thead>
-                                <tr style="background:#f8fafc; border-bottom:2px solid #e2e8f0; color:#475569; font-size:11px; text-transform:uppercase; letter-spacing:0.04em;">
-                                    <th style="padding:10px 12px;">#</th>
-                                    <th style="padding:10px 12px;">Sản phẩm</th>
-                                    <th style="padding:10px 12px;">Lô hàng</th>
-                                    <th style="padding:10px 12px; background:#fef9ee; border-left:2px solid #f59e0b; min-width:130px;">Ô nguồn</th>
-                                    <th style="padding:10px 12px; background:#eff6ff; border-left:2px solid #2563eb; min-width:130px;">Ô đích</th>
-                                    <th style="padding:10px 12px; text-align:right;">SL Yêu cầu</th>
-                                    <th style="padding:10px 12px; text-align:right;">SL Đã chuyển</th>
-                                    <th style="padding:10px 12px; text-align:center;">Kết quả</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @for (int i = 0; i < Model.Order.Details.Count; i++)
-                                {
-                                    var d = Model.Order.Details[i];
-                                    bool fullMoved = (isInProgress || isDone) && d.MovedQuantity >= d.RequestedQuantity;
-                                    <tr style="border-bottom:1px solid #f1f5f9;">
-                                        <td style="padding:12px; color:#94a3b8; font-weight:700;">@(i + 1)</td>
-                                        <td style="padding:12px;">
-                                            <div style="font-weight:700; color:#1e293b;">@d.ProductCode</div>
-                                            <div style="font-size:12px; color:#64748b;">@d.ProductName</div>
-                                        </td>
-                                        <td style="padding:12px; font-weight:600; color:#2563eb;">
-                                            <span style="background:#eff6ff; padding:3px 8px; border-radius:6px; font-size:12px;">@d.LotNumber</span>
-                                        </td>
-                                        <td style="padding:12px; background:#fef9ee20;">
-                                            @if (!string.IsNullOrEmpty(d.SourceZoneCode))
-                                            {
-                                                <div style="font-size:11px; color:#94a3b8;">@d.SourceZoneCode / @d.SourceRackCode</div>
-                                            }
-                                            <span style="background:#fef3c7; color:#92400e; padding:4px 10px; border-radius:6px; font-weight:700; font-size:12px;">
-                                                @d.SourceLocationCode
-                                            </span>
-                                        </td>
-                                        <td style="padding:12px; background:#eff6ff20;">
-                                            @if (!string.IsNullOrEmpty(d.DestZoneCode))
-                                            {
-                                                <div style="font-size:11px; color:#94a3b8;">@d.DestZoneCode / @d.DestRackCode</div>
-                                            }
-                                            <span style="background:#dbeafe; color:#1e40af; padding:4px 10px; border-radius:6px; font-weight:700; font-size:12px;">
-                                                @d.DestLocationCode
-                                            </span>
-                                        </td>
-                                        <td style="padding:12px; text-align:right; font-weight:700; color:#0f172a;">
-                                            @d.RequestedQuantity.ToString("N2") @d.UnitName
-                                        </td>
-                                        <td style="padding:12px; text-align:right; font-weight:700; color:@(fullMoved ? "#16a34a" : "#64748b");">
-                                            @d.MovedQuantity.ToString("N2") @d.UnitName
-                                        </td>
-                                        <td style="padding:12px; text-align:center;">
-                                            @if (isInProgress || isDone)
-                                            {
-                                                if (fullMoved)
-                                                {
-                                                    <span style="background:#f0fdf4; color:#15803d; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:700;">✓ Đủ</span>
-                                                }
-                                                else
-                                                {
-                                                    <span style="background:#fff5f5; color:#b91c1c; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:700;">⚠ Thiếu</span>
-                                                }
-                                            }
-                                            else
-                                            {
-                                                <span style="color:#94a3b8; font-size:11px;">—</span>
-                                            }
-                                        </td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-
-                    @if (isInProgress || isDone)
+            @if (isInProgress || isDone)
+            {
+                var sumRequested = Model.Order.Details.Sum(d => d.RequestedQuantity);
+                var sumMoved = Model.Order.Details.Sum(d => d.MovedQuantity);
+                <div class="stat-strip">
+                    <span class="small muted">Tổng yêu cầu @sumRequested.ToString("N2") · đã thực hiện @sumMoved.ToString("N2")</span>
+                    @if (sumMoved >= sumRequested)
                     {
-                        <div style="margin-top:16px; padding:12px 16px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; font-size:13px; color:#15803d; font-weight:600; text-align:right;">
-                            <i class="ri-checkbox-circle-fill"></i>
-                            Tổng thực hiện: <strong>@Model.Order.Details.Sum(d => d.MovedQuantity).ToString("N2")</strong> /
-                            Yêu cầu: <strong>@Model.Order.Details.Sum(d => d.RequestedQuantity).ToString("N2")</strong>
-                        </div>
+                        <b style="color:var(--g-tx)">Đủ số lượng</b>
+                    }
+                    else
+                    {
+                        <b style="color:var(--y-tx)">Thiếu: @((sumRequested - sumMoved).ToString("N2"))</b>
                     }
                 </div>
-            </div>
+            }
         </div>
     }
 </div>
 
-<!-- ══════════════════════════════════════════════════════
-     MODAL PHÊ DUYỆT
-══════════════════════════════════════════════════════ -->
+<!-- MODAL PHÊ DUYỆT -->
 @if (Model.IsManager && isDraft)
 {
     <div class="modal fade" id="approveModal" tabindex="-1" aria-hidden="true">
@@ -347,18 +294,15 @@
                     </div>
                     <div class="modal-body" style="font-size:13px; color:#334155;">
                         <p>Bạn xác nhận phê duyệt lệnh <strong>@Model.Order?.TransferOrderNumber</strong>?</p>
-                        <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:12px; margin-bottom:14px; font-size:12px; color:#1e40af;">
-                            ℹ️ Sau khi duyệt, nhân viên phụ trách sẽ thực hiện di chuyển hàng hóa thực tế và xác nhận.
-                            <strong>Tồn kho chỉ cập nhật khi nhân viên xác nhận đã di chuyển.</strong>
-                        </div>
+
                         <div class="mb-3">
                             <label class="form-label" style="font-weight:600; font-size:12px; color:#475569;">Ghi chú phê duyệt (tùy chọn)</label>
                             <textarea name="notes" class="form-control form-control-sm" rows="2" placeholder="Nhập ghi chú nếu có..."></textarea>
                         </div>
                     </div>
                     <div class="modal-footer" style="border-top:1px solid #f1f5f9;">
-                        <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Hủy</button>
-                        <button type="submit" class="btn btn-success btn-sm" style="font-weight:600; padding:6px 18px;">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="font-size: 13px; padding: 7px 14px;">Hủy</button>
+                        <button type="submit" class="btn btn-success" style="font-size: 13px; font-weight:600; padding:7px 18px;">
                             <i class="ri-check-line"></i> Phê Duyệt
                         </button>
                     </div>
@@ -386,8 +330,8 @@
                         </div>
                     </div>
                     <div class="modal-footer" style="border-top:1px solid #f1f5f9;">
-                        <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Hủy</button>
-                        <button type="submit" class="btn btn-danger btn-sm" style="font-weight:600; padding:6px 18px;">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="font-size: 13px; padding: 7px 14px;">Hủy</button>
+                        <button type="submit" class="btn btn-danger" style="font-size: 13px; font-weight:600; padding:7px 18px;">
                             <i class="ri-close-line"></i> Xác Nhận Từ Chối
                         </button>
                     </div>
@@ -397,9 +341,7 @@
     </div>
 }
 
-<!-- ══════════════════════════════════════════════════════
-     MODAL XÁC NHẬN DI CHUYỂN (Staff)
-══════════════════════════════════════════════════════ -->
+<!-- MODAL XÁC NHẬN DI CHUYỂN -->
 @if (Model.Order?.CanIssue == true && Model.IsStaff)
 {
     <div class="modal fade" id="issueModal" tabindex="-1" aria-hidden="true">
@@ -415,12 +357,8 @@
                     </div>
                     <div class="modal-body" style="font-size:13px; color:#334155;">
                         <p>Bạn xác nhận đã xuất hàng khỏi ô nguồn theo lệnh <strong>@Model.Order?.TransferOrderNumber</strong>?</p>
-                        <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:8px; padding:12px; margin-bottom:14px; font-size:12px; color:#92400e;">
-                            <strong>Lưu ý:</strong> Bước này ghi nhận hàng đã rời ô nguồn và chuyển phiếu sang trạng thái đang di chuyển.
-                            Tồn kho chỉ được trừ/cộng khi xác nhận nhập tại ô đích.
-                        </div>
 
-                        <!-- Preview các dòng hàng -->
+
                         @if (Model.Order?.Details.Any() == true)
                         {
                             <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:10px; margin-bottom:12px; font-size:12px;">
@@ -445,8 +383,8 @@
                         </div>
                     </div>
                     <div class="modal-footer" style="border-top:1px solid #f1f5f9;">
-                        <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Hủy</button>
-                        <button type="submit" class="btn btn-primary btn-sm" style="font-weight:700; padding:8px 20px; background:#2563eb; border:none;">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="font-size: 13px; padding: 7px 14px;">Hủy</button>
+                        <button type="submit" class="btn btn-primary" style="font-size: 13px; font-weight:700; padding:7px 20px;">
                             <i class="ri-logout-box-r-line"></i> Xác Nhận Xuất
                         </button>
                     </div>
@@ -471,9 +409,7 @@
                     </div>
                     <div class="modal-body" style="font-size:13px; color:#334155;">
                         <p>Xác nhận hàng đã đến ô đích theo phiếu <strong>@Model.Order?.TransferOrderNumber</strong>?</p>
-                        <div style="background:#ecfeff; border:1px solid #a5f3fc; border-radius:8px; padding:12px; margin-bottom:14px; font-size:12px; color:#0e7490;">
-                            Sau khi xác nhận nhập, hệ thống sẽ tạo giao dịch TRANSFER_OUT và TRANSFER_IN để cập nhật tồn kho ô nguồn và ô đích.
-                        </div>
+
 
                         @if (Model.Order?.Details.Any() == true)
                         {
@@ -487,7 +423,7 @@
                                         <span style="background:#fef3c7; color:#92400e; padding:2px 6px; border-radius:4px;">@d.SourceLocationCode</span>
                                         <span>→</span>
                                         <span style="background:#dbeafe; color:#1e40af; padding:2px 6px; border-radius:4px;">@d.DestLocationCode</span>
-                                        <span style="font-weight:700; color:#0e7490; margin-left:auto;">@d.MovedQuantity.ToString("N2") @d.UnitName</span>
+                                        <span style="font-weight:700; color:#0e7490; margin-left:auto;">@d.RequestedQuantity.ToString("N2") @d.UnitName</span>
                                     </div>
                                 }
                             </div>
@@ -499,8 +435,8 @@
                         </div>
                     </div>
                     <div class="modal-footer" style="border-top:1px solid #f1f5f9;">
-                        <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Hủy</button>
-                        <button type="submit" class="btn btn-primary btn-sm" style="font-weight:700; padding:8px 20px; background:#0e7490; border:none;">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="font-size: 13px; padding: 7px 14px;">Hủy</button>
+                        <button type="submit" class="btn btn-primary" style="font-size: 13px; font-weight:700; padding:7px 20px; background:#0e7490; border:none;">
                             <i class="ri-login-box-line"></i> Xác Nhận Nhập
                         </button>
                     </div>
