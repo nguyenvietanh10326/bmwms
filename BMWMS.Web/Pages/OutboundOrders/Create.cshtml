@@ -1,0 +1,202 @@
+@page
+@model BMWMS.Web.Pages.OutboundOrders.CreateModel
+@{
+    Layout = "_AdminLayout";
+
+    ViewData["Title"] = "UC26 - T?o l?nh xu?t kho";
+}
+
+@section Styles {
+    <link rel="stylesheet"
+          href="~/css/Inventory/outbound-create.css"
+          asp-append-version="true" />
+}
+
+<div class="container-fluid py-3 px-4" style="background-color: #f8f9fa;">
+    <!-- HEADER -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h4 class="fw-bold mb-1">UC26 · T?o l?nh xu?t kho</h4>
+            <p class="text-muted small mb-0">T?o l?nh xu?t t? Sales Order dã xác nh?n và gi? t?n • Actor chính: Nhân viên bán hàng</p>
+        </div>
+        <div>
+            <span class="badge bg-light text-dark border fs-6 px-3 py-2 fw-normal">Nháp</span>
+        </div>
+    </div>
+
+    @if (!ModelState.IsValid)
+    {
+        <div class="alert alert-danger alert-dismissible fade show mb-3" role="alert">
+            <div asp-validation-summary="All" class="small m-0"></div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <form method="post" id="createOutboundForm">
+        @Html.AntiForgeryToken()
+
+        <!-- CARD 1: THÔNG TIN L?NH XU?T -->
+        <div class="card border-0 shadow-sm rounded-3 mb-4">
+            <div class="card-body p-4">
+                <h6 class="fw-bold mb-3">Thông tin l?nh xu?t</h6>
+
+                <div class="row g-3">
+                    <!-- Row 1 -->
+                    <div class="col-md-3">
+                        <label asp-for="Input.SalesOrderId" class="form-label small fw-semibold">Sales Order <span class="text-danger">*</span></label>
+                        <select asp-for="Input.SalesOrderId"
+                                asp-items="Model.SalesOrderOptions"
+                                class="form-select"
+                                onchange="window.location.href='?selectedSalesOrderId=' + this.value;">
+                        </select>
+                        <span asp-validation-for="Input.SalesOrderId" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label small fw-semibold">Mã l?nh xu?t</label>
+                        <input type="text" class="form-control bg-light" value="T? d?ng" readonly />
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label small fw-semibold">Khách hàng</label>
+                        <input type="text" asp-for="Input.CustomerName" class="form-control bg-light" readonly placeholder="---" />
+                    </div>
+
+                    <div class="col-md-3">
+                        <label asp-for="Input.WarehouseId" class="form-label small fw-semibold">Kho xu?t <span class="text-danger">*</span></label>
+                        <select asp-for="Input.WarehouseId" asp-items="Model.WarehouseOptions" class="form-select"></select>
+                        <span asp-validation-for="Input.WarehouseId" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Row 2 -->
+                    <div class="col-md-3">
+                        <label asp-for="Input.ExpectedIssueDate" class="form-label small fw-semibold">Ngày d? ki?n <span class="text-danger">*</span></label>
+                        <input asp-for="Input.ExpectedIssueDate" type="date" class="form-control" />
+                        <span asp-validation-for="Input.ExpectedIssueDate" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label asp-for="Input.AssignedToUserId" class="form-label small fw-semibold">Ngu?i ph? trách</label>
+                        <select asp-for="Input.AssignedToUserId" asp-items="Model.AssigneeOptions" class="form-select"></select>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label small fw-semibold">Chi?n lu?c picking</label>
+                        <select class="form-select" disabled>
+                            <option selected>FEFO</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label asp-for="Input.ReferenceCode" class="form-label small fw-semibold">Tham chi?u</label>
+                        <input asp-for="Input.ReferenceCode" class="form-control" placeholder="Mã tham chi?u..." />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CARD 2: HÀNG XU?T THEO SALES ORDER -->
+        <div class="card border-0 shadow-sm rounded-3 mb-4">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="fw-bold mb-0">Hàng xu?t theo Sales Order</h6>
+                    <button type="button" class="btn btn-light border text-secondary px-3 btn-sm" disabled>Ch?n t?n kho</button>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-borderless align-middle mb-0">
+                        <thead class="text-muted border-bottom small">
+                            <tr>
+                                <th style="width: 25%;">S?n ph?m</th>
+                                <th class="text-end" style="width: 10%;">SL yêu c?u</th>
+                                <th class="text-end" style="width: 10%;">Ðã gi?</th>
+                                <th class="text-center" style="width: 8%;">ÐVT</th>
+                                <th style="width: 15%;">Lot / Bin</th>
+                                <th style="width: 10%;">K?t qu?</th>
+                                <th class="text-end" style="width: 15%;">Thành ti?n</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.Input.Items != null && Model.Input.Items.Any())
+                            {
+                                for (int i = 0; i < Model.Input.Items.Count; i++)
+                                {
+                                    <tr class="border-bottom">
+                                        <td>
+                                            <span class="fw-semibold text-primary">@Model.Input.Items[i].ProductCode</span>
+                                            <span class="text-secondary"> — @Model.Input.Items[i].ProductName</span>
+
+                                            <!-- Hidden Inputs g?i Payload cho Controller -->
+                                            <input type="hidden" asp-for="Input.Items[i].ProductId" />
+                                            <input type="hidden" asp-for="Input.Items[i].RequestedQuantity" />
+                                            <input type="hidden" asp-for="Input.Items[i].ReservedQuantity" />
+                                            <input type="hidden" asp-for="Input.Items[i].ProductCode" />
+                                            <input type="hidden" asp-for="Input.Items[i].ProductName" />
+                                            <input type="hidden" asp-for="Input.Items[i].UnitName" />
+                                            <input type="hidden" asp-for="Input.Items[i].LotBin" />
+                                            <input type="hidden" asp-for="Input.Items[i].TotalPrice" />
+                                            <input type="hidden" asp-for="Input.Items[i].Notes" />
+                                        </td>
+                                        <td class="text-end fw-normal">@Model.Input.Items[i].RequestedQuantity.ToString("N0")</td>
+                                        <td class="text-end fw-normal">@Model.Input.Items[i].ReservedQuantity.ToString("N0")</td>
+                                        <td class="text-center text-muted">@Model.Input.Items[i].UnitName</td>
+                                        <td class="text-muted small">@Model.Input.Items[i].LotBin</td>
+                                        <td>
+                                            @if (Model.Input.Items[i].ReservedQuantity >= Model.Input.Items[i].RequestedQuantity)
+                                            {
+                                                <span class="text-dark small">Ð?</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-secondary small">Thi?u @((Model.Input.Items[i].RequestedQuantity - Model.Input.Items[i].ReservedQuantity).ToString("N0"))</span>
+                                            }
+                                        </td>
+                                        <td class="text-end fw-bold">@Model.Input.Items[i].TotalPrice.ToString("N0")</td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted py-4">
+                                        Vui lòng ch?n Sales Order d? t?i danh sách s?n ph?m.
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- FOOTER B?NG -->
+                <div class="d-flex justify-content-between align-items-center mt-3 pt-2">
+                    <span class="text-muted small">
+                        Ðã ki?m tra gi? t?n cho @(Model.Input.Items?.Count ?? 0)/@(Model.Input.Items?.Count ?? 0) dòng Sales Order
+                    </span>
+                    <div>
+                        <span class="fw-bold fs-6">T?ng dã gi?: </span>
+                        <span class="fw-bold fs-6">@(Model.Input.Items?.Sum(x => x.ReservedQuantity).ToString("N0") ?? "0")</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CALLOUT ALERT -->
+        <div class="alert alert-primary bg-primary-subtle border-0 text-primary rounded-3 mb-4 d-flex align-items-center" role="alert">
+            <i class="bi bi-circle-fill me-2 fs-6"></i>
+            <span class="small">Sales Order ph?i du?c xác nh?n và gi? t?n Available tru?c khi t?o l?nh xu?t; xác nh?n xu?t m?i tr? t?n.</span>
+        </div>
+
+        <!-- BUTTONS FOOTER -->
+        <div class="d-flex justify-content-end align-items-center gap-2 mb-5">
+            <a asp-page="./Index" class="btn btn-link text-decoration-none text-secondary me-2">H?y</a>
+
+            <button type="submit" name="actionType" value="draft" class="btn btn-light border px-4 py-2 text-dark fw-semibold">
+                Luu nháp
+            </button>
+
+            <button type="submit" name="actionType" value="submit" class="btn btn-dark px-4 py-2 fw-semibold">
+                T?o l?nh xu?t
+            </button>
+        </div>
+    </form>
+</div>

@@ -5,6 +5,7 @@
     ViewData["Title"] = "Xem chi tiết nhà cung cấp";
     ViewData["HeaderTitle"] = HttpContext.Session.GetString("RoleName") ?? "Nhân viên mua hàng";
     ViewData["FooterVersion"] = "Full coverage · UC01-UC63";
+    var canEdit = new[] { "SYSTEM_ADMIN", "PURCHASING_STAFF" }.Contains(HttpContext.Session.GetString("RoleCode"));
 }
 
 <div class="page-header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px;">
@@ -22,11 +23,14 @@
         @if (Model.Supplier.Status == "ACTIVE")
         {
             <span class="status-badge" style="background-color: #dcfce7; color: #166534;"><span class="status-dot" style="background-color: #22c55e;"></span>Đang hoạt động</span>
-            <form method="post" asp-page-handler="Suspend" asp-route-supplierCode="@Model.Supplier.SupplierCode" style="display:inline;" onsubmit="return confirm('Bạn có chắc chắn muốn ngừng giao dịch với nhà cung cấp này?');">
-                <button type="submit" class="btn" style="background-color: #fee2e2; color: #991b1b; border: 1px solid #fecaca; padding: 8px 16px; border-radius: 6px; font-weight: 500; cursor: pointer;">
-                    <i class="ri-close-circle-line" style="margin-right: 6px;"></i>Ngừng giao dịch
-                </button>
-            </form>
+            @if (canEdit)
+            {
+                <form method="post" asp-page-handler="Suspend" asp-route-supplierCode="@Model.Supplier.SupplierCode" style="display:inline;" onsubmit="return confirm('Bạn có chắc chắn muốn ngừng giao dịch với nhà cung cấp này?');">
+                    <button type="submit" class="btn" style="background-color: #fee2e2; color: #991b1b; border: 1px solid #fecaca; padding: 8px 16px; border-radius: 6px; font-weight: 500; cursor: pointer;">
+                        <i class="ri-close-circle-line" style="margin-right: 6px;"></i>Ngừng giao dịch
+                    </button>
+                </form>
+            }
         }
         else
         {
@@ -78,7 +82,10 @@
 <div class="form-card" style="padding: 24px; margin-bottom: 24px;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
         <h3 style="font-size: 16px; font-weight: 600; color: var(--text-main); margin: 0;">Sản phẩm cung ứng</h3>
-        <button type="button" class="btn" style="background-color: #e4e4e7; color: #27272a; border: 1px solid #d4d4d8; padding: 8px 16px; border-radius: 6px; font-weight: 500;">Thêm sản phẩm</button>
+        @if (canEdit)
+        {
+            <button type="button" class="btn" style="background-color: #e4e4e7; color: #27272a; border: 1px solid #d4d4d8; padding: 8px 16px; border-radius: 6px; font-weight: 500;">Thêm sản phẩm</button>
+        }
     </div>
 
     <div style="overflow-x: auto; margin-bottom: 24px;">
@@ -133,9 +140,6 @@
 
 <div style="display: flex; justify-content: flex-end; gap: 12px;">
     <a href="/Admin/Suppliers" class="btn" style="padding: 10px 24px; color: var(--text-main); text-decoration: none; font-weight: 500;">Quay lại</a>
-    @{
-        var canEdit = new[] { "SYSTEM_ADMIN", "WAREHOUSE_MANAGER", "PURCHASING_STAFF" }.Contains(HttpContext.Session.GetString("RoleCode"));
-    }
     @if (canEdit)
     {
         <button type="button" class="btn" style="background-color: #e4e4e7; color: #a1a1aa; border: 1px solid #d4d4d8; padding: 10px 24px; border-radius: 6px; font-weight: 500; cursor: not-allowed;" disabled>Lưu nháp</button>

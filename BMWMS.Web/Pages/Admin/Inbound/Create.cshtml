@@ -1,0 +1,428 @@
+@page
+@model BMWMS.Web.Pages.Admin.Inbound.CreateModel
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Tạo lệnh nhập kho";
+    ViewData["ActivePage"] = "Inbound";
+}
+
+<style>
+  :root{
+    --font-ui:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    --font-mono:"IBM Plex Mono",ui-monospace,monospace;
+
+    --navy-950:#233a6b; --navy-900:#1b2d56;
+    --accent:#3e5cf6; --accent-600:#3149d4;
+
+    --bg:#f2f3f7; --card:#ffffff; --line:#e7e9f0; --line-strong:#d7dae5;
+    --ink:#161b2e; --ink-2:#525a72; --ink-3:#8890a6; --ink-4:#aeb4c6;
+
+    --sh-xs:0 1px 2px rgba(16,23,42,.05);
+    --sh-sm:0 1px 2px rgba(16,23,42,.04),0 4px 10px -4px rgba(16,23,42,.07);
+    --r-sm:8px; --r-md:12px; --r-lg:16px;
+    --ease:cubic-bezier(.4,0,.2,1);
+  }
+  
+  .inbound-page {
+    font-family: var(--font-ui);
+    color: var(--ink);
+    font-size: 14px;
+    line-height: 1.45;
+    padding: 26px 30px 64px;
+  }
+
+  .inbound-page .pagehead{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;gap:20px;}
+  .inbound-page .pagehead h1{font-size:20px;margin:0 0 5px;font-weight:700;}
+  .inbound-page .breadcrumb{font-size:11.5px;color:var(--ink-3);margin-bottom:8px;font-weight:600;letter-spacing:.02em;text-transform:uppercase;}
+
+  .inbound-page .btn{display:inline-flex;align-items:center;gap:7px;border:none;border-radius:var(--r-sm);padding:9px 15px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;text-decoration:none;}
+  .inbound-page .btn-dark{background:var(--navy-950);color:#fff;box-shadow:var(--sh-xs);}
+  .inbound-page .btn-dark:hover{background:#1c2340;color:#fff;transform:translateY(-1px);box-shadow:var(--sh-sm);}
+  .inbound-page .btn-light{background:#fff;border:1px solid var(--line-strong);color:var(--ink);}
+  .inbound-page .btn-light:hover{border-color:var(--ink-4);background:#fafafd;}
+
+  .inbound-page .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);padding:24px;margin-bottom:16px;box-shadow:var(--sh-xs);}
+
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .form-group { margin-bottom: 15px; }
+  .form-group label { display: block; font-weight: 600; font-size: 13px; margin-bottom: 6px; color: var(--ink-2); }
+  .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 9px 12px; border: 1px solid var(--line-strong); border-radius: var(--r-sm); font-size: 13px; color: var(--ink); font-family: inherit; }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: var(--accent); }
+  .text-danger { color: #c1222f; font-size: 12px; margin-top: 4px; display: block; }
+
+  /* Table styling */
+  .items-table{width:100%;border-collapse:collapse;font-size:13px; margin: 0; margin-bottom: 15px;}
+  .items-table th{text-align:left;color:var(--ink-3);font-weight:600;font-size:11px;padding:0 10px 10px;border-bottom:1px solid var(--line);}
+  .items-table td{padding:10px;border-bottom:1px solid var(--line);vertical-align:top;}
+  .items-table input, .items-table select { width: 100%; padding: 7px 10px; border: 1px solid var(--line-strong); border-radius: 4px; font-size: 13px; }
+  .items-table .btn-remove { background: #fce3e4; color: #c1222f; padding: 6px; border-radius: 4px; border: none; cursor: pointer; }
+</style>
+
+<svg width="0" height="0" style="position:absolute; display:none;">
+    <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></symbol>
+</svg>
+
+<style>
+  .filters { display: flex; gap: 12px; margin-bottom: 14px; align-items: center; }
+  .btn svg { width: 15px; height: 15px; flex-shrink: 0; }
+  .btn-remove svg { width: 14px; height: 14px; }
+  .radio-opt { display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border: 1px solid var(--line-strong); border-radius: var(--r-sm); cursor: pointer; transition: all .15s; font-weight: 600; }
+  .radio-opt.sel { border-color: var(--accent); background: var(--accent-100); color: var(--accent-600); }
+  .grid2 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field label { font-size: 12.5px; font-weight: 600; color: var(--ink-2); }
+  .field input, .field select { width: 100%; padding: 9px 12px; border: 1px solid var(--line-strong); border-radius: var(--r-sm); font-size: 13px; font-family: inherit; }
+  .field input:disabled { background: var(--bg); color: var(--ink-3); }
+  .cell-input { width: 80px; text-align: right; padding: 6px; border: 1px solid var(--line-strong); border-radius: 4px; font-family: var(--font-mono); }
+  .cell-input-w { width: 100%; padding: 6px; border: 1px solid var(--line-strong); border-radius: 4px; }
+  .note { display: flex; gap: 12px; background: #e3eaff; color: #2c48d8; padding: 14px 16px; border-radius: var(--r-sm); font-size: 13px; margin-top: 20px; }
+  .note svg { width: 20px; height: 20px; flex-shrink: 0; }
+  
+  /* Additional fixes for table */
+  .items-table th.num, .items-table td.num { text-align: right; }
+</style>
+
+<div class="inbound-page">
+    <div class="pagehead">
+        <div><h1>Tạo lệnh nhập kho</h1><p>Tạo lệnh nhập từ Purchase Order đã xác nhận, hoặc bổ sung cho thiếu/hỏng của một lệnh trước đó.</p></div>
+        <div>
+            <a href="/Admin/Inbound" class="btn btn-light" style="margin-right:10px;">Hủy bỏ</a>
+            <button type="submit" form="createForm" class="btn btn-dark">Lưu & Tiếp tục</button>
+        </div>
+    </div>
+
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div class="card" style="border-left: 4px solid #c1222f;">
+            <div asp-validation-summary="All" class="text-danger"></div>
+        </div>
+    }
+
+    <form method="post" id="createForm">
+        <div class="card">
+            <h3>Loại lệnh nhập</h3>
+            <div class="filters" style="margin-bottom:0">
+                <label class="radio-opt"><input type="radio" asp-for="InboundOrder.SourceType" value="PURCHASE_ORDER" onchange="toggleSource(this)">Nhập từ Nhà cung cấp (PO)</label>
+                <label class="radio-opt"><input type="radio" asp-for="InboundOrder.SourceType" value="SALES_RETURN" onchange="toggleSource(this)">Nhập hàng Khách trả lại (SO)</label>
+                <label class="radio-opt"><input type="radio" asp-for="InboundOrder.SourceType" value="SUPPLEMENT" onchange="toggleSource(this)">Nhập bổ sung cho lệnh thiếu</label>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Thông tin lệnh nhập</h3>
+            <div class="grid2">
+                <div class="field" id="po-field">
+                    <label>Chọn đơn PO *</label>
+                    <select asp-for="InboundOrder.PurchaseOrderId" asp-items="Model.PurchaseOrders" onchange="fetchSourceDetails('PURCHASE_ORDER', this.value)">
+                        <option value="">-- Chọn PO --</option>
+                    </select>
+                </div>
+                <div class="field" id="supplement-field" style="display:none;">
+                    <label>Chọn lệnh nhập gốc (Bị thiếu) *</label>
+                    <select asp-for="InboundOrder.ParentInboundOrderId" asp-items="Model.ShortageOrders" onchange="fetchSourceDetails('SUPPLEMENT', this.value)">
+                        <option value="">-- Chọn lệnh nhập thiếu --</option>
+                    </select>
+                </div>
+                <div class="field" id="so-field" style="display:none;">
+                    <label>Chọn đơn SO *</label>
+                    <select asp-for="InboundOrder.SalesOrderId" asp-items="Model.SalesOrders" onchange="fetchSourceDetails('SALES_RETURN', this.value)">
+                        <option value="">-- Chọn SO --</option>
+                    </select>
+                </div>
+                <div class="field"><label>Mã lệnh nhập</label><input disabled value="Tự động sinh khi tạo"></div>
+                <div class="field"><label>Nhà cung cấp</label><input id="SupplierName" disabled value=""></div>
+                <div class="field" style="display: none;">
+                    <label>Kho nhận *</label>
+                    <select asp-for="InboundOrder.WarehouseId" asp-items="Model.Warehouses">
+                    </select>
+                </div>
+            </div>
+            <div class="grid2" style="margin-top:14px">
+                <div class="field">
+                    <label>Ngày dự kiến *</label>
+                    <input type="date" asp-for="InboundOrder.ExpectedReceiptDate" />
+                </div>
+                <div class="field">
+                    <label>Người phụ trách *</label>
+                    <select asp-for="InboundOrder.AssignedToUserId" asp-items="Model.Users" required>
+                        <option value="">-- Chọn người phụ trách --</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label>Độ ưu tiên</label>
+                    <select><option>Bình thường</option><option>Cao</option></select>
+                </div>
+                <div class="field">
+                    <label>Ghi chú</label>
+                    <input type="text" asp-for="InboundOrder.Notes" placeholder="Không bắt buộc" />
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <h3 style="margin:0;font-size:15px;">Dòng hàng dự kiến</h3>
+            </div>
+            
+            <table class="items-table" id="itemsTable">
+                <thead>
+                    <tr>
+                        <th style="width: 35%">Sản phẩm</th>
+                        <th class="num" style="width: 12%">SL PO ban đầu</th>
+                        <th class="num" style="width: 12%">SL còn lại (thiếu)</th>
+                        <th class="num" style="width: 12%">SL dự kiến nhập</th>
+                        <th style="width: 5%">ĐVT</th>
+                        <th style="width: 19%">Ghi chú</th>
+                        <th style="width: 5%"></th>
+                    </tr>
+                </thead>
+                <tbody id="itemsBody">
+                    <!-- Rows will be added dynamically -->
+                </tbody>
+            </table>
+        </div>
+
+    </form>
+</div>
+
+@section Scripts {
+    <script>
+        var productsOptions = `@foreach(var p in Model.Products) { <option value="@p.Value">@Html.Raw(p.Text)</option> }`;
+        
+        function toggleSource(radio) {
+            document.querySelectorAll('.radio-opt').forEach(el => el.classList.remove('sel'));
+            radio.closest('.radio-opt').classList.add('sel');
+            
+            document.getElementById('po-field').style.display = 'none';
+            document.getElementById('so-field').style.display = 'none';
+            document.getElementById('supplement-field').style.display = 'none';
+            
+            document.getElementById('InboundOrder_PurchaseOrderId').value = '';
+            document.getElementById('InboundOrder_SalesOrderId').value = '';
+            document.getElementById('InboundOrder_ParentInboundOrderId').value = '';
+            
+            if(radio.value === 'PURCHASE_ORDER') {
+                document.getElementById('po-field').style.display = 'block';
+            } else if (radio.value === 'SUPPLEMENT') {
+                document.getElementById('supplement-field').style.display = 'block';
+            } else {
+                document.getElementById('so-field').style.display = 'block';
+            }
+        }
+
+        var rowCount = 0;
+
+        function addRow() {
+            var html = `
+                <tr id="row_${rowCount}">
+                    <td>
+                        <select name="InboundOrder.Items[${rowCount}].ProductId" required>
+                            <option value="">-- Chọn sản phẩm --</option>
+                            ${productsOptions}
+                        </select>
+                    </td>
+                    <td class="num">
+                        <input type="text" disabled value="0" class="cell-input" style="background:#f2f3f7; color:#8890a6; text-align:right; border:none;" />
+                    </td>
+                    <td class="num">
+                        <input type="number" name="InboundOrder.Items[${rowCount}].ExpectedQuantity" min="1" step="0.01" value="1" required class="cell-input expected-qty" />
+                    </td>
+                    <td>
+                        <input type="text" disabled value="--" style="width: 50px; background: transparent; border: none; text-align: center;" />
+                    </td>
+                    <td>
+                        <input type="text" name="InboundOrder.Items[${rowCount}].Notes" placeholder="Ghi chú mặt hàng" class="cell-input-w" />
+                    </td>
+                    <td>
+                        <button type="button" class="btn-remove" onclick="removeRow(${rowCount})">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                        </button>
+                    </td>
+                </tr>
+            `;
+            document.getElementById('itemsBody').insertAdjacentHTML('beforeend', html);
+            rowCount++;
+        }
+
+        function removeRow(index) {
+            var row = document.getElementById(`row_${index}`);
+            if(row) row.remove();
+        }
+
+        async function fetchSourceDetails(sourceType, sourceId) {
+            if (!sourceId) {
+                var supplierNameEl = document.getElementById('SupplierName');
+                if (supplierNameEl) supplierNameEl.value = '';
+                var tbody = document.getElementById('itemsBody');
+                if (tbody) tbody.innerHTML = '';
+                rowCount = 0;
+                addRow();
+                return;
+            }
+
+            try {
+                let handler = '';
+                let paramName = '';
+                if (sourceType === 'PURCHASE_ORDER') {
+                    handler = 'PoDetails';
+                    paramName = 'poId';
+                } else if (sourceType === 'SUPPLEMENT') {
+                    handler = 'SupplementDetails';
+                    paramName = 'parentId';
+                } else if (sourceType === 'SALES_RETURN') {
+                    handler = 'SoDetails';
+                    paramName = 'soId';
+                }
+                
+                const response = await fetch(`?handler=${handler}&${paramName}=${sourceId}`);
+                if (!response.ok) {
+                    console.error("HTTP Error:", response.status);
+                    return;
+                }
+
+                let data;
+                try {
+                    data = await response.json();
+                } catch (e) {
+                    console.error("JSON Parse Error.");
+                    return;
+                }
+                
+                try {
+                    const supplierName = data.supplierName || data.SupplierName || '';
+                    const items = data.items || data.Items || [];
+
+                    // Set supplier name
+                    const supplierInput = document.getElementById('SupplierName');
+                    if(supplierInput) supplierInput.value = supplierName;
+
+                    // Clear existing rows
+                    const tbody = document.getElementById('itemsBody');
+                    if(tbody) tbody.innerHTML = '';
+                    
+                    rowCount = 0;
+
+                    // Add rows from Source
+                    items.forEach(item => {
+                        const productId = item.productId || item.ProductId;
+                        const productName = item.productName || item.ProductName;
+                        const remainingQuantity = item.remainingQuantity !== undefined ? item.remainingQuantity : item.RemainingQuantity;
+                        const unitName = item.unitName || item.UnitName || '--';
+                        
+                        const productCode = item.productCode || item.ProductCode || '';
+                        const orderedQuantity = item.orderedQuantity !== undefined ? item.orderedQuantity : item.OrderedQuantity;
+                        
+                        // Nếu số lượng còn lại = 0 thì bỏ qua không load lên
+                        if(remainingQuantity <= 0) return;
+
+                        var html = `
+                            <tr id="row_${rowCount}">
+                                <td>
+                                    <input type="hidden" name="InboundOrder.Items[${rowCount}].ProductId" value="${productId}" />
+                                    <span style="display:inline-block; background:#e2e8f0; color:#475569; padding:2px 6px; border-radius:4px; font-size:11px; font-weight:700; font-family:var(--font-mono); margin-right:6px;">${productCode}</span>
+                                    <span style="font-weight:600; font-size:13px;">${productName}</span>
+                                </td>
+                                <td class="num">
+                                    <input type="text" disabled value="${orderedQuantity}" class="cell-input" style="background:transparent; color:var(--ink); text-align:right; border:none; font-weight:600;" />
+                                </td>
+                                <td class="num">
+                                    <input type="hidden" class="remaining-hidden" value="${remainingQuantity}" />
+                                    <input type="text" disabled value="${remainingQuantity}" class="cell-input" style="background:#f2f3f7; color:#8890a6; text-align:right; border:none;" />
+                                </td>
+                                <td class="num">
+                                    <input type="number" name="InboundOrder.Items[${rowCount}].ExpectedQuantity" min="1" max="${remainingQuantity}" step="0.01" value="${remainingQuantity > 0 ? remainingQuantity : 1}" required class="cell-input expected-qty" />
+                                </td>
+                                <td>
+                                    <input type="text" disabled value="${unitName}" style="width: 50px; background: transparent; border: none; text-align: center;" />
+                                </td>
+                                <td>
+                                    <input type="text" name="InboundOrder.Items[${rowCount}].Notes" placeholder="Ghi chú mặt hàng" class="cell-input-w" />
+                                </td>
+                                <td>
+                                    <button type="button" class="btn-remove" onclick="removeRow(${rowCount})">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                        if(tbody) tbody.insertAdjacentHTML('beforeend', html);
+                        rowCount++;
+                    });
+                } catch (renderError) {
+                    alert("Lỗi khi tạo giao diện: " + renderError.message);
+                }
+            } catch (error) {
+                console.error("Failed to fetch details", error);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Trigger radio button toggle on load to sync UI state
+            var checkedRadio = document.querySelector('input[type="radio"]:checked');
+            if (checkedRadio) {
+                toggleSource(checkedRadio);
+            } else {
+                // Default fallback if nothing is checked
+                var firstRadio = document.querySelector('input[type="radio"]');
+                if (firstRadio) {
+                    firstRadio.checked = true;
+                    toggleSource(firstRadio);
+                }
+            }
+
+            var poEl = document.getElementById('InboundOrder_PurchaseOrderId');
+            var parentEl = document.getElementById('InboundOrder_ParentInboundOrderId');
+            var initialPo = poEl ? poEl.value : '';
+            var initialParent = parentEl ? parentEl.value : '';
+            var soEl = document.getElementById('InboundOrder_SalesOrderId');
+            var initialSo = soEl ? soEl.value : '';
+            
+            if(initialPo && checkedRadio && checkedRadio.value === 'PURCHASE_ORDER') {
+                fetchSourceDetails('PURCHASE_ORDER', initialPo);
+            } else if (initialParent && checkedRadio && checkedRadio.value === 'SUPPLEMENT') {
+                fetchSourceDetails('SUPPLEMENT', initialParent);
+            } else if (initialSo && checkedRadio && checkedRadio.value === 'SALES_RETURN') {
+                fetchSourceDetails('SALES_RETURN', initialSo);
+            } else {
+                addRow();
+            }
+            
+            // Client side validation
+            var form = document.querySelector('form');
+            if (form) {
+                form.addEventListener('submit', function(e) {
+                    let items = document.querySelectorAll('#itemsBody tr');
+                    if(items.length === 0) {
+                        alert("Vui lòng thêm ít nhất 1 dòng hàng.");
+                        e.preventDefault();
+                        return false;
+                    }
+                    
+                    let isValid = true;
+                    items.forEach(function(tr) {
+                        if (!isValid) return; // skip if already invalid
+                        let expectedInput = tr.querySelector('.expected-qty');
+                        let remainingInput = tr.querySelector('.remaining-hidden');
+                        
+                        if(expectedInput && remainingInput) {
+                            let expected = parseFloat(expectedInput.value) || 0;
+                            let remaining = parseFloat(remainingInput.value) || 0;
+                            
+                            if(expected > remaining) {
+                                alert("Số lượng dự kiến không được vượt quá số lượng còn lại/thiếu.");
+                                expectedInput.focus();
+                                isValid = false;
+                            }
+                        }
+                    });
+                    
+                    if(!isValid) {
+                        e.preventDefault();
+                    }
+                });
+            }
+        });
+    </script>
+}

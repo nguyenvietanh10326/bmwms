@@ -7,7 +7,7 @@ namespace BMWMS.API.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-// [Authorize] // Comment tạm thời nếu chưa test auth
+[Authorize]
 public class DashboardController : ControllerBase
 {
     private readonly IDashboardService _dashboardService;

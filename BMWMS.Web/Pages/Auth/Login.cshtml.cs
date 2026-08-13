@@ -1,5 +1,8 @@
+using System.Security.Claims;
 using System.Text.Json;
 using BMWMS.Web.Services;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
@@ -67,6 +70,28 @@ public class LoginModel : PageModel
             HttpContext.Session.SetString("AvatarUrl", user.AvatarUrl);
         if (!string.IsNullOrEmpty(user.Token))
             HttpContext.Session.SetString("Token", user.Token);
+
+        // Sign in with Cookie Authentication
+        var claims = new List<Claim>
+        {
+            new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
+            new Claim(ClaimTypes.Name, user.Username),
+            new Claim(ClaimTypes.Role, user.RoleCode),
+            new Claim("FullName", user.FullName),
+            new Claim("SessionId", user.SessionId.ToString())
+        };
+
+        var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+        var authProperties = new AuthenticationProperties
+        {
+            IsPersistent = true,
+            ExpiresUtc = DateTimeOffset.UtcNow.AddHours(8)
+        };
+
+        await HttpContext.SignInAsync(
+            CookieAuthenticationDefaults.AuthenticationScheme, 
+            new ClaimsPrincipal(claimsIdentity), 
+            authProperties);
 
         // Tất cả Role đều vào Dashboard chung
         return RedirectToPage("/Admin/Dashboard");

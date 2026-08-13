@@ -1,0 +1,959 @@
+﻿
+/* =========================================================
+   UC26 - CREATE OUTBOUND
+   Clean / Professional / Bootstrap compatible
+   ========================================================= */
+:root {
+    --uc26-bg: #f5f7fa;
+    --uc26-card: #ffffff;
+    --uc26-border: #e3e7ed;
+    --uc26-border-light: #edf0f3;
+    --uc26-text: #1f2937;
+    --uc26-muted: #6b7280;
+    --uc26-primary: #2563eb;
+    --uc26-primary-dark: #1d4ed8;
+    --uc26-success: #15803d;
+    --uc26-warning: #b45309;
+    --uc26-danger: #dc2626;
+    --uc26-radius: 12px;
+}
+
+
+/* =========================================================
+   PAGE
+   ========================================================= */
+
+.container-fluid.py-3.px-4 {
+    width: 100%;
+    max-width: none;
+    min-height: calc(100vh - 60px);
+    padding: 24px 32px 40px !important;
+    background: var(--uc26-bg) !important;
+    color: var(--uc26-text);
+}
+
+
+/* =========================================================
+   HEADER
+   ========================================================= */
+
+.container-fluid > .d-flex.justify-content-between {
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+    .container-fluid > .d-flex.justify-content-between h4 {
+        margin-bottom: 4px;
+        color: #111827;
+        font-size: 1.25rem;
+        font-weight: 700;
+        line-height: 1.35;
+        letter-spacing: -0.02em;
+    }
+
+    .container-fluid > .d-flex.justify-content-between p {
+        margin-bottom: 0;
+        color: #6b7280 !important;
+        font-size: 0.82rem;
+        line-height: 1.5;
+    }
+
+    .container-fluid > .d-flex.justify-content-between .badge {
+        display: inline-flex;
+        align-items: center;
+        min-height: 32px;
+        padding: 6px 13px !important;
+        background: #ffffff !important;
+        border: 1px solid #dfe3e8 !important;
+        border-radius: 999px;
+        color: #4b5563 !important;
+        font-size: 0.76rem !important;
+        font-weight: 500 !important;
+        white-space: nowrap;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+    }
+
+
+/* =========================================================
+   FORM
+   ========================================================= */
+
+#createOutboundForm {
+    width: 100%;
+    max-width: none;
+}
+
+
+    /* =========================================================
+   CARDS
+   ========================================================= */
+
+    #createOutboundForm > .card {
+        width: 100%;
+        margin-bottom: 20px !important;
+        background: var(--uc26-card);
+        border: 1px solid var(--uc26-border) !important;
+        border-radius: var(--uc26-radius) !important;
+        box-shadow: 0 1px 2px rgba(16, 24, 40, 0.025), 0 4px 12px rgba(16, 24, 40, 0.025) !important;
+        overflow: hidden;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+        #createOutboundForm > .card:hover {
+            border-color: #d8dde5 !important;
+            box-shadow: 0 2px 4px rgba(16, 24, 40, 0.035), 0 8px 20px rgba(16, 24, 40, 0.035) !important;
+        }
+
+    #createOutboundForm .card-body {
+        padding: 22px 24px !important;
+    }
+
+
+    /* =========================================================
+   CARD TITLE
+   ========================================================= */
+
+    #createOutboundForm .card h6 {
+        margin-bottom: 18px !important;
+        color: #111827;
+        font-size: 0.92rem;
+        font-weight: 700;
+        line-height: 1.4;
+        letter-spacing: -0.01em;
+    }
+
+
+    /* =========================================================
+   CARD 1 - THÔNG TIN LỆNH XUẤT
+   IMPORTANT:
+   Không dùng :first-of-type.
+   Target trực tiếp card đầu tiên của form.
+   ========================================================= */
+
+    #createOutboundForm > .card:first-of-type .row {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 18px 16px;
+        margin: 0 !important;
+    }
+
+
+        /* Bootstrap .row / .col reset */
+
+        #createOutboundForm > .card:first-of-type .row > [class*="col-"] {
+            width: auto;
+            max-width: none;
+            margin: 0;
+            padding-left: 0;
+            padding-right: 0;
+        }
+
+
+        /* =========================================================
+   FORM GROUP
+   ========================================================= */
+
+        #createOutboundForm > .card:first-of-type .row > [class*="col-"] {
+            min-width: 0;
+        }
+
+
+    /* =========================================================
+   LABEL
+   ========================================================= */
+
+    #createOutboundForm .form-label {
+        display: block;
+        margin-bottom: 7px !important;
+        color: #374151;
+        font-size: 0.78rem !important;
+        font-weight: 600 !important;
+        line-height: 1.4;
+    }
+
+        #createOutboundForm .form-label .text-danger {
+            margin-left: 2px;
+            color: #ef4444 !important;
+        }
+
+
+    /* =========================================================
+   INPUT / SELECT
+   ========================================================= */
+
+    #createOutboundForm .form-control,
+    #createOutboundForm .form-select {
+        display: block;
+        width: 100%;
+        min-width: 0;
+        min-height: 40px;
+        padding: 8px 11px;
+        background-color: #ffffff;
+        border: 1px solid #d8dee6;
+        border-radius: 7px;
+        color: #1f2937;
+        font-size: 0.84rem;
+        line-height: 1.4;
+        box-shadow: none;
+        transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+    }
+
+        #createOutboundForm .form-control::placeholder {
+            color: #a0a7b1;
+        }
+
+        #createOutboundForm .form-control:hover,
+        #createOutboundForm .form-select:hover {
+            border-color: #bfc6d0;
+        }
+
+        #createOutboundForm .form-control:focus,
+        #createOutboundForm .form-select:focus {
+            border-color: var(--uc26-primary);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.10);
+        }
+
+
+        /* =========================================================
+   READONLY
+   ========================================================= */
+
+        #createOutboundForm .form-control.bg-light,
+        #createOutboundForm .form-control[readonly] {
+            background-color: #f8fafc !important;
+            color: #6b7280;
+            border-color: #e3e7ed;
+        }
+
+        #createOutboundForm .form-control[readonly] {
+            cursor: default;
+        }
+
+
+        /* =========================================================
+   DISABLED
+   ========================================================= */
+
+        #createOutboundForm .form-select:disabled {
+            background-color: #f8fafc;
+            color: #6b7280;
+            border-color: #e3e7ed;
+            opacity: 1;
+            cursor: not-allowed;
+        }
+
+
+    /* =========================================================
+   DATE / SELECT
+   ========================================================= */
+
+    #createOutboundForm input[type="date"] {
+        cursor: pointer;
+    }
+
+    #createOutboundForm select {
+        cursor: pointer;
+    }
+
+
+    /* =========================================================
+   VALIDATION
+   ========================================================= */
+
+    #createOutboundForm .field-validation-error {
+        display: block;
+        margin-top: 5px;
+        color: #dc2626;
+        font-size: 0.72rem;
+        line-height: 1.4;
+    }
+
+    #createOutboundForm .validation-summary-errors {
+        margin: 0;
+    }
+
+        #createOutboundForm .validation-summary-errors ul {
+            margin-bottom: 0;
+            padding-left: 18px;
+        }
+
+
+    /* =========================================================
+   TABLE CARD
+   ========================================================= */
+
+    /* Header của card 2 */
+    #createOutboundForm > .card:nth-of-type(2) .card-body > .d-flex {
+        margin-bottom: 16px !important;
+    }
+
+    #createOutboundForm > .card:nth-of-type(2) h6 {
+        margin-bottom: 0 !important;
+    }
+
+
+    /* =========================================================
+   CHỌN TỒN KHO BUTTON
+   ========================================================= */
+
+    #createOutboundForm .btn-light {
+        background: #ffffff;
+        border-color: #dfe3e8;
+        color: #6b7280 !important;
+    }
+
+        #createOutboundForm .btn-light:hover {
+            background: #f9fafb;
+            border-color: #cbd1d8;
+            color: #374151 !important;
+        }
+
+        #createOutboundForm .btn-light:disabled {
+            background: #ffffff;
+            opacity: 0.65;
+            cursor: not-allowed;
+        }
+
+
+    /* =========================================================
+   TABLE WRAPPER
+   ========================================================= */
+
+    #createOutboundForm .table-responsive {
+        width: 100%;
+        border: 1px solid var(--uc26-border-light);
+        border-radius: 9px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        background: #ffffff;
+    }
+
+
+    /* =========================================================
+   TABLE
+   ========================================================= */
+
+    #createOutboundForm .table {
+        width: 100%;
+        min-width: 900px;
+        margin: 0 !important;
+        table-layout: fixed;
+        border-collapse: separate;
+        border-spacing: 0;
+        color: #374151;
+        font-size: 0.82rem;
+    }
+
+
+        /* =========================================================
+   TABLE HEADER
+   ========================================================= */
+
+        #createOutboundForm .table thead {
+            background: #f8fafc;
+        }
+
+            #createOutboundForm .table thead th {
+                padding: 11px 14px;
+                color: #6b7280 !important;
+                font-size: 0.70rem;
+                font-weight: 600;
+                line-height: 1.4;
+                text-transform: uppercase;
+                letter-spacing: 0.025em;
+                white-space: nowrap;
+                vertical-align: middle;
+                border-bottom: 1px solid #e5e7eb !important;
+            }
+
+
+        /* =========================================================
+   TABLE BODY
+   ========================================================= */
+
+        #createOutboundForm .table tbody td {
+            padding: 14px;
+            color: #374151;
+            font-size: 0.82rem;
+            line-height: 1.45;
+            vertical-align: middle;
+            border-bottom: 1px solid #f0f2f4 !important;
+            background: #ffffff;
+        }
+
+        #createOutboundForm .table tbody tr {
+            transition: background-color 0.15s ease;
+        }
+
+            #createOutboundForm .table tbody tr:hover td {
+                background-color: #fafcff;
+            }
+
+            #createOutboundForm .table tbody tr:last-child td {
+                border-bottom: 0 !important;
+            }
+
+
+        /* =========================================================
+   TABLE COLUMN WIDTH
+   Khớp với HTML hiện tại
+   ========================================================= */
+
+        #createOutboundForm .table th:nth-child(1),
+        #createOutboundForm .table td:nth-child(1) {
+            width: 25%;
+        }
+
+        #createOutboundForm .table th:nth-child(2),
+        #createOutboundForm .table td:nth-child(2) {
+            width: 10%;
+        }
+
+        #createOutboundForm .table th:nth-child(3),
+        #createOutboundForm .table td:nth-child(3) {
+            width: 10%;
+        }
+
+        #createOutboundForm .table th:nth-child(4),
+        #createOutboundForm .table td:nth-child(4) {
+            width: 8%;
+        }
+
+        #createOutboundForm .table th:nth-child(5),
+        #createOutboundForm .table td:nth-child(5) {
+            width: 15%;
+        }
+
+        #createOutboundForm .table th:nth-child(6),
+        #createOutboundForm .table td:nth-child(6) {
+            width: 10%;
+        }
+
+        #createOutboundForm .table th:nth-child(7),
+        #createOutboundForm .table td:nth-child(7) {
+            width: 15%;
+        }
+
+
+        /* =========================================================
+   PRODUCT
+   ========================================================= */
+
+        #createOutboundForm .table tbody td:first-child {
+            line-height: 1.45;
+        }
+
+            #createOutboundForm .table tbody td:first-child .text-primary {
+                color: #1d4ed8 !important;
+                font-size: 0.82rem;
+                font-weight: 600;
+            }
+
+            #createOutboundForm .table tbody td:first-child .text-secondary {
+                color: #4b5563 !important;
+            }
+
+
+        /* =========================================================
+   TABLE NUMBERS
+   ========================================================= */
+
+        #createOutboundForm .table .text-end {
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+        }
+
+
+        /* =========================================================
+   UNIT / LOT / BIN
+   ========================================================= */
+
+        #createOutboundForm .table .text-center.text-muted {
+            color: #6b7280 !important;
+        }
+
+        #createOutboundForm .table td .small {
+            font-size: 0.76rem;
+        }
+
+        #createOutboundForm .table td:nth-child(5) {
+            color: #6b7280;
+        }
+
+
+        /* =========================================================
+   RESULT STATUS
+   ========================================================= */
+
+        #createOutboundForm .table tbody td:nth-child(6) span {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 24px;
+            padding: 3px 9px;
+            border-radius: 999px;
+            font-size: 0.70rem !important;
+            font-weight: 600;
+            line-height: 1.3;
+            white-space: nowrap;
+        }
+
+
+            /* Đủ */
+
+            #createOutboundForm .table tbody td:nth-child(6) span.text-dark {
+                color: #166534 !important;
+                background: #f0fdf4;
+                border: 1px solid #dcfce7;
+            }
+
+
+            /* Thiếu */
+
+            #createOutboundForm .table tbody td:nth-child(6) span.text-secondary {
+                color: #92400e !important;
+                background: #fffbeb;
+                border: 1px solid #fef3c7;
+            }
+
+
+        /* =========================================================
+   EMPTY TABLE
+   ========================================================= */
+
+        #createOutboundForm .table tbody td[colspan] {
+            padding: 32px 20px;
+            color: #9ca3af !important;
+            background: #ffffff;
+        }
+
+
+    /* =========================================================
+   TABLE FOOTER
+   ========================================================= */
+
+    #createOutboundForm
+    .card-body > .d-flex.justify-content-between.align-items-center.mt-3 {
+        min-height: 40px;
+        margin-top: 14px !important;
+        padding: 0 2px !important;
+        color: #6b7280;
+    }
+
+        #createOutboundForm
+        .card-body > .d-flex.justify-content-between.align-items-center.mt-3 > span {
+            font-size: 0.76rem;
+            line-height: 1.4;
+        }
+
+        #createOutboundForm
+        .card-body > .d-flex.justify-content-between.align-items-center.mt-3 > div {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 7px 11px;
+            background: #f8fafc;
+            border: 1px solid #e9edf1;
+            border-radius: 8px;
+            white-space: nowrap;
+        }
+
+        #createOutboundForm
+        .card-body > .d-flex.justify-content-between.align-items-center.mt-3
+        .fw-bold {
+            color: #374151;
+        }
+
+        #createOutboundForm
+        .card-body > .d-flex.justify-content-between.align-items-center.mt-3
+        .fs-6 {
+            font-size: 0.80rem !important;
+        }
+
+
+    /* =========================================================
+   INFO ALERT
+   ========================================================= */
+
+    #createOutboundForm .alert-primary.bg-primary-subtle {
+        display: flex;
+        align-items: center;
+        min-height: 48px;
+        margin-bottom: 20px !important;
+        padding: 11px 15px !important;
+        background: #eff6ff !important;
+        border: 1px solid #dbeafe !important;
+        border-radius: 9px;
+        color: #1e40af !important;
+    }
+
+        #createOutboundForm .alert-primary.bg-primary-subtle i {
+            flex-shrink: 0;
+            margin-right: 9px !important;
+            color: #3b82f6;
+            font-size: 0.48rem !important;
+        }
+
+        #createOutboundForm .alert-primary.bg-primary-subtle span {
+            color: #1e40af !important;
+            font-size: 0.77rem !important;
+            line-height: 1.5;
+        }
+
+
+    /* =========================================================
+   ERROR ALERT
+   ========================================================= */
+
+    .container-fluid > .alert-danger,
+    #createOutboundForm .alert-danger {
+        background: #fef2f2 !important;
+        border: 1px solid #fecaca !important;
+        border-radius: 9px;
+        color: #991b1b !important;
+    }
+
+.container-fluid > .alert-danger {
+    margin-bottom: 18px !important;
+}
+
+#createOutboundForm .alert-danger .btn-close {
+    font-size: 0.7rem;
+}
+
+
+/* =========================================================
+   FOOTER ACTIONS
+   ========================================================= */
+
+#createOutboundForm
+.d-flex.justify-content-end.align-items-center.gap-2.mb-5 {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    width: 100%;
+    gap: 8px !important;
+    margin-top: 4px;
+    margin-bottom: 20px !important;
+    padding-top: 0;
+}
+
+
+    /* General button */
+
+    #createOutboundForm
+    .d-flex.justify-content-end.align-items-center.gap-2.mb-5
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 40px;
+        padding: 8px 17px;
+        border-radius: 7px;
+        font-size: 0.80rem;
+        font-weight: 600;
+        line-height: 1.3;
+        transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
+    }
+
+        #createOutboundForm
+        .d-flex.justify-content-end.align-items-center.gap-2.mb-5
+        .btn:active {
+            transform: translateY(1px);
+        }
+
+
+    /* Cancel */
+
+    #createOutboundForm
+    .d-flex.justify-content-end.align-items-center.gap-2.mb-5
+    .btn-link {
+        padding-left: 10px;
+        padding-right: 10px;
+        color: #6b7280 !important;
+        font-weight: 500;
+    }
+
+        #createOutboundForm
+        .d-flex.justify-content-end.align-items-center.gap-2.mb-5
+        .btn-link:hover {
+            color: #111827 !important;
+            background: #f3f4f6;
+            text-decoration: none !important;
+        }
+
+
+    /* Save draft */
+
+    #createOutboundForm
+    .d-flex.justify-content-end.align-items-center.gap-2.mb-5
+    .btn-light {
+        background: #ffffff;
+        border: 1px solid #d1d5db;
+        color: #374151 !important;
+    }
+
+        #createOutboundForm
+        .d-flex.justify-content-end.align-items-center.gap-2.mb-5
+        .btn-light:hover {
+            background: #f9fafb;
+            border-color: #9ca3af;
+            color: #111827 !important;
+        }
+
+
+    /* Create outbound */
+
+    #createOutboundForm
+    .d-flex.justify-content-end.align-items-center.gap-2.mb-5
+    .btn-dark {
+        background: #111827;
+        border-color: #111827;
+        color: #ffffff;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+    }
+
+        #createOutboundForm
+        .d-flex.justify-content-end.align-items-center.gap-2.mb-5
+        .btn-dark:hover {
+            background: #1f2937;
+            border-color: #1f2937;
+            color: #ffffff;
+            box-shadow: 0 3px 8px rgba(17, 24, 39, 0.15);
+        }
+
+
+/* =========================================================
+   SCROLLBAR
+   ========================================================= */
+
+#createOutboundForm .table-responsive::-webkit-scrollbar {
+    height: 7px;
+}
+
+#createOutboundForm .table-responsive::-webkit-scrollbar-track {
+    background: #f8fafc;
+}
+
+#createOutboundForm .table-responsive::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 10px;
+}
+
+    #createOutboundForm .table-responsive::-webkit-scrollbar-thumb:hover {
+        background: #9ca3af;
+    }
+
+
+/* =========================================================
+   TEXT SELECTION
+   ========================================================= */
+
+#createOutboundForm ::selection {
+    background: rgba(37, 99, 235, 0.15);
+}
+
+
+/* =========================================================
+   LARGE DESKTOP
+   ========================================================= */
+
+@media (min-width: 1400px) {
+
+    .container-fluid.py-3.px-4 {
+        padding-left: 40px !important;
+        padding-right: 40px !important;
+    }
+
+    #createOutboundForm .card-body {
+        padding: 24px 28px !important;
+    }
+
+    #createOutboundForm > .card:first-of-type .row {
+        column-gap: 18px;
+        row-gap: 20px;
+    }
+}
+
+
+/* =========================================================
+   TABLET
+   ========================================================= */
+
+@media (min-width: 768px) and (max-width: 1199.98px) {
+
+    .container-fluid.py-3.px-4 {
+        padding-left: 20px !important;
+        padding-right: 20px !important;
+    }
+
+    #createOutboundForm > .card:first-of-type .row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px 16px;
+    }
+
+    #createOutboundForm .table {
+        min-width: 900px;
+    }
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 767.98px) {
+
+    .container-fluid.py-3.px-4 {
+        padding: 15px !important;
+    }
+
+
+    /* Header */
+
+    .container-fluid > .d-flex.justify-content-between {
+        align-items: flex-start !important;
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+
+        .container-fluid > .d-flex.justify-content-between h4 {
+            font-size: 1.05rem;
+        }
+
+        .container-fluid > .d-flex.justify-content-between p {
+            max-width: 100%;
+            line-height: 1.45;
+        }
+
+        .container-fluid > .d-flex.justify-content-between .badge {
+            flex-shrink: 0;
+            min-height: 29px;
+            padding: 5px 9px !important;
+            font-size: 0.68rem !important;
+        }
+
+
+    /* Cards */
+
+    #createOutboundForm > .card {
+        margin-bottom: 16px !important;
+        border-radius: 10px !important;
+    }
+
+    #createOutboundForm .card-body {
+        padding: 16px !important;
+    }
+
+
+    /* Form */
+
+    #createOutboundForm > .card:first-of-type .row {
+        grid-template-columns: 1fr;
+        gap: 14px;
+    }
+
+
+    /* Table */
+
+    #createOutboundForm .table-responsive {
+        border-radius: 8px;
+    }
+
+    #createOutboundForm .table {
+        min-width: 900px;
+    }
+
+
+    /* Table footer */
+
+    #createOutboundForm
+    .card-body > .d-flex.justify-content-between.align-items-center.mt-3 {
+        align-items: flex-start !important;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+        #createOutboundForm
+        .card-body > .d-flex.justify-content-between.align-items-center.mt-3 > div {
+            align-self: flex-end;
+        }
+
+
+    /* Alert */
+
+    #createOutboundForm .alert-primary.bg-primary-subtle {
+        align-items: flex-start;
+        padding: 11px 13px !important;
+    }
+
+
+    /* Buttons */
+
+    #createOutboundForm
+    .d-flex.justify-content-end.align-items-center.gap-2.mb-5 {
+        flex-wrap: wrap;
+        justify-content: flex-end !important;
+        gap: 8px !important;
+    }
+
+        #createOutboundForm
+        .d-flex.justify-content-end.align-items-center.gap-2.mb-5
+        .btn {
+            padding-left: 15px !important;
+            padding-right: 15px !important;
+        }
+}
+
+
+/* =========================================================
+   SMALL MOBILE
+   ========================================================= */
+
+@media (max-width: 480px) {
+
+    .container-fluid.py-3.px-4 {
+        padding: 12px !important;
+    }
+
+    #createOutboundForm .card-body {
+        padding: 14px !important;
+    }
+
+    .container-fluid > .d-flex.justify-content-between {
+        gap: 8px;
+    }
+
+        .container-fluid > .d-flex.justify-content-between h4 {
+            font-size: 0.98rem;
+        }
+
+        .container-fluid > .d-flex.justify-content-between p {
+            font-size: 0.75rem;
+        }
+
+
+    /* Footer buttons */
+
+    #createOutboundForm
+    .d-flex.justify-content-end.align-items-center.gap-2.mb-5 {
+        width: 100%;
+    }
+
+        #createOutboundForm
+        .d-flex.justify-content-end.align-items-center.gap-2.mb-5
+        .btn {
+            flex: 1;
+            min-width: 0;
+            padding-left: 12px !important;
+            padding-right: 12px !important;
+        }
+
+        #createOutboundForm
+        .d-flex.justify-content-end.align-items-center.gap-2.mb-5
+        .btn-link {
+            flex: 0 0 auto;
+        }
+}
+

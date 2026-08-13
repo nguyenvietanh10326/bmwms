@@ -7,7 +7,7 @@ namespace BMWMS.API.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-[Authorize]
+[Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
 public class ReportsController : ControllerBase
 {
     private readonly IReportService _reportService;

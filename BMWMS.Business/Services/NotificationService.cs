@@ -63,17 +63,27 @@ public class NotificationService : INotificationService
 
     public async Task CreateNotificationAsync(CreateNotificationDto dto, long createdByUserId)
     {
-        // 1. Fetch target users
-        var userIdsQuery = _context.Users.Where(u => u.Status == "ACTIVE");
-        
-        if (dto.TargetRoleId.HasValue)
-        {
-            userIdsQuery = userIdsQuery.Where(u => u.RoleId == dto.TargetRoleId.Value);
-        }
+        var targetUserIds = new List<long>();
 
-        var targetUserIds = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ToListAsync(
-            System.Linq.Queryable.Select(userIdsQuery, u => u.UserId)
-        );
+        if (dto.TargetUserId.HasValue)
+        {
+            // Send to a specific user
+            targetUserIds.Add(dto.TargetUserId.Value);
+        }
+        else
+        {
+            // Fetch target users by role or all
+            var userIdsQuery = _context.Users.Where(u => u.Status == "ACTIVE");
+            
+            if (dto.TargetRoleId.HasValue)
+            {
+                userIdsQuery = userIdsQuery.Where(u => u.RoleId == dto.TargetRoleId.Value);
+            }
+
+            targetUserIds = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ToListAsync(
+                System.Linq.Queryable.Select(userIdsQuery, u => u.UserId)
+            );
+        }
 
         if (!targetUserIds.Any())
             return;

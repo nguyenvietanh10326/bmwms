@@ -87,6 +87,7 @@ builder.Services.AddScoped<BMWMS.Repository.Interfaces.Inventory.IDashboardRepos
 builder.Services.AddScoped<IInventoryRepository, InventoryRepository>();
 builder.Services.AddScoped<IStorageLocationRepository, StorageLocationRepository>();
 builder.Services.AddScoped<IStocktakeRepository, StocktakeRepository>();
+builder.Services.AddScoped<IInboundRepository, InboundRepository>();
 
 // Services
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -102,6 +103,7 @@ builder.Services.AddScoped<BMWMS.Business.Interfaces.Inventory.IDashboardService
 builder.Services.AddScoped<IInventoryService, InventoryService>();
 builder.Services.AddScoped<IStorageLocationService, StorageLocationService>();
 builder.Services.AddScoped<IStocktakeService, StocktakeService>();
+builder.Services.AddScoped<IInboundService, InboundService>();
 builder.Services.AddScoped<IEmailService, MockEmailService>();
 
 // Report
@@ -116,6 +118,15 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 // StockOperations (VietAnh)
 builder.Services.AddScoped<BMWMS.Repository.Interfaces.StockOperations.ITransferRepository, BMWMS.Repository.Repositories.StockOperations.TransferRepository>();
 builder.Services.AddScoped<BMWMS.Business.Interfaces.StockOperations.ITransferService, BMWMS.Business.Services.StockOperations.TransferService>();
+
+// HuyNgo Services
+builder.Services.AddScoped<IPurchaseOrderRepository, PurchaseOrderRepository>();
+builder.Services.AddScoped<IPurchaseOrderService, PurchaseOrderService>();
+builder.Services.AddScoped<IOutboundOrderRepository, OutboundOrderRepository>();
+builder.Services.AddScoped<IOutboundOrderService, OutboundOrderService>();
+builder.Services.AddScoped<ISalesOrderRepository, SalesOrderRepository>();
+builder.Services.AddScoped<ISalesOrderService, SalesOrderService>();
+
 
 var app = builder.Build();
 

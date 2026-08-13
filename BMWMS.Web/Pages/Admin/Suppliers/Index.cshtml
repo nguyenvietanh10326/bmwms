@@ -14,7 +14,7 @@
     </div>
     <div>
         @{
-            var canEdit = new[] { "SYSTEM_ADMIN", "WAREHOUSE_MANAGER", "PURCHASING_STAFF" }.Contains(HttpContext.Session.GetString("RoleCode"));
+            var canEdit = new[] { "SYSTEM_ADMIN", "PURCHASING_STAFF" }.Contains(HttpContext.Session.GetString("RoleCode"));
         }
         @if (canEdit)
         {
