@@ -131,12 +131,9 @@
                 
                 @if (Model.IsManager && s?.CanStart == true)
                 {
-                    <form method="post" asp-page-handler="Start" asp-route-id="@s.StocktakeSessionId" style="display:inline;">
-                        @Html.AntiForgeryToken()
-                        <button type="submit" class="btn btn-primary" style="padding: 6px 12px;" onclick="return confirm('Bắt đầu phiên kiểm kho này? Hệ thống sẽ tạo snapshot tồn kho.');">
-                            <i class="ri-play-circle-line"></i> Bắt đầu
-                        </button>
-                    </form>
+                    <button type="button" class="btn btn-primary" style="padding: 6px 12px;" data-bs-toggle="modal" data-bs-target="#startModal">
+                        <i class="ri-play-circle-line"></i> Bắt đầu
+                    </button>
                 }
 
                 @if (Model.IsManager && s?.CanCancel == true)
@@ -466,6 +463,31 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-light" data-bs-dismiss="modal">Quay lại</button>
                     <button type="submit" class="btn btn-success" style="background:#16a34a; color:#fff; border:none; padding:8px 16px; border-radius:6px;">Phê duyệt</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@* ── START MODAL ── *@
+<div class="modal fade" id="startModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="Start" asp-route-id="@s?.StocktakeSessionId">
+                @Html.AntiForgeryToken()
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="ri-play-circle-line me-1 text-primary"></i>Bắt đầu kiểm kho</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted">Bạn có chắc chắn muốn bắt đầu phiên kiểm kho <strong>@s?.StocktakeNumber</strong>?</p>
+                    <div class="alert alert-warning" style="font-size:13px; padding:12px; margin-bottom:0;">
+                        <i class="ri-error-warning-fill me-1"></i> Hệ thống sẽ tạo một bản Snapshot (lưu lại số lượng tồn kho hiện tại trên sổ sách) để làm cơ sở đối chiếu khi đếm thực tế.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Đóng</button>
+                    <button type="submit" class="btn btn-primary" style="background:#2563eb; color:#fff; border:none; padding:8px 16px; border-radius:6px;">Bắt đầu ngay</button>
                 </div>
             </form>
         </div>
