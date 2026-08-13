@@ -345,6 +345,20 @@
 
     <!-- Main Content -->
     <main class="main-content">
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert" style="margin: 20px 20px 0 20px; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                <i class="ri-checkbox-circle-line me-1"></i> @TempData["SuccessMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert" style="margin: 20px 20px 0 20px; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                <i class="ri-error-warning-line me-1"></i> @TempData["ErrorMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
         @RenderBody()
     </main>
 

@@ -64,10 +64,11 @@ public class InboundService : IInboundService
             WarehouseId = order.WarehouseId,
             ExpectedReceiptDate = order.ExpectedReceiptDate,
             Status = order.Status,
+            AssignedToUserId = order.AssignedToUserId,
             AssignedToUserName = order.AssignedToUser?.FullName ?? "",
             CreatedByUserName = order.CreatedByUser?.FullName ?? "",
             ParentInboundOrderNumber = order.ParentInboundOrder?.InboundOrderNumber,
-            Items = order.InboundOrderItems.Select(i => new InboundOrderItemDto
+            Items = order.InboundOrderItems.OrderBy(i => i.InboundOrderItemId).Select(i => new InboundOrderItemDto
             {
                 InboundOrderItemId = i.InboundOrderItemId,
                 ProductId = i.ProductId,
@@ -532,6 +533,12 @@ public class InboundService : IInboundService
             .FirstOrDefaultAsync(o => o.InboundOrderId == inboundOrderId);
 
         if (order == null) throw new Exception("Không tìm thấy lệnh nhập kho.");
+
+        var user = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == currentUserId);
+        if (user?.Role?.RoleName == "WAREHOUSE_STAFF" && order.AssignedToUserId != currentUserId)
+        {
+            throw new UnauthorizedAccessException("Bạn không có quyền nhận hàng cho lệnh này vì nó không được phân công cho bạn.");
+        }
         if (order.Status != "ASSIGNED" && order.Status != "IN_PROGRESS") 
             throw new Exception("Chỉ có thể nhận hàng khi lệnh ở trạng thái ASSIGNED hoặc IN_PROGRESS.");
 
@@ -626,6 +633,12 @@ public class InboundService : IInboundService
             .FirstOrDefaultAsync(o => o.InboundOrderId == inboundOrderId);
 
         if (order == null) throw new Exception("Không tìm thấy lệnh nhập kho.");
+
+        var user = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == currentUserId);
+        if (user?.Role?.RoleName == "WAREHOUSE_STAFF" && order.AssignedToUserId != currentUserId)
+        {
+            throw new UnauthorizedAccessException("Bạn không có quyền nhận hàng cho lệnh này vì nó không được phân công cho bạn.");
+        }
         if (order.Status != "ASSIGNED" && order.Status != "IN_PROGRESS") 
             throw new Exception("Chỉ có thể nhận hàng khi lệnh ở trạng thái ASSIGNED hoặc IN_PROGRESS.");
 
@@ -714,6 +727,12 @@ public class InboundService : IInboundService
             .FirstOrDefaultAsync(o => o.InboundOrderId == inboundOrderId);
 
         if (order == null) throw new Exception("Không tìm thấy lệnh nhập kho.");
+
+        var user = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == currentUserId);
+        if (user?.Role?.RoleName == "WAREHOUSE_STAFF" && order.AssignedToUserId != currentUserId)
+        {
+            throw new UnauthorizedAccessException("Bạn không có quyền xếp vị trí cho lệnh này vì nó không được phân công cho bạn.");
+        }
 
         decimal totalPutawayCurrentBatch = 0;
 

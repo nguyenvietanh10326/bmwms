@@ -34,10 +34,13 @@ public class ReceiveModel : PageModel
             Filter.Status = "ASSIGNED,IN_PROGRESS"; // Backend might need support for comma separated, if not we just fetch all and filter in memory or backend handles it.
         }
 
-        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (long.TryParse(userIdClaim, out var currentUserId))
+        if (User.IsInRole("WAREHOUSE_STAFF"))
         {
-            Filter.AssignedToUserId = currentUserId;
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (long.TryParse(userIdClaim, out var currentUserId))
+            {
+                Filter.AssignedToUserId = currentUserId;
+            }
         }
 
         Data = await _inboundApi.GetInboundOrdersPageAsync(Filter);
@@ -48,7 +51,16 @@ public class ReceiveModel : PageModel
         if (id.HasValue)
         {
             var order = await _inboundApi.GetInboundOrderByIdAsync(id.Value);
-            if (order != null) Order = order;
+            if (order != null) 
+            {
+                var userIdClaimForCheck = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (User.IsInRole("WAREHOUSE_STAFF") && long.TryParse(userIdClaimForCheck, out var userId) && order.AssignedToUserId != userId)
+                {
+                    TempData["ErrorMessage"] = "Bạn không có quyền nhận hàng cho lệnh này vì nó không được phân công cho bạn.";
+                    return RedirectToPage("Index");
+                }
+                Order = order;
+            }
         }
 
         return Page();

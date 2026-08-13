@@ -68,7 +68,7 @@ public class InboundRepository : IInboundRepository
         var totalCount = await query.CountAsync();
 
         var items = await query
-            .OrderByDescending(x => x.CreatedAt)
+            .OrderBy(x => x.CreatedAt)
             .Skip((pageIndex - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();

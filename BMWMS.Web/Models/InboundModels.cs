@@ -42,6 +42,7 @@ public class InboundOrderDetailDto
     public long WarehouseId { get; set; }
     public DateOnly ExpectedReceiptDate { get; set; }
     public string Status { get; set; } = string.Empty;
+    public long? AssignedToUserId { get; set; }
     public string AssignedToUserName { get; set; } = string.Empty;
     public string CreatedByUserName { get; set; } = string.Empty;
     public string? ParentInboundOrderNumber { get; set; }
