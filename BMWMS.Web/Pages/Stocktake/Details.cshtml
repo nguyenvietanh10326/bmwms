@@ -1,0 +1,519 @@
+@page
+@model BMWMS.Web.Pages.Stocktake.DetailsModel
+@{
+    Layout = "_AdminLayout";
+    var s = Model.SessionDetail;
+    ViewData["Title"] = $"Stocktake {s?.StocktakeNumber}";
+    ViewData["HeaderTitle"] = "Stocktake";
+
+    var status = s?.Status ?? "";
+    var isScheduled = status == "SCHEDULED";
+    var isInProgress = status == "IN_PROGRESS";
+    var isCounted = status == "COUNTED";
+    var isPendingApproval = status == "PENDING_APPROVAL";
+    var isCompleted = status == "COMPLETED";
+    var isCancelled = status == "CANCELLED";
+    var isActive = isInProgress || isCounted || isPendingApproval;
+    var isDone = isCompleted || isCancelled;
+}
+
+<div class="container-fluid" style="padding:24px; max-width:1440px; margin:0 auto;">
+
+    @* ── BREADCRUMB & HEADER ── *@
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
+        <div>
+            <div class="small text-muted mb-1 d-flex align-items-center gap-1">
+                <span>Warehouse operations</span>
+                <i class="ri-arrow-right-s-line"></i>
+                <a href="/Stocktake/Index" class="text-muted text-decoration-none">Stocktake</a>
+                <i class="ri-arrow-right-s-line"></i>
+                <span style="color:#2563eb;font-weight:500;">@s?.StocktakeNumber</span>
+            </div>
+            <h1 class="h4 fw-bold mb-1 d-flex align-items-center gap-2">
+                @s?.StocktakeNumber
+                <span class="badge @s?.StatusCss fs-6">@s?.StatusLabel</span>
+            </h1>
+        </div>
+
+        @* ── ACTION BUTTONS ── *@
+        <div class="d-flex flex-wrap gap-2 align-items-start">
+            <a href="/Stocktake/Index" class="btn btn-outline-secondary btn-sm">
+                <i class="ri-arrow-left-line me-1"></i>Back
+            </a>
+
+            @if (Model.IsManager && s?.CanStart == true)
+            {
+                <form method="post" asp-page-handler="Start" asp-route-id="@s.StocktakeSessionId" style="display:inline;">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-primary btn-sm"
+                            onclick="return confirm('Bắt đầu phiên kiểm kho này? Hệ thống sẽ chụp snapshot số lượng tồn kho.')">
+                        <i class="ri-play-circle-line me-1"></i>Start session
+                    </button>
+                </form>
+            }
+
+            @if (Model.IsManager && s?.CanCancel == true)
+            {
+                <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#cancelModal">
+                    <i class="ri-close-circle-line me-1"></i>Cancel
+                </button>
+            }
+
+            @if (Model.IsManager && s?.CanApprove == true)
+            {
+                <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#approveModal">
+                    <i class="ri-check-double-line me-1"></i>Approve &amp; close
+                </button>
+            }
+
+            @if (Model.IsManager && s?.CanReview == true && !isPendingApproval)
+            {
+                <form method="post" asp-page-handler="SubmitForReview" asp-route-id="@s!.StocktakeSessionId" style="display:inline;">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-warning btn-sm"
+                            onclick="return confirm('Gửi phiên này lên để phê duyệt điều chỉnh?')">
+                        <i class="ri-send-plane-line me-1"></i>Submit for approval
+                    </button>
+                </form>
+            }
+        </div>
+    </div>
+
+    @* ── ALERTS ── *@
+    @if (!string.IsNullOrWhiteSpace(Model.SuccessMessage))
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="ri-checkbox-circle-line me-1"></i>@Model.SuccessMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="ri-error-warning-line me-1"></i>@Model.ErrorMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @* ── SWIMLANE PROGRESS INDICATOR ── *@
+    <div class="border rounded bg-white p-3 mb-3">
+        <div class="d-flex align-items-center gap-0 overflow-auto pb-1" style="min-width:600px;">
+            @{
+                var steps = new[]
+                {
+                    ("SCHEDULED",       "ri-calendar-check-line", "Scheduled"),
+                    ("IN_PROGRESS",     "ri-camera-line",         "Counting"),
+                    ("COUNTED",         "ri-calculator-line",     "Counted"),
+                    ("PENDING_APPROVAL","ri-user-star-line",      "Pending approval"),
+                    ("COMPLETED",       "ri-checkbox-circle-fill","Completed"),
+                };
+                var statusOrder = new[] { "SCHEDULED","IN_PROGRESS","COUNTED","PENDING_APPROVAL","COMPLETED" };
+                var currentIdx = Array.IndexOf(statusOrder, status);
+            }
+            @for (int si = 0; si < steps.Length; si++)
+            {
+                var (stepStatus, stepIcon, stepLabel) = steps[si];
+                var stepIdx = Array.IndexOf(statusOrder, stepStatus);
+                var isPast = stepIdx < currentIdx;
+                var isCurr = stepStatus == status;
+                var dotColor = isCancelled ? "#94a3b8" : isCurr ? "#2563eb" : isPast ? "#16a34a" : "#cbd5e1";
+                var textColor = isCurr ? "#2563eb" : isPast ? "#16a34a" : "#94a3b8";
+                <div class="d-flex align-items-center">
+                    <div class="text-center" style="min-width:90px;">
+                        <div style="width:36px;height:36px;border-radius:50%;background:@dotColor;color:#fff;display:flex;align-items:center;justify-content:center;margin:0 auto 4px;">
+                            <i class="@stepIcon" style="font-size:16px;"></i>
+                        </div>
+                        <div style="font-size:11px;font-weight:600;color:@textColor;white-space:nowrap;">@stepLabel</div>
+                    </div>
+                    @if (si < steps.Length - 1)
+                    {
+                        <div style="flex:1;height:2px;background:@(isPast ? "#16a34a" : "#e2e8f0");min-width:20px;"></div>
+                    }
+                </div>
+            }
+            @if (isCancelled)
+            {
+                <div class="ms-3 text-danger small fw-semibold"><i class="ri-close-circle-fill me-1"></i>Cancelled</div>
+            }
+        </div>
+    </div>
+
+    <div class="row g-3">
+        @* ── LEFT: Session Info ── *@
+        <div class="col-lg-4">
+            <div class="border rounded bg-white p-3 mb-3">
+                <div class="fw-semibold mb-2" style="font-size:13px;color:#64748b;text-transform:uppercase;letter-spacing:.05em;">Session info</div>
+                <table class="table table-sm mb-0">
+                    <tbody>
+                        <tr><td class="text-muted small">Warehouse</td><td class="fw-semibold">@s?.WarehouseCode – @s?.WarehouseName</td></tr>
+                        <tr><td class="text-muted small">Planned date</td><td>@s?.PlannedDate.ToString("dd/MM/yyyy")</td></tr>
+                        <tr><td class="text-muted small">Created by</td><td>@s?.CreatedByName</td></tr>
+                        <tr><td class="text-muted small">Created at</td><td>@s?.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td></tr>
+                        <tr><td class="text-muted small">Assigned to</td><td>@(string.IsNullOrWhiteSpace(s?.AssignedToName) ? "—" : s.AssignedToName)</td></tr>
+                        @if (s?.StartedAt.HasValue == true)
+                        {
+                            <tr><td class="text-muted small">Started at</td><td>@s.StartedAt!.Value.ToString("dd/MM/yyyy HH:mm")</td></tr>
+                        }
+                        @if (s?.SubmittedAt.HasValue == true)
+                        {
+                            <tr><td class="text-muted small">Submitted at</td><td>@s.SubmittedAt!.Value.ToString("dd/MM/yyyy HH:mm")</td></tr>
+                        }
+                        @if (s?.ApprovedAt.HasValue == true)
+                        {
+                            <tr><td class="text-muted small">Approved by</td><td>@s.ApprovedByName</td></tr>
+                            <tr><td class="text-muted small">Approved at</td><td>@s.ApprovedAt!.Value.ToString("dd/MM/yyyy HH:mm")</td></tr>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(s?.Notes))
+                        {
+                            <tr><td class="text-muted small">Notes</td><td>@s.Notes</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            @* Progress Summary *@
+            <div class="border rounded bg-white p-3">
+                <div class="fw-semibold mb-2" style="font-size:13px;color:#64748b;text-transform:uppercase;letter-spacing:.05em;">Progress</div>
+                <div class="row g-2">
+                    <div class="col-6">
+                        <div class="border rounded p-2 text-center">
+                            <div class="small text-muted">Locations</div>
+                            <div class="fw-bold fs-5">@s?.CountedLocations <span class="text-muted small">/ @s?.TotalLocations</span></div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="border rounded p-2 text-center">
+                            <div class="small text-muted">Items</div>
+                            <div class="fw-bold fs-5">@s?.CountedItems <span class="text-muted small">/ @s?.TotalItems</span></div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="border rounded p-2 text-center">
+                            <div class="small text-muted">Variance lines</div>
+                            <div class="fw-bold fs-5 @(s?.VarianceItems > 0 ? "text-danger" : "text-success")">@s?.VarianceItems</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="border rounded p-2 text-center">
+                            <div class="small text-muted">Total diff</div>
+                            <div class="fw-bold fs-5 @(s?.TotalDifferenceQuantity != 0 ? "text-danger" : "text-success")">
+                                @s?.TotalDifferenceQuantity.ToString("N2")
+                            </div>
+                        </div>
+                    </div>
+                    @if (s?.TotalLocations > 0)
+                    {
+                        <div class="col-12">
+                            @{
+                                var pct = s.TotalLocations > 0 ? (int)(s.CountedLocations * 100.0 / s.TotalLocations) : 0;
+                            }
+                            <div class="progress" style="height:6px;">
+                                <div class="progress-bar bg-primary" role="progressbar" style="width:@pct%"></div>
+                            </div>
+                            <div class="text-muted small mt-1 text-end">@pct% counted</div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        @* ── RIGHT: Locations Table ── *@
+        <div class="col-lg-8">
+            <div class="border rounded bg-white overflow-hidden mb-3">
+                <div class="px-3 pt-3 pb-2 border-bottom d-flex justify-content-between align-items-center">
+                    <span class="fw-semibold">Storage locations / Bins</span>
+                    @if (s?.RecountLocations > 0)
+                    {
+                        <span class="badge bg-warning text-dark"><i class="ri-refresh-line me-1"></i>@s.RecountLocations recount pending</span>
+                    }
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0 align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Location</th>
+                                <th class="text-center">Items</th>
+                                <th class="text-end">Variance qty</th>
+                                <th class="text-center">Count status</th>
+                                <th class="text-muted small">Counted by</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (s?.Locations?.Any() == true)
+                            {
+                                foreach (var loc in s.Locations)
+                                {
+                                    <tr>
+                                        <td>
+                                            <div class="fw-semibold small">@loc.LocationCode</div>
+                                            <div class="text-muted" style="font-size:11px;">@loc.LocationPath</div>
+                                        </td>
+                                        <td class="text-center small">@loc.CountedItems / @loc.TotalItems</td>
+                                        <td class="text-end fw-semibold small @(loc.TotalDifferenceQuantity != 0 ? "text-danger" : "text-muted")">
+                                            @loc.TotalDifferenceQuantity.ToString("N2")
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge @loc.CountStatusCss">@loc.CountStatusLabel</span>
+                                        </td>
+                                        <td class="text-muted small">
+                                            @(string.IsNullOrWhiteSpace(loc.CountedByName) ? "—" : loc.CountedByName)
+                                            @if (loc.CountedAt.HasValue)
+                                            {
+                                                <div style="font-size:10px;">@loc.CountedAt.Value.ToString("dd/MM HH:mm")</div>
+                                            }
+                                        </td>
+                                        <td class="text-end">
+                                            <div class="d-flex gap-1 justify-content-end">
+                                                @* Staff: count/recount button *@
+                                                @if (Model.IsStaff && loc.CanCount && isInProgress)
+                                                {
+                                                    <a href="/Stocktake/Count?id=@s.StocktakeSessionId&locationId=@loc.StorageLocationId"
+                                                       class="btn btn-sm btn-primary">
+                                                        <i class="ri-calculator-line me-1"></i>Count
+                                                    </a>
+                                                }
+                                                else if (loc.CountStatus == "COUNTED" || loc.CountStatus == "SUBMITTED")
+                                                {
+                                                    <a href="/Stocktake/Count?id=@s.StocktakeSessionId&locationId=@loc.StorageLocationId"
+                                                       class="btn btn-sm btn-outline-secondary">
+                                                        <i class="ri-eye-line"></i>
+                                                    </a>
+                                                }
+                                                @* Manager: request recount *@
+                                                @if (Model.IsManager && (loc.CountStatus == "SUBMITTED" || loc.CountStatus == "COUNTED") && isInProgress)
+                                                {
+                                                    <form method="post" asp-page-handler="RequestRecount"
+                                                          asp-route-id="@s.StocktakeSessionId"
+                                                          asp-route-locationId="@loc.StorageLocationId"
+                                                          style="display:inline;">
+                                                        @Html.AntiForgeryToken()
+                                                        <button type="submit" class="btn btn-sm btn-outline-warning"
+                                                                title="Request recount"
+                                                                onclick="return confirm('Yêu cầu đếm lại bin @loc.LocationCode?')">
+                                                            <i class="ri-refresh-line"></i>
+                                                        </button>
+                                                    </form>
+                                                }
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="6" class="text-center text-muted py-4">
+                                        @if (isScheduled)
+                                        {
+                                            <span>Start the session to load bins.</span>
+                                        }
+                                        else
+                                        {
+                                            <span>No locations found.</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            @* ── Items / Variance table (shown when there are counted items) ── *@
+            @if (s?.Items?.Any() == true)
+            {
+                <div class="border rounded bg-white overflow-hidden">
+                    <div class="px-3 pt-3 pb-2 border-bottom d-flex justify-content-between align-items-center">
+                        <span class="fw-semibold">Count lines – variance detail</span>
+                        @if (s.VarianceItems > 0)
+                        {
+                            <span class="badge bg-danger">@s.VarianceItems variance lines</span>
+                        }
+                    </div>
+
+                    @* Manager resolution form (only when PENDING_APPROVAL and CanReview) *@
+                    @if (Model.IsManager && s.CanReview && isPendingApproval)
+                    {
+                        <form method="post" asp-page-handler="Resolutions" asp-route-id="@s.StocktakeSessionId" id="resolutionForm">
+                            @Html.AntiForgeryToken()
+                            <div class="table-responsive">
+                                <table class="table table-sm mb-0 align-middle">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Location</th>
+                                            <th>Product / Lot</th>
+                                            <th class="text-end">Book qty</th>
+                                            <th class="text-end">Counted qty</th>
+                                            <th class="text-end">Diff</th>
+                                            <th style="min-width:150px;">Resolution</th>
+                                            <th style="min-width:150px;">Notes</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @for (int i = 0; i < s.Items.Count; i++)
+                                        {
+                                            var item = s.Items[i];
+                                            <tr class="@(item.DifferenceQuantity != 0 ? "table-warning" : "")">
+                                                <td class="small text-muted">@item.LocationCode</td>
+                                                <td>
+                                                    <div class="fw-semibold small">@item.ProductCode</div>
+                                                    <div class="text-muted" style="font-size:11px;">@item.ProductName</div>
+                                                    <div class="text-muted" style="font-size:10px;">Lot: @item.LotNumber @(item.ExpiryDate.HasValue ? $"– Exp: {item.ExpiryDate.Value:dd/MM/yyyy}" : "")</div>
+                                                    @if (item.IsUnexpected)
+                                                    {
+                                                        <span class="badge bg-info" style="font-size:10px;">Unexpected</span>
+                                                    }
+                                                    <input type="hidden" name="Resolutions[@i].StocktakeItemId" value="@item.StocktakeItemId" />
+                                                </td>
+                                                <td class="text-end small">@item.BookQuantity?.ToString("N2")</td>
+                                                <td class="text-end small">@item.CountedQuantity?.ToString("N2")</td>
+                                                <td class="text-end fw-semibold small @(item.DifferenceQuantity != 0 ? "text-danger" : "text-muted")">
+                                                    @(item.DifferenceQuantity.HasValue ? item.DifferenceQuantity.Value.ToString("+0.##;-0.##;0") : "—")
+                                                </td>
+                                                <td>
+                                                    @if (item.DifferenceQuantity != 0 || item.IsUnexpected)
+                                                    {
+                                                        <select name="Resolutions[@i].Resolution" class="form-select form-select-sm">
+                                                            <option value="">-- Select --</option>
+                                                            <option value="ADJUST" selected="@(item.Resolution == "ADJUST" ? "selected" : null)">Adjust inventory</option>
+                                                            <option value="IGNORE" selected="@(item.Resolution == "IGNORE" ? "selected" : null)">Ignore</option>
+                                                            <option value="RECOUNT" selected="@(item.Resolution == "RECOUNT" ? "selected" : null)">Recount</option>
+                                                        </select>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="text-muted small">No variance</span>
+                                                        <input type="hidden" name="Resolutions[@i].Resolution" value="IGNORE" />
+                                                    }
+                                                </td>
+                                                <td>
+                                                    <input type="text" name="Resolutions[@i].Notes" class="form-control form-control-sm"
+                                                           value="@item.Notes" placeholder="Notes..." />
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="p-3 border-top d-flex justify-content-end">
+                                <button type="submit" class="btn btn-primary btn-sm">
+                                    <i class="ri-save-line me-1"></i>Save resolutions
+                                </button>
+                            </div>
+                        </form>
+                    }
+                    else
+                    {
+                        @* Read-only view *@
+                        <div class="table-responsive">
+                            <table class="table table-sm mb-0 align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Location</th>
+                                        <th>Product / Lot</th>
+                                        <th class="text-end">Book qty</th>
+                                        <th class="text-end">Counted qty</th>
+                                        <th class="text-end">Diff</th>
+                                        <th>Resolution</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in s.Items)
+                                    {
+                                        <tr class="@(item.DifferenceQuantity != 0 ? "table-warning" : "")">
+                                            <td class="small text-muted">@item.LocationCode</td>
+                                            <td>
+                                                <div class="fw-semibold small">@item.ProductCode</div>
+                                                <div class="text-muted" style="font-size:11px;">@item.ProductName</div>
+                                                <div class="text-muted" style="font-size:10px;">Lot: @item.LotNumber @(item.ExpiryDate.HasValue ? $"– Exp: {item.ExpiryDate.Value:dd/MM/yyyy}" : "")</div>
+                                                @if (item.IsUnexpected)
+                                                {
+                                                    <span class="badge bg-info" style="font-size:10px;">Unexpected</span>
+                                                }
+                                            </td>
+                                            <td class="text-end small">@item.BookQuantity?.ToString("N2")</td>
+                                            <td class="text-end small">@item.CountedQuantity?.ToString("N2")</td>
+                                            <td class="text-end fw-semibold small @(item.DifferenceQuantity != 0 ? "text-danger" : "text-muted")">
+                                                @(item.DifferenceQuantity.HasValue ? item.DifferenceQuantity.Value.ToString("+0.##;-0.##;0") : "—")
+                                            </td>
+                                            <td>
+                                                @if (!string.IsNullOrWhiteSpace(item.Resolution))
+                                                {
+                                                    <span class="badge @(item.Resolution == "ADJUST" ? "bg-primary" : item.Resolution == "IGNORE" ? "bg-secondary" : "bg-warning text-dark")">
+                                                        @item.Resolution
+                                                    </span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted small">—</span>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@* ── CANCEL MODAL ── *@
+<div class="modal fade" id="cancelModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="Cancel" asp-route-id="@s?.StocktakeSessionId">
+                @Html.AntiForgeryToken()
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="ri-close-circle-line me-1 text-danger"></i>Cancel stocktake session</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted">Hủy phiên kiểm kho <strong>@s?.StocktakeNumber</strong>? Hành động này không thể hoàn tác.</p>
+                    <label class="form-label fw-semibold">Reason / Notes</label>
+                    <textarea name="notes" class="form-control" rows="3" placeholder="Lý do hủy..."></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Keep</button>
+                    <button type="submit" class="btn btn-danger">Cancel session</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@* ── APPROVE MODAL ── *@
+<div class="modal fade" id="approveModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="Approve" asp-route-id="@s?.StocktakeSessionId">
+                @Html.AntiForgeryToken()
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="ri-check-double-line me-1 text-success"></i>Approve &amp; close stocktake</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Phê duyệt điều chỉnh tồn kho và đóng phiên <strong>@s?.StocktakeNumber</strong>?</p>
+                    @if (s?.VarianceItems > 0)
+                    {
+                        <div class="alert alert-warning small">
+                            <i class="ri-error-warning-line me-1"></i>
+                            Có <strong>@s.VarianceItems</strong> dòng chênh lệch. Hệ thống sẽ điều chỉnh tồn kho theo resolution đã chọn.
+                        </div>
+                    }
+                    <label class="form-label fw-semibold">Approval notes</label>
+                    <textarea name="notes" class="form-control" rows="3" placeholder="Ghi chú phê duyệt (tuỳ chọn)..."></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Back</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="ri-check-double-line me-1"></i>Approve &amp; post adjustment
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

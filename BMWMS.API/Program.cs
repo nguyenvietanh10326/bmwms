@@ -1,13 +1,17 @@
 using System.Text;
 using BMWMS.Business.Interfaces;
 using BMWMS.Business.Interfaces.Inventory;
+using BMWMS.Business.Interfaces.Stocktake;
 using BMWMS.Business.Services;
 using BMWMS.Business.Services.Inventory;
+using BMWMS.Business.Services.Stocktake;
 using BMWMS.Repository.Interfaces;
 using BMWMS.Repository.Interfaces.Inventory;
+using BMWMS.Repository.Interfaces.Stocktake;
 using BMWMS.Repository.Models;
 using BMWMS.Repository.Repositories;
 using BMWMS.Repository.Repositories.Inventory;
+using BMWMS.Repository.Repositories.Stocktake;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -82,6 +86,7 @@ builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<BMWMS.Repository.Interfaces.Inventory.IDashboardRepository, BMWMS.Repository.Repositories.Inventory.DashboardRepository>();
 builder.Services.AddScoped<IInventoryRepository, InventoryRepository>();
 builder.Services.AddScoped<IStorageLocationRepository, StorageLocationRepository>();
+builder.Services.AddScoped<IStocktakeRepository, StocktakeRepository>();
 
 // Services
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -96,6 +101,7 @@ builder.Services.AddScoped<BMWMS.Business.Interfaces.IDashboardService, BMWMS.Bu
 builder.Services.AddScoped<BMWMS.Business.Interfaces.Inventory.IDashboardService, BMWMS.Business.Services.Inventory.DashboardService>();
 builder.Services.AddScoped<IInventoryService, InventoryService>();
 builder.Services.AddScoped<IStorageLocationService, StorageLocationService>();
+builder.Services.AddScoped<IStocktakeService, StocktakeService>();
 builder.Services.AddScoped<IEmailService, MockEmailService>();
 
 // Report

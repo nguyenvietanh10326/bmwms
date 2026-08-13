@@ -1,0 +1,294 @@
+@page
+@model BMWMS.Web.Pages.Stocktake.CountModel
+@{
+    Layout = "_AdminLayout";
+    var task = Model.CountTask;
+    ViewData["Title"] = $"Count – {task?.LocationCode}";
+    ViewData["HeaderTitle"] = "Stocktake – Count";
+
+    var isLocked = task?.CountStatus == "SUBMITTED" || task?.CountStatus == "APPROVED";
+    var canEdit = !isLocked && Model.IsStaff;
+}
+
+<div class="container-fluid" style="padding:24px; max-width:1100px; margin:0 auto;">
+
+    @* ── BREADCRUMB ── *@
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
+        <div>
+            <div class="small text-muted mb-1 d-flex align-items-center gap-1">
+                <a href="/Stocktake/Index" class="text-muted text-decoration-none">Stocktake</a>
+                <i class="ri-arrow-right-s-line"></i>
+                <a href="/Stocktake/Details?id=@task?.StocktakeSessionId" class="text-muted text-decoration-none">@task?.StocktakeNumber</a>
+                <i class="ri-arrow-right-s-line"></i>
+                <span style="color:#2563eb;font-weight:500;">Count – @task?.LocationCode</span>
+            </div>
+            <h1 class="h4 fw-bold mb-0 d-flex align-items-center gap-2">
+                <i class="ri-map-pin-2-line text-primary"></i>
+                @task?.LocationPath
+                <span class="badge @task?.CountStatusCss fs-6">@task?.CountStatusLabel</span>
+            </h1>
+            <div class="small text-muted mt-1">Session: <strong>@task?.StocktakeNumber</strong> · @task?.WarehouseCode – @task?.WarehouseName</div>
+        </div>
+        <a href="/Stocktake/Details?id=@task?.StocktakeSessionId" class="btn btn-outline-secondary btn-sm">
+            <i class="ri-arrow-left-line me-1"></i>Back to session
+        </a>
+    </div>
+
+    @* ── ALERTS ── *@
+    @if (!string.IsNullOrWhiteSpace(Model.SuccessMessage))
+    {
+        <div class="alert alert-success alert-dismissible fade show">
+            <i class="ri-checkbox-circle-line me-1"></i>@Model.SuccessMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show">
+            <i class="ri-error-warning-line me-1"></i>@Model.ErrorMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (isLocked)
+    {
+        <div class="alert alert-info">
+            <i class="ri-lock-line me-1"></i>
+            Bin đã được submit. Đếm đã khoá – chỉ xem.
+        </div>
+    }
+
+    @* ── COUNTING FORM ── *@
+    @if (task?.Lines?.Any() == true || canEdit)
+    {
+        <form method="post" id="countForm">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="Id" value="@task?.StocktakeSessionId" />
+            <input type="hidden" name="LocationId" value="@task?.StorageLocationId" />
+
+            <div class="border rounded bg-white overflow-hidden mb-3">
+                <div class="px-3 pt-3 pb-2 border-bottom">
+                    <span class="fw-semibold">Count lines</span>
+                    <span class="text-muted small ms-2">— nhập số lượng thực đếm vào cột "Counted qty"</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0 align-middle" id="countTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th>#</th>
+                                <th>Product</th>
+                                <th>Lot / Expiry</th>
+                                <th class="text-end">Book qty</th>
+                                <th class="text-end" style="min-width:130px;">Counted qty <span class="text-danger">*</span></th>
+                                <th style="min-width:160px;">Notes</th>
+                                <th class="text-end">Diff</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (task?.Lines?.Any() == true)
+                            {
+                                for (int i = 0; i < task.Lines.Count; i++)
+                                {
+                                    var line = task.Lines[i];
+                                    var diff = (line.CountedQuantity ?? 0) - (line.BookQuantity ?? 0);
+                                    <tr data-idx="@i">
+                                        <td class="text-muted small">@(i + 1)</td>
+                                        <td>
+                                            <div class="fw-semibold small">@line.ProductCode</div>
+                                            <div class="text-muted" style="font-size:11px;">@line.ProductName</div>
+                                            <div class="text-muted" style="font-size:10px;">@line.UnitCode</div>
+                                            @if (line.IsUnexpected)
+                                            {
+                                                <span class="badge bg-info" style="font-size:10px;">Unexpected</span>
+                                            }
+                                            <input type="hidden" name="Lines[@i].StocktakeItemId" value="@line.StocktakeItemId" />
+                                            <input type="hidden" name="Lines[@i].StorageLocationId" value="@line.StorageLocationId" />
+                                            <input type="hidden" name="Lines[@i].ProductId" value="@line.ProductId" />
+                                            <input type="hidden" name="Lines[@i].ProductLotId" value="@line.ProductLotId" />
+                                            <input type="hidden" name="Lines[@i].BookQuantity" value="@line.BookQuantity" />
+                                            <input type="hidden" name="Lines[@i].IsUnexpected" value="@line.IsUnexpected.ToString().ToLower()" />
+                                        </td>
+                                        <td>
+                                            <div class="small">@line.LotNumber</div>
+                                            @if (line.ExpiryDate.HasValue)
+                                            {
+                                                <div class="text-muted" style="font-size:10px;">Exp: @line.ExpiryDate.Value.ToString("dd/MM/yyyy")</div>
+                                            }
+                                        </td>
+                                        <td class="text-end small">@line.BookQuantity?.ToString("N2")</td>
+                                        <td class="text-end">
+                                            @if (canEdit)
+                                            {
+                                                <input type="number" step="0.001" min="0"
+                                                       name="Lines[@i].CountedQuantity"
+                                                       value="@line.CountedQuantity"
+                                                       class="form-control form-control-sm text-end counted-input"
+                                                       data-book="@line.BookQuantity"
+                                                       data-row="@i"
+                                                       style="width:110px;display:inline-block;" />
+                                            }
+                                            else
+                                            {
+                                                <span class="small">@line.CountedQuantity?.ToString("N2")</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            @if (canEdit)
+                                            {
+                                                <input type="text" name="Lines[@i].Notes"
+                                                       value="@line.Notes"
+                                                       class="form-control form-control-sm"
+                                                       placeholder="Notes..." />
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted small">@line.Notes</span>
+                                            }
+                                        </td>
+                                        <td class="text-end fw-semibold small diff-cell" id="diff-@i"
+                                            style="color:@(diff != 0 ? "#dc2626" : "#94a3b8");">
+                                            @(diff.ToString("+0.##;-0.##;0"))
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted py-5">
+                                        <i class="ri-inbox-line fs-3 d-block mb-1"></i>
+                                        Không có dòng nào — bin trống hoặc hệ thống chưa có tồn kho.<br />
+                                        <span class="small">Bạn có thể thêm hàng không mong đợi bên dưới.</span>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            @* ── ACTIONS ── *@
+            @if (canEdit)
+            {
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+                    <div class="text-muted small">
+                        <i class="ri-information-line me-1"></i>
+                        "Save draft" lưu tạm, chưa khoá. "Submit" khoá bin và gửi kết quả.
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" name="handler" value="Save" class="btn btn-outline-primary">
+                            <i class="ri-save-line me-1"></i>Save draft
+                        </button>
+                        <button type="submit" name="handler" value="Submit" class="btn btn-success"
+                                onclick="return confirm('Submit bin @task?.LocationCode? Sau khi submit không thể sửa (trừ khi Manager yêu cầu đếm lại).')">
+                            <i class="ri-check-line me-1"></i>Submit bin
+                        </button>
+                    </div>
+                </div>
+            }
+        </form>
+    }
+
+    @* ── ADD UNEXPECTED ITEM ── *@
+    @if (canEdit)
+    {
+        <div class="border rounded bg-white p-3">
+            <div class="fw-semibold mb-2">
+                <i class="ri-add-circle-line me-1 text-primary"></i>Add unexpected item
+            </div>
+            <div class="text-muted small mb-3">
+                Hàng hoá không có trong danh sách hệ thống nhưng tìm thấy trong bin khi đếm thực tế.
+            </div>
+            <form method="post" asp-page-handler="AddUnexpected" id="unexpectedForm">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="Id" value="@task?.StocktakeSessionId" />
+                <input type="hidden" name="LocationId" value="@task?.StorageLocationId" />
+
+                <div class="row g-2 align-items-end">
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">Search product / lot</label>
+                        <input type="text" id="unexpectedSearch" class="form-control"
+                               placeholder="Nhập mã sản phẩm hoặc tên..." autocomplete="off" />
+                        <div id="unexpectedSuggestions" class="list-group position-absolute" style="z-index:1000;display:none;max-height:220px;overflow-y:auto;"></div>
+                        <input type="hidden" name="ProductId" id="unexpectedProductId" />
+                        <input type="hidden" name="ProductLotId" id="unexpectedProductLotId" />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small fw-semibold">Qty <span class="text-danger">*</span></label>
+                        <input type="number" step="0.001" min="0.001" name="UnexpectedQty" class="form-control" placeholder="0" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">Notes</label>
+                        <input type="text" name="UnexpectedNotes" class="form-control" placeholder="Ghi chú..." />
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-outline-primary w-100">
+                            <i class="ri-add-line me-1"></i>Add
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        // ── Live diff calculator ──
+        document.querySelectorAll('.counted-input').forEach(function (input) {
+            input.addEventListener('input', function () {
+                const idx = this.dataset.row;
+                const book = parseFloat(this.dataset.book || '0');
+                const counted = parseFloat(this.value || '0');
+                const diff = counted - book;
+                const cell = document.getElementById('diff-' + idx);
+                if (cell) {
+                    cell.textContent = diff >= 0 ? '+' + diff.toFixed(2) : diff.toFixed(2);
+                    cell.style.color = diff !== 0 ? '#dc2626' : '#94a3b8';
+                }
+            });
+        });
+
+        // ── Unexpected item product-lot autocomplete ──
+        const searchInput = document.getElementById('unexpectedSearch');
+        const suggestionsBox = document.getElementById('unexpectedSuggestions');
+        const productIdInput = document.getElementById('unexpectedProductId');
+        const lotIdInput = document.getElementById('unexpectedProductLotId');
+
+        let debounceTimer;
+        searchInput?.addEventListener('input', function () {
+            clearTimeout(debounceTimer);
+            const q = this.value.trim();
+            if (q.length < 2) { suggestionsBox.style.display = 'none'; return; }
+            debounceTimer = setTimeout(async () => {
+                try {
+                    const res = await fetch(`/Stocktake/Count?handler=SearchLots&keyword=${encodeURIComponent(q)}&id=@task?.StocktakeSessionId&locationId=@task?.StorageLocationId`);
+                    if (!res.ok) return;
+                    const lots = await res.json();
+                    suggestionsBox.innerHTML = '';
+                    if (!lots.length) { suggestionsBox.style.display = 'none'; return; }
+                    lots.forEach(lot => {
+                        const item = document.createElement('button');
+                        item.type = 'button';
+                        item.className = 'list-group-item list-group-item-action small';
+                        item.textContent = lot.displayLabel + (lot.expiryDate ? ` (Exp: ${lot.expiryDate})` : '') + ` — ${lot.onHandQuantity} ${lot.unitCode}`;
+                        item.addEventListener('click', () => {
+                            searchInput.value = lot.displayLabel;
+                            productIdInput.value = lot.productId;
+                            lotIdInput.value = lot.productLotId;
+                            suggestionsBox.style.display = 'none';
+                        });
+                        suggestionsBox.appendChild(item);
+                    });
+                    suggestionsBox.style.display = 'block';
+                } catch { }
+            }, 300);
+        });
+
+        document.addEventListener('click', function (e) {
+            if (!suggestionsBox.contains(e.target) && e.target !== searchInput) {
+                suggestionsBox.style.display = 'none';
+            }
+        });
+    </script>
+}
