@@ -137,48 +137,53 @@
                 <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer;">
                     <input type="radio" name="CountScope" id="scopeCycle" value="CYCLE" onchange="toggleScope()" style="margin-top: 4px;" />
                     <div>
-                        <div style="font-weight: 600; font-size: 14px;">Kiểm kê theo khu vực (Cycle Count)</div>
-                        <div style="font-size: 12px; color: var(--ink-3); max-width: 300px;">Chỉ kiểm kê một số vị trí hoặc nhóm sản phẩm nhất định. Tối ưu cho kiểm tra định kỳ.</div>
+                        <div style="font-weight: 600; font-size: 14px;">Kiểm kê theo khu vực (Zone/Rack)</div>
+                        <div style="font-size: 12px; color: var(--ink-3); max-width: 300px;">Kiểm kê định kỳ tại một số khu vực hoặc kệ nhất định.</div>
+                    </div>
+                </label>
+                
+                <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer;">
+                    <input type="radio" name="CountScope" id="scopeProductGroup" value="PRODUCT_GROUP" onchange="toggleScope()" style="margin-top: 4px;" />
+                    <div>
+                        <div style="font-weight: 600; font-size: 14px;">Kiểm kê theo nhóm hàng</div>
+                        <div style="font-size: 12px; color: var(--ink-3); max-width: 300px;">Kiểm kê dựa trên các nhóm sản phẩm được chọn.</div>
                     </div>
                 </label>
             </div>
 
-            <div id="cycleCountSection" style="display: none;">
-                <div class="filter-bar" style="flex-wrap: wrap; align-items: stretch;">
-                    <div class="field" style="min-width: 200px;">
-                        <label>Lọc theo Nhóm hàng</label>
-                        <div style="border: 1px solid var(--line-strong); border-radius: var(--r-sm); background: #fff; padding: 10px; max-height: 160px; overflow-y: auto;">
-                            @foreach (var pg in Model.ProductGroups)
-                            {
-                                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px; font-weight: normal; margin-bottom: 6px; color: var(--ink);">
-                                    <input type="checkbox" name="chkProductGroup" value="@pg.ProductGroupId" onchange="loadLocations()" />
-                                    @pg.GroupCode - @pg.GroupName
-                                </label>
-                            }
-                        </div>
-                    </div>
-                    
-                    <div class="field" style="min-width: 150px;">
+            <!-- Khu vực đếm theo Zone/Rack -->
+            <div id="cycleCountSection" style="display: none; padding: 16px; background: #f8fafc; border: 1px solid var(--line); border-radius: var(--r-sm); margin-bottom: 20px;">
+                <div class="grid2" style="grid-template-columns: 1fr 1fr; margin-bottom: 0;">
+                    <div class="field">
                         <label>Lọc theo Danh mục (Zone)</label>
                         <select id="zone-filter" onchange="loadRacks()">
                             <option value="">-- Chọn Zone --</option>
                         </select>
                     </div>
 
-                    <div class="field" style="min-width: 200px;">
+                    <div class="field">
                         <label>Lọc theo Kệ (Rack)</label>
-                        <div id="rack-checkboxes" style="border: 1px solid var(--line-strong); border-radius: var(--r-sm); background: #f9fafb; padding: 10px; height: 160px; overflow-y: auto; color: var(--ink-3); font-size: 12px;">
-                            Hãy chọn Zone trước.
-                        </div>
-                    </div>
-                    
-                    <div style="display: flex; align-items: flex-end; padding-bottom: 4px;">
-                        <button type="button" class="btn btn-light" style="padding: 9px 12px; height: 38px;" onclick="loadLocations()">
-                            <i class="ri-refresh-line"></i> Làm mới Bin
-                        </button>
+                        <select id="rack-filter" multiple onchange="loadLocations()">
+                            <option value="" disabled>Hãy chọn Zone trước.</option>
+                        </select>
                     </div>
                 </div>
+            </div>
+            
+            <!-- Khu vực đếm theo Nhóm Hàng -->
+            <div id="productGroupCountSection" style="display: none; padding: 16px; background: #f8fafc; border: 1px solid var(--line); border-radius: var(--r-sm); margin-bottom: 20px;">
+                <div class="field">
+                    <label>Lọc theo Nhóm hàng</label>
+                    <select id="product-group-filter" multiple onchange="loadLocations()">
+                        @foreach (var pg in Model.ProductGroups)
+                        {
+                            <option value="@pg.ProductGroupId">@pg.GroupCode - @pg.GroupName</option>
+                        }
+                    </select>
+                </div>
+            </div>
 
+            <div id="locationResultsSection" style="display: none;">
                 <div class="field">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
                         <label>Vị trí (Bin) kết quả <span style="color:#dc2626;">*</span></label>
@@ -206,21 +211,41 @@
     <script>
         const warehouseSelect = document.getElementById('warehouse-select');
         const zoneFilter = document.getElementById('zone-filter');
-        const rackCheckboxes = document.getElementById('rack-checkboxes');
+        const rackFilter = document.getElementById('rack-filter');
+        const productGroupFilter = document.getElementById('product-group-filter');
+        
         const locationSelect = document.getElementById('location-select');
         const locationCount = document.getElementById('location-count');
+        
         const cycleCountSection = document.getElementById('cycleCountSection');
+        const productGroupCountSection = document.getElementById('productGroupCountSection');
+        const locationResultsSection = document.getElementById('locationResultsSection');
+        
+        const scopeFull = document.getElementById('scopeFull');
         const scopeCycle = document.getElementById('scopeCycle');
+        const scopeProductGroup = document.getElementById('scopeProductGroup');
+        
         const form = document.getElementById('createForm');
 
         function toggleScope() {
             if (scopeCycle.checked) {
                 cycleCountSection.style.display = 'block';
+                productGroupCountSection.style.display = 'none';
+                locationResultsSection.style.display = 'block';
                 if (warehouseSelect.value) {
                     loadZones();
                 }
+            } else if (scopeProductGroup.checked) {
+                cycleCountSection.style.display = 'none';
+                productGroupCountSection.style.display = 'block';
+                locationResultsSection.style.display = 'block';
+                if (warehouseSelect.value) {
+                    loadLocations();
+                }
             } else {
                 cycleCountSection.style.display = 'none';
+                productGroupCountSection.style.display = 'none';
+                locationResultsSection.style.display = 'none';
                 if (locationSelect) {
                     for (let i = 0; i < locationSelect.options.length; i++) {
                         locationSelect.options[i].selected = false;
@@ -240,7 +265,9 @@
                 }
             }
             if (hasSelection) {
-                scopeCycle.checked = true;
+                // Determine which scope is active based on existing selections if needed.
+                // Defaulting to Cycle count if there is selection for now, or just toggle Scope.
+                // Assuming FULL scope was unchecked manually before.
             }
             toggleScope();
         });
@@ -249,13 +276,15 @@
             if (scopeCycle.checked) {
                 await loadZones();
                 await loadLocations();
+            } else if (scopeProductGroup.checked) {
+                await loadLocations();
             }
         });
 
         async function loadZones() {
             const wid = warehouseSelect.value;
             zoneFilter.innerHTML = '<option value="">-- Chọn Zone --</option>';
-            rackCheckboxes.innerHTML = 'Hãy chọn Zone trước.';
+            rackFilter.innerHTML = '<option value="" disabled>Hãy chọn Zone trước.</option>';
             if (!wid) return;
 
             try {
@@ -275,46 +304,29 @@
         async function loadRacks() {
             const wid = warehouseSelect.value;
             const zid = zoneFilter.value;
-            rackCheckboxes.innerHTML = '';
+            rackFilter.innerHTML = '';
             
             if (!zid) {
-                rackCheckboxes.innerHTML = 'Hãy chọn Zone trước.';
+                rackFilter.innerHTML = '<option value="" disabled>Hãy chọn Zone trước.</option>';
                 return loadLocations();
             }
 
             try {
-                rackCheckboxes.innerHTML = 'Đang tải...';
                 const res = await fetch(`?handler=RacksByZone&warehouseId=${encodeURIComponent(wid)}&zoneId=${encodeURIComponent(zid)}`);
                 if (res.ok) {
                     const racks = await res.json();
-                    rackCheckboxes.innerHTML = '';
                     if (racks.length === 0) {
-                        rackCheckboxes.innerHTML = 'Không có kệ nào trong Zone này.';
+                        rackFilter.innerHTML = '<option value="" disabled>Không có kệ nào trong Zone này.</option>';
                     } else {
                         racks.forEach(r => {
-                            const label = document.createElement('label');
-                            label.style.display = 'flex';
-                            label.style.alignItems = 'center';
-                            label.style.gap = '6px';
-                            label.style.cursor = 'pointer';
-                            label.style.fontSize = '13px';
-                            label.style.fontWeight = 'normal';
-                            label.style.marginBottom = '6px';
-                            label.style.color = 'var(--ink)';
-                            
-                            const cb = document.createElement('input');
-                            cb.type = 'checkbox';
-                            cb.name = 'chkRack';
-                            cb.value = r.rackId;
-                            cb.addEventListener('change', loadLocations);
-                            
-                            label.appendChild(cb);
-                            label.appendChild(document.createTextNode(`${r.rackCode} - ${r.rackName}`));
-                            rackCheckboxes.appendChild(label);
+                            const opt = document.createElement('option');
+                            opt.value = r.rackId;
+                            opt.textContent = `${r.rackCode} - ${r.rackName}`;
+                            rackFilter.appendChild(opt);
                         });
                     }
                 }
-            } catch(e) { console.error("Error loading racks", e); rackCheckboxes.innerHTML = 'Lỗi tải kệ.'; }
+            } catch(e) { console.error("Error loading racks", e); }
             
             loadLocations();
         }
@@ -322,11 +334,18 @@
         async function loadLocations() {
             const wid = warehouseSelect.value;
             
-            // Get selected racks
-            const selectedRacks = Array.from(document.querySelectorAll('input[name="chkRack"]:checked')).map(cb => cb.value);
+            let selectedRacks = [];
+            let selectedGroups = [];
             
-            // Get selected product groups
-            const selectedGroups = Array.from(document.querySelectorAll('input[name="chkProductGroup"]:checked')).map(cb => cb.value);
+            if (scopeCycle.checked) {
+                if (rackFilter) {
+                    selectedRacks = Array.from(rackFilter.selectedOptions).map(opt => opt.value).filter(val => val !== "");
+                }
+            } else if (scopeProductGroup.checked) {
+                if (productGroupFilter) {
+                    selectedGroups = Array.from(productGroupFilter.selectedOptions).map(opt => opt.value);
+                }
+            }
             
             locationSelect.innerHTML = '';
             locationCount.textContent = 'Đang tải...';
@@ -360,12 +379,11 @@
         }
         
         function submitForm() {
-            // Sửa lỗi: Cần validate trình duyệt trước khi JS thao tác (tránh lỗi Required của HTML5 ko bắn ra popup)
             if (!form.reportValidity()) {
                 return;
             }
 
-            if (scopeCycle.checked) {
+            if (scopeCycle.checked || scopeProductGroup.checked) {
                 let hasSelection = false;
                 if (locationSelect) {
                     for (let i = 0; i < locationSelect.options.length; i++) {
@@ -377,17 +395,16 @@
                 }
                 
                 if (!hasSelection) {
-                    // Chuyển thông báo thành Noti như user yêu cầu
                     if (typeof Toastify !== 'undefined') {
                         Toastify({
-                            text: "Vui lòng chọn ít nhất 1 vị trí (Bin) để kiểm kê định kỳ.",
+                            text: "Vui lòng chọn ít nhất 1 vị trí (Bin) để kiểm kê.",
                             duration: 3000,
                             gravity: "top",
                             position: "right",
                             backgroundColor: "#ef4444",
                         }).showToast();
                     } else {
-                        alert("Vui lòng chọn ít nhất 1 vị trí (Bin) để kiểm kê định kỳ.");
+                        alert("Vui lòng chọn ít nhất 1 vị trí (Bin) để kiểm kê.");
                     }
                     return;
                 }
