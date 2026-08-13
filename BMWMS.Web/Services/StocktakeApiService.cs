@@ -17,11 +17,21 @@ namespace BMWMS.Web.Services
             _httpClient = httpClientFactory.CreateClient("ApiClient");
         }
 
-        public async Task<List<StocktakeLocationOptionModel>> GetLocationsAsync(long warehouseId)
+        public async Task<List<StocktakeLocationOptionModel>> GetLocationsAsync(long warehouseId, List<long>? rackIds = null, List<long>? productGroupIds = null)
         {
             try
             {
-                var response = await _httpClient.GetAsync($"api/stocktakes/locations?warehouseId={warehouseId}");
+                var url = $"api/stocktakes/locations?warehouseId={warehouseId}";
+                if (rackIds != null && rackIds.Any())
+                {
+                    url += "&" + string.Join("&", rackIds.Select(id => $"rackIds={id}"));
+                }
+                if (productGroupIds != null && productGroupIds.Any())
+                {
+                    url += "&" + string.Join("&", productGroupIds.Select(id => $"productGroupIds={id}"));
+                }
+
+                var response = await _httpClient.GetAsync(url);
                 if (!response.IsSuccessStatusCode) return new();
                 return await response.Content.ReadFromJsonAsync<List<StocktakeLocationOptionModel>>(JsonOptions) ?? new();
             }

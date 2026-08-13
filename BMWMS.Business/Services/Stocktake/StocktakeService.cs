@@ -30,9 +30,9 @@ namespace BMWMS.Business.Services.Stocktake
             _stocktakeRepo = stocktakeRepo;
         }
 
-        public async Task<List<StocktakeLocationOptionDto>> GetLocationOptionsAsync(long warehouseId)
+        public async Task<List<StocktakeLocationOptionDto>> GetLocationOptionsAsync(long warehouseId, List<long>? rackIds = null, List<long>? productGroupIds = null)
         {
-            var locations = await _stocktakeRepo.GetActiveLocationsByWarehouseAsync(warehouseId);
+            var locations = await _stocktakeRepo.GetActiveLocationsByWarehouseAsync(warehouseId, rackIds, productGroupIds);
             return locations.Select(l => new StocktakeLocationOptionDto
             {
                 LocationId = l.StorageLocationId,

@@ -3,8 +3,8 @@
 @{
     Layout = "_AdminLayout";
     var s = Model.SessionDetail;
-    ViewData["Title"] = $"Stocktake {s?.StocktakeNumber}";
-    ViewData["HeaderTitle"] = "Stocktake";
+    ViewData["Title"] = $"Chi tiết phiếu kiểm kho {s?.StocktakeNumber}";
+    ViewData["ActivePage"] = "Stocktake";
 
     var status = s?.Status ?? "";
     var isScheduled = status == "SCHEDULED";
@@ -17,467 +17,412 @@
     var isDone = isCompleted || isCancelled;
 }
 
-<div class="container-fluid" style="padding:24px; max-width:1440px; margin:0 auto;">
+<style>
+  :root{
+    --font-ui:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    --font-mono:"IBM Plex Mono",ui-monospace,monospace;
 
-    @* ── BREADCRUMB & HEADER ── *@
-    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
+    --navy-950:#233a6b; --navy-900:#1b2d56; --navy-800:#152d57;
+    --accent:#3e5cf6; --accent-600:#3149d4; --accent-100:#e8ecff;
+
+    --bg:#f2f3f7; --card:#ffffff; --line:#e7e9f0; --line-strong:#d7dae5;
+    --ink:#161b2e; --ink-2:#525a72; --ink-3:#8890a6; --ink-4:#aeb4c6;
+
+    --g-bg:#e2f8ea; --g-tx:#0f7a3e; --g-dot:#1fa855;
+    --y-bg:#fef3d6; --y-tx:#93650a; --y-dot:#e2a336;
+    --gy-bg:#eceef3; --gy-tx:#565f78; --gy-dot:#9aa1b5;
+    --r-bg:#fce3e4; --r-tx:#c1222f; --r-dot:#e2454f;
+    --b-bg:#e3eaff; --b-tx:#2c48d8; --b-dot:#5876f2;
+
+    --sh-xs:0 1px 2px rgba(16,23,42,.05);
+    --sh-sm:0 1px 2px rgba(16,23,42,.04),0 4px 10px -4px rgba(16,23,42,.07);
+    --r-sm:8px; --r-lg:16px;
+    --ease:cubic-bezier(.4,0,.2,1);
+  }
+  
+  .transfer-page {
+    font-family: var(--font-ui);
+    color: var(--ink);
+    font-size: 14px;
+    line-height: 1.45;
+    padding: 26px 30px 64px;
+  }
+  .transfer-page * { box-sizing: border-box; }
+  .transfer-page button{font-family:inherit;}
+
+  .transfer-page .breadcrumb{font-size:11.5px;color:var(--ink-3);margin-bottom:8px;font-weight:600;letter-spacing:.02em;text-transform:uppercase; display:block; padding:0; background:transparent;}
+  .transfer-page .pagehead{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;gap:20px;}
+  .transfer-page .pagehead h1{font-size:20px;margin:0 0 5px;letter-spacing:-.01em;font-weight:700;}
+  .transfer-page .pagehead p{margin:0;color:var(--ink-2);font-size:13px;max-width:560px;}
+
+  .transfer-page .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);padding:22px 24px;margin-bottom:16px;box-shadow:var(--sh-xs);}
+  .transfer-page .card h3{margin:0 0 14px;font-size:14px;font-weight:700;letter-spacing:-.005em;display:flex;align-items:center;gap:8px;}
+  .transfer-page .row{display:flex;justify-content:space-between;align-items:center;}
+
+  .transfer-page .badge{display:inline-flex;align-items:center;gap:6px;padding:3.5px 10px 3.5px 8px;border-radius:999px;font-size:11.5px;font-weight:600;}
+  .transfer-page .badge .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+  .transfer-page .b-g{background:var(--g-bg);color:var(--g-tx);} .transfer-page .b-g .dot{background:var(--g-dot);}
+  .transfer-page .b-y{background:var(--y-bg);color:var(--y-tx);} .transfer-page .b-y .dot{background:var(--y-dot);}
+  .transfer-page .b-gy{background:var(--gy-bg);color:var(--gy-tx);} .transfer-page .b-gy .dot{background:var(--gy-dot);}
+  .transfer-page .b-r{background:var(--r-bg);color:var(--r-tx);} .transfer-page .b-r .dot{background:var(--r-dot);}
+  .transfer-page .b-b{background:var(--b-bg);color:var(--b-tx);} .transfer-page .b-b .dot{background:var(--b-dot);}
+
+  .transfer-page table{width:100%;border-collapse:collapse;font-size:13px;}
+  .transfer-page th{text-align:left;color:var(--ink-3);font-weight:600;font-size:11px;letter-spacing:.03em;padding:0 10px 10px;border-bottom:1px solid var(--line);}
+  .transfer-page th.num, .transfer-page td.num{text-align:right;}
+  .transfer-page td{padding:13px 10px;border-bottom:1px solid var(--line);vertical-align:middle;color:var(--ink);}
+  .transfer-page td.num{font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-size:12.5px;}
+  .transfer-page tbody tr:hover{background:#f8f9fc;}
+  .transfer-page tr:last-child td{border-bottom:none;}
+  .transfer-page .prod-code{font-family:var(--font-mono);font-size:11px;background:var(--gy-bg);color:var(--ink-2);padding:1.5px 6px;border-radius:5px;margin-right:6px;font-weight:600;}
+  .transfer-page .muted{color:var(--ink-3);}
+  .transfer-page .small{font-size:12px;}
+  .transfer-page .stat-strip{display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:12px;border-top:1px solid var(--line);}
+
+  .transfer-page .grid2{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
+  .transfer-page .grid2 label{display:block;font-size:11.5px;color:var(--ink-3);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.02em;}
+  .transfer-page .grid2 .field input{width:100%;padding:9px 11px;border:1px solid var(--line-strong);border-radius:var(--r-sm);font-size:13px;background:#fff;color:var(--ink);}
+  .transfer-page .grid2 .field input[disabled]{background:#f7f8fb;color:var(--ink-3);border-color:var(--line);}
+  
+  .transfer-page .btn{display:inline-flex;align-items:center;gap:7px;border:none;border-radius:var(--r-sm);padding:9px 15px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s var(--ease); text-decoration:none;}
+  .transfer-page .btn svg{width:15px;height:15px;}
+  .transfer-page .btn-dark{background:var(--navy-950);color:#fff;box-shadow:var(--sh-xs);}
+  .transfer-page .btn-dark:hover{background:#1c2340;transform:translateY(-1px);box-shadow:var(--sh-sm); color:#fff;}
+  .transfer-page .btn-primary{background:var(--accent-600);color:#fff;box-shadow:var(--sh-xs);}
+  .transfer-page .btn-primary:hover{background:#1d4ed8;color:#fff;}
+  .transfer-page .btn-success{background:#16a34a;color:#fff;}
+  .transfer-page .btn-success:hover{background:#15803d;color:#fff;}
+  .transfer-page .btn-danger{background:#dc2626;color:#fff;}
+  .transfer-page .btn-danger:hover{background:#b91c1c;color:#fff;}
+  .transfer-page .btn-warning{background:#f59e0b;color:#fff;}
+  .transfer-page .btn-warning:hover{background:#d97706;color:#fff;}
+  .transfer-page .btn-light{background:#fff;border:1px solid var(--line-strong);color:var(--ink);}
+  .transfer-page .btn-light:hover{border-color:var(--ink-4);background:#fafafd; color:var(--ink);}
+</style>
+
+<svg width="0" height="0" style="position:absolute; display:none;">
+    <symbol id="i-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></symbol>
+</svg>
+
+<div class="transfer-page">
+    <div class="breadcrumb">
+        <a href="/Stocktake/Index" style="color:var(--ink-3); text-decoration:none;">Kiểm kho</a>
+        <svg style="width:12px; height:12px; display:inline-block; vertical-align:middle; margin:0 4px;"><use href="#i-chev"/></svg>
+        <span>Chi tiết phiếu</span>
+    </div>
+    <div class="pagehead">
         <div>
-            <div class="small text-muted mb-1 d-flex align-items-center gap-1">
-                <span>Kho</span>
-                <i class="ri-arrow-right-s-line"></i>
-                <a href="/Stocktake/Index" class="text-muted text-decoration-none">Kiem kho</a>
-                <i class="ri-arrow-right-s-line"></i>
-                <span style="color:#2563eb;font-weight:500;">@s?.StocktakeNumber</span>
-            </div>
-            <h1 class="h4 fw-bold mb-1 d-flex align-items-center gap-2">
-                @s?.StocktakeNumber
-                <span class="badge @s?.StatusCss fs-6">@s?.StatusLabel</span>
-            </h1>
+            <h1>Chi tiết phiên kiểm kho — @s?.StocktakeNumber</h1>
+            <p>Thông tin phiếu, kết quả đếm, vị trí và xử lý chênh lệch.</p>
         </div>
-
-        @* ── ACTION BUTTONS ── *@
-        <div class="d-flex flex-wrap gap-2 align-items-start">
-            <a href="/Stocktake/Index" class="btn btn-outline-secondary btn-sm">
-                <i class="ri-arrow-left-line me-1"></i>Quay lai
-            </a>
-
-            @if (Model.IsManager && s?.CanStart == true)
-            {
-                <form method="post" asp-page-handler="Start" asp-route-id="@s.StocktakeSessionId" style="display:inline;">
-                    @Html.AntiForgeryToken()
-                    <button type="submit" class="btn btn-primary btn-sm"
-                            onclick="return confirm('Bat dau phien kiem kho nay? He thong se tao snapshot so luong ton kho.')">
-                        <i class="ri-play-circle-line me-1"></i>Bat dau
-                    </button>
-                </form>
-            }
-
-            @if (Model.IsManager && s?.CanCancel == true)
-            {
-                <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#cancelModal">
-                    <i class="ri-close-circle-line me-1"></i>Huy
-                </button>
-            }
-
-            @if (Model.IsManager && s?.CanApprove == true)
-            {
-                <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#approveModal">
-                    <i class="ri-check-double-line me-1"></i>Phe duyet
-                </button>
-            }
-
-            @if (Model.IsManager && s?.CanReview == true && !isPendingApproval)
-            {
-                <form method="post" asp-page-handler="SubmitForReview" asp-route-id="@s!.StocktakeSessionId" style="display:inline;">
-                    @Html.AntiForgeryToken()
-                    <button type="submit" class="btn btn-warning btn-sm"
-                            onclick="return confirm('Gui phien nay de xu ly chenh lech?')">
-                        <i class="ri-send-plane-line me-1"></i>Gui xu ly
-                    </button>
-                </form>
-            }
-        </div>
-    </div>
-
-    @* ── ALERTS ── *@
-    @if (!string.IsNullOrWhiteSpace(Model.SuccessMessage))
-    {
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <i class="ri-checkbox-circle-line me-1"></i>@Model.SuccessMessage
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    }
-    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
-    {
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            <i class="ri-error-warning-line me-1"></i>@Model.ErrorMessage
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    }
-
-    @* ── DEBUG INFO (can be removed in production) ── *@
-    <div class="alert alert-info small" style="font-size:11px;">
-        <i class="ri-information-line me-1"></i>
-        Session ID: @s?.StocktakeSessionId | Trang thai: @s?.Status | Bin da dem: @s?.CountedLocations/@s?.TotalLocations | Mat hang: @s?.CountedItems/@s?.TotalItems
-    </div>
-
-    @* ── SWIMLANE PROGRESS INDICATOR ── *@
-    <div class="border rounded bg-white p-3 mb-3">
-        <div class="d-flex align-items-center gap-0 overflow-auto pb-1" style="min-width:600px;">
-            @{
-                var steps = new[]
+        @{
+            var statusClass = "b-gy";
+            var statusName = status;
+            if (isScheduled) { statusClass = "b-y"; statusName = "Đã lên kế hoạch"; }
+            else if (isInProgress) { statusClass = "b-b"; statusName = "Đang kiểm"; }
+            else if (isCounted) { statusClass = "b-b"; statusName = "Đã đếm xong"; }
+            else if (isPendingApproval) { statusClass = "b-y"; statusName = "Chờ duyệt"; }
+            else if (isCompleted) { statusClass = "b-g"; statusName = "Hoàn thành"; }
+            else if (isCancelled) { statusClass = "b-r"; statusName = "Đã hủy"; }
+        }
+        <div style="display:flex; align-items:flex-end; flex-direction:column; gap:10px;">
+            <span class="badge @statusClass"><span class="dot"></span>@statusName</span>
+            <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-start;">
+                
+                @if (Model.IsManager && s?.CanStart == true)
                 {
-                    ("SCHEDULED",       "ri-calendar-check-line", "Len ke hoach"),
-                    ("IN_PROGRESS",     "ri-camera-line",         "Dang kiem"),
-                    ("COUNTED",         "ri-calculator-line",     "Da dem xong"),
-                    ("PENDING_APPROVAL","ri-user-star-line",      "Cho phe duyet"),
-                    ("COMPLETED",       "ri-checkbox-circle-fill","Hoan tat"),
-                };
-                var statusOrder = new[] { "SCHEDULED","IN_PROGRESS","COUNTED","PENDING_APPROVAL","COMPLETED" };
-                var currentIdx = Array.IndexOf(statusOrder, status);
-            }
-            @for (int si = 0; si < steps.Length; si++)
-            {
-                var (stepStatus, stepIcon, stepLabel) = steps[si];
-                var stepIdx = Array.IndexOf(statusOrder, stepStatus);
-                var isPast = stepIdx < currentIdx;
-                var isCurr = stepStatus == status;
-                var dotColor = isCancelled ? "#94a3b8" : isCurr ? "#2563eb" : isPast ? "#16a34a" : "#cbd5e1";
-                var textColor = isCurr ? "#2563eb" : isPast ? "#16a34a" : "#94a3b8";
-                <div class="d-flex align-items-center">
-                    <div class="text-center" style="min-width:90px;">
-                        <div style="width:36px;height:36px;border-radius:50%;background:@dotColor;color:#fff;display:flex;align-items:center;justify-content:center;margin:0 auto 4px;">
-                            <i class="@stepIcon" style="font-size:16px;"></i>
-                        </div>
-                        <div style="font-size:11px;font-weight:600;color:@textColor;white-space:nowrap;">@stepLabel</div>
-                    </div>
-                    @if (si < steps.Length - 1)
-                    {
-                        <div style="flex:1;height:2px;background:@(isPast ? "#16a34a" : "#e2e8f0");min-width:20px;"></div>
-                    }
-                </div>
-            }
-            @if (isCancelled)
-            {
-                <div class="ms-3 text-danger small fw-semibold"><i class="ri-close-circle-fill me-1"></i>Da huy</div>
-            }
+                    <form method="post" asp-page-handler="Start" asp-route-id="@s.StocktakeSessionId" style="display:inline;">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-primary" style="padding: 6px 12px;" onclick="return confirm('Bắt đầu phiên kiểm kho này? Hệ thống sẽ tạo snapshot tồn kho.');">
+                            <i class="ri-play-circle-line"></i> Bắt đầu
+                        </button>
+                    </form>
+                }
+
+                @if (Model.IsManager && s?.CanCancel == true)
+                {
+                    <button type="button" class="btn btn-light" style="padding: 6px 12px; color: #dc2626;" data-bs-toggle="modal" data-bs-target="#cancelModal">
+                        <i class="ri-close-circle-line"></i> Hủy phiếu
+                    </button>
+                }
+
+                @if (Model.IsManager && s?.CanApprove == true)
+                {
+                    <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#approveModal" style="padding: 6px 12px;">
+                        <i class="ri-check-double-line"></i> Phê duyệt
+                    </button>
+                }
+
+                @if (Model.IsManager && s?.CanReview == true && !isPendingApproval)
+                {
+                    <form method="post" asp-page-handler="SubmitForReview" asp-route-id="@s.StocktakeSessionId" style="display:inline;">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-warning" style="padding: 6px 12px;" onclick="return confirm('Gửi phiên này để xử lý chênh lệch?')">
+                            <i class="ri-send-plane-line"></i> Gửi xử lý
+                        </button>
+                    </form>
+                }
+            </div>
         </div>
     </div>
 
-    <div class="row g-3">
-        @* ── LEFT: Session Info ── *@
-        <div class="col-lg-4">
-            <div class="border rounded bg-white p-3 mb-3">
-                <div class="fw-semibold mb-2" style="font-size:13px;color:#64748b;text-transform:uppercase;letter-spacing:.05em;">Thong tin phien</div>
-                <table class="table table-sm mb-0">
+
+    @if (s != null)
+    {
+        <div class="card">
+            <h3>Thông tin chung</h3>
+            <div class="grid2">
+                <div class="field"><label>Mã phiếu</label><input disabled value="@s.StocktakeNumber"></div>
+                <div class="field"><label>Kho hàng</label><input disabled value="@s.WarehouseName"></div>
+                <div class="field"><label>Ngày dự kiến</label><input disabled value="@s.PlannedDate.ToString("dd/MM/yyyy")"></div>
+                <div class="field"><label>Tiến độ đếm</label><input disabled value="@s.CountedLocations / @s.TotalLocations bin (@(s.TotalLocations > 0 ? (s.CountedLocations*100/s.TotalLocations) : 0)%)"></div>
+                
+                <div class="field"><label>Người tạo</label><input disabled value="@s.CreatedByName"></div>
+                <div class="field"><label>Người phụ trách</label><input disabled value="@(string.IsNullOrEmpty(s.AssignedToName) ? "—" : s.AssignedToName)"></div>
+                
+                @if (s.StartedAt.HasValue)
+                {
+                    <div class="field"><label>Bắt đầu lúc</label><input disabled value="@s.StartedAt.Value.ToString("dd/MM/yyyy HH:mm")"></div>
+                }
+                @if (s.ApprovedAt.HasValue)
+                {
+                    <div class="field"><label>Người phê duyệt</label><input disabled value="@s.ApprovedByName"></div>
+                }
+                @if (!string.IsNullOrEmpty(s.Notes))
+                {
+                    <div class="field" style="grid-column: span 4;"><label>Ghi chú</label><input disabled value="@s.Notes"></div>
+                }
+            </div>
+        </div>
+
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                <h3 style="margin:0;">Danh sách vị trí (Bin) (@(s.Locations?.Count ?? 0) ô)</h3>
+                @if (s.RecountLocations > 0)
+                {
+                    <span class="badge b-y"><span class="dot"></span>@s.RecountLocations chờ đếm lại</span>
+                }
+            </div>
+            
+            <div style="overflow-x:auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 20%">Vị trí</th>
+                            <th style="width: 15%; text-align:center;">Mặt hàng đếm</th>
+                            <th style="width: 15%;" class="num">Chênh lệch</th>
+                            <th style="width: 15%; text-align:center;">Trạng thái đếm</th>
+                            <th style="width: 15%;">Người đếm</th>
+                            <th style="width: 20%; text-align:right;">Thao tác</th>
+                        </tr>
+                    </thead>
                     <tbody>
-                        <tr><td class="text-muted small">Kho</td><td class="fw-semibold">@s?.WarehouseCode – @s?.WarehouseName</td></tr>
-                        <tr><td class="text-muted small">Ngay du kien</td><td>@s?.PlannedDate.ToString("dd/MM/yyyy")</td></tr>
-                        <tr><td class="text-muted small">Nguoi tao</td><td>@s?.CreatedByName</td></tr>
-                        <tr><td class="text-muted small">Thoi gian tao</td><td>@s?.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td></tr>
-                        <tr><td class="text-muted small">Nguoi phu trach</td><td>@(string.IsNullOrWhiteSpace(s?.AssignedToName) ? "—" : s.AssignedToName)</td></tr>
-                        @if (s?.StartedAt.HasValue == true)
+                        @if (s.Locations?.Any() == true)
                         {
-                            <tr><td class="text-muted small">Bat dau luc</td><td>@s.StartedAt!.Value.ToString("dd/MM/yyyy HH:mm")</td></tr>
+                            foreach (var loc in s.Locations)
+                            {
+                                <tr>
+                                    <td>
+                                        <div style="font-weight:600; color:#1e293b;">@loc.LocationCode</div>
+                                        <div class="muted small">@loc.LocationPath</div>
+                                    </td>
+                                    <td style="text-align:center;">@loc.CountedItems / @loc.TotalItems</td>
+                                    <td class="num @(loc.TotalDifferenceQuantity != 0 ? "text-danger" : "muted")" style="@(loc.TotalDifferenceQuantity != 0 ? "color:#dc2626; font-weight:700;" : "")">
+                                        @loc.TotalDifferenceQuantity.ToString("N2")
+                                    </td>
+                                    <td style="text-align:center;">
+                                        @if (loc.CountStatus == "COUNTED")
+                                        {
+                                            <span class="badge b-g"><span class="dot"></span>Đã đếm</span>
+                                        }
+                                        else if (loc.CountStatus == "RECOUNT")
+                                        {
+                                            <span class="badge b-y"><span class="dot"></span>Đếm lại</span>
+                                        }
+                                        else if (loc.CountStatus == "SUBMITTED")
+                                        {
+                                            <span class="badge b-b"><span class="dot"></span>Đã nộp</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge b-gy"><span class="dot"></span>Chưa đếm</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <div style="font-weight:500;">@(string.IsNullOrWhiteSpace(loc.CountedByName) ? "—" : loc.CountedByName)</div>
+                                        @if (loc.CountedAt.HasValue)
+                                        {
+                                            <div class="muted small" style="font-size:11px;">@loc.CountedAt.Value.ToString("dd/MM HH:mm")</div>
+                                        }
+                                    </td>
+                                    <td style="text-align:right;">
+                                        <div style="display:flex; gap:6px; justify-content:flex-end;">
+                                            @if (Model.IsStaff && loc.CanCount && isInProgress)
+                                            {
+                                                <a href="/Stocktake/Count?id=@s.StocktakeSessionId&locationId=@loc.StorageLocationId" class="btn btn-primary" style="padding:4px 10px; font-size:12px;">
+                                                    <i class="ri-calculator-line"></i> Count
+                                                </a>
+                                            }
+                                            else if (loc.CountStatus == "COUNTED" || loc.CountStatus == "SUBMITTED")
+                                            {
+                                                <a href="/Stocktake/Count?id=@s.StocktakeSessionId&locationId=@loc.StorageLocationId" class="btn btn-light" style="padding:4px 10px; font-size:12px;">
+                                                    <i class="ri-eye-line"></i> Chi tiết
+                                                </a>
+                                            }
+
+                                            @if (Model.IsManager && (loc.CountStatus == "SUBMITTED" || loc.CountStatus == "COUNTED") && isInProgress)
+                                            {
+                                                <form method="post" asp-page-handler="RequestRecount" asp-route-id="@s.StocktakeSessionId" asp-route-locationId="@loc.StorageLocationId" style="display:inline;">
+                                                    @Html.AntiForgeryToken()
+                                                    <button type="submit" class="btn btn-light" style="padding:4px 10px; font-size:12px; color:#d97706;" onclick="return confirm('Yêu cầu đếm lại bin @loc.LocationCode?');">
+                                                        <i class="ri-refresh-line"></i> Đếm lại
+                                                    </button>
+                                                </form>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
                         }
-                        @if (s?.SubmittedAt.HasValue == true)
+                        else
                         {
-                            <tr><td class="text-muted small">Gui luc</td><td>@s.SubmittedAt!.Value.ToString("dd/MM/yyyy HH:mm")</td></tr>
-                        }
-                        @if (s?.ApprovedAt.HasValue == true)
-                        {
-                            <tr><td class="text-muted small">Nguoi phe duyet</td><td>@s.ApprovedByName</td></tr>
-                            <tr><td class="text-muted small">Phe duyet luc</td><td>@s.ApprovedAt!.Value.ToString("dd/MM/yyyy HH:mm")</td></tr>
-                        }
-                        @if (!string.IsNullOrWhiteSpace(s?.Notes))
-                        {
-                            <tr><td class="text-muted small">Ghi chu</td><td>@s.Notes</td></tr>
+                            <tr>
+                                <td colspan="6" style="text-align:center; padding:30px; color:var(--ink-3);">
+                                    Không có dữ liệu vị trí.
+                                </td>
+                            </tr>
                         }
                     </tbody>
                 </table>
             </div>
-
-            @* Progress Summary *@
-            <div class="border rounded bg-white p-3">
-                <div class="fw-semibold mb-2" style="font-size:13px;color:#64748b;text-transform:uppercase;letter-spacing:.05em;">Tien do</div>
-                <div class="row g-2">
-                    <div class="col-6">
-                        <div class="border rounded p-2 text-center">
-                            <div class="small text-muted">Bin</div>
-                            <div class="fw-bold fs-5">@s?.CountedLocations <span class="text-muted small">/ @s?.TotalLocations</span></div>
-                        </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="border rounded p-2 text-center">
-                            <div class="small text-muted">Mat hang</div>
-                            <div class="fw-bold fs-5">@s?.CountedItems <span class="text-muted small">/ @s?.TotalItems</span></div>
-                        </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="border rounded p-2 text-center">
-                            <div class="small text-muted">Chenh lech</div>
-                            <div class="fw-bold fs-5 @(s?.VarianceItems > 0 ? "text-danger" : "text-success")">@s?.VarianceItems</div>
-                        </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="border rounded p-2 text-center">
-                            <div class="small text-muted">Tong chenh lech</div>
-                            <div class="fw-bold fs-5 @(s?.TotalDifferenceQuantity != 0 ? "text-danger" : "text-success")">
-                                @s?.TotalDifferenceQuantity.ToString("N2")
-                            </div>
-                        </div>
-                    </div>
-                    @if (s?.TotalLocations > 0)
-                    {
-                        <div class="col-12">
-                            @{
-                                var pct = s.TotalLocations > 0 ? (int)(s.CountedLocations * 100.0 / s.TotalLocations) : 0;
-                            }
-                            <div class="progress" style="height:6px;">
-                                <div class="progress-bar bg-primary" role="progressbar" style="width:@pct%"></div>
-                            </div>
-                            <div class="text-muted small mt-1 text-end">@pct% da dem</div>
-                        </div>
-                    }
-                </div>
-            </div>
         </div>
 
-        @* ── RIGHT: Locations Table ── *@
-        <div class="col-lg-8">
-            <div class="border rounded bg-white overflow-hidden mb-3">
-                <div class="px-3 pt-3 pb-2 border-bottom d-flex justify-content-between align-items-center">
-                    <span class="fw-semibold">Danh sach bin / Vi tri</span>
-                    @if (s?.RecountLocations > 0)
+        @if (s.Items?.Any() == true)
+        {
+            <div class="card">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                    <h3 style="margin:0;">Chi tiết mặt hàng & Xử lý chênh lệch</h3>
+                    @if (s.VarianceItems > 0)
                     {
-                        <span class="badge bg-warning text-dark"><i class="ri-refresh-line me-1"></i>@s.RecountLocations cho dem lai</span>
+                        <span class="badge b-r"><span class="dot"></span>@s.VarianceItems mặt hàng lệch</span>
                     }
                 </div>
-                <div class="table-responsive">
-                    <table class="table table-sm mb-0 align-middle">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Vi tri</th>
-                                <th class="text-center">Mat hang</th>
-                                <th class="text-end">chenh lech</th>
-                                <th class="text-center">Trang thai dem</th>
-                                <th class="text-muted small">Nguoi dem</th>
-                                <th class="text-end">Thao tac</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @if (s?.Locations?.Any() == true)
-                            {
-                                foreach (var loc in s.Locations)
-                                {
-                                    <tr>
-                                        <td>
-                                            <div class="fw-semibold small">@loc.LocationCode</div>
-                                            <div class="text-muted" style="font-size:11px;">@loc.LocationPath</div>
-                                        </td>
-                                        <td class="text-center small">@loc.CountedItems / @loc.TotalItems</td>
-                                        <td class="text-end fw-semibold small @(loc.TotalDifferenceQuantity != 0 ? "text-danger" : "text-muted")">
-                                            @loc.TotalDifferenceQuantity.ToString("N2")
-                                        </td>
-                                        <td class="text-center">
-                                            <span class="badge @loc.CountStatusCss">@loc.CountStatusLabel</span>
-                                        </td>
-                                        <td class="text-muted small">
-                                            @(string.IsNullOrWhiteSpace(loc.CountedByName) ? "—" : loc.CountedByName)
-                                            @if (loc.CountedAt.HasValue)
-                                            {
-                                                <div style="font-size:10px;">@loc.CountedAt.Value.ToString("dd/MM HH:mm")</div>
-                                            }
-                                        </td>
-                                        <td class="text-end">
-                                            <div class="d-flex gap-1 justify-content-end">
-                                                @* Staff: count/recount button *@
-                                                @if (Model.IsStaff && loc.CanCount && isInProgress)
-                                                {
-                                                    <a href="/Stocktake/Count?id=@s.StocktakeSessionId&locationId=@loc.StorageLocationId"
-                                                       class="btn btn-sm btn-primary">
-                                                        <i class="ri-calculator-line me-1"></i>Count
-                                                    </a>
-                                                }
-                                                else if (loc.CountStatus == "COUNTED" || loc.CountStatus == "SUBMITTED")
-                                                {
-                                                    <a href="/Stocktake/Count?id=@s.StocktakeSessionId&locationId=@loc.StorageLocationId"
-                                                       class="btn btn-sm btn-outline-secondary">
-                                                        <i class="ri-eye-line"></i>
-                                                    </a>
-                                                }
-                                                @* Manager: request recount *@
-                                                @if (Model.IsManager && (loc.CountStatus == "SUBMITTED" || loc.CountStatus == "COUNTED") && isInProgress)
-                                                {
-                                                    <form method="post" asp-page-handler="RequestRecount"
-                                                          asp-route-id="@s.StocktakeSessionId"
-                                                          asp-route-locationId="@loc.StorageLocationId"
-                                                          style="display:inline;">
-                                                        @Html.AntiForgeryToken()
-                                                        <button type="submit" class="btn btn-sm btn-outline-warning"
-                                                                title="Request recount"
-                                                                onclick="return confirm('Yêu cầu đếm lại bin @loc.LocationCode?')">
-                                                            <i class="ri-refresh-line"></i>
-                                                        </button>
-                                                    </form>
-                                                }
-                                            </div>
-                                        </td>
-                                    </tr>
-                                }
-                            }
-                            else
-                            {
-                                <tr>
-                                    <td colspan="6" class="text-center text-muted py-4">
-                                        @if (isScheduled)
-                                        {
-                                            <div>
-                                                <i class="ri-calendar-line fs-3 d-block mb-2"></i>
-                                                <span>Phiên chưa bắt đầu. Bấm "Bắt đầu" để tải danh sách bin.</span>
-                                            </div>
-                                        }
-                                        else if (isInProgress)
-                                        {
-                                            <div>
-                                                <i class="ri-loader-line fs-3 d-block mb-2"></i>
-                                                <span>Chưa có bin nào được gán. Liên hệ quản lý để thêm bin.</span>
-                                            </div>
-                                        }
-                                        else
-                                        {
-                                            <div>
-                                                <i class="ri-inbox-line fs-3 d-block mb-2"></i>
-                                                <span>Không tìm thấy vị trí nào.</span>
-                                            </div>
-                                        }
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            </div>
 
-            @* ── Items / Variance table (shown when there are counted items) ── *@
-            @if (s?.Items?.Any() == true)
-            {
-                <div class="border rounded bg-white overflow-hidden">
-                    <div class="px-3 pt-3 pb-2 border-bottom d-flex justify-content-between align-items-center">
-                        <span class="fw-semibold">Chi tiet mat hang - Chenh lech</span>
-                        @if (s.VarianceItems > 0)
-                        {
-                            <span class="badge bg-danger">@s.VarianceItems chenh lech</span>
-                        }
-                    </div>
-
-                    @* Manager resolution form (only when PENDING_APPROVAL and CanReview) *@
-                    @if (Model.IsManager && s.CanReview && isPendingApproval)
-                    {
-                        <form method="post" asp-page-handler="Resolutions" asp-route-id="@s.StocktakeSessionId" id="resolutionForm">
-                            @Html.AntiForgeryToken()
-                            <div class="table-responsive">
-                                <table class="table table-sm mb-0 align-middle">
-                                    <thead class="table-light">
-                                        <tr>
-                                            <th>Vi tri</th>
-                                            <th>San pham / Lo</th>
-                                            <th class="text-end">So sach</th>
-                                            <th class="text-end">So dem</th>
-                                            <th class="text-end">Chenh</th>
-                                            <th style="min-width:150px;">Xu ly</th>
-                                            <th style="min-width:150px;">Ghi chu</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @for (int i = 0; i < s.Items.Count; i++)
-                                        {
-                                            var item = s.Items[i];
-                                            <tr class="@(item.DifferenceQuantity != 0 ? "table-warning" : "")">
-                                                <td class="small text-muted">@item.LocationCode</td>
-                                                <td>
-                                                    <div class="fw-semibold small">@item.ProductCode</div>
-                                                    <div class="text-muted" style="font-size:11px;">@item.ProductName</div>
-                                                    <div class="text-muted" style="font-size:10px;">Lot: @item.LotNumber @(item.ExpiryDate.HasValue ? $"– Exp: {item.ExpiryDate.Value:dd/MM/yyyy}" : "")</div>
-                                                    @if (item.IsUnexpected)
-                                                    {
-                                                        <span class="badge bg-info" style="font-size:10px;">Unexpected</span>
-                                                    }
-                                                    <input type="hidden" name="Resolutions[@i].StocktakeItemId" value="@item.StocktakeItemId" />
-                                                </td>
-                                                <td class="text-end small">@item.BookQuantity?.ToString("N2")</td>
-                                                <td class="text-end small">@item.CountedQuantity?.ToString("N2")</td>
-                                                <td class="text-end fw-semibold small @(item.DifferenceQuantity != 0 ? "text-danger" : "text-muted")">
-                                                    @(item.DifferenceQuantity.HasValue ? item.DifferenceQuantity.Value.ToString("+0.##;-0.##;0") : "—")
-                                                </td>
-                                                <td>
-                                                    @if (item.DifferenceQuantity != 0 || item.IsUnexpected)
-                                                    {
-                                                        <select name="Resolutions[@i].Resolution" class="form-select form-select-sm">
-                                                            <option value="">-- Chon --</option>
-                                                            <option value="ACCEPT_DIFFERENCE" selected="@(item.Resolution == "ACCEPT_DIFFERENCE" ? "selected" : null)">Dieu chinh ton kho</option>
-                                                            <option value="NO_ADJUSTMENT" selected="@(item.Resolution == "NO_ADJUSTMENT" ? "selected" : null)">Bo qua</option>
-                                                            <option value="RECOUNT" selected="@(item.Resolution == "RECOUNT" ? "selected" : null)">Dem lai</option>
-                                                        </select>
-                                                    }
-                                                    else
-                                                    {
-                                                        <span class="text-muted small">Khong chenh lech</span>
-                                                        <input type="hidden" name="Resolutions[@i].Resolution" value="NO_ADJUSTMENT" />
-                                                    }
-                                                </td>
-                                                <td>
-                                                    <input type="text" name="Resolutions[@i].Notes" class="form-control form-control-sm"
-                                                           value="@item.Notes" placeholder="Notes..." />
-                                                </td>
-                                            </tr>
-                                        }
-                                    </tbody>
-                                </table>
-                            </div>
-                            <div class="p-3 border-top d-flex justify-content-end">
-                                <button type="submit" class="btn btn-primary btn-sm">
-                                    <i class="ri-save-line me-1"></i>Luu xu ly
-                                </button>
-                            </div>
-                        </form>
-                    }
-                    else
-                    {
-                        @* Read-only view *@
-                        <div class="table-responsive">
-                            <table class="table table-sm mb-0 align-middle">
-                                <thead class="table-light">
+                @if (Model.IsManager && s.CanReview && isPendingApproval)
+                {
+                    <form method="post" asp-page-handler="Resolutions" asp-route-id="@s.StocktakeSessionId" id="resolutionForm">
+                        @Html.AntiForgeryToken()
+                        <div style="overflow-x:auto;">
+                            <table>
+                                <thead>
                                     <tr>
-                                        <th>Vi tri</th>
-                                        <th>San pham / Lo</th>
-                                        <th class="text-end">So sach</th>
-                                        <th class="text-end">So dem</th>
-                                        <th class="text-end">Chenh</th>
-                                        <th>Xu ly</th>
+                                        <th style="width: 15%">Vị trí</th>
+                                        <th style="width: 25%">Sản phẩm / Lô</th>
+                                        <th class="num" style="width: 10%">Sổ sách</th>
+                                        <th class="num" style="width: 10%">Thực đếm</th>
+                                        <th class="num" style="width: 10%">Chênh</th>
+                                        <th style="width: 15%">Xử lý</th>
+                                        <th style="width: 15%">Ghi chú</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach (var item in s.Items)
+                                    @for (int i = 0; i < s.Items.Count; i++)
                                     {
-                                        <tr class="@(item.DifferenceQuantity != 0 ? "table-warning" : "")">
-                                            <td class="small text-muted">@item.LocationCode</td>
+                                        var item = s.Items[i];
+                                        <tr style="@(item.DifferenceQuantity != 0 ? "background:#fffbeb;" : "")">
+                                            <td class="muted small">@item.LocationCode</td>
                                             <td>
-                                                <div class="fw-semibold small">@item.ProductCode</div>
-                                                <div class="text-muted" style="font-size:11px;">@item.ProductName</div>
-                                                <div class="text-muted" style="font-size:10px;">Lot: @item.LotNumber @(item.ExpiryDate.HasValue ? $"– Exp: {item.ExpiryDate.Value:dd/MM/yyyy}" : "")</div>
-                                                @if (item.IsUnexpected)
-                                                {
-                                                    <span class="badge bg-info" style="font-size:10px;">Unexpected</span>
-                                                }
+                                                <span class="prod-code">@item.ProductCode</span><br/>
+                                                <span class="small" style="color:var(--ink-2);">@item.ProductName</span><br/>
+                                                <span class="small muted" style="font-size:10px;">Lot: @item.LotNumber</span>
+                                                <input type="hidden" name="Resolutions[@i].StocktakeItemId" value="@item.StocktakeItemId" />
                                             </td>
-                                            <td class="text-end small">@item.BookQuantity?.ToString("N2")</td>
-                                            <td class="text-end small">@item.CountedQuantity?.ToString("N2")</td>
-                                            <td class="text-end fw-semibold small @(item.DifferenceQuantity != 0 ? "text-danger" : "text-muted")">
+                                            <td class="num small">@item.BookQuantity?.ToString("N2")</td>
+                                            <td class="num small">@item.CountedQuantity?.ToString("N2")</td>
+                                            <td class="num" style="@(item.DifferenceQuantity != 0 ? "color:#dc2626; font-weight:700;" : "color:var(--ink-3);")">
                                                 @(item.DifferenceQuantity.HasValue ? item.DifferenceQuantity.Value.ToString("+0.##;-0.##;0") : "—")
                                             </td>
                                             <td>
-                                                @if (!string.IsNullOrWhiteSpace(item.Resolution))
+                                                @if (item.DifferenceQuantity != 0 || item.IsUnexpected)
                                                 {
-                                                    <span class="badge @(item.Resolution == "ACCEPT_DIFFERENCE" ? "bg-primary" : item.Resolution == "NO_ADJUSTMENT" ? "bg-secondary" : "bg-warning text-dark")">
-                                                        @item.Resolution
-                                                    </span>
+                                                    <select name="Resolutions[@i].Resolution" style="width:100%; padding:6px; border:1px solid var(--line-strong); border-radius:4px; font-size:12px;">
+                                                        <option value="">-- Chọn --</option>
+                                                        <option value="ACCEPT_DIFFERENCE" selected="@(item.Resolution == "ACCEPT_DIFFERENCE" ? "selected" : null)">Khớp tồn kho</option>
+                                                        <option value="NO_ADJUSTMENT" selected="@(item.Resolution == "NO_ADJUSTMENT" ? "selected" : null)">Bỏ qua</option>
+                                                        <option value="RECOUNT" selected="@(item.Resolution == "RECOUNT" ? "selected" : null)">Đếm lại</option>
+                                                    </select>
                                                 }
                                                 else
                                                 {
-                                                    <span class="text-muted small">—</span>
+                                                    <span class="muted small">—</span>
+                                                    <input type="hidden" name="Resolutions[@i].Resolution" value="NO_ADJUSTMENT" />
                                                 }
+                                            </td>
+                                            <td>
+                                                <input type="text" name="Resolutions[@i].Notes" value="@item.Notes" style="width:100%; padding:6px; border:1px solid var(--line-strong); border-radius:4px; font-size:12px;" placeholder="Ghi chú..." />
                                             </td>
                                         </tr>
                                     }
                                 </tbody>
                             </table>
                         </div>
-                    }
-                </div>
-            }
-        </div>
-    </div>
+                        <div style="text-align:right; margin-top:16px;">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="ri-save-line"></i> Lưu xử lý
+                            </button>
+                        </div>
+                    </form>
+                }
+                else
+                {
+                    <div style="overflow-x:auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th style="width: 15%">Vị trí</th>
+                                    <th style="width: 25%">Sản phẩm / Lô</th>
+                                    <th class="num" style="width: 15%">Sổ sách</th>
+                                    <th class="num" style="width: 15%">Thực đếm</th>
+                                    <th class="num" style="width: 15%">Chênh</th>
+                                    <th style="width: 15%">Xử lý</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in s.Items)
+                                {
+                                    <tr style="@(item.DifferenceQuantity != 0 ? "background:#fffbeb;" : "")">
+                                        <td class="muted small">@item.LocationCode</td>
+                                        <td>
+                                            <span class="prod-code">@item.ProductCode</span><br/>
+                                            <span class="small" style="color:var(--ink-2);">@item.ProductName</span><br/>
+                                            <span class="small muted" style="font-size:10px;">Lot: @item.LotNumber</span>
+                                        </td>
+                                        <td class="num small">@item.BookQuantity?.ToString("N2")</td>
+                                        <td class="num small">@item.CountedQuantity?.ToString("N2")</td>
+                                        <td class="num" style="@(item.DifferenceQuantity != 0 ? "color:#dc2626; font-weight:700;" : "color:var(--ink-3);")">
+                                            @(item.DifferenceQuantity.HasValue ? item.DifferenceQuantity.Value.ToString("+0.##;-0.##;0") : "—")
+                                        </td>
+                                        <td>
+                                            @if (!string.IsNullOrWhiteSpace(item.Resolution))
+                                            {
+                                                <span class="badge @(item.Resolution == "ACCEPT_DIFFERENCE" ? "b-b" : item.Resolution == "NO_ADJUSTMENT" ? "b-gy" : "b-y")">
+                                                    <span class="dot"></span>@item.Resolution
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="muted small">—</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        }
+    }
 </div>
 
 @* ── CANCEL MODAL ── *@
@@ -487,17 +432,17 @@
             <form method="post" asp-page-handler="Cancel" asp-route-id="@s?.StocktakeSessionId">
                 @Html.AntiForgeryToken()
                 <div class="modal-header">
-                    <h5 class="modal-title"><i class="ri-close-circle-line me-1 text-danger"></i>Huy phien kiem kho</h5>
+                    <h5 class="modal-title"><i class="ri-close-circle-line me-1 text-danger"></i>Hủy phiếu</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <p class="text-muted">Huy phien kiem kho <strong>@s?.StocktakeNumber</strong>? Hanh dong nay khong the hoan tac.</p>
-                    <label class="form-label fw-semibold">Ly do huy</label>
-                    <textarea name="notes" class="form-control" rows="3" placeholder="Nhap ly do huy..."></textarea>
+                    <p class="text-muted">Hủy phiếu <strong>@s?.StocktakeNumber</strong>? Hành động này không thể hoàn tác.</p>
+                    <label class="form-label fw-semibold">Lý do hủy</label>
+                    <textarea name="notes" class="form-control" rows="3" placeholder="Nhập lý do..."></textarea>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Dong</button>
-                    <button type="submit" class="btn btn-danger">Huy phien</button>
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Đóng</button>
+                    <button type="submit" class="btn btn-danger" style="background:#dc2626; color:#fff; border:none; padding:8px 16px; border-radius:6px;">Xác nhận hủy</button>
                 </div>
             </form>
         </div>
@@ -511,26 +456,16 @@
             <form method="post" asp-page-handler="Approve" asp-route-id="@s?.StocktakeSessionId">
                 @Html.AntiForgeryToken()
                 <div class="modal-header">
-                    <h5 class="modal-title"><i class="ri-check-double-line me-1 text-success"></i>Phe duyet dieu chinh ton kho</h5>
+                    <h5 class="modal-title"><i class="ri-check-double-line me-1 text-success"></i>Phê duyệt và chốt tồn kho</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <p>Phe duyet va dieu chinh ton kho cho phien <strong>@s?.StocktakeNumber</strong>?</p>
-                    @if (s?.VarianceItems > 0)
-                    {
-                        <div class="alert alert-warning small">
-                            <i class="ri-error-warning-line me-1"></i>
-                            Co <strong>@s.VarianceItems</strong> dong chenh lech. He thong se dieu chinh ton kho theo xu ly da chon.
-                        </div>
-                    }
-                    <label class="form-label fw-semibold">Ghi chu phe duyet</label>
-                    <textarea name="notes" class="form-control" rows="3" placeholder="Nhap ghi chu (tuy chon)..."></textarea>
+                    <label class="form-label fw-semibold">Ghi chú</label>
+                    <textarea name="notes" class="form-control" rows="3" placeholder="Nhập ghi chú..."></textarea>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Quay lai</button>
-                    <button type="submit" class="btn btn-success">
-                        <i class="ri-check-double-line me-1"></i>Phe duyet
-                    </button>
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Quay lại</button>
+                    <button type="submit" class="btn btn-success" style="background:#16a34a; color:#fff; border:none; padding:8px 16px; border-radius:6px;">Phê duyệt</button>
                 </div>
             </form>
         </div>

@@ -9,16 +9,25 @@ namespace BMWMS.Web.Pages.Stocktake
     {
         private readonly IStocktakeApiService _stocktakeService;
         private readonly WarehouseApiService _warehouseService;
+        private readonly TransferApiService _transferService;
+        private readonly ProductGroupApiService _productGroupService;
 
-        public CreateModel(IStocktakeApiService stocktakeService, WarehouseApiService warehouseService)
+        public CreateModel(
+            IStocktakeApiService stocktakeService, 
+            WarehouseApiService warehouseService,
+            TransferApiService transferService,
+            ProductGroupApiService productGroupService)
         {
             _stocktakeService = stocktakeService;
             _warehouseService = warehouseService;
+            _transferService = transferService;
+            _productGroupService = productGroupService;
         }
 
         public List<WarehouseModel> Warehouses { get; set; } = new();
         public List<StocktakeStaffOptionModel> StaffUsers { get; set; } = new();
         public List<StocktakeLocationOptionModel> Locations { get; set; } = new();
+        public List<ProductGroupViewModel> ProductGroups { get; set; } = new();
 
         [BindProperty]
         public long WarehouseId { get; set; }
@@ -47,6 +56,7 @@ namespace BMWMS.Web.Pages.Stocktake
 
             Warehouses = await _warehouseService.GetWarehousesAsync();
             StaffUsers = await _stocktakeService.GetStaffUsersAsync();
+            ProductGroups = await _productGroupService.GetAllActiveAsync();
             WarehouseId = Warehouses.FirstOrDefault()?.WarehouseId ?? 0;
             if (WarehouseId > 0)
                 Locations = await _stocktakeService.GetLocationsAsync(WarehouseId);
@@ -54,12 +64,21 @@ namespace BMWMS.Web.Pages.Stocktake
             return Page();
         }
 
-        public async Task<IActionResult> OnGetLocationsByWarehouseAsync(long warehouseId)
+        public async Task<IActionResult> OnGetZonesByWarehouseAsync(long warehouseId)
         {
-            var locations = warehouseId > 0
-                ? await _stocktakeService.GetLocationsAsync(warehouseId)
-                : new List<StocktakeLocationOptionModel>();
+            var zones = warehouseId > 0 ? await _transferService.GetZonesAsync(warehouseId) : new();
+            return new JsonResult(zones);
+        }
 
+        public async Task<IActionResult> OnGetRacksByZoneAsync(long warehouseId, long zoneId)
+        {
+            var racks = warehouseId > 0 ? await _transferService.GetRacksAsync(warehouseId, zoneId) : new();
+            return new JsonResult(racks);
+        }
+
+        public async Task<IActionResult> OnGetLocationsAsync(long warehouseId, [FromQuery] List<long>? rackIds = null, [FromQuery] List<long>? productGroupIds = null)
+        {
+            var locations = warehouseId > 0 ? await _stocktakeService.GetLocationsAsync(warehouseId, rackIds, productGroupIds) : new();
             return new JsonResult(locations);
         }
 

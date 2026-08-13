@@ -2,142 +2,231 @@
 @model BMWMS.Web.Pages.Stocktake.IndexModel
 @{
     Layout = "_AdminLayout";
-    ViewData["Title"] = "Danh sach phien kiem kho";
-    ViewData["HeaderTitle"] = "Kiem kho";
+    ViewData["Title"] = "Danh Sách Kiểm Kho";
+    ViewData["HeaderTitle"] = "Quản Lý Kiểm Kho";
 
     var historyActive = string.Equals(Model.Status, "HISTORY", StringComparison.OrdinalIgnoreCase);
     var activeStatus = string.IsNullOrWhiteSpace(Model.Status) || historyActive ? "" : Model.Status;
 }
 
-<div class="container-fluid" style="padding:24px; max-width:1440px; margin:0 auto;">
-    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
+<div class="container-fluid" style="padding: 24px; max-width: 1440px; margin: 0 auto;">
+
+    <!-- TOP BREADCRUMB & HEADER -->
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; flex-wrap: wrap; gap: 16px;">
         <div>
-            <div class="small text-muted mb-1">Warehouse operations / Stocktake</div>
-            <h1 class="h4 mb-1 fw-bold">Xem danh sach phien kiem kho</h1>
-            <div class="text-muted small">Xem va theo doi cac phien kiem kho toan bo hoac theo: tinh trang • Actor chinh: Quan ly kho</div>
+            <div style="font-size: 13px; color: #64748b; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+                <span>Nghiệp vụ kho</span>
+                <i class="ri-arrow-right-s-line" style="font-size: 14px;"></i>
+                <span style="color: #2563eb; font-weight: 500;">Kiểm kho</span>
+            </div>
+            <h1 style="font-size: 22px; font-weight: 700; color: #0f172a; margin: 0;">
+                <i class="ri-clipboard-line" style="color: #2563eb; margin-right: 8px;"></i>Danh Sách Phiếu Kiểm Kho
+            </h1>
+            <p style="font-size: 13px; color: #64748b; margin-top: 4px; margin-bottom: 0;">
+                Quản lý, theo dõi các phiên đếm hàng tồn kho toàn bộ hoặc định kỳ.
+            </p>
         </div>
+
         @if (Model.IsManager)
         {
-            <a href="/Stocktake/Create" class="btn btn-primary">
-                <i class="ri-add-line me-1"></i> Tao phien kiem kho
-            </a>
+            <div style="display: flex; gap: 10px;">
+                <a href="/Stocktake/Create" style="display: inline-flex; align-items: center; gap: 6px; background: #2563eb; color: #ffffff; padding: 8px 18px; border-radius: 8px; font-weight: 600; font-size: 13px; text-decoration: none; box-shadow: 0 1px 3px rgba(37, 99, 235, 0.2);">
+                    <i class="ri-add-line" style="font-size: 16px;"></i> Tạo Phiên Kiểm Kho
+                </a>
+            </div>
         }
     </div>
 
-    @if (!string.IsNullOrWhiteSpace(Model.SuccessMessage))
-    {
-        <div class="alert alert-success">@Model.SuccessMessage</div>
-    }
-    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
-    {
-        <div class="alert alert-danger">@Model.ErrorMessage</div>
-    }
+    <!-- 4 CARD THỐNG KÊ -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 20px;">
+        <!-- Card 1: Tổng số phiếu -->
+        <div style="background: #ffffff; padding: 18px 20px; border-radius: 10px; border: 1px solid #e2e8f0; box-shadow: 0 1px 2px rgba(0,0,0,0.03); position: relative; overflow: hidden;">
+            <div style="position: absolute; top: 0; left: 0; right: 0; height: 3px; background: #2563eb;"></div>
+            <div style="font-size: 12px; color: #64748b; font-weight: 600; text-transform: uppercase;">Tổng số phiếu</div>
+            <div style="font-size: 26px; font-weight: 700; color: #0f172a; margin-top: 6px;">@Model.PagedResult.TotalCount</div>
+            <div style="font-size: 12px; color: #64748b; margin-top: 4px;">Tất cả lịch sử phiên đếm</div>
+        </div>
 
-    <div class="border rounded bg-white p-3 mb-3">
-        <ul class="nav nav-pills mb-3">
-            <li class="nav-item">
-                <a class="nav-link @(historyActive ? "" : "active")" href="/Stocktake/Index">Phien dang mo</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link @(historyActive ? "active" : "")" href="/Stocktake/Index?Status=HISTORY">Lich su</a>
-            </li>
-        </ul>
+        <!-- Card 2: Đã lên kế hoạch (SCHEDULED) -->
+        <div style="background: #ffffff; padding: 18px 20px; border-radius: 10px; border: 1px solid #e2e8f0; box-shadow: 0 1px 2px rgba(0,0,0,0.03); position: relative; overflow: hidden;">
+            <div style="position: absolute; top: 0; left: 0; right: 0; height: 3px; background: #d97706;"></div>
+            <div style="font-size: 12px; color: #64748b; font-weight: 600; text-transform: uppercase;">Đã lên kế hoạch</div>
+            <div style="font-size: 26px; font-weight: 700; color: #d97706; margin-top: 6px;">@Model.PagedResult.ScheduledCount</div>
+            <div style="font-size: 12px; color: #d97706; margin-top: 4px; font-weight: 500;">
+                <i class="ri-calendar-line"></i> Chờ bắt đầu đếm
+            </div>
+        </div>
 
-        <form method="get" class="row g-3 align-items-end">
+        <!-- Card 3: Đang thực hiện / Chờ duyệt -->
+        <div style="background: #ffffff; padding: 18px 20px; border-radius: 10px; border: 1px solid #e2e8f0; box-shadow: 0 1px 2px rgba(0,0,0,0.03); position: relative; overflow: hidden;">
+            <div style="position: absolute; top: 0; left: 0; right: 0; height: 3px; background: #2563eb;"></div>
+            <div style="font-size: 12px; color: #64748b; font-weight: 600; text-transform: uppercase;">Đang đếm / Chờ duyệt</div>
+            <div style="font-size: 26px; font-weight: 700; color: #2563eb; margin-top: 6px;">@(Model.PagedResult.InProgressCount + Model.PagedResult.PendingApprovalCount)</div>
+            <div style="font-size: 12px; color: #2563eb; margin-top: 4px; font-weight: 500;">
+                <i class="ri-truck-line"></i> Nhân viên đang xử lý
+            </div>
+        </div>
+
+        <!-- Card 4: Đã hoàn thành -->
+        <div style="background: #ffffff; padding: 18px 20px; border-radius: 10px; border: 1px solid #e2e8f0; box-shadow: 0 1px 2px rgba(0,0,0,0.03); position: relative; overflow: hidden;">
+            <div style="position: absolute; top: 0; left: 0; right: 0; height: 3px; background: #16a34a;"></div>
+            <div style="font-size: 12px; color: #64748b; font-weight: 600; text-transform: uppercase;">Đã hoàn thành</div>
+            <div style="font-size: 26px; font-weight: 700; color: #16a34a; margin-top: 6px;">@Model.PagedResult.CompletedCount</div>
+            <div style="font-size: 12px; color: #16a34a; margin-top: 4px; font-weight: 500;">
+                <i class="ri-checkbox-circle-line"></i> Chốt tồn kho thành công
+            </div>
+        </div>
+    </div>
+
+    <!-- KHU VỰC LỌC VÀ TÌM KIẾM -->
+    <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px 20px; margin-bottom: 20px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+        <form method="get" class="row g-3 align-items-center">
             <div class="col-md-4">
-                <label class="form-label small text-muted">Tim ma phien kiem kho</label>
-                <input type="text" name="Keyword" value="@Model.Keyword" class="form-control" placeholder="Nhap ma phien..." />
+                <label style="font-size: 12px; color: #64748b; font-weight: 600; margin-bottom: 4px; display: block;">Từ khóa tìm kiếm</label>
+                <div style="position: relative;">
+                    <i class="ri-search-line" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8;"></i>
+                    <input type="text" name="Keyword" value="@Model.Keyword" placeholder="Nhập mã phiếu..."
+                           class="form-control form-control-sm" style="padding-left: 36px; border-color: #e2e8f0; font-size: 13px;" />
+                </div>
             </div>
-            <div class="col-md-2">
-                <label class="form-label small text-muted">Trang thai</label>
-                <select name="Status" class="form-select">
-                    <option value="">Tat ca trang thai</option>
-                    <option value="SCHEDULED" selected="@(activeStatus == "SCHEDULED" ? "selected" : null)">Da len ke hoach</option>
-                    <option value="IN_PROGRESS" selected="@(activeStatus == "IN_PROGRESS" ? "selected" : null)">Dang kiem</option>
-                    <option value="COUNTED" selected="@(activeStatus == "COUNTED" ? "selected" : null)">Da dem xong</option>
-                    <option value="PENDING_APPROVAL" selected="@(activeStatus == "PENDING_APPROVAL" ? "selected" : null)">Cho phe duyet</option>
-                    <option value="COMPLETED" selected="@(activeStatus == "COMPLETED" ? "selected" : null)">Hoan tat</option>
-                    <option value="CANCELLED" selected="@(activeStatus == "CANCELLED" ? "selected" : null)">Da huy</option>
-                </select>
-            </div>
+
             <div class="col-md-3">
-                <label class="form-label small text-muted">Kho</label>
-                <select name="WarehouseId" class="form-select">
-                    <option value="">Tat ca kho</option>
+                <label style="font-size: 12px; color: #64748b; font-weight: 600; margin-bottom: 4px; display: block;">Kho hàng</label>
+                <select name="WarehouseId" class="form-select form-select-sm" style="border-color: #e2e8f0; font-size: 13px;">
+                    <option value="">-- Tất cả kho --</option>
                     @foreach (var wh in Model.Warehouses)
                     {
                         <option value="@wh.WarehouseId" selected="@(Model.WarehouseId == wh.WarehouseId ? "selected" : null)">@wh.WarehouseCode - @wh.WarehouseName</option>
                     }
                 </select>
             </div>
-            <div class="col-md-3 d-flex gap-2">
-                <button class="btn btn-primary flex-grow-1" type="submit">
-                    <i class="ri-search-line me-1"></i> Tim kiem
+
+            <div class="col-md-3">
+                <label style="font-size: 12px; color: #64748b; font-weight: 600; margin-bottom: 4px; display: block;">Trạng thái</label>
+                <select name="Status" class="form-select form-select-sm" style="border-color: #e2e8f0; font-size: 13px;">
+                    <option value="">-- Tất cả trạng thái --</option>
+                    <option value="SCHEDULED" selected="@(activeStatus == "SCHEDULED" ? "selected" : null)">⏳ Đã lên kế hoạch (SCHEDULED)</option>
+                    <option value="IN_PROGRESS" selected="@(activeStatus == "IN_PROGRESS" ? "selected" : null)">🔵 Đang kiểm (IN_PROGRESS)</option>
+                    <option value="COUNTED" selected="@(activeStatus == "COUNTED" ? "selected" : null)">🔵 Đã đếm xong (COUNTED)</option>
+                    <option value="PENDING_APPROVAL" selected="@(activeStatus == "PENDING_APPROVAL" ? "selected" : null)">🟡 Chờ phê duyệt (PENDING_APPROVAL)</option>
+                    <option value="COMPLETED" selected="@(activeStatus == "COMPLETED" ? "selected" : null)">✅ Hoàn tất (COMPLETED)</option>
+                    <option value="CANCELLED" selected="@(activeStatus == "CANCELLED" ? "selected" : null)">❌ Đã hủy (CANCELLED)</option>
+                </select>
+            </div>
+
+            <div class="col-md-2 d-flex align-items-end gap-2" style="margin-top: 24px;">
+                <button type="submit" class="btn btn-primary btn-sm flex-fill" style="background: #2563eb; border: none; font-weight: 500; font-size: 13px; padding: 7px 14px;">
+                    <i class="ri-filter-3-line"></i> Lọc
                 </button>
-                <a href="/Stocktake/Index" class="btn btn-outline-secondary">
-                    <i class="ri-reset-left-line"></i> Dat lai
+                <a href="/Stocktake/Index" class="btn btn-light btn-sm" style="border: 1px solid #e2e8f0; font-size: 13px; padding: 7px 12px;" title="Xóa bộ lọc">
+                    <i class="ri-refresh-line"></i>
                 </a>
             </div>
         </form>
     </div>
 
-    <div class="border rounded bg-white overflow-hidden">
-        <div class="table-responsive">
-            <table class="table mb-0 align-middle">
-                <thead class="table-light">
-                    <tr>
-                        <th>Ma phieu</th>
-                        <th>Loai kiem</th>
-                        <th>Pham vi</th>
-                        <th>Nguoi thuc hien</th>
-                        <th>Trang thai</th>
-                        <th>Chuyen trang</th>
-                        <th class="text-end">Thao tac</th>
+    <!-- BẢNG DANH SÁCH PHIẾU KIỂM KHO -->
+    <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+        <div style="overflow-x: auto;">
+            <table class="table align-middle" style="margin: 0; font-size: 13px;">
+                <thead>
+                    <tr style="background: #f8fafc; border-bottom: 1px solid #e2e8f0; color: #475569; font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em;">
+                        <th style="padding: 12px 16px; font-weight: 600;">Mã phiếu</th>
+                        <th style="padding: 12px 16px; font-weight: 600;">Kho hàng</th>
+                        <th style="padding: 12px 16px; font-weight: 600;">Người thực hiện</th>
+                        <th style="padding: 12px 16px; font-weight: 600;">Tiến độ đếm</th>
+                        <th style="padding: 12px 16px; font-weight: 600;">Chênh lệch</th>
+                        <th style="padding: 12px 16px; font-weight: 600; text-align: center;">Trạng thái</th>
+                        <th style="padding: 12px 16px; font-weight: 600; text-align: right;">Thao tác</th>
                     </tr>
                 </thead>
                 <tbody>
                     @if (Model.PagedResult.Items.Any())
                     {
-                        foreach (var item in Model.PagedResult.Items)
+                        @foreach (var item in Model.PagedResult.Items)
                         {
-                            <tr>
-                                <td>
-                                    <div class="fw-semibold">@item.StocktakeNumber</div>
-                                    <div class="small text-muted">@item.PlannedDate.ToString("dd/MM/yyyy")</div>
+                            <tr style="border-bottom: 1px solid #f1f5f9;">
+                                <td style="padding: 14px 16px;">
+                                    <a href="/Stocktake/Details?id=@item.StocktakeSessionId" style="font-weight: 700; color: #2563eb; text-decoration: none;">
+                                        @item.StocktakeNumber
+                                    </a>
+                                    <div style="font-size: 11px; color: #94a3b8;">Kế hoạch: @item.PlannedDate.ToString("dd/MM/yyyy")</div>
                                 </td>
-                                <td>
-                                    <div class="small">Toan bo kho</div>
-                                    <div class="small text-muted">@item.WarehouseCode</div>
+                                <td style="padding: 14px 16px; font-weight: 500; color: #1e293b;">
+                                    @item.WarehouseName
+                                    <div style="font-size: 11px; color: #94a3b8;">@item.TotalLocations bin</div>
                                 </td>
-                                <td>
-                                    <div>@item.WarehouseName</div>
-                                    <div class="small text-muted">@item.TotalLocations bin</div>
+                                <td style="padding: 14px 16px; color: #475569;">
+                                    @if (!string.IsNullOrEmpty(item.AssignedToName))
+                                    {
+                                        <span style="background:#eff6ff; color:#1d4ed8; padding:3px 8px; border-radius:20px; font-size:11px; font-weight:600; display:inline-flex; align-items:center; gap:3px;">
+                                            <i class="ri-user-line"></i> @item.AssignedToName
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span style="color:#94a3b8; font-size:11px; font-style:italic;">—</span>
+                                    }
+                                    <div style="font-size: 11px; color: #94a3b8; margin-top:2px;">Tạo bởi: @item.CreatedByName</div>
                                 </td>
-                                <td>
-                                    <div>@(string.IsNullOrWhiteSpace(item.AssignedToName) ? "-" : item.AssignedToName)</div>
-                                    <div class="small text-muted">@item.CreatedByName</div>
+                                <td style="padding: 14px 16px; color: #475569;">
+                                    <div style="font-weight:600; color:#334155;">@item.CountedLocations / @item.TotalLocations bin</div>
                                 </td>
-                                <td>
-                                    <span class="badge @item.StatusCss">@item.StatusLabel</span>
+                                <td style="padding: 14px 16px; color: #475569;">
+                                    @if (item.VarianceItems > 0)
+                                    {
+                                        <span style="color: #b91c1c; font-weight: 600;">@item.VarianceItems mặt hàng</span>
+                                    }
+                                    else if (item.Status == "COMPLETED" || item.Status == "PENDING_APPROVAL")
+                                    {
+                                        <span style="color: #15803d; font-weight: 600;">Khớp 100%</span>
+                                    }
+                                    else
+                                    {
+                                        <span style="color: #94a3b8;">Chưa có</span>
+                                    }
                                 </td>
-                                <td>
-                                    <div class="small">
-                                        <span class="text-muted">@item.CountedLocations/@item.TotalLocations bin</span>
-                                    </div>
-                                    <div class="small">
-                                        @if (item.VarianceItems > 0)
-                                        {
-                                            <span class="text-danger">@item.VarianceItems chenh lech</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="text-success">Khong chenh lech</span>
-                                        }
-                                    </div>
+                                <td style="padding: 14px 16px; text-align: center;">
+                                    @if (item.Status == "SCHEDULED")
+                                    {
+                                        <span style="background: #fffbeb; color: #b45309; border: 1px solid #fde68a; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+                                            <i class="ri-calendar-line"></i> Đã lên KH
+                                        </span>
+                                    }
+                                    else if (item.Status == "COMPLETED")
+                                    {
+                                        <span style="background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+                                            <i class="ri-checkbox-circle-line"></i> Hoàn thành
+                                        </span>
+                                    }
+                                    else if (item.Status == "IN_PROGRESS" || item.Status == "COUNTED")
+                                    {
+                                        <span style="background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+                                            <i class="ri-refresh-line"></i> Đang kiểm
+                                        </span>
+                                    }
+                                    else if (item.Status == "PENDING_APPROVAL")
+                                    {
+                                        <span style="background: #fef08a; color: #854d0e; border: 1px solid #fde047; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+                                            <i class="ri-time-line"></i> Chờ duyệt
+                                        </span>
+                                    }
+                                    else if (item.Status == "CANCELLED")
+                                    {
+                                        <span style="background: #fff5f5; color: #b91c1c; border: 1px solid #fecaca; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+                                            <i class="ri-close-circle-line"></i> Đã hủy
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">@item.Status</span>
+                                    }
                                 </td>
-                                <td class="text-end">
-                                    <a class="btn btn-sm btn-outline-primary" href="/Stocktake/Details?id=@item.StocktakeSessionId">
-                                        <i class="ri-eye-line me-1"></i> Xem chi tiet
+                                <td style="padding: 14px 16px; text-align: right;">
+                                    <a href="/Stocktake/Details?id=@item.StocktakeSessionId"
+                                       class="btn btn-sm btn-outline-primary"
+                                       style="font-size: 12px; border-radius: 6px; padding: 4px 10px;">
+                                        <i class="ri-eye-line"></i> Chi tiết
                                     </a>
                                 </td>
                             </tr>
@@ -146,48 +235,37 @@
                     else
                     {
                         <tr>
-                            <td colspan="7" class="text-center text-muted py-5">Khong co phien kiem kho nao.</td>
+                            <td colspan="7" style="text-align: center; padding: 40px; color: #94a3b8;">
+                                <i class="ri-inbox-line" style="font-size: 36px; display: block; margin-bottom: 8px;"></i>
+                                Không tìm thấy phiên kiểm kho nào phù hợp.
+                            </td>
                         </tr>
                     }
                 </tbody>
             </table>
         </div>
 
-        @if (Model.PagedResult.TotalPages > 1)
+        <!-- PHÂN TRANG -->
+        @if (Model.PagedResult.TotalCount > 0)
         {
-            <div class="d-flex justify-content-between align-items-center border-top p-3 small text-muted">
+            var totalPages = Model.PagedResult.TotalPages > 0 ? Model.PagedResult.TotalPages : 1;
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; background: #f8fafc; border-top: 1px solid #e2e8f0; font-size: 13px; color: #64748b;">
                 <div>
-                    Hien @(Model.PagedResult.PageIndex * Model.PagedResult.PageSize - Model.PagedResult.PageSize + 1) -
-                    @(Math.Min(Model.PagedResult.PageIndex * Model.PagedResult.PageSize, Model.PagedResult.TotalCount))
-                    cua @Model.PagedResult.TotalCount
+                    Hiển thị <strong>@(((Model.PagedResult.PageIndex - 1) * Model.PagedResult.PageSize) + 1)</strong> -
+                    <strong>@(Math.Min(Model.PagedResult.PageIndex * Model.PagedResult.PageSize, Model.PagedResult.TotalCount))</strong>
+                    trong tổng số <strong>@Model.PagedResult.TotalCount</strong> phiếu
                 </div>
-                <nav>
-                    <ul class="pagination pagination-sm mb-0">
-                        <li class="page-item @(Model.PagedResult.PageIndex == 1 ? "disabled" : "")">
-                            <a class="page-link" href="/Stocktake/Index?PageIndex=@(Model.PagedResult.PageIndex - 1)&PageSize=@Model.PageSize&Keyword=@Model.Keyword&Status=@Model.Status&WarehouseId=@Model.WarehouseId">Truoc</a>
-                        </li>
-                        @for (var i = 1; i <= Model.PagedResult.TotalPages; i++)
-                        {
-                            if (i == Model.PagedResult.PageIndex)
-                            {
-                                <li class="page-item active"><span class="page-link">@i</span></li>
-                            }
-                            else if (i <= 3 || i >= Model.PagedResult.TotalPages - 1 || Math.Abs(i - Model.PagedResult.PageIndex) <= 1)
-                            {
-                                <li class="page-item">
-                                    <a class="page-link" href="/Stocktake/Index?PageIndex=@i&PageSize=@Model.PageSize&Keyword=@Model.Keyword&Status=@Model.Status&WarehouseId=@Model.WarehouseId">@i</a>
-                                </li>
-                            }
-                            else if (i == 4 || i == Model.PagedResult.TotalPages - 2)
-                            {
-                                <li class="page-item disabled"><span class="page-link">...</span></li>
-                            }
-                        }
-                        <li class="page-item @(Model.PagedResult.PageIndex == Model.PagedResult.TotalPages ? "disabled" : "")">
-                            <a class="page-link" href="/Stocktake/Index?PageIndex=@(Model.PagedResult.PageIndex + 1)&PageSize=@Model.PageSize&Keyword=@Model.Keyword&Status=@Model.Status&WarehouseId=@Model.WarehouseId">Sau</a>
-                        </li>
-                    </ul>
-                </nav>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <a href="/Stocktake/Index?PageIndex=@(Model.PagedResult.PageIndex - 1)&PageSize=@Model.PageSize&Keyword=@Model.Keyword&Status=@Model.Status&WarehouseId=@Model.WarehouseId" 
+                       class="btn btn-light btn-sm" style="padding:6px 10px; border: 1px solid #e2e8f0; border-radius: 6px; @(Model.PagedResult.PageIndex == 1 ? "pointer-events: none; opacity: 0.5;" : "")">
+                        <i class="ri-arrow-left-s-line" style="font-size: 16px;"></i>
+                    </a>
+                    <span style="font-weight: 600; color: #0f172a; padding: 0 4px;">@Model.PagedResult.PageIndex / @totalPages</span>
+                    <a href="/Stocktake/Index?PageIndex=@(Model.PagedResult.PageIndex + 1)&PageSize=@Model.PageSize&Keyword=@Model.Keyword&Status=@Model.Status&WarehouseId=@Model.WarehouseId" 
+                       class="btn btn-light btn-sm" style="padding:6px 10px; border: 1px solid #e2e8f0; border-radius: 6px; @(Model.PagedResult.PageIndex >= totalPages ? "pointer-events: none; opacity: 0.5;" : "")">
+                        <i class="ri-arrow-right-s-line" style="font-size: 16px;"></i>
+                    </a>
+                </div>
             </div>
         }
     </div>

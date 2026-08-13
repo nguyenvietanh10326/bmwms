@@ -20,12 +20,12 @@ namespace BMWMS.API.Controllers
 
         [HttpGet("locations")]
         [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF")]
-        public async Task<IActionResult> GetLocations([FromQuery] long warehouseId)
+        public async Task<IActionResult> GetLocations([FromQuery] long warehouseId, [FromQuery] List<long>? rackIds = null, [FromQuery] List<long>? productGroupIds = null)
         {
             if (warehouseId <= 0)
                 return BadRequest(new { message = "WarehouseId khong hop le." });
 
-            var result = await _stocktakeService.GetLocationOptionsAsync(warehouseId);
+            var result = await _stocktakeService.GetLocationOptionsAsync(warehouseId, rackIds, productGroupIds);
             return Ok(result);
         }
 

@@ -38,13 +38,26 @@ namespace BMWMS.Repository.Repositories.Stocktake
                 .ToListAsync();
         }
 
-        public async Task<List<StorageLocation>> GetActiveLocationsByWarehouseAsync(long warehouseId)
+        public async Task<List<StorageLocation>> GetActiveLocationsByWarehouseAsync(long warehouseId, List<long>? rackIds = null, List<long>? productGroupIds = null)
         {
-            return await _context.StorageLocations
+            var query = _context.StorageLocations
                 .AsNoTracking()
                 .Include(l => l.StorageRack).ThenInclude(r => r!.WarehouseZone)
                 .Where(l => l.WarehouseId == warehouseId &&
-                    (l.Status == "ACTIVE" || l.Status == "AVAILABLE" || l.Status == "OCCUPIED"))
+                    (l.Status == "ACTIVE" || l.Status == "AVAILABLE" || l.Status == "OCCUPIED"));
+
+            if (rackIds != null && rackIds.Any())
+            {
+                query = query.Where(l => rackIds.Contains(l.RackId ?? 0L));
+            }
+
+            if (productGroupIds != null && productGroupIds.Any())
+            {
+                // Find locations that contain products belonging to the selected product groups
+                query = query.Where(l => l.Inventories.Any(i => productGroupIds.Contains(i.Product.ProductGroupId)));
+            }
+
+            return await query
                 .OrderBy(l => l.LocationCode)
                 .ToListAsync();
         }
@@ -381,6 +394,13 @@ namespace BMWMS.Repository.Repositories.Stocktake
                     item.CountedByUserId = line.CountedQuantity.HasValue ? countedByUserId : null;
                     item.CountedAt = line.CountedQuantity.HasValue ? DateTime.UtcNow : null;
                     item.Notes = line.Notes;
+                    
+                    // BR-14 & Recount bug fix: Clear previous recount resolution when a new count is provided
+                    if (item.Resolution == ResolutionRecount && line.CountedQuantity.HasValue)
+                    {
+                        item.Resolution = null;
+                        item.AdjustmentQuantity = null;
+                    }
                 }
 
                 location.CountStatus = LocationInProgress;

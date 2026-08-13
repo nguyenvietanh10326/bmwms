@@ -19,7 +19,7 @@ namespace BMWMS.Repository.Interfaces.Stocktake
     public interface IStocktakeRepository
     {
         Task<List<Warehouse>> GetActiveWarehousesAsync();
-        Task<List<StorageLocation>> GetActiveLocationsByWarehouseAsync(long warehouseId);
+        Task<List<StorageLocation>> GetActiveLocationsByWarehouseAsync(long warehouseId, List<long>? rackIds = null, List<long>? productGroupIds = null);
         Task<List<User>> GetAssignableUsersAsync();
         Task<List<ProductLot>> SearchProductLotsAsync(string? keyword, int take = 20);
 
