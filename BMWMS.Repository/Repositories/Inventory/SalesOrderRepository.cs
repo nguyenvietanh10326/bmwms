@@ -68,9 +68,77 @@ namespace BMWMS.Repository.Repositories.Inventory
                     r.SalesOrderDetailId == salesOrderDetailId &&
                     r.Status == "RESERVED")
                 .Select(r =>
-                    $"{r.ProductLot.LotNumber} · {r.StorageLocation.LocationCode}")
+                    $"{r.ProductLot.LotNumber} - {r.StorageLocation.LocationCode}")
                 .ToListAsync();
         }
 
+        public async Task<(IEnumerable<SalesOrder> Items, int TotalCount)> GetPagedListAsync(
+            string? searchTerm, string? status, long? warehouseId, int pageIndex, int pageSize)
+        {
+            var query = _context.SalesOrders
+                .Include(so => so.Customer)
+                .Include(so => so.SalesOrderDetails)
+                    .ThenInclude(d => d.Product)
+                        .ThenInclude(p => p.UnitOfMeasure)
+                .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                query = query.Where(so => so.SalesOrderNumber.Contains(searchTerm) || 
+                                          (so.Customer != null && so.Customer.CustomerName.Contains(searchTerm)));
+            }
+
+            if (!string.IsNullOrWhiteSpace(status))
+            {
+                query = query.Where(so => so.Status == status);
+            }
+
+            if (warehouseId.HasValue && warehouseId.Value > 0)
+            {
+                // SO list filtering by warehouse via OutboundOrders
+                query = query.Where(so => so.OutboundOrders.Any(o => o.WarehouseId == warehouseId.Value));
+            }
+
+            int totalCount = await query.CountAsync();
+
+            var items = await query
+                .OrderByDescending(so => so.CreatedAt)
+                .Skip((pageIndex - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return (items, totalCount);
+        }
+
+        public async Task<SalesOrder?> GetByIdWithDetailsAsync(long salesOrderId)
+        {
+            return await _context.SalesOrders
+                .Include(so => so.Customer)
+                .Include(so => so.CreatedByUser)
+                .Include(so => so.ConfirmedByUser)
+                .Include(so => so.OutboundOrders)
+                    .ThenInclude(o => o.Warehouse)
+                .Include(so => so.SalesOrderDetails)
+                    .ThenInclude(d => d.Product)
+                        .ThenInclude(p => p.UnitOfMeasure)
+                .FirstOrDefaultAsync(so => so.SalesOrderId == salesOrderId);
+        }
+        public async Task AddAsync(SalesOrder entity)
+        {
+            await _context.SalesOrders.AddAsync(entity);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task<Customer?> GetCustomerByPhoneAsync(string phone)
+        {
+            return await _context.Customers.FirstOrDefaultAsync(c => c.PhoneNumber == phone);
+        }
+
+        public async Task<Customer> AddCustomerAsync(Customer customer)
+        {
+            await _context.Customers.AddAsync(customer);
+            await _context.SaveChangesAsync();
+            return customer;
+        }
     }
 }

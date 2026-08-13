@@ -1,0 +1,128 @@
+@page
+@model BMWMS.Web.Pages.SalesOrders.DetailModel
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Chi tiết đơn bán hàng";
+}
+
+<div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px;">
+    <div>
+        <div style="font-size: 13px; color: #64748b; margin-bottom: 4px;">
+            <a href="/SalesOrders/Index" style="color: #64748b; text-decoration: none;">Đơn bán hàng</a> &rsaquo; 
+            @Model.Order?.SalesOrderNumber
+        </div>
+        <h1 style="font-size: 24px; font-weight: 700; color: #0f172a; margin: 0 0 6px 0;">Đơn bán hàng @Model.Order?.SalesOrderNumber</h1>
+        <p style="font-size: 13px; color: #64748b; margin: 0;">Xem chi tiết các thông tin của đơn hàng.</p>
+    </div>
+    <div style="display: flex; gap: 12px;">
+        <a href="/SalesOrders/Index" style="background: #f1f5f9; color: #475569; padding: 10px 20px; border-radius: 8px; font-weight: 600; text-decoration: none; font-size: 14px;">Quay lại</a>
+    </div>
+</div>
+
+@if (Model.Order != null)
+{
+    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px;">
+        <!-- Left Column -->
+        <div>
+            <!-- Card Sản phẩm -->
+            <div style="background: #fff; padding: 24px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 24px;">
+                <h3 style="font-size: 15px; font-weight: 700; color: #0f172a; margin: 0 0 16px 0;">Danh sách sản phẩm</h3>
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead style="background: #f8fafc;">
+                        <tr>
+                            <th style="padding: 12px; font-size: 12px; font-weight: 600; color: #64748b; border-bottom: 1px solid #e2e8f0; text-align: left;">Mã SP</th>
+                            <th style="padding: 12px; font-size: 12px; font-weight: 600; color: #64748b; border-bottom: 1px solid #e2e8f0; text-align: left;">Tên sản phẩm</th>
+                            <th style="padding: 12px; font-size: 12px; font-weight: 600; color: #64748b; border-bottom: 1px solid #e2e8f0; text-align: left;">ĐVT</th>
+                            <th style="padding: 12px; font-size: 12px; font-weight: 600; color: #64748b; border-bottom: 1px solid #e2e8f0; text-align: right;">Số lượng</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.Order.Items)
+                        {
+                            <tr style="border-bottom: 1px solid #f1f5f9;">
+                                <td style="padding: 12px; font-size: 14px; color: #334155;">@item.ProductCode</td>
+                                <td style="padding: 12px; font-size: 14px; color: #0f172a; font-weight: 500;">@item.ProductName</td>
+                                <td style="padding: 12px; font-size: 14px; color: #64748b;">@item.Unit</td>
+                                <td style="padding: 12px; font-size: 14px; color: #0f172a; font-weight: 600; text-align: right;">@item.OrderedQuantity.ToString("N0")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Ghi chú -->
+            @if (!string.IsNullOrEmpty(Model.Order.Notes))
+            {
+                <div style="background: #fff; padding: 24px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                    <h3 style="font-size: 15px; font-weight: 700; color: #0f172a; margin: 0 0 12px 0;">Ghi chú đơn hàng</h3>
+                    <p style="font-size: 14px; color: #475569; margin: 0; white-space: pre-line;">@Model.Order.Notes</p>
+                </div>
+            }
+        </div>
+
+        <!-- Right Column -->
+        <div>
+            <!-- Trạng thái -->
+            <div style="background: #fff; padding: 24px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 24px;">
+                <h3 style="font-size: 15px; font-weight: 700; color: #0f172a; margin: 0 0 16px 0;">Trạng thái</h3>
+                <div style="margin-bottom: 16px;">
+                    @if (Model.Order.Status == "Draft")
+                    {
+                        <span style="background: #f1f5f9; color: #64748b; padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; display: inline-block;">Nháp</span>
+                    }
+                    else if (Model.Order.Status == "CONFIRMED")
+                    {
+                        <span style="background: #dbeafe; color: #2563eb; padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; display: inline-block;">Đã xác nhận</span>
+                    }
+                    else if (Model.Order.Status == "COMPLETED")
+                    {
+                        <span style="background: #dcfce3; color: #16a34a; padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; display: inline-block;">Hoàn thành</span>
+                    }
+                    else
+                    {
+                        <span style="background: #fee2e2; color: #ef4444; padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; display: inline-block;">@Model.Order.Status</span>
+                    }
+                </div>
+                <div>
+                    <div style="font-size: 12px; color: #64748b; margin-bottom: 4px;">Người tạo</div>
+                    <div style="font-size: 14px; color: #0f172a; font-weight: 500;">@Model.Order.CreatedByUserName</div>
+                    <div style="font-size: 12px; color: #94a3b8;">@Model.Order.CreatedAt.ToString("dd/MM/yyyy HH:mm")</div>
+                </div>
+            </div>
+
+            <!-- Khách hàng -->
+            <div style="background: #fff; padding: 24px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 24px;">
+                <h3 style="font-size: 15px; font-weight: 700; color: #0f172a; margin: 0 0 16px 0;">Thông tin Khách hàng</h3>
+                <div style="margin-bottom: 12px;">
+                    <div style="font-size: 12px; color: #64748b; margin-bottom: 2px;">Tên khách hàng</div>
+                    <div style="font-size: 14px; color: #0f172a; font-weight: 500;">@(string.IsNullOrEmpty(Model.Order.CustomerName) ? "Khách lẻ" : Model.Order.CustomerName)</div>
+                </div>
+                <div style="margin-bottom: 12px;">
+                    <div style="font-size: 12px; color: #64748b; margin-bottom: 2px;">Số điện thoại</div>
+                    <div style="font-size: 14px; color: #0f172a;">@Model.Order.CustomerPhone</div>
+                </div>
+                <div>
+                    <div style="font-size: 12px; color: #64748b; margin-bottom: 2px;">Địa chỉ</div>
+                    <div style="font-size: 14px; color: #0f172a;">@Model.Order.CustomerAddress</div>
+                </div>
+            </div>
+
+            <!-- Vận chuyển -->
+            <div style="background: #fff; padding: 24px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                <h3 style="font-size: 15px; font-weight: 700; color: #0f172a; margin: 0 0 16px 0;">Thông tin Giao nhận</h3>
+                <div style="margin-bottom: 12px;">
+                    <div style="font-size: 12px; color: #64748b; margin-bottom: 2px;">Kho xuất</div>
+                    <div style="font-size: 14px; color: #0f172a; font-weight: 500;">@(Model.Order.WarehouseName ?? "Chưa xác định")</div>
+                </div>
+                <div style="margin-bottom: 12px;">
+                    <div style="font-size: 12px; color: #64748b; margin-bottom: 2px;">Ngày đặt hàng</div>
+                    <div style="font-size: 14px; color: #0f172a;">@Model.Order.OrderDate.ToString("dd/MM/yyyy")</div>
+                </div>
+                <div>
+                    <div style="font-size: 12px; color: #64748b; margin-bottom: 2px;">Ngày giao dự kiến</div>
+                    <div style="font-size: 14px; color: #0f172a;">@(Model.Order.ExpectedIssueDate?.ToString("dd/MM/yyyy") ?? "-")</div>
+                </div>
+            </div>
+        </div>
+    </div>
+}

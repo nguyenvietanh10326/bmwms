@@ -15,5 +15,9 @@ namespace BMWMS.Business.Interfaces.Inventory
     CancellationToken cancellationToken = default);
         
     Task<List<SalesOrderApiResponse>> GetConfirmedSalesOrdersAsync();
+    
+    Task<BMWMS.Business.Common.PagedResultDto<SalesOrderListDto>> GetPagedOrdersAsync(SalesOrderFilterDto filter);
+    Task<SalesOrderDetailDto?> GetOrderDetailAsync(long salesOrderId);
     }
-    }
+}
+

@@ -4,6 +4,7 @@ using BMWMS.Repository.Interfaces.Inventory;
 using BMWMS.Repository.Models;
 using System;
 using System.Collections.Generic;
+using BMWMS.Business.Common;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -13,11 +14,14 @@ namespace BMWMS.Business.Services.Inventory
     public class SalesOrderService : ISalesOrderService
     {
         private readonly ISalesOrderRepository _salesOrderRepository;
+        private readonly IOutboundOrderService _outboundOrderService;
 
         public SalesOrderService(
-            ISalesOrderRepository salesOrderRepository)
+            ISalesOrderRepository salesOrderRepository,
+            IOutboundOrderService outboundOrderService)
         {
             _salesOrderRepository = salesOrderRepository;
+            _outboundOrderService = outboundOrderService;
         }
 
         public async Task<SalesOrderDetailApiResponse?>
@@ -44,7 +48,7 @@ namespace BMWMS.Business.Services.Inventory
 
             foreach (var detail in salesOrder.SalesOrderDetails)
             {
-                // Lấy danh sách Lot + Bin đã reserve
+                // Láº¥y danh sÃ¡ch Lot + Bin Ä‘Ã£ reserve
                 var lotBinList =
                     await _salesOrderRepository
                         .GetReservedLotBinInfoAsync(
@@ -66,21 +70,21 @@ namespace BMWMS.Business.Services.Inventory
                         detail.Product?.ProductName
                         ?? string.Empty,
 
-                    // Số lượng khách đặt
+                    // Sá»‘ lÆ°á»£ng khÃ¡ch Ä‘áº·t
                     Quantity = detail.OrderedQuantity,
 
-                    // Tổng số lượng đã reserve
+                    // Tá»•ng sá»‘ lÆ°á»£ng Ä‘Ã£ reserve
                     ReservedQuantity = detail.ReservedQuantity,
 
-                    // Đơn vị tính
+                    // ÄÆ¡n vá»‹ tÃ­nh
                     UnitName =
                         detail.Product?.UnitOfMeasure?.UnitName
-                        ?? "Đơn vị",
+                        ?? "ÄÆ¡n vá»‹",
 
-                    // LOT · BIN
+                    // LOT Â· BIN
                     LotBinInfo = lotBinInfo,
 
-                    // Giá bán
+                    // GiÃ¡ bÃ¡n
                     UnitPrice = detail.UnitPrice ?? 0
                 });
             }
@@ -128,7 +132,85 @@ namespace BMWMS.Business.Services.Inventory
                 SalesOrderNumber = so.SalesOrderNumber
             }).ToList();
         }
+
+        public async Task<BMWMS.Business.Common.PagedResultDto<SalesOrderListDto>> GetPagedOrdersAsync(SalesOrderFilterDto filter)
+        {
+            var (items, totalCount) = await _salesOrderRepository.GetPagedListAsync(
+                filter.SearchTerm,
+                filter.Status,
+                filter.WarehouseId,
+                filter.PageIndex,
+                filter.PageSize
+            );
+
+            var listDtos = items.Select(so =>
+            {
+                var firstDetail = so.SalesOrderDetails.FirstOrDefault();
+                string unitName = firstDetail?.Product?.UnitOfMeasure?.UnitName ?? string.Empty;
+
+                return new SalesOrderListDto
+                {
+                    SalesOrderId = so.SalesOrderId,
+                    SalesOrderNumber = so.SalesOrderNumber,
+                    CustomerId = so.CustomerId,
+                    CustomerCode = so.Customer?.CustomerCode ?? string.Empty,
+                    CustomerName = so.Customer?.CustomerName ?? string.Empty,
+                    OrderDate = so.OrderDate,
+                    ExpectedIssueDate = so.ExpectedIssueDate,
+                    Status = so.Status,
+                    TotalQuantity = so.SalesOrderDetails.Sum(d => d.OrderedQuantity),
+                    UnitName = unitName
+                };
+            }).ToList();
+
+            return new BMWMS.Business.Common.PagedResultDto<SalesOrderListDto>
+            {
+                Items = listDtos,
+                TotalCount = totalCount,
+                PageIndex = filter.PageIndex,
+                PageSize = filter.PageSize
+            };
+        }
+
+        public async Task<SalesOrderDetailDto?> GetOrderDetailAsync(long salesOrderId)
+        {
+            var so = await _salesOrderRepository.GetByIdWithDetailsAsync(salesOrderId);
+            if (so == null) return null;
+
+            var outboundOrder = so.OutboundOrders.FirstOrDefault();
+
+            return new SalesOrderDetailDto
+            {
+                SalesOrderId = so.SalesOrderId,
+                SalesOrderNumber = so.SalesOrderNumber,
+                CustomerId = so.CustomerId,
+                CustomerCode = so.Customer?.CustomerCode ?? string.Empty,
+                CustomerName = so.Customer?.CustomerName ?? string.Empty,
+                CustomerPhone = so.Customer?.PhoneNumber ?? string.Empty,
+                CustomerAddress = so.Customer?.Address ?? string.Empty,
+                OrderDate = so.OrderDate,
+                ExpectedIssueDate = so.ExpectedIssueDate,
+                WarehouseId = outboundOrder?.WarehouseId,
+                WarehouseName = outboundOrder?.Warehouse?.WarehouseName,
+                Status = so.Status,
+                Notes = so.Notes,
+                CreatedByUserId = so.CreatedByUserId,
+                CreatedByUserName = so.CreatedByUser?.FullName ?? so.CreatedByUser?.Username ?? string.Empty,
+                CreatedAt = so.CreatedAt,
+                ConfirmedByUserId = so.ConfirmedByUserId,
+                ConfirmedByUserName = so.ConfirmedByUser?.FullName,
+                ConfirmedAt = so.ConfirmedAt,
+                Items = so.SalesOrderDetails.Select(d => new SalesOrderItemDetailDto
+                {
+                    SalesOrderDetailId = d.SalesOrderDetailId,
+                    ProductId = d.ProductId,
+                    ProductCode = d.Product?.ProductCode ?? string.Empty,
+                    ProductName = d.Product?.ProductName ?? string.Empty,
+                    Unit = d.Product?.UnitOfMeasure?.UnitName ?? string.Empty,
+                    OrderedQuantity = d.OrderedQuantity,
+                    Notes = d.Notes
+                }).ToList()
+            };
+        }
     }
 }
-
-

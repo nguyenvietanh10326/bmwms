@@ -14,5 +14,11 @@ namespace BMWMS.Repository.Interfaces.Inventory
     Task<List<User>> GetSalesOrderCreatorsAsync(
         CancellationToken cancellationToken = default);
         Task<List<SalesOrder>> GetConfirmedSalesOrdersAsync();
+        Task<(IEnumerable<SalesOrder> Items, int TotalCount)> GetPagedListAsync(
+            string? searchTerm, string? status, long? warehouseId, int pageIndex, int pageSize);
+        Task<SalesOrder?> GetByIdWithDetailsAsync(long salesOrderId);
+        Task AddAsync(SalesOrder entity);
+        Task<Customer?> GetCustomerByPhoneAsync(string phone);
+        Task<Customer> AddCustomerAsync(Customer customer);
     }
 }

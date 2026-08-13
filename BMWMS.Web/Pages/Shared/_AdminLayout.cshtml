@@ -107,10 +107,10 @@
                 @{
                     var isPurchaseOrderActive = Context.Request.Path.StartsWithSegments("/PurchaseOrders");
                 }
-                <a href="/PurchaseOrders/Index" class="nav-item @(isPurchaseOrderActive ? "active" : "")">
+                <!-- <a href="/PurchaseOrders/Index" class="nav-item @(isPurchaseOrderActive ? "active" : "")">
                     <i class="ri-shopping-cart-2-line nav-item-icon"></i>
                     Đơn mua hàng
-                </a>
+                </a> -->
 
                 @{
                     var isSalesOrderActive = Context.Request.Path.StartsWithSegments("/SalesOrders");
