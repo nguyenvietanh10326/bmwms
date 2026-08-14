@@ -3,7 +3,7 @@
 
 
 @{
-    //Layout = "/Pages/Shared/Inventory/_Layout.cshtml";
+   // Layout = "/Pages/Shared/Inventory/_Layout.cshtml";
     ViewData["Title"] = "Tạo đơn bán hàng";
 }
 
@@ -11,23 +11,7 @@
      HEADER
      ========================================================= -->
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <nav aria-label="breadcrumb">
-        <ol class="breadcrumb mb-0">
-            <li class="breadcrumb-item">
-                <a href="#" class="text-decoration-none">Đơn hàng</a>
-            </li>
-
-            <li class="breadcrumb-item">
-                <a href="/sales-orders" class="text-decoration-none">
-                    Đơn bán hàng
-                </a>
-            </li>
-
-            <li class="breadcrumb-item active" aria-current="page">
-                Tạo mới
-            </li>
-        </ol>
-    </nav>
+  
 
     <div class="text-end">
         <span class="fw-bold d-block text-dark">
@@ -686,97 +670,79 @@
     </div>
 
 </div>
-
 @section Scripts {
     <script>
         $(function () {
-            console.log("Sales Order Create JS loaded.");
-
-            // Tính toán tổng tiền ban đầu khi load trang
-            calculateAll();
-
-            // =====================================================
-            // TÌM KIẾM SẢN PHẨM TRONG MODAL
-            // =====================================================
+            // 1. Tìm kiếm trong Modal
             $('#modalSearchInput').on('input', function () {
                 const keyword = ($(this).val() || '').toString().trim().toLowerCase();
-
                 $('#modalProductList .btn-select-prod').each(function () {
                     const text = $(this).text().toLowerCase();
                     $(this).toggle(text.indexOf(keyword) !== -1);
                 });
             });
 
-            // =====================================================
-            // TÍNH TỔNG KHI THAY ĐỔI SỐ LƯỢNG / ĐƠN GIÁ
-            // =====================================================
+            // 2. Thay đổi số lượng / đơn giá
             $(document).on('input', '.input-qty, .input-price', function () {
                 const row = $(this).closest('tr');
                 calculateRowAmount(row);
                 calculateTotal();
             });
 
-            // =====================================================
-            // XÓA SẢN PHẨM HOỎI BẢNG
-            // =====================================================
+            // 3. Xóa sản phẩm
             $(document).on('click', '.btn-remove', function (e) {
                 e.preventDefault();
-                e.stopPropagation();
-
                 $(this).closest('tr').remove();
                 reIndexRows();
                 calculateAll();
             });
 
-            // =====================================================
-            // CHỌN SẢN PHẨM TỪ MODAL
-            // =====================================================
-            $(document).on('click', '#modalProductList .btn-select-prod', function (e) {
+            // 4. Chọn sản phẩm từ Modal (ĐÃ FIX TRIỆT ĐỂ LỖI KHÔNG LOAD)
+            $(document).on('click', '.btn-select-prod', function (e) {
                 e.preventDefault();
-                e.stopPropagation();
 
-                const button = $(this);
+                // Lấy đúng thẻ button gốc bất kể bấm trúng thẻ con nào (span, div, icon...)
+                const button = $(e.target).closest('.btn-select-prod');
+
+                // Lấy dữ liệu bằng vanilla JS dataset để tránh lỗi jQuery cache/attr
+                const btnEl = button[0];
+                if (!btnEl) return;
 
                 const product = {
-                    id: button.attr('data-product-id'),
-                    code: button.attr('data-product-code'),
-                    name: button.attr('data-product-name'),
-                    unit: button.attr('data-product-unit') || '-',
-                    available: parseFloat(button.attr('data-product-available')) || 0,
-                    price: parseFloat(button.attr('data-product-price')) || 0
+                    id: btnEl.getAttribute('data-product-id'),
+                    code: btnEl.getAttribute('data-product-code') || '',
+                    name: btnEl.getAttribute('data-product-name') || '',
+                    unit: btnEl.getAttribute('data-product-unit') || '-',
+                    available: parseFloat(btnEl.getAttribute('data-product-available')) || 0,
+                    price: parseFloat(btnEl.getAttribute('data-product-price')) || 0
                 };
 
+                console.log("Dữ liệu sản phẩm chọn được:", product); // Kiểm tra qua Console F12
+
                 if (!product.id) {
-                    alert('Không lấy được mã sản phẩm.');
+                    alert('Lỗi: Sản phẩm không có ID!');
                     return;
                 }
 
-                const added = addProductRow(product);
-
-                if (added) {
-                    // Đóng modal bootstrap
-                    const modalElement = document.getElementById('productModal');
-                    const modal = bootstrap.Modal.getInstance(modalElement) || new bootstrap.Modal(modalElement);
-                    if (modal) {
-                        modal.hide();
+                if (addProductRow(product)) {
+                    // Đóng Modal an toàn
+                    const modalEl = document.getElementById('productModal');
+                    if (window.bootstrap && bootstrap.Modal) {
+                        const modalObj = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+                        modalObj.hide();
+                    } else {
+                        $('#productModal').modal('hide');
                     }
                 }
             });
 
-            // Reset ô tìm kiếm khi mở Modal
-            $('#productModal').on('show.bs.modal', function () {
-                $('#modalSearchInput').val('').trigger('input');
-            });
+            calculateAll();
         });
-
-        // =========================================================
-        // HÀM BỔ TRỢ (HELPER FUNCTIONS)
-        // =========================================================
 
         function addProductRow(product) {
             let exists = false;
 
-            // Kiểm tra trùng lặp
+            // Kiểm tra trùng sản phẩm
             $('#productTableBody input.product-id').each(function () {
                 if (String($(this).val()) === String(product.id)) {
                     exists = true;
@@ -785,59 +751,54 @@
             });
 
             if (exists) {
-                alert('Sản phẩm này đã được chọn trong danh sách.');
+                alert('Sản phẩm này đã được thêm vào danh sách!');
                 return false;
             }
 
             const index = $('#productTableBody tr').length;
-
             const rowHtml = `
                 <tr data-index="${index}">
                     <td>
-                        <input type="hidden" class="product-id" name="SalesOrder.Items[${index}].ProductId" value="${escapeHtml(product.id)}" />
-                        <span class="fw-bold text-primary">${escapeHtml(product.code)}</span>
-                        <span class="text-dark">— ${escapeHtml(product.name)}</span>
+                        <input type="hidden" class="product-id" name="SalesOrder.Items[${index}].ProductId" value="${product.id}" />
+                        <span class="fw-bold text-primary">${product.code}</span> — ${product.name}
                     </td>
                     <td>
                         <input type="number" name="SalesOrder.Items[${index}].OrderedQuantity" class="form-control text-center input-qty shadow-none" value="1" min="1" step="any" />
                     </td>
-                    <td class="text-muted text-center align-middle">
-                        ${formatNumber(product.available)}
+                    <td class="text-center align-middle text-muted">
+                        ${new Intl.NumberFormat('vi-VN').format(product.available)}
                     </td>
-                    <td class="text-muted align-middle">
-                        ${escapeHtml(product.unit)}
+                    <td class="align-middle text-muted">
+                        ${product.unit}
                     </td>
                     <td>
                         <input type="number" name="SalesOrder.Items[${index}].UnitPrice" class="form-control text-end input-price shadow-none" value="${product.price}" min="0" step="any" />
                     </td>
-                    <td class="fw-bold text-end align-middle col-amount">
-                        0
-                    </td>
+                    <td class="fw-bold text-end align-middle col-amount">0</td>
                     <td class="text-center align-middle">
-                        <button type="button" class="btn btn-link text-danger p-0 btn-remove" title="Xóa sản phẩm">
+                        <button type="button" class="btn btn-link text-danger p-0 btn-remove">
                             <i class="bi bi-trash fs-5"></i>
                         </button>
                     </td>
-                </tr>
-            `;
+                </tr>`;
 
+            // Thêm dòng mới vào tbody
             $('#productTableBody').append(rowHtml);
 
+            // Tính lại tiền dòng mới và tổng đơn hàng
             const $newRow = $('#productTableBody tr').last();
             calculateRowAmount($newRow);
             calculateTotal();
-            toggleEmptyState();
 
+            // Ẩn thông báo "Chưa có sản phẩm"
+            $('#emptyProductMessage').addClass('d-none');
             return true;
         }
 
         function calculateRowAmount(row) {
             const qty = parseFloat(row.find('.input-qty').val()) || 0;
             const price = parseFloat(row.find('.input-price').val()) || 0;
-            const amount = qty * price;
-
-            row.find('.col-amount').text(formatCurrency(amount));
-            row.data('amount', amount);
+            row.find('.col-amount').text(new Intl.NumberFormat('vi-VN').format(qty * price));
         }
 
         function calculateTotal() {
@@ -847,53 +808,25 @@
                 const price = parseFloat($(this).find('.input-price').val()) || 0;
                 total += (qty * price);
             });
-
-            $('#lblGrandTotal').text(formatCurrency(total) + ' đ');
+            $('#lblGrandTotal').text(new Intl.NumberFormat('vi-VN').format(total) + ' đ');
         }
 
         function calculateAll() {
-            $('#productTableBody tr').each(function () {
-                calculateRowAmount($(this));
-            });
+            $('#productTableBody tr').each(function () { calculateRowAmount($(this)); });
             calculateTotal();
-            toggleEmptyState();
         }
 
         function reIndexRows() {
-            $('#productTableBody tr').each(function (i) {
+            const rows = $('#productTableBody tr');
+            if (rows.length === 0) {
+                $('#emptyProductMessage').removeClass('d-none');
+            }
+            rows.each(function (i) {
                 $(this).attr('data-index', i);
                 $(this).find('input.product-id').attr('name', `SalesOrder.Items[${i}].ProductId`);
                 $(this).find('.input-qty').attr('name', `SalesOrder.Items[${i}].OrderedQuantity`);
                 $(this).find('.input-price').attr('name', `SalesOrder.Items[${i}].UnitPrice`);
             });
-            toggleEmptyState();
-        }
-
-        function toggleEmptyState() {
-            const hasRows = $('#productTableBody tr').length > 0;
-            if (hasRows) {
-                $('#emptyProductMessage').addClass('d-none');
-            } else {
-                $('#emptyProductMessage').removeClass('d-none');
-            }
-        }
-
-        function formatCurrency(amount) {
-            return new Intl.NumberFormat('vi-VN').format(amount);
-        }
-
-        function formatNumber(num) {
-            return new Intl.NumberFormat('en-US').format(num);
-        }
-
-        function escapeHtml(text) {
-            if (!text) return '';
-            return String(text)
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                .replace(/"/g, "&quot;")
-                .replace(/'/g, "&#039;");
         }
     </script>
 }
