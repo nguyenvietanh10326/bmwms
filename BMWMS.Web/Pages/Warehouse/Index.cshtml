@@ -1,220 +1,285 @@
-@page
+﻿@page
 @model BMWMS.Web.Pages.Warehouse.IndexModel
 
 @{
-    Layout = "_AdminLayout";
-    ViewData["Title"] = "Danh Sách Kho Hàng";
+    Layout = "/Pages/Shared/Warehourse/_Layout.cshtml";
+    ViewData["Title"] = "Warehouse List";
 }
 
-<div class="container-fluid" style="padding: 24px; max-width: 1440px; margin: 0 auto;">
+@section Styles {
+    <link rel="stylesheet" href="~/css/Warehouse/index.css" asp-append-version="true" />
+}
+<!-- TOPBAR -->
+<div class="topbar">
+    <div class="breadcrumb">
+        <span>Warehouse Management</span>
+        <span class="sep">›</span>
+        <span class="current">Warehouses</span>
+    </div>
 
-    <!-- TOP BREADCRUMB & HEADER -->
-    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; flex-wrap: wrap; gap: 16px;">
-        <div>
-            <div style="font-size: 13px; color: #64748b; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
-                <span>Danh mục cơ sở</span>
-                <i class="ri-arrow-right-s-line" style="font-size: 14px;"></i>
-                <span>Kho & Vị trí</span>
-                <i class="ri-arrow-right-s-line" style="font-size: 14px;"></i>
-                <span style="color: #2563eb; font-weight: 500;">Danh sách kho hàng</span>
-            </div>
-            <h1 style="font-size: 22px; font-weight: 700; color: #0f172a; margin: 0;">Danh Sách Kho Hàng</h1>
-            <p style="font-size: 13px; color: #64748b; margin-top: 4px; margin-bottom: 0;">Quản lý toàn bộ hệ thống kho chính, kho phụ, địa chỉ và thông tin liên hệ thủ kho.</p>
+    <div class="topbar-right">
+        <div class="topbar-icon-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                <path d="M13.73 21a2 2 0 01-3.46 0" />
+            </svg>
+            <span class="badge">3</span>
         </div>
 
-        <div style="display: flex; gap: 10px;">
-            <a asp-page="./Create" style="display: inline-flex; align-items: center; gap: 8px; background: #2563eb; color: #ffffff; padding: 9px 18px; border-radius: 8px; font-weight: 600; font-size: 13px; text-decoration: none; box-shadow: 0 1px 3px rgba(37, 99, 235, 0.2); transition: all 0.2s;">
-                <i class="ri-add-line" style="font-size: 16px;"></i> Thêm Kho Mới
+        <div class="topbar-icon-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3" />
+                <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+        </div>
+
+        <div class="user-info">
+            <div class="avatar">NA</div>
+
+            <div class="user-details">
+                <div class="user-name">Nguyen Van A</div>
+                <div class="user-role">Warehouse Manager</div>
+            </div>
+
+            <div class="user-chevron">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="6 9 12 15 18 9" />
+                </svg>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CONTENT -->
+<div class="content">
+
+    <div class="page-title">Warehouse List</div>
+    <div class="page-sub">
+        View and manage all warehouses in the system.
+    </div>
+
+    <!-- FILTER -->
+    <form method="get" class="filter-bar">
+        <div class="filter-header">
+            <a asp-page="./Create" class="btn-create" style="text-decoration:none;">
+                Create Warehouse
             </a>
         </div>
-    </div>
 
-    <!-- ALERTS -->
-    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
-    {
-        <div style="background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between;">
-            <div style="display: flex; align-items: center; gap: 8px;">
-                <i class="ri-error-warning-fill" style="font-size: 18px; color: #ef4444;"></i>
-                <span>@Model.ErrorMessage</span>
-            </div>
-            <button onclick="this.parentElement.style.display='none'" style="background: none; border: none; cursor: pointer; color: #991b1b;"><i class="ri-close-line"></i></button>
-        </div>
-    }
+        <input type="hidden" name="Filter.PageIndex" value="1" />
 
-    <!-- STATS SUMMARY CARDS -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
-        <div style="background: #ffffff; padding: 16px 20px; border-radius: 10px; border: 1px solid #e2e8f0; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
-            <div style="font-size: 12px; color: #64748b; font-weight: 500; text-transform: uppercase;">Tổng số kho hàng</div>
-            <div style="font-size: 24px; font-weight: 700; color: #0f172a; margin-top: 6px;">@Model.WarehousesResult.TotalCount</div>
-            <div style="font-size: 12px; color: #2563eb; margin-top: 4px; display: flex; align-items: center; gap: 4px;">
-                <i class="ri-store-2-line"></i> Cơ sở kho trong hệ thống
+        <div class="search-group" style="flex: 1;">
+            <div class="filter-label">Search</div>
+            <div class="search-wrap">
+                <input class="search-input" asp-for="Filter.Keyword" placeholder="Search code, name, city..." style="width: 100%;" />
             </div>
         </div>
 
-        <div style="background: #ffffff; padding: 16px 20px; border-radius: 10px; border: 1px solid #e2e8f0; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
-            <div style="font-size: 12px; color: #64748b; font-weight: 500; text-transform: uppercase;">Kho đang hoạt động</div>
-            <div style="font-size: 24px; font-weight: 700; color: #16a34a; margin-top: 6px;">
-                @(Model.WarehousesResult.Items?.Count(w => string.Equals(w.Status, "Active", StringComparison.OrdinalIgnoreCase)) ?? 0)
-            </div>
-            <div style="font-size: 12px; color: #16a34a; margin-top: 4px; display: flex; align-items: center; gap: 4px;">
-                <i class="ri-checkbox-circle-line"></i> Sẵn sàng nhập / xuất
-            </div>
+        <div class="filter-group">
+            <div class="filter-label">Status</div>
+            <select class="filter-select" asp-for="Filter.Status">
+                <option value="">All</option>
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+            </select>
         </div>
 
-        <div style="background: #ffffff; padding: 16px 20px; border-radius: 10px; border: 1px solid #e2e8f0; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
-            <div style="font-size: 12px; color: #64748b; font-weight: 500; text-transform: uppercase;">Kho Tổng (Primary)</div>
-            <div style="font-size: 24px; font-weight: 700; color: #7c3aed; margin-top: 6px;">
-                @(Model.WarehousesResult.Items?.Count(w => w.IsPrimary) ?? 0)
-            </div>
-            <div style="font-size: 12px; color: #7c3aed; margin-top: 4px; display: flex; align-items: center; gap: 4px;">
-                <i class="ri-star-line"></i> Điểm tập kết trung tâm
-            </div>
+        <div class="filter-group">
+            <div class="filter-label">Warehouse Type</div>
+            <select class="filter-select" asp-for="Filter.IsPrimary">
+                <option value="">All Types</option>
+                <option value="true">Primary Warehouse</option>
+                <option value="false">Sub Warehouse</option>
+            </select>
         </div>
-    </div>
 
-    <!-- FILTER BAR -->
-    <div style="background: #ffffff; border-radius: 10px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.03); padding: 16px 20px; margin-bottom: 20px;">
-        <form method="get" id="warehouseFilterForm" style="display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end;">
-            <input type="hidden" name="Filter.PageIndex" value="1" />
-            <input type="hidden" name="Filter.PageSize" value="@(Model.Filter.PageSize > 0 ? Model.Filter.PageSize : 10)" id="whPageSizeInput" />
+        <div style="display: flex; align-items: flex-end; gap: 8px;">
+            <button type="submit" class="btn-create" style="background: #475569;">
+                Filter
+            </button>
+        </div>
 
-            <div style="flex: 1; min-width: 260px;">
-                <label style="font-size: 12px; font-weight: 600; color: #475569; display: block; margin-bottom: 6px;">Tìm kiếm từ khóa</label>
-                <div style="position: relative;">
-                    <i class="ri-search-line" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 16px;"></i>
-                    <input type="text" asp-for="Filter.Keyword" placeholder="Tìm theo mã kho, tên kho, địa chỉ..." 
-                           style="width: 100%; padding: 8px 12px 8px 36px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; outline: none; transition: border-color 0.2s;" />
-                </div>
-            </div>
+       
+    </form>
 
-            <div style="width: 180px;">
-                <label style="font-size: 12px; font-weight: 600; color: #475569; display: block; margin-bottom: 6px;">Trạng thái</label>
-                <select asp-for="Filter.Status" style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; background: #ffffff; outline: none; cursor: pointer;">
-                    <option value="">Tất cả trạng thái</option>
-                    <option value="Active">Hoạt động (Active)</option>
-                    <option value="Inactive">Ngừng hoạt động (Inactive)</option>
-                </select>
-            </div>
+    <!-- TABLE -->
+    <div class="table-card">
 
-            <div style="width: 200px;">
-                <label style="font-size: 12px; font-weight: 600; color: #475569; display: block; margin-bottom: 6px;">Loại kho</label>
-                <select asp-for="Filter.IsPrimary" style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; background: #ffffff; outline: none; cursor: pointer;">
-                    <option value="">Tất cả loại kho</option>
-                    <option value="true">Kho Tổng (Primary)</option>
-                    <option value="false">Kho Phụ (Sub Warehouse)</option>
-                </select>
-            </div>
 
-            <div style="display: flex; gap: 8px;">
-                <button type="submit" style="display: inline-flex; align-items: center; gap: 6px; background: #0f172a; color: #ffffff; padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; border: none; cursor: pointer;">
-                    <i class="ri-filter-3-line"></i> Lọc
-                </button>
-                @if (!string.IsNullOrWhiteSpace(Model.Filter.Keyword) || !string.IsNullOrWhiteSpace(Model.Filter.Status) || Model.Filter.IsPrimary.HasValue)
-                {
-                    <a asp-page="./Index" style="display: inline-flex; align-items: center; gap: 6px; background: #f1f5f9; color: #475569; padding: 8px 14px; border-radius: 6px; font-size: 13px; font-weight: 500; text-decoration: none; border: 1px solid #cbd5e1;">
-                        <i class="ri-refresh-line"></i> Đặt lại
-                    </a>
-                }
-            </div>
-        </form>
-    </div>
-
-    <!-- DATA TABLE -->
-    <div style="background: #ffffff; border-radius: 10px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.03); overflow: hidden;">
-        <div style="overflow-x: auto;">
-            <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13px;">
+            <table class="data-table" style="width:100%; border-collapse:collapse;">
                 <thead>
-                    <tr style="background: #f8fafc; border-bottom: 1px solid #e2e8f0; color: #475569; font-weight: 600;">
-                        <th style="padding: 12px 16px; width: 50px; text-align: center;">#</th>
-                        <th style="padding: 12px 16px; width: 160px;">Mã Kho</th>
-                        <th style="padding: 12px 16px; width: 220px;">Tên Kho Hàng</th>
-                        <th style="padding: 12px 16px;">Địa Chỉ</th>
-                        <th style="padding: 12px 16px; width: 180px;">Quản Lý / SĐT</th>
-                        <th style="padding: 12px 16px; width: 130px; text-align: center;">Trạng Thái</th>
-                        <th style="padding: 12px 16px; width: 120px; text-align: center;">Số Vị Trí</th>
-                        <th style="padding: 12px 16px; width: 200px; text-align: center;">Thao Tác</th>
+                    <tr style="background:#F8FAFC; border-bottom:2px solid #E2E8F0; text-align:left;">
+                        <th style="width:50px; text-align:center; padding:12px 8px;">#</th>
+                        <th style="width:140px; padding:12px;">Mã Kho</th>
+                        <th style="width:200px; padding:12px;">Tên Kho</th>
+                        <th style="padding:12px;">Địa Chỉ</th>
+                        <th style="width:160px; padding:12px;">Quản Lý</th>
+                        <th style="width:110px; text-align:center; padding:12px;">Trạng Thái</th>
+                        <th style="width:160px; text-align:center; padding:12px;">Thao Tác</th>
                     </tr>
                 </thead>
+
                 <tbody>
                     @if (Model.WarehousesResult.Items != null && Model.WarehousesResult.Items.Any())
                     {
                         int index = (Model.Filter.PageIndex - 1) * Model.Filter.PageSize + 1;
+
                         foreach (var item in Model.WarehousesResult.Items)
                         {
-                            <tr style="border-bottom: 1px solid #f1f5f9; transition: background 0.15s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
-                                <td style="padding: 12px 16px; text-align: center; color: #94a3b8;">@(index++)</td>
+                            <!-- 1. DÒNG CHÍNH: THÔNG TIN KHO -->
+                            <tr style="border-top:1px solid #E2E8F0; background:#FFFFFF; vertical-align:middle;">
 
-                                <td style="padding: 12px 16px;">
-                                    <div style="font-weight: 600; color: #0f172a; display: flex; align-items: center; gap: 6px;">
-                                        @item.WarehouseCode
+                                <!-- STT -->
+                                <td style="text-align:center; color:#64748B; font-weight:600; padding:14px 8px;">
+                                    @(index++)
+                                </td>
+
+                                <!-- Mã Kho -->
+                                <td style="font-weight:700; padding:14px 12px;">
+                                    <div style="display:flex; align-items:center; gap:6px;">
+                                        <span style="color:#0F172A; font-size:14px; font-family:monospace;">@item.WarehouseCode</span>
                                         @if (item.IsPrimary)
                                         {
-                                            <span style="padding: 2px 8px; background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; border-radius: 999px; font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; gap: 2px;">
-                                                <i class="ri-star-fill" style="font-size: 10px;"></i> Primary
+                                            <span style="padding:2px 6px; background:#EFF6FF; color:#2563EB; border:1px solid #BFDBFE; border-radius:4px; font-size:9px; font-weight:700;">
+                                                PRIMARY
                                             </span>
                                         }
                                     </div>
                                 </td>
 
-                                <td style="padding: 12px 16px;">
-                                    <a asp-page="./Details" asp-route-id="@item.WarehouseID" style="font-weight: 600; color: #2563eb; text-decoration: none;">
-                                        @item.WarehouseName
-                                    </a>
+                                <!-- Tên Kho -->
+                                <td style="font-weight:600; color:#1E293B; padding:14px 12px;">
+                                    @item.WarehouseName
                                 </td>
 
-                                <td style="padding: 12px 16px; color: #475569;">
+                                <!-- Địa Chỉ & Diện Tích Kho -->
+                            <td style="padding:12px 12px; max-width:260px;">
+                                <div style="color:#334155; font-size:13px; line-height:1.4;">
                                     @item.Address
-                                </td>
+                                </div>
 
-                                <td style="padding: 12px 16px;">
-                                    <div style="font-weight: 500; color: #0f172a;">@item.ManagerName</div>
+                               
+                            </td>
+
+
+                                <!-- Quản Lý & SĐT -->
+                                <td style="padding:14px 12px;">
+                                    <div style="font-weight:600; color:#1E293B; font-size:13px;">
+                                        👤 @(string.IsNullOrEmpty(item.ManagerName) ? "—" : item.ManagerName)
+                                    </div>
                                     @if (!string.IsNullOrEmpty(item.PhoneNumber))
                                     {
-                                        <div style="font-size: 12px; color: #64748b; display: flex; align-items: center; gap: 4px; margin-top: 2px;">
-                                            <i class="ri-phone-line" style="font-size: 12px;"></i> @item.PhoneNumber
+                                        <div style="font-size:12px; color:#64748B; margin-top:2px;">
+                                            📞 @item.PhoneNumber
                                         </div>
                                     }
                                 </td>
 
-                                <td style="padding: 12px 16px; text-align: center;">
+                                <!-- Trạng Thái -->
+                                <td style="text-align:center; padding:14px 8px;">
                                     @if (string.Equals(item.Status, "Active", StringComparison.OrdinalIgnoreCase))
                                     {
-                                        <span style="display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; background: #dcfce7; color: #166534; border-radius: 999px; font-size: 12px; font-weight: 600;">
-                                            <span style="width: 6px; height: 6px; background: #22c55e; border-radius: 50%;"></span> Hoạt động
+                                        <span style="padding:3px 10px; background:#ECFDF5; color:#059669; border:1px solid #A7F3D0; border-radius:999px; font-size:11px; font-weight:600;">
+                                            Active
                                         </span>
                                     }
                                     else
                                     {
-                                        <span style="display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; background: #f1f5f9; color: #64748b; border-radius: 999px; font-size: 12px; font-weight: 600;">
-                                            <span style="width: 6px; height: 6px; background: #94a3b8; border-radius: 50%;"></span> Tạm dừng
+                                        <span style="padding:3px 10px; background:#F1F5F9; color:#64748B; border:1px solid #E2E8F0; border-radius:999px; font-size:11px; font-weight:600;">
+                                            Inactive
                                         </span>
                                     }
                                 </td>
 
-                                <td style="padding: 12px 16px; text-align: center;">
-                                    <span style="font-weight: 600; color: #0f172a;">@item.TotalLocations</span>
-                                </td>
-
-                                <td style="padding: 12px 16px; text-align: center;">
-                                    <div style="display: inline-flex; align-items: center; gap: 6px;">
-                                        <!-- Xem Vị trí -->
-                                        <a asp-page="/StorageLocations/Index" asp-route-WarehouseId="@item.WarehouseID" title="Xem vị trí lưu trữ"
-                                           style="display: inline-flex; align-items: center; gap: 4px; padding: 5px 10px; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: 500; transition: all 0.15s;">
-                                            <i class="ri-layout-grid-line"></i> Vị trí
+                                <!-- Thao Tác -->
+                                <td style="padding:14px 12px; text-align:center;">
+                                    <div style="display:flex; justify-content:center; align-items:center; gap:6px;">
+                                        <a asp-page="/StorageLocations/Index"
+                                           asp-route-WarehouseId="@item.WarehouseID"
+                                           title="Xem chi tiết vị trí"
+                                           style="display:inline-flex; align-items:center; gap:4px; padding:5px 10px; background:#EFF6FF; color:#2563EB; border:1px solid #BFDBFE; border-radius:6px; text-decoration:none; font-size:12px; font-weight:600;">
+                                            View
                                         </a>
 
-                                        <!-- Xem Chi tiết -->
-                                        <a asp-page="./Details" asp-route-id="@item.WarehouseID" title="Xem chi tiết"
-                                           style="display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; background: #f8fafc; color: #475569; border: 1px solid #cbd5e1; border-radius: 6px; text-decoration: none; transition: all 0.15s;">
-                                            <i class="ri-eye-line" style="font-size: 14px;"></i>
-                                        </a>
-
-                                        <!-- Sửa -->
-                                        <a asp-page="./Edit" asp-route-id="@item.WarehouseID" title="Chỉnh sửa kho"
-                                           style="display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; background: #f8fafc; color: #475569; border: 1px solid #cbd5e1; border-radius: 6px; text-decoration: none; transition: all 0.15s;">
-                                            <i class="ri-edit-line" style="font-size: 14px;"></i>
+                                        <a asp-page="./Edit"
+                                           asp-route-id="@item.WarehouseID"
+                                           title="Sửa nhà kho"
+                                           style="display:inline-flex; align-items:center; gap:4px; padding:5px 10px; background:#F8FAFC; color:#334155; border:1px solid #CBD5E1; border-radius:6px; text-decoration:none; font-size:12px; font-weight:500;">
+                                            Edit
                                         </a>
                                     </div>
+                                </td>
+                            </tr>
+
+                            <!-- 2. DÒNG PHỤ NẰM BÊN DƯỚI: HIỂN THỊ DANH SÁCH STORAGELOCATIONS (RACK / BINS) -->
+                            <tr style="border-bottom:2px solid #E2E8F0; background:#F8FAFC;">
+                                <td></td> <!-- Trống cột STT -->
+                                <td colspan="6" style="padding:10px 16px 16px 16px;">
+
+                                    @if (item.StorageLocations != null && item.StorageLocations.Any())
+                                    {
+                                        var groupedRacks = item.StorageLocations.GroupBy(x => string.IsNullOrWhiteSpace(x.LocationType) ? "Khu vực chung" : x.LocationType);
+
+                                        <div style="display:flex; flex-direction:column; gap:10px;">
+                                            <div style="font-size:11px; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:0.5px; display:flex; align-items:center; gap:6px;">
+                                                <span>↳ Danh sách vị trí lưu trữ trong kho (Tổng: @item.TotalLocations)</span>
+                                            </div>
+
+                                            <!-- Lưới các Kệ (Racks) -->
+                                            <div style="display:flex; flex-wrap:wrap; gap:12px;">
+                                                @foreach (var rack in groupedRacks)
+                                                {
+                                                    <!-- KHUNG DÃY KỆ (RACK) -->
+                                                    <div style="background:#FFFFFF; border:1px solid #E2E8F0; border-radius:8px; padding:10px 12px; min-width:260px; flex:1 1 calc(33.33% - 12px); box-shadow:0 1px 2px rgba(0,0,0,0.03);">
+
+                                                        <!-- Header Kệ -->
+                                                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; border-bottom:1px solid #F1F5F9; padding-bottom:6px;">
+                                                            <span style="font-size:12px; font-weight:700; color:#0284C7; display:flex; align-items:center; gap:4px;">
+                                                                🗄️ @rack.Key
+                                                            </span>
+                                                            <span style="font-size:10px; background:#E0F2FE; color:#0369A1; padding:1px 6px; border-radius:10px; font-weight:600;">
+                                                                @rack.Count() ô
+                                                            </span>
+                                                        </div>
+
+                                                        <!-- Các Ô vị trí cụ thể (Bins) -->
+                                                        <div style="display:flex; flex-wrap:wrap; gap:6px;">
+                                                            @foreach (var loc in rack.Take(6))
+                                                            {
+                                                                <div style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:5px; padding:4px 8px; min-width:70px;">
+                                                                    <div style="font-weight:700; font-size:11px; color:#0F172A; font-family:monospace;">
+                                                                        @loc.LocationCode
+                                                                    </div>
+                                                                    @if (loc.AreaSquareMeter.HasValue)
+                                                                    {
+                                                                        <div style="font-size:9px; color:#64748B; margin-top:2px;">
+                                                                            @loc.AreaSquareMeter.Value.ToString("N0") m²
+                                                                        </div>
+                                                                    }
+                                                                </div>
+                                                            }
+
+                                                            @if (rack.Count() > 6)
+                                                            {
+                                                                <div style="display:flex; align-items:center; justify-content:center; background:#E2E8F0; color:#475569; font-size:10px; font-weight:700; padding:0 8px; border-radius:5px;">
+                                                                    +@(rack.Count() - 6)
+                                                                </div>
+                                                            }
+                                                        </div>
+
+                                                    </div>
+                                                }
+                                            </div>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div style="color:#94A3B8; font-size:12px; font-style:italic; padding:4px 0;">
+                                            ↳ Chưa chia vị trí lưu trữ cho nhà kho này.
+                                        </div>
+                                    }
+
                                 </td>
                             </tr>
                         }
@@ -222,166 +287,81 @@
                     else
                     {
                         <tr>
-                            <td colspan="8" style="text-align: center; padding: 48px; color: #94a3b8;">
-                                <i class="ri-inbox-line" style="font-size: 36px; display: block; margin-bottom: 8px; color: #cbd5e1;"></i>
-                                Không tìm thấy kho hàng nào phù hợp với bộ lọc.
+                            <td colspan="7" style="text-align:center; padding:40px; color:#94A3B8; font-size:14px;">
+                                Không tìm thấy nhà kho nào.
                             </td>
                         </tr>
                     }
                 </tbody>
             </table>
-        </div>
+        
 
-        <!-- SMART PAGINATION FOOTER -->
+        <!-- PAGINATION FOOTER -->
         @{
             var totalCount = Model.WarehousesResult.TotalCount;
-            var pageSize = Model.Filter.PageSize > 0 ? Model.Filter.PageSize : 10;
-            var currentPage = Model.Filter.PageIndex > 0 ? Model.Filter.PageIndex : 1;
+            var pageSize = Model.Filter.PageSize;
+            var currentPage = Model.Filter.PageIndex;
             var totalPages = Model.WarehousesResult.TotalPages;
 
             var startEntry = totalCount == 0 ? 0 : (currentPage - 1) * pageSize + 1;
             var endEntry = Math.Min(currentPage * pageSize, totalCount);
-
-            int windowSize = 5;
-            int startPage = Math.Max(1, currentPage - windowSize / 2);
-            int endPage = Math.Min(totalPages, startPage + windowSize - 1);
-            if (endPage - startPage + 1 < windowSize)
-            {
-                startPage = Math.Max(1, endPage - windowSize + 1);
-            }
         }
 
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; border-top: 1px solid #e2e8f0; background: #fafafa; font-size: 13px; color: #64748b; flex-wrap: wrap; gap: 12px;">
-            <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
-                <div>
-                    Hiển thị <strong>@startEntry</strong> - <strong>@endEntry</strong> trên tổng số <strong>@totalCount</strong> kho
+        <div class="table-footer">
+            <span>
+                Showing @startEntry to @endEntry of @totalCount entries
+            </span>
+
+            <div class="pagination">
+                <!-- Nút Previous -->
+                @if (currentPage > 1)
+                {
+                    <a asp-page="./Index"
+                       asp-route-Filter.PageIndex="@(currentPage - 1)"
+                       asp-route-Filter.PageSize="@pageSize"
+                       asp-route-Filter.Keyword="@Model.Filter.Keyword"
+                       asp-route-Filter.Status="@Model.Filter.Status"
+                       asp-route-Filter.IsPrimary="@Model.Filter.IsPrimary"
+                       class="pg-btn" style="text-decoration: none; display: flex; align-items: center; justify-content: center;">
+                        &lt;
+                    </a>
+                }
+                else
+                {
+                    <button class="pg-btn" disabled style="opacity: 0.5; cursor: not-allowed;">&lt;</button>
+                }
+
+                <!-- Trang hiện tại -->
+                <div class="pg-current">
+                    @currentPage
                 </div>
-                <div style="display: flex; align-items: center; gap: 6px;">
-                    <label for="whPageSizeSelect" style="font-size: 12px; color: #64748b;">Số dòng:</label>
-                    <select id="whPageSizeSelect" onchange="changeWarehousePageSize(this.value)" style="padding: 4px 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 12px; background: #fff; color: #334155; outline: none; cursor: pointer;">
-                        <!option value="10" @(pageSize == 10 ? "selected" : "")>10</!option>
-                        <!option value="20" @(pageSize == 20 ? "selected" : "")>20</!option>
-                        <!option value="50" @(pageSize == 50 ? "selected" : "")>50</!option>
-                        <!option value="100" @(pageSize == 100 ? "selected" : "")>100</!option>
-                    </select>
-                </div>
+
+                <!-- Nút Next -->
+                @if (currentPage < totalPages)
+                {
+                    <a asp-page="./Index"
+                       asp-route-Filter.PageIndex="@(currentPage + 1)"
+                       asp-route-Filter.PageSize="@pageSize"
+                       asp-route-Filter.Keyword="@Model.Filter.Keyword"
+                       asp-route-Filter.Status="@Model.Filter.Status"
+                       asp-route-Filter.IsPrimary="@Model.Filter.IsPrimary"
+                       class="pg-btn" style="text-decoration: none; display: flex; align-items: center; justify-content: center;">
+                        &gt;
+                    </a>
+                }
+                else
+                {
+                    <button class="pg-btn" disabled style="opacity: 0.5; cursor: not-allowed;">&gt;</button>
+                }
             </div>
-
-            @if (totalPages > 1)
-            {
-                <div style="display: flex; align-items: center; gap: 4px; flex-wrap: wrap;">
-                    @if (currentPage > 1)
-                    {
-                        <a asp-page="./Index"
-                           asp-route-Filter.PageIndex="1"
-                           asp-route-Filter.PageSize="@pageSize"
-                           asp-route-Filter.Keyword="@Model.Filter.Keyword"
-                           asp-route-Filter.Status="@Model.Filter.Status"
-                           asp-route-Filter.IsPrimary="@Model.Filter.IsPrimary"
-                           title="Trang đầu"
-                           style="min-width: 32px; height: 32px; padding: 0 8px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; color: #334155; text-decoration: none; font-size: 12.5px; font-weight: 500; display: inline-flex; align-items: center; justify-content: center;">
-                            &laquo;
-                        </a>
-                        <a asp-page="./Index"
-                           asp-route-Filter.PageIndex="@(currentPage - 1)"
-                           asp-route-Filter.PageSize="@pageSize"
-                           asp-route-Filter.Keyword="@Model.Filter.Keyword"
-                           asp-route-Filter.Status="@Model.Filter.Status"
-                           asp-route-Filter.IsPrimary="@Model.Filter.IsPrimary"
-                           title="Trang trước"
-                           style="min-width: 32px; height: 32px; padding: 0 8px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; color: #334155; text-decoration: none; font-size: 12.5px; font-weight: 500; display: inline-flex; align-items: center; justify-content: center;">
-                            &lsaquo;
-                        </a>
-                    }
-
-                    @if (startPage > 1)
-                    {
-                        <a asp-page="./Index"
-                           asp-route-Filter.PageIndex="1"
-                           asp-route-Filter.PageSize="@pageSize"
-                           asp-route-Filter.Keyword="@Model.Filter.Keyword"
-                           asp-route-Filter.Status="@Model.Filter.Status"
-                           asp-route-Filter.IsPrimary="@Model.Filter.IsPrimary"
-                           style="min-width: 32px; height: 32px; padding: 0 8px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; color: #334155; text-decoration: none; font-size: 12.5px; font-weight: 500; display: inline-flex; align-items: center; justify-content: center;">
-                            1
-                        </a>
-                        @if (startPage > 2)
-                        {
-                            <span style="padding: 0 4px; color: #94a3b8; font-size: 12px;">...</span>
-                        }
-                    }
-
-                    @for (int pNum = startPage; pNum <= endPage; pNum++)
-                    {
-                        if (pNum == currentPage)
-                        {
-                            <span style="min-width: 32px; height: 32px; padding: 0 8px; border-radius: 6px; background: #2563eb; color: #ffffff; border: 1px solid #2563eb; font-weight: 600; font-size: 12.5px; display: inline-flex; align-items: center; justify-content: center;">
-                                @pNum
-                            </span>
-                        }
-                        else
-                        {
-                            <a asp-page="./Index"
-                               asp-route-Filter.PageIndex="@pNum"
-                               asp-route-Filter.PageSize="@pageSize"
-                               asp-route-Filter.Keyword="@Model.Filter.Keyword"
-                               asp-route-Filter.Status="@Model.Filter.Status"
-                               asp-route-Filter.IsPrimary="@Model.Filter.IsPrimary"
-                               style="min-width: 32px; height: 32px; padding: 0 8px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; color: #334155; text-decoration: none; font-size: 12.5px; font-weight: 500; display: inline-flex; align-items: center; justify-content: center;">
-                                @pNum
-                            </a>
-                        }
-                    }
-
-                    @if (endPage < totalPages)
-                    {
-                        @if (endPage < totalPages - 1)
-                        {
-                            <span style="padding: 0 4px; color: #94a3b8; font-size: 12px;">...</span>
-                        }
-                        <a asp-page="./Index"
-                           asp-route-Filter.PageIndex="@totalPages"
-                           asp-route-Filter.PageSize="@pageSize"
-                           asp-route-Filter.Keyword="@Model.Filter.Keyword"
-                           asp-route-Filter.Status="@Model.Filter.Status"
-                           asp-route-Filter.IsPrimary="@Model.Filter.IsPrimary"
-                           style="min-width: 32px; height: 32px; padding: 0 8px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; color: #334155; text-decoration: none; font-size: 12.5px; font-weight: 500; display: inline-flex; align-items: center; justify-content: center;">
-                            @totalPages
-                        </a>
-                    }
-
-                    @if (currentPage < totalPages)
-                    {
-                        <a asp-page="./Index"
-                           asp-route-Filter.PageIndex="@(currentPage + 1)"
-                           asp-route-Filter.PageSize="@pageSize"
-                           asp-route-Filter.Keyword="@Model.Filter.Keyword"
-                           asp-route-Filter.Status="@Model.Filter.Status"
-                           asp-route-Filter.IsPrimary="@Model.Filter.IsPrimary"
-                           title="Trang tiếp"
-                           style="min-width: 32px; height: 32px; padding: 0 8px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; color: #334155; text-decoration: none; font-size: 12.5px; font-weight: 500; display: inline-flex; align-items: center; justify-content: center;">
-                            &rsaquo;
-                        </a>
-                        <a asp-page="./Index"
-                           asp-route-Filter.PageIndex="@totalPages"
-                           asp-route-Filter.PageSize="@pageSize"
-                           asp-route-Filter.Keyword="@Model.Filter.Keyword"
-                           asp-route-Filter.Status="@Model.Filter.Status"
-                           asp-route-Filter.IsPrimary="@Model.Filter.IsPrimary"
-                           title="Trang cuối"
-                           style="min-width: 32px; height: 32px; padding: 0 8px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; color: #334155; text-decoration: none; font-size: 12.5px; font-weight: 500; display: inline-flex; align-items: center; justify-content: center;">
-                            &raquo;
-                        </a>
-                    }
-                </div>
-            }
         </div>
+
     </div>
+
 </div>
 
-<script>
-    function changeWarehousePageSize(size) {
-        document.getElementById('whPageSizeInput').value = size;
-        document.getElementById('warehouseFilterForm').submit();
-    }
-</script>
+<!-- FOOTER -->
+<div class="page-footer">
+    <span>© 2024 BMWMS. All rights reserved.</span>
+    <span>Version 1.0.0</span>
+</div>

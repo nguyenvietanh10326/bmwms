@@ -172,5 +172,97 @@ namespace BMWMS.Business.Services.Inventory
 
             return await _outboundOrderRepo.UpdateStatusAsync(outboundOrderId, "CANCELLED");
         }
+
+        // Thêm phương thức xử lý Màn 2 vào OutboundOrderService
+        public async Task<OutboundProcessViewDto?> GetOutboundProcessDetailAsync(long outboundOrderId)
+        {
+            var order = await _outboundOrderRepo.GetByIdAsync(outboundOrderId);
+            if (order == null) return null;
+
+            var result = new OutboundProcessViewDto
+            {
+                OutboundOrderId = order.OutboundOrderId,
+                OutboundOrderNumber = order.OutboundOrderNumber,
+                SourceType = order.SourceType,
+                SalesOrderNumber = order.SalesOrder?.SalesOrderNumber ?? "N/A",
+                CustomerName = order.SalesOrder?.Customer?.CustomerName ?? "N/A",
+                WarehouseId = order.WarehouseId,
+                WarehouseName = order.Warehouse?.WarehouseName ?? "N/A",
+                Status = order.Status,
+                Notes = order.Notes,
+                Items = new List<OutboundProcessItemDto>()
+            };
+
+            foreach (var item in order.OutboundOrderItems)
+            {
+                var itemDto = new OutboundProcessItemDto
+                {
+                    OutboundOrderItemId = item.OutboundOrderItemId,
+                    ProductId = item.ProductId,
+                    ProductCode = item.Product?.ProductCode ?? "",
+                    ProductName = item.Product?.ProductName ?? "",
+                    UnitName = item.Product?.UnitOfMeasure?.UnitName ?? "Đơn vị",
+                    RequestedQuantity = item.RequestedQuantity,
+                    IssuedQuantity = item.IssuedQuantity,
+                    PickedDetails = item.OutboundOrderDetails.Select(d => new OutboundPickedDetailDto
+                    {
+                        OutboundOrderDetailId = d.OutboundOrderDetailId,
+                        LocationCode = d.StorageLocation?.LocationCode ?? "N/A",
+                        LotNumber = d.ProductLot?.LotNumber ?? "N/A",
+                        IssuedQuantity = d.IssuedQuantity,
+                        RecordedByUserName = d.RecordedByUser?.FullName ?? d.RecordedByUser?.Username ?? "N/A",
+                        RecordedAt = d.RecordedAt
+                    }).ToList()
+                };
+
+                result.Items.Add(itemDto);
+            }
+
+            return result;
+        }
+
+        public async Task<(bool Success, string Message)> ExecutePickAsync(ExecutePickItemRequest request, long userId)
+        {
+            var order = await _outboundOrderRepo.GetByIdAsync(request.OutboundOrderId);
+            if (order == null) return (false, "Không tìm thấy Lệnh xuất kho!");
+
+            if (order.Status == "COMPLETED" || order.Status == "CANCELLED")
+                return (false, "Lệnh xuất kho đã hoàn thành hoặc bị hủy, không thể thực hiện!");
+
+            var item = order.OutboundOrderItems.FirstOrDefault(x => x.OutboundOrderItemId == request.OutboundOrderItemId);
+            if (item == null) return (false, "Sản phẩm không thuộc Lệnh xuất kho này!");
+
+            decimal remaining = item.RequestedQuantity - item.IssuedQuantity;
+            if (request.PickQuantity > remaining)
+            {
+                return (false, $"Số lượng lấy ({request.PickQuantity}) vượt quá số lượng còn thiếu ({remaining})!");
+            }
+
+            var detail = new OutboundOrderDetail
+            {
+                OutboundOrderId = request.OutboundOrderId,
+                OutboundOrderItemId = request.OutboundOrderItemId,
+                ProductId = item.ProductId,
+                StorageLocationId = request.StorageLocationId,
+                ProductLotId = request.ProductLotId,
+                InventoryReservationId = request.InventoryReservationId,
+                IssuedQuantity = request.PickQuantity,
+                RecordedByUserId = userId,
+                RecordedAt = DateTime.Now,
+                Notes = request.Notes
+            };
+
+            // 2. Cập nhật cộng dồn IssuedQuantity trong OutboundOrderItem
+            item.IssuedQuantity += request.PickQuantity;
+
+            // 3. Cập nhật Status Lệnh Outbound
+            bool isAllCompleted = order.OutboundOrderItems.All(i => i.IssuedQuantity >= i.RequestedQuantity);
+            order.Status = isAllCompleted ? "COMPLETED" : "IN_PROGRESS";
+
+            // 4. Lưu DB (Cần Inject DBContext/UnitOfWork để Save + Trừ Tồn Kho)
+            await _outboundOrderRepo.SavePickDetailAsync(detail, item, order);
+
+            return (true, isAllCompleted ? "Đã pick đủ hàng! Lệnh xuất kho đã HOÀN THÀNH." : "Ghi nhận Pick hàng thành công!");
+        }
     }
 }

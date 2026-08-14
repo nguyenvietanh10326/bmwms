@@ -1,758 +1,723 @@
-﻿
-/* =========================================================
-   UC26 - CREATE OUTBOUND
-   Clean / Professional / Bootstrap compatible
+﻿/* =========================================================
+   OUTBOUND PROCESS / PICK PAGE
+   Không ảnh hưởng sidebar
+   Compatible với:
+   .sidebar
+   .main-content
+   .content
+   .container-fluid
+   Bootstrap 5
    ========================================================= */
+
 :root {
-    --uc26-bg: #f5f7fa;
-    --uc26-card: #ffffff;
-    --uc26-border: #e3e7ed;
-    --uc26-border-light: #edf0f3;
-    --uc26-text: #1f2937;
-    --uc26-muted: #6b7280;
-    --uc26-primary: #2563eb;
-    --uc26-primary-dark: #1d4ed8;
-    --uc26-success: #15803d;
-    --uc26-warning: #b45309;
-    --uc26-danger: #dc2626;
-    --uc26-radius: 12px;
+    --pick-primary: #2563eb;
+    --pick-primary-dark: #1d4ed8;
+    --pick-success: #16a34a;
+    --pick-warning: #d97706;
+    --pick-danger: #dc2626;
+    --pick-bg: #f4f6f9;
+    --pick-card: #ffffff;
+    --pick-border: #e5e7eb;
+    --pick-border-light: #eef0f3;
+    --pick-text: #1f2937;
+    --pick-muted: #6b7280;
+    --pick-radius: 12px;
 }
 
 
 /* =========================================================
-   PAGE
+   PAGE ROOT
+   Quan trọng:
+   Không set margin-left ở đây.
+   .main-content đã xử lý sidebar.
    ========================================================= */
 
-.container-fluid.py-3.px-4 {
+.main-content .content > .container-fluid {
     width: 100%;
     max-width: none;
-    min-height: calc(100vh - 60px);
-    padding: 24px 32px 40px !important;
-    background: var(--uc26-bg) !important;
-    color: var(--uc26-text);
-}
-
-
-/* =========================================================
-   HEADER
-   ========================================================= */
-
-.container-fluid > .d-flex.justify-content-between {
-    width: 100%;
-    margin-bottom: 20px;
-}
-
-    .container-fluid > .d-flex.justify-content-between h4 {
-        margin-bottom: 4px;
-        color: #111827;
-        font-size: 1.25rem;
-        font-weight: 700;
-        line-height: 1.35;
-        letter-spacing: -0.02em;
-    }
-
-    .container-fluid > .d-flex.justify-content-between p {
-        margin-bottom: 0;
-        color: #6b7280 !important;
-        font-size: 0.82rem;
-        line-height: 1.5;
-    }
-
-    .container-fluid > .d-flex.justify-content-between .badge {
-        display: inline-flex;
-        align-items: center;
-        min-height: 32px;
-        padding: 6px 13px !important;
-        background: #ffffff !important;
-        border: 1px solid #dfe3e8 !important;
-        border-radius: 999px;
-        color: #4b5563 !important;
-        font-size: 0.76rem !important;
-        font-weight: 500 !important;
-        white-space: nowrap;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
-    }
-
-
-/* =========================================================
-   FORM
-   ========================================================= */
-
-#createOutboundForm {
-    width: 100%;
-    max-width: none;
+    min-height: calc(100vh - 40px);
+    margin: 0;
+    padding: 24px 28px 40px !important;
+    background: var(--pick-bg);
+    color: var(--pick-text);
 }
 
 
     /* =========================================================
-   CARDS
+   ALERT
    ========================================================= */
 
-    #createOutboundForm > .card {
+    .main-content .content > .container-fluid #alertContainer {
         width: 100%;
-        margin-bottom: 20px !important;
-        background: var(--uc26-card);
-        border: 1px solid var(--uc26-border) !important;
-        border-radius: var(--uc26-radius) !important;
-        box-shadow: 0 1px 2px rgba(16, 24, 40, 0.025), 0 4px 12px rgba(16, 24, 40, 0.025) !important;
-        overflow: hidden;
-        transition: border-color 0.2s ease, box-shadow 0.2s ease;
     }
 
-        #createOutboundForm > .card:hover {
-            border-color: #d8dde5 !important;
-            box-shadow: 0 2px 4px rgba(16, 24, 40, 0.035), 0 8px 20px rgba(16, 24, 40, 0.035) !important;
+        .main-content .content > .container-fluid #alertContainer .alert {
+            border-radius: 10px;
+            border: 1px solid transparent;
+            font-size: 0.84rem;
         }
 
-    #createOutboundForm .card-body {
-        padding: 22px 24px !important;
-    }
-
 
     /* =========================================================
-   CARD TITLE
+   HEADER CARD
    ========================================================= */
 
-    #createOutboundForm .card h6 {
-        margin-bottom: 18px !important;
-        color: #111827;
-        font-size: 0.92rem;
-        font-weight: 700;
-        line-height: 1.4;
-        letter-spacing: -0.01em;
+    .main-content .content > .container-fluid > .card:first-of-type {
+        width: 100%;
+        margin-bottom: 22px !important;
+        border: 1px solid var(--pick-border) !important;
+        border-radius: var(--pick-radius) !important;
+        background: var(--pick-card);
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03), 0 5px 16px rgba(15, 23, 42, 0.04) !important;
+        overflow: hidden;
     }
 
 
-    /* =========================================================
-   CARD 1 - THÔNG TIN LỆNH XUẤT
-   IMPORTANT:
-   Không dùng :first-of-type.
-   Target trực tiếp card đầu tiên của form.
+        /* Header inner */
+
+        .main-content .content > .container-fluid > .card:first-of-type
+        .card-body {
+            padding: 24px 26px !important;
+            border-left-width: 5px !important;
+        }
+
+
+        /* =========================================================
+   OUTBOUND TITLE
    ========================================================= */
 
-    #createOutboundForm > .card:first-of-type .row {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 18px 16px;
-        margin: 0 !important;
-    }
-
-
-        /* Bootstrap .row / .col reset */
-
-        #createOutboundForm > .card:first-of-type .row > [class*="col-"] {
-            width: auto;
-            max-width: none;
+        .main-content .content > .container-fluid > .card:first-of-type h3 {
             margin: 0;
+            color: #1d4ed8 !important;
+            font-size: 1.25rem;
+            font-weight: 700;
+            line-height: 1.4;
+            letter-spacing: -0.015em;
+        }
+
+
+        /* Status */
+
+        .main-content .content > .container-fluid > .card:first-of-type
+        .badge.bg-warning {
+            display: inline-flex;
+            align-items: center;
+            min-height: 30px;
+            padding: 6px 12px !important;
+            border-radius: 999px;
+            background: #fff7ed !important;
+            border: 1px solid #fed7aa;
+            color: #9a3412 !important;
+            font-size: 0.74rem !important;
+            font-weight: 600;
+        }
+
+
+        /* Header information */
+
+        .main-content .content > .container-fluid > .card:first-of-type p {
+            margin-top: 7px;
+            color: #6b7280 !important;
+            font-size: 0.82rem;
+            line-height: 1.7;
+        }
+
+            .main-content .content > .container-fluid > .card:first-of-type p strong {
+                color: #374151 !important;
+                font-weight: 600;
+            }
+
+
+        /* Header buttons */
+
+        .main-content .content > .container-fluid > .card:first-of-type
+        .btn {
+            min-height: 39px;
+            padding: 8px 14px;
+            border-radius: 7px;
+            font-size: 0.79rem;
+            font-weight: 600;
+            transition: background-color .15s ease, border-color .15s ease, color .15s ease, box-shadow .15s ease, transform .1s ease;
+        }
+
+            .main-content .content > .container-fluid > .card:first-of-type
+            .btn:active {
+                transform: translateY(1px);
+            }
+
+        .main-content .content > .container-fluid > .card:first-of-type
+        .btn-outline-secondary {
+            border-color: #d1d5db;
+            color: #4b5563;
+            background: #fff;
+        }
+
+            .main-content .content > .container-fluid > .card:first-of-type
+            .btn-outline-secondary:hover {
+                background: #f9fafb;
+                border-color: #9ca3af;
+                color: #111827;
+            }
+
+        .main-content .content > .container-fluid > .card:first-of-type
+        .btn-primary {
+            background: var(--pick-primary);
+            border-color: var(--pick-primary);
+        }
+
+            .main-content .content > .container-fluid > .card:first-of-type
+            .btn-primary:hover {
+                background: var(--pick-primary-dark);
+                border-color: var(--pick-primary-dark);
+                box-shadow: 0 4px 10px rgba(37, 99, 235, .18);
+            }
+
+
+    /* =========================================================
+   PRODUCT LIST
+   ========================================================= */
+
+    .main-content .content > .container-fluid > .row {
+        width: 100%;
+        margin-left: 0;
+        margin-right: 0;
+    }
+
+
+        /* Bootstrap col reset */
+
+        .main-content .content > .container-fluid > .row > .col-12 {
             padding-left: 0;
             padding-right: 0;
         }
 
 
-        /* =========================================================
-   FORM GROUP
+            /* =========================================================
+   PRODUCT CARD
    ========================================================= */
 
-        #createOutboundForm > .card:first-of-type .row > [class*="col-"] {
-            min-width: 0;
-        }
+            .main-content .content > .container-fluid > .row > .col-12 > .card {
+                width: 100%;
+                margin-bottom: 20px !important;
+                border: 1px solid var(--pick-border) !important;
+                border-radius: var(--pick-radius) !important;
+                background: #fff;
+                overflow: hidden;
+                box-shadow: 0 1px 2px rgba(15, 23, 42, .025), 0 4px 12px rgba(15, 23, 42, .035) !important;
+                transition: box-shadow .2s ease, border-color .2s ease, transform .15s ease;
+            }
+
+                .main-content .content > .container-fluid > .row > .col-12 > .card:hover {
+                    border-color: #d9dee7 !important;
+                    box-shadow: 0 3px 8px rgba(15, 23, 42, .04), 0 10px 24px rgba(15, 23, 42, .05) !important;
+                }
 
 
-    /* =========================================================
-   LABEL
+                /* Completed */
+
+                .main-content .content > .container-fluid > .row > .col-12 > .card.border-success {
+                    border-left: 4px solid var(--pick-success) !important;
+                }
+
+
+                /* =========================================================
+   PRODUCT CARD HEADER
    ========================================================= */
 
-    #createOutboundForm .form-label {
-        display: block;
-        margin-bottom: 7px !important;
-        color: #374151;
-        font-size: 0.78rem !important;
-        font-weight: 600 !important;
+                .main-content .content > .container-fluid > .row > .col-12 > .card > .card-header {
+                    min-height: 70px;
+                    padding: 14px 18px !important;
+                    background: #f8fafc !important;
+                    border-bottom: 1px solid var(--pick-border);
+                    color: var(--pick-text);
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 16px;
+                }
+
+
+    /* Product code */
+
+    .main-content .content > .container-fluid
+    .card-header .badge.bg-dark {
+        display: inline-flex;
+        align-items: center;
+        min-height: 26px;
+        padding: 4px 9px !important;
+        border-radius: 6px;
+        background: #111827 !important;
+        font-size: .72rem;
+        font-weight: 600;
+    }
+
+
+    /* Product name */
+
+    .main-content .content > .container-fluid
+    .card-header .fw-bold.text-dark.fs-5 {
+        color: #111827 !important;
+        font-size: .96rem !important;
+        font-weight: 700 !important;
         line-height: 1.4;
     }
 
-        #createOutboundForm .form-label .text-danger {
-            margin-left: 2px;
-            color: #ef4444 !important;
-        }
+
+    /* =========================================================
+   PICK PROGRESS INFO
+   ========================================================= */
+
+    .main-content .content > .container-fluid
+    .card-header .text-end small {
+        margin-bottom: 2px;
+        color: #9ca3af !important;
+        font-size: .69rem;
+        font-weight: 500;
+    }
+
+    .main-content .content > .container-fluid
+    .card-header .text-end .fw-bold {
+        font-size: .82rem !important;
+    }
 
 
     /* =========================================================
-   INPUT / SELECT
+   PICK BUTTON
    ========================================================= */
 
-    #createOutboundForm .form-control,
-    #createOutboundForm .form-select {
-        display: block;
-        width: 100%;
-        min-width: 0;
-        min-height: 40px;
-        padding: 8px 11px;
-        background-color: #ffffff;
-        border: 1px solid #d8dee6;
+    .main-content .content > .container-fluid
+    .card-header .btn-primary {
+        min-height: 38px;
+        padding: 8px 14px !important;
         border-radius: 7px;
-        color: #1f2937;
-        font-size: 0.84rem;
+        background: var(--pick-primary);
+        border-color: var(--pick-primary);
+        font-size: .78rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+        .main-content .content > .container-fluid
+        .card-header .btn-primary:hover {
+            background: var(--pick-primary-dark);
+            border-color: var(--pick-primary-dark);
+            box-shadow: 0 4px 10px rgba(37, 99, 235, .18);
+        }
+
+
+    /* Completed badge */
+
+    .main-content .content > .container-fluid
+    .card-header .badge.bg-success {
+        display: inline-flex;
+        align-items: center;
+        min-height: 34px;
+        padding: 7px 12px !important;
+        border-radius: 7px;
+        background: #f0fdf4 !important;
+        border: 1px solid #bbf7d0;
+        color: #15803d !important;
+        font-size: .75rem !important;
+    }
+
+
+    /* =========================================================
+   CARD BODY
+   ========================================================= */
+
+    .main-content .content > .container-fluid > .row > .col-12 > .card > .card-body {
+        padding: 18px 20px !important;
+        background: #fff;
+    }
+
+
+    /* =========================================================
+   PROGRESS BAR
+   ========================================================= */
+
+    .main-content .content > .container-fluid
+    .progress {
+        height: 9px !important;
+        margin-bottom: 18px !important;
+        overflow: hidden;
+        border-radius: 999px;
+        background: #e9edf2;
+    }
+
+    .main-content .content > .container-fluid
+    .progress-bar {
+        border-radius: 999px;
+        background-color: var(--pick-primary);
+    }
+
+        .main-content .content > .container-fluid
+        .progress-bar.bg-success {
+            background-color: var(--pick-success) !important;
+        }
+
+
+    /* =========================================================
+   HISTORY TITLE
+   ========================================================= */
+
+    .main-content .content > .container-fluid
+    .card-body h6 {
+        margin-bottom: 10px !important;
+        color: #4b5563 !important;
+        font-size: .75rem !important;
+        font-weight: 700 !important;
         line-height: 1.4;
-        box-shadow: none;
-        transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
-    }
-
-        #createOutboundForm .form-control::placeholder {
-            color: #a0a7b1;
-        }
-
-        #createOutboundForm .form-control:hover,
-        #createOutboundForm .form-select:hover {
-            border-color: #bfc6d0;
-        }
-
-        #createOutboundForm .form-control:focus,
-        #createOutboundForm .form-select:focus {
-            border-color: var(--uc26-primary);
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.10);
-        }
-
-
-        /* =========================================================
-   READONLY
-   ========================================================= */
-
-        #createOutboundForm .form-control.bg-light,
-        #createOutboundForm .form-control[readonly] {
-            background-color: #f8fafc !important;
-            color: #6b7280;
-            border-color: #e3e7ed;
-        }
-
-        #createOutboundForm .form-control[readonly] {
-            cursor: default;
-        }
-
-
-        /* =========================================================
-   DISABLED
-   ========================================================= */
-
-        #createOutboundForm .form-select:disabled {
-            background-color: #f8fafc;
-            color: #6b7280;
-            border-color: #e3e7ed;
-            opacity: 1;
-            cursor: not-allowed;
-        }
-
-
-    /* =========================================================
-   DATE / SELECT
-   ========================================================= */
-
-    #createOutboundForm input[type="date"] {
-        cursor: pointer;
-    }
-
-    #createOutboundForm select {
-        cursor: pointer;
     }
 
 
     /* =========================================================
-   VALIDATION
+   HISTORY TABLE
    ========================================================= */
 
-    #createOutboundForm .field-validation-error {
-        display: block;
-        margin-top: 5px;
-        color: #dc2626;
-        font-size: 0.72rem;
-        line-height: 1.4;
-    }
-
-    #createOutboundForm .validation-summary-errors {
-        margin: 0;
-    }
-
-        #createOutboundForm .validation-summary-errors ul {
-            margin-bottom: 0;
-            padding-left: 18px;
-        }
-
-
-    /* =========================================================
-   TABLE CARD
-   ========================================================= */
-
-    /* Header của card 2 */
-    #createOutboundForm > .card:nth-of-type(2) .card-body > .d-flex {
-        margin-bottom: 16px !important;
-    }
-
-    #createOutboundForm > .card:nth-of-type(2) h6 {
-        margin-bottom: 0 !important;
-    }
-
-
-    /* =========================================================
-   CHỌN TỒN KHO BUTTON
-   ========================================================= */
-
-    #createOutboundForm .btn-light {
-        background: #ffffff;
-        border-color: #dfe3e8;
-        color: #6b7280 !important;
-    }
-
-        #createOutboundForm .btn-light:hover {
-            background: #f9fafb;
-            border-color: #cbd1d8;
-            color: #374151 !important;
-        }
-
-        #createOutboundForm .btn-light:disabled {
-            background: #ffffff;
-            opacity: 0.65;
-            cursor: not-allowed;
-        }
-
-
-    /* =========================================================
-   TABLE WRAPPER
-   ========================================================= */
-
-    #createOutboundForm .table-responsive {
+    .main-content .content > .container-fluid
+    .table-responsive {
         width: 100%;
-        border: 1px solid var(--uc26-border-light);
-        border-radius: 9px;
+        border: 1px solid var(--pick-border-light);
+        border-radius: 8px;
         overflow-x: auto;
-        overflow-y: hidden;
-        background: #ffffff;
+        background: #fff;
     }
 
 
-    /* =========================================================
-   TABLE
-   ========================================================= */
-
-    #createOutboundForm .table {
+    .main-content .content > .container-fluid
+    .table {
         width: 100%;
-        min-width: 900px;
+        min-width: 760px;
         margin: 0 !important;
-        table-layout: fixed;
         border-collapse: separate;
         border-spacing: 0;
         color: #374151;
-        font-size: 0.82rem;
+        font-size: .78rem;
     }
 
 
-        /* =========================================================
-   TABLE HEADER
-   ========================================================= */
+        /* Table header */
 
-        #createOutboundForm .table thead {
-            background: #f8fafc;
-        }
-
-            #createOutboundForm .table thead th {
-                padding: 11px 14px;
-                color: #6b7280 !important;
-                font-size: 0.70rem;
-                font-weight: 600;
-                line-height: 1.4;
-                text-transform: uppercase;
-                letter-spacing: 0.025em;
-                white-space: nowrap;
-                vertical-align: middle;
-                border-bottom: 1px solid #e5e7eb !important;
-            }
-
-
-        /* =========================================================
-   TABLE BODY
-   ========================================================= */
-
-        #createOutboundForm .table tbody td {
-            padding: 14px;
-            color: #374151;
-            font-size: 0.82rem;
-            line-height: 1.45;
-            vertical-align: middle;
-            border-bottom: 1px solid #f0f2f4 !important;
-            background: #ffffff;
-        }
-
-        #createOutboundForm .table tbody tr {
-            transition: background-color 0.15s ease;
-        }
-
-            #createOutboundForm .table tbody tr:hover td {
-                background-color: #fafcff;
-            }
-
-            #createOutboundForm .table tbody tr:last-child td {
-                border-bottom: 0 !important;
-            }
-
-
-        /* =========================================================
-   TABLE COLUMN WIDTH
-   Khớp với HTML hiện tại
-   ========================================================= */
-
-        #createOutboundForm .table th:nth-child(1),
-        #createOutboundForm .table td:nth-child(1) {
-            width: 25%;
-        }
-
-        #createOutboundForm .table th:nth-child(2),
-        #createOutboundForm .table td:nth-child(2) {
-            width: 10%;
-        }
-
-        #createOutboundForm .table th:nth-child(3),
-        #createOutboundForm .table td:nth-child(3) {
-            width: 10%;
-        }
-
-        #createOutboundForm .table th:nth-child(4),
-        #createOutboundForm .table td:nth-child(4) {
-            width: 8%;
-        }
-
-        #createOutboundForm .table th:nth-child(5),
-        #createOutboundForm .table td:nth-child(5) {
-            width: 15%;
-        }
-
-        #createOutboundForm .table th:nth-child(6),
-        #createOutboundForm .table td:nth-child(6) {
-            width: 10%;
-        }
-
-        #createOutboundForm .table th:nth-child(7),
-        #createOutboundForm .table td:nth-child(7) {
-            width: 15%;
-        }
-
-
-        /* =========================================================
-   PRODUCT
-   ========================================================= */
-
-        #createOutboundForm .table tbody td:first-child {
-            line-height: 1.45;
-        }
-
-            #createOutboundForm .table tbody td:first-child .text-primary {
-                color: #1d4ed8 !important;
-                font-size: 0.82rem;
-                font-weight: 600;
-            }
-
-            #createOutboundForm .table tbody td:first-child .text-secondary {
-                color: #4b5563 !important;
-            }
-
-
-        /* =========================================================
-   TABLE NUMBERS
-   ========================================================= */
-
-        #createOutboundForm .table .text-end {
-            font-variant-numeric: tabular-nums;
+        .main-content .content > .container-fluid
+        .table thead th {
+            padding: 10px 13px;
+            background: #f8fafc !important;
+            color: #6b7280 !important;
+            border-bottom: 1px solid #e5e7eb !important;
+            font-size: .68rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .02em;
             white-space: nowrap;
         }
 
 
+        /* Table body */
+
+        .main-content .content > .container-fluid
+        .table tbody td {
+            padding: 11px 13px;
+            color: #374151;
+            border-bottom: 1px solid #f0f2f4 !important;
+            vertical-align: middle;
+            line-height: 1.45;
+        }
+
+
+        /* Last row */
+
+        .main-content .content > .container-fluid
+        .table tbody tr:last-child td {
+            border-bottom: 0 !important;
+        }
+
+
+        /* Hover */
+
+        .main-content .content > .container-fluid
+        .table tbody tr {
+            transition: background-color .12s ease;
+        }
+
+            .main-content .content > .container-fluid
+            .table tbody tr:hover td {
+                background: #fafcff !important;
+            }
+
+
         /* =========================================================
-   UNIT / LOT / BIN
+   BIN BADGE
    ========================================================= */
 
-        #createOutboundForm .table .text-center.text-muted {
-            color: #6b7280 !important;
-        }
-
-        #createOutboundForm .table td .small {
-            font-size: 0.76rem;
-        }
-
-        #createOutboundForm .table td:nth-child(5) {
-            color: #6b7280;
-        }
-
-
-        /* =========================================================
-   RESULT STATUS
-   ========================================================= */
-
-        #createOutboundForm .table tbody td:nth-child(6) span {
+        .main-content .content > .container-fluid
+        .table .badge.bg-secondary {
             display: inline-flex;
             align-items: center;
-            justify-content: center;
-            min-height: 24px;
-            padding: 3px 9px;
-            border-radius: 999px;
-            font-size: 0.70rem !important;
+            min-height: 25px;
+            padding: 4px 8px;
+            border-radius: 5px;
+            background: #f1f5f9 !important;
+            border: 1px solid #dbe1e8;
+            color: #475569 !important;
+            font-size: .69rem;
             font-weight: 600;
-            line-height: 1.3;
-            white-space: nowrap;
         }
 
 
-            /* Đủ */
+        /* LOT */
 
-            #createOutboundForm .table tbody td:nth-child(6) span.text-dark {
-                color: #166534 !important;
-                background: #f0fdf4;
-                border: 1px solid #dcfce7;
-            }
-
-
-            /* Thiếu */
-
-            #createOutboundForm .table tbody td:nth-child(6) span.text-secondary {
-                color: #92400e !important;
-                background: #fffbeb;
-                border: 1px solid #fef3c7;
-            }
-
-
-        /* =========================================================
-   EMPTY TABLE
-   ========================================================= */
-
-        #createOutboundForm .table tbody td[colspan] {
-            padding: 32px 20px;
-            color: #9ca3af !important;
-            background: #ffffff;
-        }
-
-
-    /* =========================================================
-   TABLE FOOTER
-   ========================================================= */
-
-    #createOutboundForm
-    .card-body > .d-flex.justify-content-between.align-items-center.mt-3 {
-        min-height: 40px;
-        margin-top: 14px !important;
-        padding: 0 2px !important;
-        color: #6b7280;
-    }
-
-        #createOutboundForm
-        .card-body > .d-flex.justify-content-between.align-items-center.mt-3 > span {
-            font-size: 0.76rem;
-            line-height: 1.4;
-        }
-
-        #createOutboundForm
-        .card-body > .d-flex.justify-content-between.align-items-center.mt-3 > div {
-            display: flex;
+        .main-content .content > .container-fluid
+        .table .badge.bg-light {
+            display: inline-flex;
             align-items: center;
-            gap: 5px;
-            padding: 7px 11px;
-            background: #f8fafc;
-            border: 1px solid #e9edf1;
-            border-radius: 8px;
-            white-space: nowrap;
-        }
-
-        #createOutboundForm
-        .card-body > .d-flex.justify-content-between.align-items-center.mt-3
-        .fw-bold {
-            color: #374151;
-        }
-
-        #createOutboundForm
-        .card-body > .d-flex.justify-content-between.align-items-center.mt-3
-        .fs-6 {
-            font-size: 0.80rem !important;
+            min-height: 25px;
+            padding: 4px 8px;
+            border-radius: 5px;
+            background: #fff !important;
+            color: #4b5563 !important;
+            font-size: .69rem;
+            font-weight: 500;
         }
 
 
-    /* =========================================================
-   INFO ALERT
-   ========================================================= */
+        /* Quantity */
 
-    #createOutboundForm .alert-primary.bg-primary-subtle {
-        display: flex;
-        align-items: center;
-        min-height: 48px;
-        margin-bottom: 20px !important;
-        padding: 11px 15px !important;
-        background: #eff6ff !important;
-        border: 1px solid #dbeafe !important;
-        border-radius: 9px;
-        color: #1e40af !important;
-    }
-
-        #createOutboundForm .alert-primary.bg-primary-subtle i {
-            flex-shrink: 0;
-            margin-right: 9px !important;
-            color: #3b82f6;
-            font-size: 0.48rem !important;
-        }
-
-        #createOutboundForm .alert-primary.bg-primary-subtle span {
-            color: #1e40af !important;
-            font-size: 0.77rem !important;
-            line-height: 1.5;
+        .main-content .content > .container-fluid
+        .table .text-success {
+            color: #15803d !important;
+            font-variant-numeric: tabular-nums;
         }
 
 
     /* =========================================================
-   ERROR ALERT
+   EMPTY HISTORY
    ========================================================= */
 
-    .container-fluid > .alert-danger,
-    #createOutboundForm .alert-danger {
-        background: #fef2f2 !important;
-        border: 1px solid #fecaca !important;
-        border-radius: 9px;
-        color: #991b1b !important;
+    .main-content .content > .container-fluid
+    .card-body > p.text-muted {
+        padding: 12px 0;
+        color: #9ca3af !important;
+        font-size: .75rem !important;
     }
 
-.container-fluid > .alert-danger {
-    margin-bottom: 18px !important;
+
+    /* =========================================================
+   EMPTY PAGE
+   ========================================================= */
+
+    .main-content .content > .container-fluid
+    .alert-warning {
+        border: 1px solid #fde68a;
+        border-radius: 10px;
+        background: #fffbeb;
+        color: #92400e;
+        font-size: .84rem;
+    }
+
+        .main-content .content > .container-fluid
+        .alert-warning i {
+            color: #d97706;
+        }
+
+
+    /* =========================================================
+   MODAL
+   ========================================================= */
+
+    .main-content .content > .container-fluid ~ .modal,
+    body > .modal {
+        --bs-modal-border-radius: 12px;
+    }
+
+
+.modal .modal-dialog {
+    max-width: 540px;
 }
 
-#createOutboundForm .alert-danger .btn-close {
-    font-size: 0.7rem;
+
+.modal .modal-content {
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 20px 50px rgba(15, 23, 42, .18);
+}
+
+
+/* Modal header */
+
+.modal .modal-header {
+    min-height: 62px;
+    padding: 15px 20px !important;
+    background: var(--pick-primary) !important;
+    border-bottom: 0;
+}
+
+
+.modal .modal-title {
+    font-size: .95rem;
+    font-weight: 700;
+}
+
+
+/* Modal body */
+
+.modal .modal-body {
+    padding: 20px !important;
+    background: #fff;
+}
+
+
+/* Remaining quantity alert */
+
+.modal .alert-info {
+    min-height: 46px;
+    padding: 9px 12px !important;
+    margin-bottom: 18px !important;
+    border: 1px solid #bfdbfe;
+    border-radius: 8px;
+    background: #eff6ff;
+    color: #1e40af;
+    font-size: .78rem;
+}
+
+
+    .modal .alert-info strong {
+        color: #2563eb !important;
+        font-size: .92rem !important;
+    }
+
+
+/* =========================================================
+   MODAL FORM
+   ========================================================= */
+
+.modal .form-label {
+    display: block;
+    margin-bottom: 7px;
+    color: #374151;
+    font-size: .76rem;
+    font-weight: 600;
+}
+
+
+.modal .form-control,
+.modal .form-select {
+    width: 100%;
+    min-height: 40px;
+    padding: 8px 11px;
+    border: 1px solid #d8dee6;
+    border-radius: 7px;
+    background: #fff;
+    color: #1f2937;
+    font-size: .81rem;
+    box-shadow: none;
+    transition: border-color .15s ease, box-shadow .15s ease;
+}
+
+
+    .modal .form-control:hover,
+    .modal .form-select:hover {
+        border-color: #bfc6d0;
+    }
+
+
+    .modal .form-control:focus,
+    .modal .form-select:focus {
+        border-color: var(--pick-primary);
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, .10);
+    }
+
+
+/* Quantity */
+
+.modal input[type="number"] {
+    min-height: 48px;
+    font-size: 1rem !important;
+    font-variant-numeric: tabular-nums;
 }
 
 
 /* =========================================================
-   FOOTER ACTIONS
+   MODAL FOOTER
    ========================================================= */
 
-#createOutboundForm
-.d-flex.justify-content-end.align-items-center.gap-2.mb-5 {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    width: 100%;
-    gap: 8px !important;
-    margin-top: 4px;
-    margin-bottom: 20px !important;
-    padding-top: 0;
+.modal .modal-footer {
+    padding: 13px 20px !important;
+    background: #f8fafc !important;
+    border-top: 1px solid #e5e7eb;
 }
 
 
-    /* General button */
-
-    #createOutboundForm
-    .d-flex.justify-content-end.align-items-center.gap-2.mb-5
-    .btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        min-height: 40px;
-        padding: 8px 17px;
+    .modal .modal-footer .btn {
+        min-height: 38px;
+        padding: 8px 15px;
         border-radius: 7px;
-        font-size: 0.80rem;
+        font-size: .78rem;
         font-weight: 600;
-        line-height: 1.3;
-        transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
     }
 
-        #createOutboundForm
-        .d-flex.justify-content-end.align-items-center.gap-2.mb-5
-        .btn:active {
-            transform: translateY(1px);
-        }
 
-
-    /* Cancel */
-
-    #createOutboundForm
-    .d-flex.justify-content-end.align-items-center.gap-2.mb-5
-    .btn-link {
-        padding-left: 10px;
-        padding-right: 10px;
-        color: #6b7280 !important;
-        font-weight: 500;
-    }
-
-        #createOutboundForm
-        .d-flex.justify-content-end.align-items-center.gap-2.mb-5
-        .btn-link:hover {
-            color: #111827 !important;
-            background: #f3f4f6;
-            text-decoration: none !important;
-        }
-
-
-    /* Save draft */
-
-    #createOutboundForm
-    .d-flex.justify-content-end.align-items-center.gap-2.mb-5
-    .btn-light {
-        background: #ffffff;
+    .modal .modal-footer .btn-secondary {
+        background: #fff;
         border: 1px solid #d1d5db;
-        color: #374151 !important;
+        color: #4b5563;
     }
 
-        #createOutboundForm
-        .d-flex.justify-content-end.align-items-center.gap-2.mb-5
-        .btn-light:hover {
+
+        .modal .modal-footer .btn-secondary:hover {
             background: #f9fafb;
             border-color: #9ca3af;
-            color: #111827 !important;
         }
 
 
-    /* Create outbound */
-
-    #createOutboundForm
-    .d-flex.justify-content-end.align-items-center.gap-2.mb-5
-    .btn-dark {
-        background: #111827;
-        border-color: #111827;
-        color: #ffffff;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+    .modal .modal-footer .btn-primary {
+        background: var(--pick-primary);
+        border-color: var(--pick-primary);
     }
 
-        #createOutboundForm
-        .d-flex.justify-content-end.align-items-center.gap-2.mb-5
-        .btn-dark:hover {
-            background: #1f2937;
-            border-color: #1f2937;
-            color: #ffffff;
-            box-shadow: 0 3px 8px rgba(17, 24, 39, 0.15);
+
+        .modal .modal-footer .btn-primary:hover {
+            background: var(--pick-primary-dark);
+            border-color: var(--pick-primary-dark);
         }
+
+
+/* =========================================================
+   ALERT SUCCESS
+   ========================================================= */
+
+#alertContainer .alert-success {
+    background: #f0fdf4 !important;
+    border-color: #bbf7d0 !important;
+    color: #166534 !important;
+}
 
 
 /* =========================================================
    SCROLLBAR
    ========================================================= */
 
-#createOutboundForm .table-responsive::-webkit-scrollbar {
+.main-content .content > .container-fluid
+.table-responsive::-webkit-scrollbar {
     height: 7px;
 }
 
-#createOutboundForm .table-responsive::-webkit-scrollbar-track {
+.main-content .content > .container-fluid
+.table-responsive::-webkit-scrollbar-track {
     background: #f8fafc;
 }
 
-#createOutboundForm .table-responsive::-webkit-scrollbar-thumb {
-    background: #d1d5db;
-    border-radius: 10px;
+.main-content .content > .container-fluid
+.table-responsive::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 999px;
 }
 
-    #createOutboundForm .table-responsive::-webkit-scrollbar-thumb:hover {
-        background: #9ca3af;
+    .main-content .content > .container-fluid
+    .table-responsive::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
     }
-
-
-/* =========================================================
-   TEXT SELECTION
-   ========================================================= */
-
-#createOutboundForm ::selection {
-    background: rgba(37, 99, 235, 0.15);
-}
 
 
 /* =========================================================
@@ -761,19 +726,18 @@
 
 @media (min-width: 1400px) {
 
-    .container-fluid.py-3.px-4 {
-        padding-left: 40px !important;
-        padding-right: 40px !important;
+    .main-content .content > .container-fluid {
+        padding-left: 36px !important;
+        padding-right: 36px !important;
     }
 
-    #createOutboundForm .card-body {
-        padding: 24px 28px !important;
-    }
+        .main-content .content > .container-fluid > .card:first-of-type .card-body {
+            padding: 26px 30px !important;
+        }
 
-    #createOutboundForm > .card:first-of-type .row {
-        column-gap: 18px;
-        row-gap: 20px;
-    }
+        .main-content .content > .container-fluid > .row > .col-12 > .card > .card-body {
+            padding: 20px 24px !important;
+        }
 }
 
 
@@ -781,21 +745,29 @@
    TABLET
    ========================================================= */
 
-@media (min-width: 768px) and (max-width: 1199.98px) {
+@media (max-width: 991.98px) {
 
-    .container-fluid.py-3.px-4 {
-        padding-left: 20px !important;
-        padding-right: 20px !important;
+    .main-content .content > .container-fluid {
+        padding: 20px !important;
     }
 
-    #createOutboundForm > .card:first-of-type .row {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 18px 16px;
-    }
 
-    #createOutboundForm .table {
-        min-width: 900px;
-    }
+        .main-content .content > .container-fluid > .card:first-of-type .card-body {
+            padding: 20px !important;
+        }
+
+
+        .main-content .content > .container-fluid > .row > .col-12 > .card > .card-header {
+            align-items: flex-start;
+            flex-wrap: wrap;
+        }
+
+
+        .main-content .content > .container-fluid
+        .card-header > div:last-child {
+            width: 100%;
+            justify-content: flex-end;
+        }
 }
 
 
@@ -805,105 +777,120 @@
 
 @media (max-width: 767.98px) {
 
-    .container-fluid.py-3.px-4 {
-        padding: 15px !important;
+    .main-content .content > .container-fluid {
+        padding: 14px !important;
     }
 
 
-    /* Header */
+        /* Header */
 
-    .container-fluid > .d-flex.justify-content-between {
-        align-items: flex-start !important;
-        gap: 12px;
-        margin-bottom: 16px;
-    }
-
-        .container-fluid > .d-flex.justify-content-between h4 {
-            font-size: 1.05rem;
-        }
-
-        .container-fluid > .d-flex.justify-content-between p {
-            max-width: 100%;
-            line-height: 1.45;
-        }
-
-        .container-fluid > .d-flex.justify-content-between .badge {
-            flex-shrink: 0;
-            min-height: 29px;
-            padding: 5px 9px !important;
-            font-size: 0.68rem !important;
+        .main-content .content > .container-fluid > .card:first-of-type {
+            margin-bottom: 16px !important;
+            border-radius: 10px !important;
         }
 
 
-    /* Cards */
-
-    #createOutboundForm > .card {
-        margin-bottom: 16px !important;
-        border-radius: 10px !important;
-    }
-
-    #createOutboundForm .card-body {
-        padding: 16px !important;
-    }
+            .main-content .content > .container-fluid > .card:first-of-type .card-body {
+                padding: 17px !important;
+            }
 
 
-    /* Form */
-
-    #createOutboundForm > .card:first-of-type .row {
-        grid-template-columns: 1fr;
-        gap: 14px;
-    }
+            .main-content .content > .container-fluid > .card:first-of-type h3 {
+                font-size: 1rem;
+                line-height: 1.45;
+            }
 
 
-    /* Table */
-
-    #createOutboundForm .table-responsive {
-        border-radius: 8px;
-    }
-
-    #createOutboundForm .table {
-        min-width: 900px;
-    }
+            .main-content .content > .container-fluid > .card:first-of-type p {
+                margin-top: 8px;
+                font-size: .74rem;
+                line-height: 1.7;
+            }
 
 
-    /* Table footer */
+            /* Header buttons */
 
-    #createOutboundForm
-    .card-body > .d-flex.justify-content-between.align-items-center.mt-3 {
-        align-items: flex-start !important;
-        flex-direction: column;
-        gap: 10px;
-    }
+            .main-content .content > .container-fluid > .card:first-of-type
+            .col-md-4.text-md-end {
+                display: flex;
+                justify-content: flex-start;
+                gap: 7px;
+                margin-top: 12px !important;
+            }
 
-        #createOutboundForm
-        .card-body > .d-flex.justify-content-between.align-items-center.mt-3 > div {
-            align-self: flex-end;
+
+                .main-content .content > .container-fluid > .card:first-of-type
+                .col-md-4.text-md-end .me-2 {
+                    margin-right: 0 !important;
+                }
+
+
+        /* Product card */
+
+        .main-content .content > .container-fluid > .row > .col-12 > .card {
+            border-radius: 10px !important;
+            margin-bottom: 14px !important;
         }
 
 
-    /* Alert */
+            .main-content .content > .container-fluid > .row > .col-12 > .card > .card-header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 12px;
+                padding: 14px !important;
+            }
 
-    #createOutboundForm .alert-primary.bg-primary-subtle {
-        align-items: flex-start;
-        padding: 11px 13px !important;
-    }
 
-
-    /* Buttons */
-
-    #createOutboundForm
-    .d-flex.justify-content-end.align-items-center.gap-2.mb-5 {
-        flex-wrap: wrap;
-        justify-content: flex-end !important;
-        gap: 8px !important;
-    }
-
-        #createOutboundForm
-        .d-flex.justify-content-end.align-items-center.gap-2.mb-5
-        .btn {
-            padding-left: 15px !important;
-            padding-right: 15px !important;
+        .main-content .content > .container-fluid
+        .card-header > div:first-child {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 7px;
         }
+
+
+        .main-content .content > .container-fluid
+        .card-header .fw-bold.text-dark.fs-5 {
+            font-size: .87rem !important;
+        }
+
+
+        .main-content .content > .container-fluid
+        .card-header > div:last-child {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+
+        .main-content .content > .container-fluid
+        .card-body {
+            padding: 14px !important;
+        }
+
+
+        /* Table */
+
+        .main-content .content > .container-fluid
+        .table {
+            min-width: 700px;
+        }
+
+
+    /* Modal */
+
+    .modal .modal-dialog {
+        width: auto;
+        margin: 12px;
+    }
+
+
+    .modal .modal-content {
+        border-radius: 10px;
+    }
 }
 
 
@@ -913,47 +900,69 @@
 
 @media (max-width: 480px) {
 
-    .container-fluid.py-3.px-4 {
-        padding: 12px !important;
+    .main-content .content > .container-fluid {
+        padding: 10px !important;
     }
 
-    #createOutboundForm .card-body {
-        padding: 14px !important;
-    }
 
-    .container-fluid > .d-flex.justify-content-between {
-        gap: 8px;
-    }
-
-        .container-fluid > .d-flex.justify-content-between h4 {
-            font-size: 0.98rem;
-        }
-
-        .container-fluid > .d-flex.justify-content-between p {
-            font-size: 0.75rem;
+        .main-content .content > .container-fluid > .card:first-of-type .card-body {
+            padding: 14px !important;
         }
 
 
-    /* Footer buttons */
+        .main-content .content > .container-fluid > .card:first-of-type h3 {
+            font-size: .92rem;
+        }
 
-    #createOutboundForm
-    .d-flex.justify-content-end.align-items-center.gap-2.mb-5 {
-        width: 100%;
+
+        .main-content .content > .container-fluid > .card:first-of-type
+        .col-md-4.text-md-end {
+            width: 100%;
+        }
+
+
+            .main-content .content > .container-fluid > .card:first-of-type
+            .col-md-4.text-md-end .btn {
+                flex: 1;
+                min-width: 0;
+            }
+
+
+        .main-content .content > .container-fluid
+        .card-header > div:last-child {
+            align-items: stretch;
+            flex-direction: column;
+        }
+
+
+        .main-content .content > .container-fluid
+        .card-header .text-end {
+            text-align: left !important;
+        }
+
+
+        .main-content .content > .container-fluid
+        .card-header .btn-primary {
+            width: 100%;
+        }
+
+
+    .modal .modal-dialog {
+        margin: 8px;
     }
 
-        #createOutboundForm
-        .d-flex.justify-content-end.align-items-center.gap-2.mb-5
-        .btn {
+
+    .modal .modal-body {
+        padding: 15px !important;
+    }
+
+
+    .modal .modal-footer {
+        padding: 11px 15px !important;
+    }
+
+
+        .modal .modal-footer .btn {
             flex: 1;
-            min-width: 0;
-            padding-left: 12px !important;
-            padding-right: 12px !important;
-        }
-
-        #createOutboundForm
-        .d-flex.justify-content-end.align-items-center.gap-2.mb-5
-        .btn-link {
-            flex: 0 0 auto;
         }
 }
-

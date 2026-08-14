@@ -1,0 +1,349 @@
+﻿@page "{id:int}"
+@using System.Text.Json
+@model BMWMS.Web.Pages.OutboundOrders.ProcessModel
+@{
+    Layout = "/Pages/Shared/Inventory/_Layout.cshtml";
+
+    ViewData["Title"] = $"Xử Lý Lấy Hàng - {Model.Order.OutboundOrderNumber}";
+}
+@section Styles {
+    <link rel="stylesheet"
+          href="~/css/Inventory/StyleSheet1.css"
+          asp-append-version="true" />
+}
+<div class="container-fluid py-4">
+    <!-- Header Page -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a asp-page="./Index">Danh sách xuất kho</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Xử lý lấy hàng</li>
+                </ol>
+            </nav>
+            <h3 class="fw-bold m-0 text-primary">
+                <i class="bi bi-box-seam me-2"></i>Lệnh Xuất Kho: @Model.Order.OutboundOrderNumber
+            </h3>
+        </div>
+        <a asp-page="./Index" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Quay lại
+        </a>
+    </div>
+
+    <!-- Thông tin tổng quan đơn hàng -->
+    <div class="card border-0 shadow-sm rounded-3 mb-4">
+        <div class="card-body p-4">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <span class="text-muted small d-block">Trạng thái phiếu</span>
+                    <span class="badge bg-info text-dark fs-6 px-3 py-2 mt-1">
+                        <i class="bi bi-clock-history me-1"></i>@Model.Order.Status
+                    </span>
+                </div>
+                <div class="col-md-3">
+                    <span class="text-muted small d-block">Kho xuất hàng</span>
+                    <strong class="fs-6 text-dark"><i class="bi bi-geo-alt me-1 text-danger"></i>@Model.Order.WarehouseName</strong>
+                </div>
+                <div class="col-md-3">
+                    <span class="text-muted small d-block">Mã đơn bán hàng (SO) / Khách hàng</span>
+                    <strong class="fs-6 text-dark">@Model.Order.SalesOrderNumber</strong>
+                    <span class="text-muted ms-1">(@Model.Order.CustomerName)</span>
+                </div>
+                <div class="col-md-3">
+                    <span class="text-muted small d-block">Ghi chú</span>
+                    <span class="fst-italic text-secondary">@(string.IsNullOrEmpty(Model.Order.Notes) ? "Không có" : Model.Order.Notes)</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Danh sách các sản phẩm cần lấy hàng (Items) -->
+    <h5 class="fw-bold text-dark mb-3">
+        <i class="bi bi-list-check me-2 text-primary"></i>Chi Tiết Mặt Hàng Cần Lấy
+    </h5>
+
+    <div class="row g-3">
+        @if (Model.Order.Items != null && Model.Order.Items.Any())
+        {
+            @foreach (var item in Model.Order.Items)
+            {
+                var progressPercent = item.RequestedQuantity > 0
+                ? (int)((item.IssuedQuantity / item.RequestedQuantity) * 100)
+                : 0;
+
+                <div class="col-12">
+                    <div class="card border-0 shadow-sm rounded-3">
+                        <div class="card-body p-4">
+                            <div class="row align-items-center">
+                                <!-- Thông tin sản phẩm -->
+                                <div class="col-md-4 border-end">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <span class="badge bg-secondary font-monospace me-2">@item.ProductCode</span>
+                                        <span class="badge bg-light text-dark border">ĐVT: @item.UnitName</span>
+                                    </div>
+                                    <h5 class="fw-bold text-primary mb-2">@item.ProductName</h5>
+
+                                    <div class="d-flex justify-content-between pe-3 small text-muted mb-1">
+                                        <span>Yêu cầu: <strong class="text-dark">@item.RequestedQuantity.ToString("N0")</strong></span>
+                                        <span>Đã lấy: <strong class="text-success">@item.IssuedQuantity.ToString("N0")</strong></span>
+                                        <span>Còn lại: <strong class="text-danger">@item.RemainingQuantity.ToString("N0")</strong></span>
+                                    </div>
+
+                                    <!-- Thanh tiến độ lấy hàng -->
+                                    <div class="progress mt-2" style="height: 8px;">
+                                        <div class="progress-bar @(progressPercent == 100 ? "bg-success" : "bg-primary")"
+                                             role="progressbar"
+                                             style="width: @progressPercent%;"
+                                             aria-valuenow="@progressPercent"
+                                             aria-valuemin="0"
+                                             aria-valuemax="100"></div>
+                                    </div>
+                                    <div class="text-end small text-muted mt-1">@progressPercent% Hoàn thành</div>
+                                </div>
+
+                                <!-- Chi tiết Vị trí tồn khả dụng & Đã lấy -->
+                                <div class="col-md-6 px-4">
+                                    <!-- Lịch sử Đã lấy -->
+                                    <div class="mb-3">
+                                        <small class="fw-bold text-secondary d-block mb-1">
+                                            <i class="bi bi-check-all me-1 text-success"></i>Đã lấy từ các vị trí:
+                                        </small>
+                                        @if (item.PickedDetails != null && item.PickedDetails.Any())
+                                        {
+                                            <div class="d-flex flex-wrap gap-2">
+                                                @foreach (var picked in item.PickedDetails)
+                                                {
+                                                    <span class="badge bg-success-subtle text-success border border-success px-2 py-1">
+                                                        <i class="bi bi-pin-map me-1"></i>Vị trí: <strong>@picked.LocationCode</strong>
+                                                        | Lô: <strong>@picked.LotNumber</strong>
+                                                        | SL: <strong>@picked.Quantity.ToString("N0")</strong>
+                                                    </span>
+                                                }
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted small fst-italic">Chưa có ghi nhận lấy hàng nào.</span>
+                                        }
+                                    </div>
+
+                                    <!-- Vị trí khả dụng có thể lấy -->
+                                    <div>
+                                        <small class="fw-bold text-secondary d-block mb-1">
+                                            <i class="bi bi-box-arrow-in-down me-1 text-primary"></i>Gợi ý Vị trí & Lô hàng khả dụng:
+                                        </small>
+                                        @if (item.AvailableLocations != null && item.AvailableLocations.Any())
+                                        {
+                                            <div class="d-flex flex-wrap gap-2">
+                                                @foreach (var loc in item.AvailableLocations)
+                                                {
+                                                    <span class="badge bg-light text-dark border p-2">
+                                                        <i class="bi bi-geo me-1 text-primary"></i>@loc.LocationCode
+                                                        | Lô: <strong>@loc.LotNumber</strong>
+                                                        | Khả dụng: <strong class="text-primary">@loc.AvailableQuantity.ToString("N0")</strong>
+                                                    </span>
+                                                }
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-warning small fst-italic">Không tìm thấy vị trí tồn khả dụng nào phù hợp!</span>
+                                        }
+                                    </div>
+                                </div>
+
+                                <!-- Nút thao tác Pick hàng -->
+                                <div class="col-md-2 text-center">
+                                    @if (item.RemainingQuantity > 0)
+                                    {
+                                        <button type="button" class="btn btn-primary px-3 py-2 w-100 shadow-sm"
+                                                onclick="openPickModal(@Model.Order.OutboundOrderId, @item.OutboundOrderItemId, '@item.ProductName', @item.RemainingQuantity, @JsonSerializer.Serialize(item.AvailableLocations))">
+                                            <i class="bi bi-box-arrow-right me-1"></i>Lấy Hàng
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-success px-3 py-2 fs-6">
+                                            <i class="bi bi-check-circle me-1"></i>Đã đủ SL
+                                        </span>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="col-12 text-center py-5">
+                <i class="bi bi-inbox fs-1 text-muted d-block mb-2"></i>
+                <span class="text-muted">Không có dữ liệu mặt hàng xuất kho!</span>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- MODAL THAO TÁC PICK HÀNG -->
+<div class="modal fade" id="pickModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title fw-bold" id="modalProductName">Thao Tác Lấy Hàng</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form id="formPick">
+                    <!-- Hidden inputs cho API -->
+                    <input type="hidden" id="modalOutboundOrderId" />
+                    <input type="hidden" id="modalOutboundOrderItemId" />
+
+                    <!-- Chọn Vị trí & Lô hàng -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Chọn Vị Trí / Lô Hàng Xuất Kho <span class="text-danger">*</span></label>
+                        <select class="form-select border-primary" id="ddlAvailableLocations" onchange="onLocationChanged()">
+                            <option value="">-- Chọn Vị trí & Lô --</option>
+                        </select>
+                        <input type="hidden" id="modalStorageLocationId" />
+                        <input type="hidden" id="modalProductLotId" />
+                        <input type="hidden" id="modalInventoryReservationId" />
+                    </div>
+
+                    <!-- Số lượng cần lấy -->
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <label class="form-label fw-bold">Số Lượng Lấy <span class="text-danger">*</span></label>
+                            <span class="text-muted small">Còn thiếu: <strong id="lblModalRemaining" class="text-danger">0</strong></span>
+                        </div>
+                        <input type="number" step="0.01" class="form-control form-control-lg text-end fw-bold border-primary" id="txtPickQuantity" placeholder="0" min="0.01" />
+                    </div>
+
+                    <!-- Ghi chú -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Ghi Chú</label>
+                        <textarea class="form-control" id="txtPickNotes" rows="2" placeholder="Nhập ghi chú (nếu có)..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-primary px-4" id="btnSubmitPick" onclick="submitPick()">
+                    <i class="bi bi-check-lg me-1"></i>Xác Nhận Lấy Hàng
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let pickModalInstance;
+
+        $(document).ready(function () {
+            pickModalInstance = new bootstrap.Modal(document.getElementById('pickModal'));
+        });
+
+        // Hàm mở Popup Lấy Hàng
+        function openPickModal(orderId, itemId, productName, remainingQty, availableLocations) {
+            $('#modalOutboundOrderId').val(orderId);
+            $('#modalOutboundOrderItemId').val(itemId);
+            $('#modalProductName').text(`Lấy hàng: ${productName}`);
+            $('#lblModalRemaining').text(Number(remainingQty).toLocaleString());
+            $('#txtPickQuantity').val(remainingQty);
+            $('#txtPickNotes').val('');
+
+            // Fill danh sách Vị trí khả dụng vào Dropdown
+            const ddl = $('#ddlAvailableLocations');
+            ddl.empty();
+            ddl.append('<option value="">-- Chọn Vị trí & Lô --</option>');
+
+            if (availableLocations && availableLocations.length > 0) {
+                availableLocations.forEach(loc => {
+                    const text = `Vị trí: ${loc.LocationCode} | Lô: ${loc.LotNumber} (Khả dụng: ${loc.AvailableQuantity})`;
+                    const jsonVal = JSON.stringify(loc);
+                    ddl.append(`<option value='${jsonVal}'>${text}</option>`);
+                });
+
+                // Chọn mặc định vị trí đầu tiên
+                ddl.prop('selectedIndex', 1);
+                onLocationChanged();
+            }
+
+            pickModalInstance.show();
+        }
+
+        // Khi thay đổi Vị trí trên Dropdown
+        function onLocationChanged() {
+            const val = $('#ddlAvailableLocations').val();
+            if (!val) {
+                $('#modalStorageLocationId').val(0);
+                $('#modalProductLotId').val(0);
+                $('#modalInventoryReservationId').val(0);
+                return;
+            }
+
+            const locData = JSON.parse(val);
+            $('#modalStorageLocationId').val(locData.StorageLocationId || locData.storageLocationId);
+            $('#modalProductLotId').val(locData.ProductLotId || locData.productLotId);
+            $('#modalInventoryReservationId').val(locData.InventoryReservationId || locData.inventoryReservationId);
+
+            // Gợi ý số lượng tối đa theo lượng tồn khả dụng của vị trí đó
+            const maxAvailable = locData.AvailableQuantity || locData.availableQuantity || 0;
+            const currentReq = parseFloat($('#lblModalRemaining').text().replace(/,/g, '')) || 0;
+
+            // Lấy min giữa số lượng còn thiếu và số lượng vị trí có
+            const suggestQty = Math.min(maxAvailable, currentReq);
+            $('#txtPickQuantity').val(suggestQty);
+            $('#txtPickQuantity').attr('max', maxAvailable);
+        }
+
+        // Gửi dữ liệu Lấy Hàng về Server qua Handler AJAX
+        function submitPick() {
+            const requestData = {
+                outboundOrderId: parseInt($('#modalOutboundOrderId').val()),
+                outboundOrderItemId: parseInt($('#modalOutboundOrderItemId').val()),
+                storageLocationId: parseInt($('#modalStorageLocationId').val()),
+                productLotId: parseInt($('#modalProductLotId').val()),
+                inventoryReservationId: parseInt($('#modalInventoryReservationId').val()),
+                pickQuantity: parseFloat($('#txtPickQuantity').val()),
+                notes: $('#txtPickNotes').val()
+            };
+
+            if (!requestData.storageLocationId || requestData.storageLocationId <= 0) {
+                alert('Vui lòng chọn Vị trí & Lô hàng!');
+                return;
+            }
+
+            if (!requestData.pickQuantity || requestData.pickQuantity <= 0) {
+                alert('Vui lòng nhập Số lượng lấy hợp lệ!');
+                return;
+            }
+
+            const btn = $('#btnSubmitPick');
+            btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Đang xử lý...');
+
+            $.ajax({
+                url: '?handler=Pick',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(requestData),
+                headers: {
+                    "RequestVerificationToken": $('input:hidden[name="__RequestVerificationToken"]').val()
+                },
+                success: function (res) {
+                    if (res.success) {
+                        pickModalInstance.hide();
+                        location.reload(); // Tải lại trang để cập nhật trạng thái mới nhất
+                    } else {
+                        alert(res.message || 'Thao tác thất bại!');
+                        btn.prop('disabled', false).html('<i class="bi bi-check-lg me-1"></i>Xác Nhận Lấy Hàng');
+                    }
+                },
+                error: function () {
+                    alert('Lỗi hệ thống khi kết nối Server!');
+                    btn.prop('disabled', false).html('<i class="bi bi-check-lg me-1"></i>Xác Nhận Lấy Hàng');
+                }
+            });
+        }
+    </script>
+}
