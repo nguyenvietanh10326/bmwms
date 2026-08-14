@@ -54,6 +54,9 @@ public class SupplierRepository : ISupplierRepository
             .Include(s => s.SupplierProducts)
                 .ThenInclude(sp => sp.Product)
                     .ThenInclude(p => p.ProductGroup)
+            .Include(s => s.SupplierProducts)
+                .ThenInclude(sp => sp.Product)
+                    .ThenInclude(p => p.UnitOfMeasure)
             .FirstOrDefaultAsync(s => s.SupplierCode == supplierCode);
     }
 

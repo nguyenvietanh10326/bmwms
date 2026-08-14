@@ -107,10 +107,17 @@
                 @{
                     var isPurchaseOrderActive = Context.Request.Path.StartsWithSegments("/PurchaseOrders");
                 }
-                <!-- <a href="/PurchaseOrders/Index" class="nav-item @(isPurchaseOrderActive ? "active" : "")">
-                    <i class="ri-shopping-cart-2-line nav-item-icon"></i>
-                    Đơn mua hàng
-                </a> -->
+                <div class="nav-item nav-item-has-sub @(isPurchaseOrderActive ? "expanded active" : "")" onclick="toggleSubmenu(this)">
+                    <div class="nav-item-main">
+                        <i class="ri-shopping-cart-2-line nav-item-icon"></i>
+                        Lệnh mua hàng (PO)
+                    </div>
+                    <i class="ri-arrow-right-s-line nav-item-arrow"></i>
+                </div>
+                <div class="nav-submenu @(isPurchaseOrderActive ? "expanded" : "")">
+                    <a href="/PurchaseOrders/Index" class="nav-sub-item @(Context.Request.Path == "/PurchaseOrders" || Context.Request.Path == "/PurchaseOrders/Index" ? "active" : "")">Danh sách PO</a>
+                    <a href="/PurchaseOrders/Create" class="nav-sub-item @(Context.Request.Path == "/PurchaseOrders/Create" ? "active" : "")">Tạo PO mới</a>
+                </div>
 
                 @{
                     var isSalesOrderActive = Context.Request.Path.StartsWithSegments("/SalesOrders");

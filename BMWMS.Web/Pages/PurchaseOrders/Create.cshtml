@@ -1,0 +1,322 @@
+@page
+@model BMWMS.Web.Pages.PurchaseOrders.CreateModel
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Tạo Lệnh Mua Hàng (PO)";
+}
+
+<style>
+  :root{
+    --font-ui:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    --font-mono:"IBM Plex Mono",ui-monospace,monospace;
+
+    --navy-950:#233a6b; --navy-900:#1b2d56;
+    --accent:#3e5cf6; --accent-600:#3149d4;
+
+    --bg:#f2f3f7; --card:#ffffff; --line:#e7e9f0; --line-strong:#d7dae5;
+    --ink:#161b2e; --ink-2:#525a72; --ink-3:#8890a6; --ink-4:#aeb4c6;
+
+    --sh-xs:0 1px 2px rgba(16,23,42,.05);
+    --sh-sm:0 1px 2px rgba(16,23,42,.04),0 4px 10px -4px rgba(16,23,42,.07);
+    --r-sm:8px; --r-md:12px; --r-lg:16px;
+    --ease:cubic-bezier(.4,0,.2,1);
+  }
+  
+  .inbound-page {
+    font-family: var(--font-ui);
+    color: var(--ink);
+    font-size: 14px;
+    line-height: 1.45;
+  }
+  .pagehead { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; }
+  .pagehead h1 { font-size: 20px; font-weight: 700; color: var(--navy-950); margin: 0 0 4px 0; letter-spacing: -0.02em; }
+  .pagehead p { color: var(--ink-2); margin: 0; font-size: 13.5px; }
+  .card { background: var(--card); border-radius: var(--r-md); box-shadow: var(--sh-sm); padding: 24px; margin-bottom: 24px; }
+  .card h3 { font-size: 15px; font-weight: 700; margin: 0 0 16px 0; padding-bottom: 12px; border-bottom: 1px solid var(--line); color: var(--navy-900); }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 16px; border-radius: var(--r-sm); font-size: 13px; font-weight: 600; cursor: pointer; transition: all .2s var(--ease); border: 1px solid transparent; text-decoration: none; }
+  .btn-dark { background: var(--navy-950); color: #fff; box-shadow: var(--sh-xs); }
+  .btn-dark:hover { background: var(--navy-900); transform: translateY(-1px); }
+  .btn-success { background: #10b981; color: #fff; box-shadow: var(--sh-xs); }
+  .btn-success:hover { background: #059669; }
+  .btn-light { background: #fff; border-color: var(--line-strong); color: var(--ink-2); }
+  .btn-light:hover { background: #f8f9fc; color: var(--ink); }
+  .btn-remove { background: #fff1f2; color: #e11d48; border: 1px solid #ffe4e6; border-radius: 6px; padding: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .15s; }
+  .btn-remove:hover { background: #ffe4e6; color: #be123c; }
+
+  .items-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+  .items-table th { text-align: left; padding: 12px 14px; font-size: 12.5px; font-weight: 600; color: var(--ink-2); border-bottom: 1px solid var(--line-strong); background: #f8f9fc; }
+  .items-table td { padding: 12px 14px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  .items-table tbody tr:hover { background: #fdfdfd; }
+  .items-table th:first-child { border-top-left-radius: 8px; }
+  .items-table th:last-child { border-top-right-radius: 8px; }
+  .grid2 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field label { font-size: 12.5px; font-weight: 600; color: var(--ink-2); }
+  .field input, .field select, .field textarea { width: 100%; padding: 9px 12px; border: 1px solid var(--line-strong); border-radius: var(--r-sm); font-size: 13px; font-family: inherit; }
+  .field input:disabled { background: var(--bg); color: var(--ink-3); }
+  .cell-input { width: 100px; text-align: right; padding: 6px; border: 1px solid var(--line-strong); border-radius: 4px; font-family: var(--font-mono); }
+  .cell-input-w { width: 100%; padding: 6px; border: 1px solid var(--line-strong); border-radius: 4px; }
+  .items-table th.num, .items-table td.num { text-align: right; }
+</style>
+
+<div class="inbound-page">
+    <div class="pagehead">
+        <div>
+            <h1>Tạo Lệnh Mua Hàng (PO)</h1>
+            <p>Tạo mới lệnh mua hàng gửi tới nhà cung cấp. Lệnh sẽ ở trạng thái DRAFT chờ duyệt.</p>
+        </div>
+        <div>
+            <a href="/PurchaseOrders/Index" class="btn btn-light" style="margin-right:10px;">Hủy bỏ</a>
+            <button type="submit" form="createForm" class="btn btn-dark">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                Tạo PO (DRAFT)
+            </button>
+        </div>
+    </div>
+
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div class="card" style="border-left: 4px solid #c1222f;">
+            <div asp-validation-summary="All" class="text-danger"></div>
+        </div>
+    }
+
+    <form method="post" id="createForm">
+        <div class="card">
+            <h3>Thông tin chung</h3>
+            <div class="grid2">
+                <div class="field">
+                    <label>Nhà Cung Cấp *</label>
+                    <select asp-for="PurchaseOrder.SupplierId" id="supplierSelect" required>
+                        <option value="">-- Chọn Nhà Cung Cấp --</option>
+                        @foreach (var supplier in Model.Suppliers)
+                        {
+                            <option value="@supplier.SupplierId" data-code="@supplier.SupplierCode">@supplier.SupplierName (@supplier.SupplierCode)</option>
+                        }
+                    </select>
+                </div>
+                <div class="field">
+                    <label>Ngày Đặt Hàng *</label>
+                    <input type="date" asp-for="PurchaseOrder.OrderDate" id="orderDate" required />
+                </div>
+                <div class="field">
+                    <label>Ngày Giao Dự Kiến</label>
+                    <input type="date" asp-for="PurchaseOrder.ExpectedDeliveryDate" id="deliveryDate" required />
+                </div>
+            </div>
+            <div class="grid2" style="margin-top: 16px; grid-template-columns: 1fr;">
+                <div class="field">
+                    <label>Ghi Chú Chung</label>
+                    <textarea asp-for="PurchaseOrder.Notes" rows="2" placeholder="Nhập ghi chú cho toàn bộ lệnh mua..."></textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <h3 style="margin:0;font-size:15px;">Danh sách vật tư đặt mua</h3>
+                <button type="button" class="btn btn-success" id="btnAddRow">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                    Thêm Vật Tư
+                </button>
+            </div>
+            
+            <table class="items-table" id="detailsTable" style="display: none;">
+                <thead>
+                    <tr>
+                        <th style="width: 30%">Vật tư</th>
+                        <th style="width: 15%">ĐVT</th>
+                        <th class="num" style="width: 15%">Mã NCC</th>
+                        <th class="num" style="width: 15%">Số Lượng</th>
+                        <th style="width: 20%">Ghi chú</th>
+                        <th style="width: 5%"></th>
+                    </tr>
+                </thead>
+                <tbody id="itemsBody">
+                    <!-- Rows will be added dynamically -->
+                </tbody>
+            </table>
+            
+            <div id="emptyState" style="text-align:center; padding: 40px 0; color: var(--ink-3);">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:12px; opacity: 0.5;"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                <div style="font-size:14px; font-weight: 500;">Vui lòng chọn Nhà Cung Cấp trước để thêm vật tư.</div>
+            </div>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        let currentSupplierProducts = [];
+        let rowCount = 0;
+
+        const supplierSelect = document.getElementById('supplierSelect');
+        const btnAddRow = document.getElementById('btnAddRow');
+        const tbody = document.getElementById('itemsBody');
+        const emptyState = document.getElementById('emptyState');
+        const detailsTable = document.getElementById('detailsTable');
+        const orderDate = document.getElementById('orderDate');
+        const deliveryDate = document.getElementById('deliveryDate');
+        const createForm = document.getElementById('createForm');
+
+        function updateUIState() {
+            if (rowCount > 0 || currentSupplierProducts.length > 0) {
+                emptyState.style.display = 'none';
+                detailsTable.style.display = 'table';
+            } else {
+                emptyState.style.display = 'block';
+                detailsTable.style.display = 'none';
+            }
+        }
+
+        supplierSelect.addEventListener('change', async function () {
+            const supplierCode = this.options[this.selectedIndex].getAttribute('data-code');
+            tbody.innerHTML = ''; 
+            rowCount = 0;
+            currentSupplierProducts = [];
+            
+            if (supplierCode) {
+                try {
+                    const response = await fetch(`?handler=SupplierProducts&supplierCode=${encodeURIComponent(supplierCode)}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        currentSupplierProducts = data.suppliedProducts || [];
+                        
+                        if (currentSupplierProducts.length === 0) {
+                            alert("Nhà cung cấp này chưa có danh mục vật tư nào. Vui lòng thiết lập trước ở màn Quản lý NCC.");
+                        } else {
+                            addRow(); // Auto-add first row
+                        }
+                    } else {
+                        console.error('Lỗi API');
+                        alert("Không thể tải danh sách vật tư. Vui lòng thử lại.");
+                    }
+                } catch (e) {
+                    console.error(e);
+                    alert("Lỗi kết nối khi tải danh mục vật tư.");
+                }
+            }
+            updateUIState();
+        });
+
+        btnAddRow.addEventListener('click', function () {
+            if (currentSupplierProducts.length === 0) {
+                alert("Vui lòng chọn Nhà cung cấp có danh mục vật tư trước khi thêm dòng.");
+                return;
+            }
+            addRow();
+            updateUIState();
+        });
+
+        function addRow() {
+            const tr = document.createElement('tr');
+            
+            let optionsHtml = '<option value="">-- Chọn vật tư --</option>';
+            currentSupplierProducts.forEach(p => {
+                const pName = p.productName || p.ProductName || 'Unknown';
+                const pCode = p.productCode || p.ProductCode || 'Unknown';
+                const pId = p.productId || p.ProductId;
+                const pUnit = p.unit || p.Unit || '-';
+                optionsHtml += `<option value="${pId}" data-unit="${pUnit}">${pName} (${pCode})</option>`;
+            });
+
+            tr.innerHTML = `
+                <td>
+                    <select name="PurchaseOrder.OrderDetails[${rowCount}].ProductId" class="field product-select" style="width:100%; padding:8px; border:1px solid var(--line-strong); border-radius:4px; font-size:13px;" onchange="updateUnit(this)" required>
+                        ${optionsHtml}
+                    </select>
+                </td>
+                <td class="unit-cell" style="color:var(--ink-2); font-weight:500; font-size:13px;">
+                    -
+                </td>
+                <td class="num" style="color:var(--ink-3); font-size:12px;">
+                    <!-- Mã SP của NCC (Placeholder) -->
+                    N/A
+                </td>
+                <td class="num">
+                    <input type="number" name="PurchaseOrder.OrderDetails[${rowCount}].OrderedQuantity" class="cell-input" min="0.01" step="0.01" value="1" required />
+                </td>
+                <td>
+                    <input type="text" name="PurchaseOrder.OrderDetails[${rowCount}].Notes" class="cell-input-w" placeholder="Ghi chú dòng" />
+                </td>
+                <td>
+                    <button type="button" class="btn-remove" onclick="removeRow(this)">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                    </button>
+                </td>
+            `;
+
+            tbody.appendChild(tr);
+            rowCount++;
+        }
+
+        window.updateUnit = function(selectElement) {
+            const tr = selectElement.closest('tr');
+            const unitCell = tr.querySelector('.unit-cell');
+            const qtyInput = tr.querySelector('input[type="number"]');
+            const selectedOption = selectElement.options[selectElement.selectedIndex];
+            
+            if(selectedOption && selectedOption.value !== "") {
+                const unit = selectedOption.getAttribute('data-unit') || '-';
+                unitCell.textContent = unit;
+                
+                // Adjust step based on unit
+                const intUnits = ['cái', 'chiếc', 'hộp', 'bao', 'thùng', 'cuộn', 'bộ', 'cây', 'lọ', 'chai', 'tờ'];
+                const isInt = intUnits.some(u => unit.toLowerCase().includes(u));
+                if(isInt) {
+                    qtyInput.setAttribute('step', '1');
+                    qtyInput.setAttribute('min', '1');
+                    qtyInput.value = Math.max(1, Math.round(qtyInput.value));
+                } else {
+                    qtyInput.setAttribute('step', '0.01');
+                    qtyInput.setAttribute('min', '0.01');
+                }
+            } else {
+                unitCell.textContent = '-';
+            }
+        };
+
+        window.removeRow = function(btn) {
+            const tr = btn.closest('tr');
+            tr.remove();
+            reindexRows();
+            updateUIState();
+        };
+
+        function reindexRows() {
+            const rows = tbody.querySelectorAll('tr');
+            rows.forEach((row, index) => {
+                row.querySelector('.product-select').setAttribute('name', `PurchaseOrder.OrderDetails[${index}].ProductId`);
+                row.querySelector('input[type="number"]').setAttribute('name', `PurchaseOrder.OrderDetails[${index}].OrderedQuantity`);
+                row.querySelector('input[type="text"]').setAttribute('name', `PurchaseOrder.OrderDetails[${index}].Notes`);
+            });
+            rowCount = rows.length;
+        }
+
+        createForm.addEventListener('submit', function (e) {
+            if (deliveryDate.value && orderDate.value) {
+                if (new Date(deliveryDate.value) < new Date(orderDate.value)) {
+                    e.preventDefault();
+                    alert('Ngày giao dự kiến không được nhỏ hơn ngày đặt hàng!');
+                    return false;
+                }
+            }
+            
+            const selects = tbody.querySelectorAll('.product-select');
+            const selectedIds = Array.from(selects).map(s => s.value).filter(v => v !== "");
+            const uniqueIds = new Set(selectedIds);
+            if (selectedIds.length !== uniqueIds.size) {
+                e.preventDefault();
+                alert('Không được chọn trùng lặp vật tư trong cùng một lệnh. Vui lòng gộp số lượng.');
+                return false;
+            }
+            
+            if (rowCount === 0) {
+                e.preventDefault();
+                alert('Vui lòng thêm ít nhất một vật tư.');
+                return false;
+            }
+        });
+    </script>
+}

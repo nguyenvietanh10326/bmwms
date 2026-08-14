@@ -1,0 +1,214 @@
+@page
+@model BMWMS.Web.Pages.PurchaseOrders.DetailModel
+@using BMWMS.Web.Helpers
+@{
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = $"Chi tiết Đơn mua hàng #{Model.Order?.PurchaseOrderNumber}";
+    ViewData["ActivePage"] = "PurchaseOrders";
+}
+
+<style>
+  :root {
+    --font-ui:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    --navy-950:#233a6b; --navy-900:#1b2d56;
+    --bg:#f2f3f7; --card:#ffffff; --line:#e7e9f0;
+    --ink:#161b2e; --ink-2:#525a72;
+    --accent:#3e5cf6; --accent-600:#3149d4;
+    
+    --g-bg:#e2f8ea; --g-tx:#0f7a3e; --g-dot:#1fa855;
+    --y-bg:#fef3d6; --y-tx:#93650a; --y-dot:#e2a336;
+    --r-bg:#fce3e4; --r-tx:#c1222f; --r-dot:#e2454f;
+    --b-bg:#e3eaff; --b-tx:#2c48d8; --b-dot:#5876f2;
+    --gy-bg:#eceef3; --gy-tx:#565f78; --gy-dot:#9aa1b5;
+
+    --sh-sm:0 1px 2px rgba(16,23,42,.04),0 4px 10px -4px rgba(16,23,42,.07);
+    --r-md:12px;
+  }
+  
+  .inbound-page { font-family: var(--font-ui); background: var(--bg); min-height: 100vh; padding: 24px; color: var(--ink); }
+  .ib-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+  .ib-title { font-size: 20px; font-weight: 600; color: var(--navy-950); margin: 0; }
+  
+  .ib-actions { display: flex; gap: 12px; }
+  .btn-primary { background: var(--accent); color: #fff; border: none; cursor: pointer; padding: 8px 16px; border-radius: 6px; font-weight: 500; font-size: 14px; box-shadow: var(--sh-sm); transition: 0.2s; text-decoration:none; }
+  .btn-primary:hover { background: var(--accent-600); }
+  .btn-outline { background: #fff; color: var(--ink-2); border: 1px solid var(--line); cursor: pointer; padding: 8px 16px; border-radius: 6px; font-weight: 500; font-size: 14px; transition: 0.2s; text-decoration:none; }
+  .btn-outline:hover { background: #f9fafb; color: var(--ink); }
+
+  .details-card { background: var(--card); border-radius: var(--r-md); box-shadow: var(--sh-sm); padding: 24px; margin-bottom: 24px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field-label { font-size: 13px; font-weight: 500; color: var(--ink-2); }
+  .field-value { font-size: 15px; font-weight: 600; color: var(--ink); }
+  
+  .table-card { background: var(--card); border-radius: var(--r-md); box-shadow: var(--sh-sm); overflow: hidden; }
+  .items-table { width: 100%; border-collapse: collapse; text-align: left; }
+  .items-table th { background: #fafbfc; padding: 12px 16px; font-size: 13px; font-weight: 600; color: var(--ink-2); border-bottom: 1px solid var(--line); }
+  .items-table td { padding: 12px 16px; font-size: 14px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  .items-table tr:hover { background: #fdfdfe; }
+
+  .status-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 100px; font-size: 13px; font-weight: 500; }
+  .status-badge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; }
+  .status-draft { background: var(--gy-bg); color: var(--gy-tx); } .status-draft::before { background: var(--gy-dot); }
+  .status-confirmed { background: var(--b-bg); color: var(--b-tx); } .status-confirmed::before { background: var(--b-dot); }
+  .status-partially_received { background: var(--y-bg); color: var(--y-tx); } .status-partially_received::before { background: var(--y-dot); }
+  .status-received { background: var(--g-bg); color: var(--g-tx); } .status-received::before { background: var(--g-dot); }
+  .status-cancelled { background: var(--r-bg); color: var(--r-tx); } .status-cancelled::before { background: var(--r-dot); }
+  
+  .alert { padding: 12px 16px; border-radius: 8px; margin-bottom: 24px; font-size: 14px; font-weight: 500; }
+  .alert-success { background: var(--g-bg); color: var(--g-tx); }
+  .alert-danger { background: var(--r-bg); color: var(--r-tx); }
+
+  @@media print {
+      body * { visibility: hidden; }
+      .inbound-page, .inbound-page * { visibility: visible; }
+      .inbound-page { position: absolute; left: 0; top: 0; padding: 0; background: #fff; width: 100%; }
+      .ib-actions, .alert, .sidebar, .navbar { display: none !important; }
+      .details-card, .table-card { box-shadow: none; border: 1px solid #000; padding: 10px; margin-bottom: 10px; }
+      .items-table th, .items-table td { border-bottom: 1px solid #000; color: #000; }
+  }
+</style>
+
+<div class="inbound-page">
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+    }
+
+    @if (Model.Order == null)
+    {
+        <div class="alert alert-danger">Không tìm thấy Đơn mua hàng.</div>
+        <a href="/PurchaseOrders/Index" class="btn-outline">Quay lại danh sách</a>
+    }
+    else
+    {
+        <div class="ib-header">
+            <h1 class="ib-title">Chi tiết Đơn mua hàng #@Model.Order.PurchaseOrderNumber</h1>
+            <div class="ib-actions">
+                <a href="/PurchaseOrders/Index" class="btn-outline">Quay lại</a>
+                <button type="button" class="btn-outline" onclick="window.print()">In PO</button>
+                @if (Model.Order.Status.Equals("DRAFT", System.StringComparison.OrdinalIgnoreCase))
+                {
+                    <form method="post" asp-page-handler="Confirm" asp-route-id="@Model.Id" style="display:inline;" onsubmit="return confirm('Bạn có chắc chắn muốn xác nhận đơn mua hàng này? Hệ thống sẽ gửi email thông báo trực tiếp đến nhà cung cấp.');">
+                        <button type="submit" class="btn-primary">Xác nhận PO</button>
+                    </form>
+                }
+                @if (Model.Order.Status.Equals("DRAFT", System.StringComparison.OrdinalIgnoreCase))
+                {
+                    <form method="post" asp-page-handler="Cancel" asp-route-id="@Model.Id" style="display:inline;" onsubmit="var reason = prompt('Nhập lý do hủy đơn hàng:'); if(!reason) return false; this.querySelector('input[name=reason]').value = reason; return true;">
+                        <input type="hidden" name="reason" value="" />
+                        <button type="submit" class="btn-primary" style="background:#c1222f;">Hủy PO</button>
+                    </form>
+                }
+            </div>
+        </div>
+
+        <div class="details-card">
+            <div class="grid-2">
+                <div class="field">
+                    <span class="field-label">Trạng thái</span>
+                    <span class="field-value">
+                        <span class="status-badge status-@Model.Order.Status.ToLower()">@Model.Order.Status</span>
+                    </span>
+                </div>
+                <div class="field">
+                    <span class="field-label">Nhà cung cấp</span>
+                    <span class="field-value">@Model.Order.SupplierName</span>
+                </div>
+                <div class="field">
+                    <span class="field-label">Ngày đặt</span>
+                    <span class="field-value">@Model.Order.OrderDate.ToString("dd/MM/yyyy")</span>
+                </div>
+                <div class="field">
+                    <span class="field-label">Ngày giao dự kiến</span>
+                    <span class="field-value">@(Model.Order.ExpectedDeliveryDate?.ToString("dd/MM/yyyy") ?? "-")</span>
+                </div>
+                <div class="field" style="grid-column: span 2;">
+                    <span class="field-label">Ghi chú</span>
+                    <span class="field-value" style="font-weight:400;">@(string.IsNullOrEmpty(Model.Order.Notes) ? "-" : Model.Order.Notes)</span>
+                </div>
+            </div>
+        </div>
+
+        <h3 style="font-size:16px; font-weight:600; color:var(--navy-950); margin-bottom:12px;">Danh sách vật tư đặt mua</h3>
+        <div class="table-card">
+            <table class="items-table">
+                <thead>
+                    <tr>
+                        <th style="width:60px;">STT</th>
+                        <th>Vật tư</th>
+                        <th>ĐVT</th>
+                        <th style="text-align:right;">Số lượng đặt</th>
+                        <th style="text-align:right;">Đã nhận</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Order.Items != null && Model.Order.Items.Any())
+                    {
+                        int index = 1;
+                        foreach (var detail in Model.Order.Items)
+                        {
+                            <tr>
+                                <td>@index</td>
+                                <td>
+                                    <div style="font-weight:500; color:var(--ink);">@detail.ProductName</div>
+                                    <div style="font-size:12px; color:var(--ink-3);">@detail.ProductCode</div>
+                                </td>
+                                <td>@detail.Unit</td>
+                                <td style="text-align:right; font-weight:600;">@FormatHelper.FormatQuantity(detail.OrderedQuantity, detail.Unit)</td>
+                                <td style="text-align:right; font-weight:600; color:var(--g-tx);">@FormatHelper.FormatQuantity(detail.ReceivedQuantity, detail.Unit)</td>
+                            </tr>
+                            index++;
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="5" style="text-align:center; padding:24px; color:var(--ink-3);">Không có vật tư nào</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @if (Model.Order.Inbounds != null && Model.Order.Inbounds.Any())
+        {
+            <div class="po-section" style="margin-top: 24px;">
+                <div class="po-section-title">Các Phiếu Nhập Kho (Inbound) Liên Quan</div>
+                <div class="table-card" style="box-shadow:none; border:1px solid var(--line);">
+                    <table class="items-table">
+                        <thead style="background:var(--bg);">
+                            <tr>
+                                <th style="width: 25%">Mã Inbound</th>
+                                <th style="width: 25%">Ngày dự kiến nhập</th>
+                                <th style="width: 25%">Trạng thái</th>
+                                <th style="width: 25%">Ghi chú</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var ib in Model.Order.Inbounds)
+                            {
+                                <tr>
+                                    <td>
+                                        <a href="/Admin/Inbound/Detail?id=@ib.InboundOrderId" style="color:var(--accent); font-weight:500;">
+                                            @ib.InboundOrderNumber
+                                        </a>
+                                    </td>
+                                    <td>@ib.ExpectedReceiptDate.ToString("dd/MM/yyyy")</td>
+                                    <td>
+                                        <span class="status-badge status-@ib.Status.ToLower()">@ib.Status</span>
+                                    </td>
+                                    <td style="color:var(--ink-2);">@(ib.Notes ?? "-")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+    }

@@ -27,12 +27,14 @@ public class SupplierListResponseModel
 
 public class SupplierProductModel
 {
-    public string ProductCode { get; set; } = null!;
-    public string ProductName { get; set; } = null!;
-    public string GroupName { get; set; } = null!;
+    public long ProductId { get; set; }
+    public string ProductCode { get; set; } = string.Empty;
+    public string ProductName { get; set; } = string.Empty;
+    public string GroupName { get; set; } = string.Empty;
+    public string Unit { get; set; } = string.Empty;
     public decimal? LastPurchasePrice { get; set; }
     public int? LeadTimeDays { get; set; }
-    public string Status { get; set; } = null!;
+    public string Status { get; set; } = string.Empty;
 }
 
 public class SupplierDetailResponseModel

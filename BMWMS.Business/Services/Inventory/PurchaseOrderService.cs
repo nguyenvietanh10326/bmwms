@@ -1,4 +1,4 @@
-﻿using BMWMS.Business.DTOs.Inventory;
+using BMWMS.Business.DTOs.Inventory;
 using BMWMS.Business.Interfaces.Inventory;
 using BMWMS.Repository.Interfaces.Inventory;
 using BMWMS.Repository.Models;
@@ -13,10 +13,12 @@ namespace BMWMS.Business.Services.Inventory
     public class PurchaseOrderService : IPurchaseOrderService
     {
         private readonly IPurchaseOrderRepository _poRepository;
+        private readonly IEmailService _emailService;
 
-        public PurchaseOrderService(IPurchaseOrderRepository poRepository)
+        public PurchaseOrderService(IPurchaseOrderRepository poRepository, IEmailService emailService)
         {
             _poRepository = poRepository;
+            _emailService = emailService;
         }
 
         public async Task<PagedResultDto<PurchaseOrderListDto>> GetPagedOrdersAsync(PurchaseOrderFilterDto filter)
@@ -45,8 +47,7 @@ namespace BMWMS.Business.Services.Inventory
                     OrderDate = po.OrderDate,
                     ExpectedDeliveryDate = po.ExpectedDeliveryDate,
                     Status = po.Status,
-                    TotalQuantity = po.PurchaseOrderDetails.Sum(d => d.OrderedQuantity),
-                    UnitName = unitName
+                    ItemCount = po.PurchaseOrderDetails.Count
                 };
             });
 
@@ -92,11 +93,24 @@ namespace BMWMS.Business.Services.Inventory
                     ProductId = d.ProductId,
                     ProductCode = d.Product?.ProductCode ?? string.Empty,
                     ProductName = d.Product?.ProductName ?? string.Empty,
-                    Unit = d.Product?.UnitOfMeasure?.ToString() ?? string.Empty,
+                    Unit = d.Product?.UnitOfMeasure?.UnitName ?? string.Empty,
                     OrderedQuantity = d.OrderedQuantity,
+                    ReceivedQuantity = po.InboundOrders != null 
+                        ? po.InboundOrders.SelectMany(io => io.InboundOrderItems)
+                                          .Where(ioItem => ioItem.ProductId == d.ProductId)
+                                          .Sum(ioItem => ioItem.ReceivedQuantity)
+                        : 0m,
                     UnitPrice = d.UnitPrice ?? 0,
                     Notes = d.Notes
-                }).ToList()
+                }).ToList(),
+                Inbounds = po.InboundOrders != null ? po.InboundOrders.Select(io => new RelatedInboundDto
+                {
+                    InboundOrderId = io.InboundOrderId,
+                    InboundOrderNumber = io.InboundOrderNumber,
+                    ExpectedReceiptDate = io.ExpectedReceiptDate,
+                    Status = io.Status,
+                    Notes = io.Notes
+                }).ToList() : new List<RelatedInboundDto>()
             };
         }
 
@@ -154,17 +168,34 @@ namespace BMWMS.Business.Services.Inventory
             var po = await _poRepository.GetByIdWithDetailsAsync(purchaseOrderId);
             if (po == null) return (false, "Không tìm thấy đơn mua hàng.");
 
-            if (po.Status != "Draft")
+            if (po.Status != "DRAFT" && po.Status != "Draft")
             {
                 return (false, $"Không thể xác nhận đơn mua hàng ở trạng thái '{po.Status}'.");
             }
 
-            po.Status = "Confirmed";
+            po.Status = "CONFIRMED";
             po.ConfirmedByUserId = currentUserId;
             po.ConfirmedAt = DateTime.Now;
             po.UpdatedAt = DateTime.Now;
 
             await _poRepository.UpdateAsync(po);
+
+            // Send email to supplier
+            if (po.Supplier != null && !string.IsNullOrEmpty(po.Supplier.Email))
+            {
+                string subject = $"Xác nhận Đơn đặt hàng {po.PurchaseOrderNumber}";
+                string body = $@"
+                    <h3>Kính gửi {po.Supplier.SupplierName},</h3>
+                    <p>Đơn đặt hàng <strong>{po.PurchaseOrderNumber}</strong> của chúng tôi đã được xác nhận.</p>
+                    <p>Ngày đặt: {po.OrderDate:dd/MM/yyyy}</p>
+                    <p>Ngày giao dự kiến: {po.ExpectedDeliveryDate?.ToString("dd/MM/yyyy") ?? "Chưa xác định"}</p>
+                    <p>Số lượng vật tư: {po.PurchaseOrderDetails.Sum(d => d.OrderedQuantity)}</p>
+                    <br/>
+                    <p>Trân trọng,<br/>BMWMS System</p>
+                ";
+                await _emailService.SendEmailAsync(po.Supplier.Email, subject, body);
+            }
+
             return (true, "Xác nhận đơn mua hàng thành công!");
         }
 
@@ -173,12 +204,12 @@ namespace BMWMS.Business.Services.Inventory
             var po = await _poRepository.GetByIdWithDetailsAsync(purchaseOrderId);
             if (po == null) return (false, "Không tìm thấy đơn mua hàng.");
 
-            if (po.Status == "Completed" || po.Status == "Partial")
+            if (po.Status != "DRAFT")
             {
-                return (false, "Không thể hủy đơn mua hàng đã bắt đầu hoặc hoàn tất nhập kho.");
+                return (false, "Chỉ có thể hủy đơn mua hàng ở trạng thái Nháp (DRAFT).");
             }
 
-            po.Status = "Cancelled";
+            po.Status = "CANCELLED";
             po.Notes = string.IsNullOrWhiteSpace(reason) ? po.Notes : $"{po.Notes} [Lý do hủy: {reason}]";
             po.UpdatedAt = DateTime.Now;
 
@@ -220,6 +251,68 @@ namespace BMWMS.Business.Services.Inventory
                 SupplierName = s.SupplierName ?? string.Empty
             });
         }
-    }
+    
+        public async Task<(bool Success, string Message)> CreatePurchaseOrderAsync(PurchaseOrderCreateDto request, long userId)
+        {
+            // 1. Validate
+            if (request.ExpectedDeliveryDate.HasValue && request.ExpectedDeliveryDate.Value < request.OrderDate)
+            {
+                return (false, "Ngày giao dự kiến không được nhỏ hơn ngày đặt hàng.");
+            }
+            if (!request.OrderDetails.Any())
+            {
+                return (false, "Lệnh mua hàng phải có ít nhất một vật tư.");
+            }
+
+            var duplicateProducts = request.OrderDetails.GroupBy(x => x.ProductId).Where(g => g.Count() > 1).ToList();
+            if (duplicateProducts.Any())
+            {
+                return (false, "Không được chọn trùng lặp vật tư trong cùng một lệnh mua hàng.");
+            }
+
+            // 2. Generate PO Number
+            string poNumber = await _poRepository.GeneratePurchaseOrderNumberAsync();
+
+            // 3. Map to Entity
+            var po = new BMWMS.Repository.Models.PurchaseOrder
+            {
+                PurchaseOrderNumber = poNumber,
+                SupplierId = request.SupplierId,
+                OrderDate = request.OrderDate,
+                ExpectedDeliveryDate = request.ExpectedDeliveryDate,
+                Status = "DRAFT", // Hardcoded as per implementation plan
+                Notes = request.Notes,
+                CreatedByUserId = userId,
+                CreatedAt = DateTime.Now,
+                PurchaseOrderDetails = new List<BMWMS.Repository.Models.PurchaseOrderDetail>()
+            };
+
+            foreach (var item in request.OrderDetails)
+            {
+                if (item.OrderedQuantity <= 0)
+                {
+                    return (false, "Số lượng đặt phải lớn hơn 0.");
+                }
+
+                po.PurchaseOrderDetails.Add(new BMWMS.Repository.Models.PurchaseOrderDetail
+                {
+                    ProductId = item.ProductId,
+                    OrderedQuantity = item.OrderedQuantity,
+                    Notes = item.Notes
+                });
+            }
+
+            // 4. Save
+            try
+            {
+                await _poRepository.AddAsync(po);
+                return (true, poNumber);
+            }
+            catch (Exception ex)
+            {
+                return (false, $"Lỗi hệ thống khi tạo Lệnh mua hàng: {ex.Message}");
+            }
+        }
+}
 
 }

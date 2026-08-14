@@ -70,9 +70,11 @@ public class SupplierService : ISupplierService
             PreferredProducts = supplier.SupplierProducts.Count(sp => sp.IsPreferred),
             SuppliedProducts = supplier.SupplierProducts.Select(sp => new SupplierProductDto
             {
+                ProductId = sp.ProductId,
                 ProductCode = sp.Product.ProductCode,
                 ProductName = sp.Product.ProductName,
                 GroupName = sp.Product.ProductGroup.GroupName,
+                Unit = sp.Product.UnitOfMeasure?.UnitName ?? string.Empty,
                 LastPurchasePrice = sp.LastPurchasePrice,
                 LeadTimeDays = sp.LeadTimeDays,
                 Status = sp.Status

@@ -1,4 +1,4 @@
-﻿using BMWMS.Repository.Interfaces.Inventory;
+using BMWMS.Repository.Interfaces.Inventory;
 using BMWMS.Repository.Models;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -76,8 +76,11 @@ namespace BMWMS.Repository.Repositories.Inventory
                 .Include(po => po.ConfirmedByUser)
                 .Include(po => po.PurchaseOrderDetails)
                     .ThenInclude(pod => pod.Product)
+                        .ThenInclude(p => p.UnitOfMeasure)
                 .Include(po => po.InboundOrders)
                     .ThenInclude(io => io.Warehouse)
+                .Include(po => po.InboundOrders)
+                    .ThenInclude(io => io.InboundOrderItems)
                 .FirstOrDefaultAsync(po => po.PurchaseOrderId == purchaseOrderId);
         }
 
@@ -86,23 +89,30 @@ namespace BMWMS.Repository.Repositories.Inventory
             int currentYear = DateTime.Now.Year;
             string prefix = $"PO-{currentYear}-";
 
-            // Lấy số thứ tự lớn nhất trong năm hiện tại
-            var lastPo = await _context.PurchaseOrders
+            // Tải tất cả mã PO bắt đầu bằng prefix trong năm hiện tại
+            var allPos = await _context.PurchaseOrders
                 .Where(po => po.PurchaseOrderNumber.StartsWith(prefix))
-                .OrderByDescending(po => po.PurchaseOrderNumber)
-                .FirstOrDefaultAsync();
+                .Select(po => po.PurchaseOrderNumber)
+                .ToListAsync();
 
-            int nextSequence = 1;
-            if (lastPo != null && lastPo.PurchaseOrderNumber.Length >= 11)
+            int maxSeq = 0;
+            foreach (var num in allPos)
             {
-                string seqStr = lastPo.PurchaseOrderNumber.Substring(prefix.Length);
-                if (int.TryParse(seqStr, out int lastSeq))
+                if (num.Length > prefix.Length)
                 {
-                    nextSequence = lastSeq + 1;
+                    string seqStr = num.Substring(prefix.Length);
+                    if (int.TryParse(seqStr, out int seq))
+                    {
+                        if (seq > maxSeq)
+                        {
+                            maxSeq = seq;
+                        }
+                    }
                 }
             }
 
-            return $"{prefix}{nextSequence:D4}"; 
+            int nextSequence = maxSeq + 1;
+            return $"{prefix}{nextSequence:D4}";
         }
 
         public async Task<PurchaseOrder> AddAsync(PurchaseOrder entity)

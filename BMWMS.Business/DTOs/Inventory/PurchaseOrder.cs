@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -23,10 +23,7 @@ namespace BMWMS.Business.DTOs.Inventory
         public DateOnly? ExpectedDeliveryDate { get; set; }
         public string Status { get; set; } = string.Empty;
 
-        // Tổng số lượng & Đơn vị tính đại diện (Dùng hiển thị cột "Tổng SL")
-        public decimal TotalQuantity { get; set; }
-        public string UnitName { get; set; } = string.Empty;
-        public string DisplayTotalQuantity => $"{TotalQuantity:N0} {UnitName}".Trim();
+        public int ItemCount { get; set; }
     }
     #endregion
 
@@ -59,6 +56,16 @@ namespace BMWMS.Business.DTOs.Inventory
         public decimal TotalAmount { get; set; }
 
         public List<PurchaseOrderItemDto> Items { get; set; } = new();
+        public List<RelatedInboundDto> Inbounds { get; set; } = new();
+    }
+
+    public class RelatedInboundDto
+    {
+        public long InboundOrderId { get; set; }
+        public string InboundOrderNumber { get; set; } = string.Empty;
+        public DateOnly ExpectedReceiptDate { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public string? Notes { get; set; }
     }
 
     public class PurchaseOrderItemDto
@@ -69,6 +76,7 @@ namespace BMWMS.Business.DTOs.Inventory
         public string ProductName { get; set; } = string.Empty;
         public string Unit { get; set; } = string.Empty;
         public decimal OrderedQuantity { get; set; }
+        public decimal ReceivedQuantity { get; set; }
         public decimal UnitPrice { get; set; }
         public decimal TotalPrice => OrderedQuantity * UnitPrice;
         public string? Notes { get; set; }
