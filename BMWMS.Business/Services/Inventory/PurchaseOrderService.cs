@@ -195,6 +195,7 @@ namespace BMWMS.Business.Services.Inventory
                 ProductCode = p.ProductCode ?? string.Empty,
                 ProductName = p.ProductName ?? string.Empty,
                 UnitOfMeasure = p.UnitOfMeasure?.UnitName ?? string.Empty,
+                AvailableQuantity = p.Inventories.Sum(x => x.OnHandQuantity - x.ReservedQuantity),
                 PurchasePrice = p.SupplierProducts.FirstOrDefault()?.LastPurchasePrice ?? 0
             });
         }
@@ -218,6 +219,17 @@ namespace BMWMS.Business.Services.Inventory
                 SupplierId = s.SupplierId,
                 SupplierCode = s.SupplierCode ?? string.Empty,
                 SupplierName = s.SupplierName ?? string.Empty
+            });
+        }
+
+        public async Task<IEnumerable<CustomerLookupDto>> GetCustomersAsync()
+        {
+            var suppliers = await _poRepository.GetCustomersAsync();
+            return suppliers.Select(s => new CustomerLookupDto
+            {
+                CustomerId = s.CustomerId,
+                CustomerCode = s.CustomerCode ?? string.Empty,
+                CustomerName = s.CustomerName ?? string.Empty
             });
         }
     }

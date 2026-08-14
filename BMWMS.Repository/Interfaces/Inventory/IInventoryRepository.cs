@@ -26,5 +26,9 @@ namespace BMWMS.Repository.Interfaces.Inventory
 
         // 3. Hàm lấy chi tiết 1 dòng tồn kho
         Task<BMWMS.Repository.Models.Inventory?> GetByIdAsync(long inventoryId);
+
+        Task<decimal> GetAvailableQuantityAsync(long productId);
+
+        Task<bool> ReserveStockAsync(long productId, decimal quantity);
     }
 }

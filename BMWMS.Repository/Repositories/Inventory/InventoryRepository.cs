@@ -131,5 +131,58 @@ namespace BMWMS.Repository.Repositories.Inventory
                     .ThenInclude(sl => sl.Warehouse)
                 .FirstOrDefaultAsync(i => i.InventoryId == inventoryId);
         }
+
+        public async Task<decimal> GetAvailableQuantityAsync(long productId)
+        {
+            return await _context.Inventories
+                .Where(x => x.ProductId == productId)
+                .SumAsync(x => x.OnHandQuantity - x.ReservedQuantity);
+        }
+        public async Task<bool> ReserveStockAsync(
+    long productId,
+    decimal quantity)
+        {
+            if (quantity <= 0)
+                return false;
+
+            var inventories = await _context.Inventories
+                .Where(x => x.ProductId == productId)
+                .OrderBy(x => x.InventoryId)
+                .ToListAsync();
+
+            decimal totalAvailable = inventories.Sum(
+                x => x.OnHandQuantity - x.ReservedQuantity);
+
+            // Không đủ tồn
+            if (totalAvailable < quantity)
+                return false;
+
+            decimal remaining = quantity;
+
+            foreach (var inventory in inventories)
+            {
+                if (remaining <= 0)
+                    break;
+
+                decimal available =
+                    inventory.OnHandQuantity -
+                    inventory.ReservedQuantity;
+
+                if (available <= 0)
+                    continue;
+
+                decimal reserveQuantity =
+                    Math.Min(available, remaining);
+
+                inventory.ReservedQuantity += reserveQuantity;
+
+                remaining -= reserveQuantity;
+            }
+
+            await _context.SaveChangesAsync();
+
+            return remaining == 0;
+        }
+
     }
 }
