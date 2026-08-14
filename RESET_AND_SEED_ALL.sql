@@ -647,6 +647,15 @@ EXEC sp_MSforeachtable 'ALTER TABLE ? WITH CHECK CHECK CONSTRAINT ALL';
 GO
 
 PRINT N'======================================================================';
+PRINT N'======================================================================';
+PRINT N'>>> BƯỚC CUỐI: BẬT LẠI TOÀN BỘ TRIGGER VÀ KIỂM TRA RÀNG BUỘC KHÓA NGOẠI';
+PRINT N'======================================================================';
+
+EXEC sp_MSforeachtable 'ALTER TABLE ? ENABLE TRIGGER ALL';
+EXEC sp_MSforeachtable 'ALTER TABLE ? WITH CHECK CHECK CONSTRAINT ALL';
+GO
+
+PRINT N'======================================================================';
 PRINT N'>>> TỔNG HỢP KIỂM TRA DỮ LIỆU ĐÃ SEED THÀNH CÔNG:';
 PRINT N'======================================================================';
 

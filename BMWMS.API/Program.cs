@@ -109,6 +109,19 @@ builder.Services.AddScoped<IExcelExportService, ExcelExportService>();
 builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 
+// StockOperations (VietAnh)
+builder.Services.AddScoped<BMWMS.Repository.Interfaces.StockOperations.ITransferRepository, BMWMS.Repository.Repositories.StockOperations.TransferRepository>();
+builder.Services.AddScoped<BMWMS.Business.Interfaces.StockOperations.ITransferService, BMWMS.Business.Services.StockOperations.TransferService>();
+
+// HuyNgo Services
+builder.Services.AddScoped<IPurchaseOrderRepository, PurchaseOrderRepository>();
+builder.Services.AddScoped<IPurchaseOrderService, PurchaseOrderService>();
+builder.Services.AddScoped<IOutboundOrderRepository, OutboundOrderRepository>();
+builder.Services.AddScoped<IOutboundOrderService, OutboundOrderService>();
+builder.Services.AddScoped<ISalesOrderRepository, SalesOrderRepository>();
+builder.Services.AddScoped<ISalesOrderService, SalesOrderService>();
+
+
 var app = builder.Build();
 
 app.UseCors("AllowAll");

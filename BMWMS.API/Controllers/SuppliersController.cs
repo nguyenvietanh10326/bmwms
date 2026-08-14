@@ -57,7 +57,7 @@ public class SuppliersController : ControllerBase
     {
         try
         {
-            var userId = long.Parse(User.FindFirst("UserId")?.Value ?? "0");
+            var userId = long.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0");
             var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
 
             var supplierId = await _supplierService.CreateSupplierAsync(dto, userId, ipAddress);
@@ -69,7 +69,7 @@ public class SuppliersController : ControllerBase
         }
         catch (Exception ex)
         {
-            return StatusCode(500, ex.Message);
+            return StatusCode(500, ex.InnerException?.Message ?? ex.Message);
         }
     }
 
@@ -79,7 +79,7 @@ public class SuppliersController : ControllerBase
     {
         try
         {
-            var userId = long.Parse(User.FindFirst("UserId")?.Value ?? "0");
+            var userId = long.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0");
             var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
 
             await _supplierService.UpdateSupplierAsync(supplierCode, dto, userId, ipAddress);

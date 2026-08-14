@@ -1,0 +1,299 @@
+@page
+@model BMWMS.Web.Pages.Transfer.IndexModel
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Danh Sách Điều Chuyển Kho";
+    ViewData["HeaderTitle"] = "Quản Lý Lệnh Điều Chuyển Nội Bộ";
+}
+
+<div class="container-fluid" style="padding: 24px; max-width: 1440px; margin: 0 auto;">
+
+    <!-- TOP BREADCRUMB & HEADER -->
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; flex-wrap: wrap; gap: 16px;">
+        <div>
+            <div style="font-size: 13px; color: #64748b; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+                <span>Nghiệp vụ kho</span>
+                <i class="ri-arrow-right-s-line" style="font-size: 14px;"></i>
+                <span style="color: #2563eb; font-weight: 500;">Điều chuyển kho</span>
+            </div>
+            <h1 style="font-size: 22px; font-weight: 700; color: #0f172a; margin: 0;">
+                <i class="ri-arrow-left-right-line" style="color: #2563eb; margin-right: 8px;"></i>Danh Sách Phiếu Điều Chuyển Nội Bộ
+            </h1>
+            <p style="font-size: 13px; color: #64748b; margin-top: 4px; margin-bottom: 0;">
+                Quản lý, tìm kiếm và phê duyệt các lệnh chuyển vị trí ô/kệ trong hệ thống kho.
+            </p>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+            <a href="/Transfer/Create" style="display: inline-flex; align-items: center; gap: 6px; background: #2563eb; color: #ffffff; padding: 8px 18px; border-radius: 8px; font-weight: 600; font-size: 13px; text-decoration: none; box-shadow: 0 1px 3px rgba(37, 99, 235, 0.2);">
+                <i class="ri-add-line" style="font-size: 16px;"></i> Tạo Phiếu Chuyển Vị Trí
+            </a>
+        </div>
+    </div>
+
+    <!-- TOAST THÔNG BÁO -->
+    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+    {
+        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 14px 18px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px;">
+            <i class="ri-checkbox-circle-fill" style="font-size: 20px; color: #16a34a;"></i>
+            <div style="font-weight: 600; color: #15803d; font-size: 14px;">@Model.SuccessMessage</div>
+        </div>
+    }
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div style="background: #fff5f5; border: 1px solid #fecaca; border-radius: 10px; padding: 14px 18px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px;">
+            <i class="ri-error-warning-fill" style="font-size: 20px; color: #dc2626;"></i>
+            <div style="font-weight: 600; color: #dc2626; font-size: 14px;">@Model.ErrorMessage</div>
+        </div>
+    }
+
+    <!-- 4 CARD THỐNG KÊ -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 20px;">
+        <!-- Card 1: Tổng số phiếu -->
+        <div style="background: #ffffff; padding: 18px 20px; border-radius: 10px; border: 1px solid #e2e8f0; box-shadow: 0 1px 2px rgba(0,0,0,0.03); position: relative; overflow: hidden;">
+            <div style="position: absolute; top: 0; left: 0; right: 0; height: 3px; background: #2563eb;"></div>
+            <div style="font-size: 12px; color: #64748b; font-weight: 600; text-transform: uppercase;">Tổng số phiếu</div>
+            <div style="font-size: 26px; font-weight: 700; color: #0f172a; margin-top: 6px;">@Model.PagedResult.TotalCount</div>
+            <div style="font-size: 12px; color: #64748b; margin-top: 4px;">Tất cả lịch sử yêu cầu</div>
+        </div>
+
+        <!-- Card 2: Chờ phê duyệt (DRAFT) -->
+        <div style="background: #ffffff; padding: 18px 20px; border-radius: 10px; border: 1px solid #e2e8f0; box-shadow: 0 1px 2px rgba(0,0,0,0.03); position: relative; overflow: hidden;">
+            <div style="position: absolute; top: 0; left: 0; right: 0; height: 3px; background: #d97706;"></div>
+            <div style="font-size: 12px; color: #64748b; font-weight: 600; text-transform: uppercase;">Chờ phê duyệt</div>
+            <div style="font-size: 26px; font-weight: 700; color: #d97706; margin-top: 6px;">@Model.PagedResult.DraftCount</div>
+            <div style="font-size: 12px; color: #d97706; margin-top: 4px; font-weight: 500;">
+                <i class="ri-time-line"></i> Đang chờ Quản lý duyệt
+            </div>
+        </div>
+
+        <!-- Card 3: Đã duyệt - chờ thực hiện (APPROVED) -->
+        <div style="background: #ffffff; padding: 18px 20px; border-radius: 10px; border: 1px solid #e2e8f0; box-shadow: 0 1px 2px rgba(0,0,0,0.03); position: relative; overflow: hidden;">
+            <div style="position: absolute; top: 0; left: 0; right: 0; height: 3px; background: #2563eb;"></div>
+            <div style="font-size: 12px; color: #64748b; font-weight: 600; text-transform: uppercase;">Chờ thực hiện</div>
+            <div style="font-size: 26px; font-weight: 700; color: #2563eb; margin-top: 6px;">@Model.PagedResult.ApprovedCount</div>
+            <div style="font-size: 12px; color: #2563eb; margin-top: 4px; font-weight: 500;">
+                <i class="ri-truck-line"></i> NV đang thực hiện
+            </div>
+        </div>
+
+        <!-- Card 4: Đã hoàn thành -->
+        <div style="background: #ffffff; padding: 18px 20px; border-radius: 10px; border: 1px solid #e2e8f0; box-shadow: 0 1px 2px rgba(0,0,0,0.03); position: relative; overflow: hidden;">
+            <div style="position: absolute; top: 0; left: 0; right: 0; height: 3px; background: #16a34a;"></div>
+            <div style="font-size: 12px; color: #64748b; font-weight: 600; text-transform: uppercase;">Đã hoàn thành</div>
+            <div style="font-size: 26px; font-weight: 700; color: #16a34a; margin-top: 6px;">@Model.PagedResult.CompletedCount</div>
+            <div style="font-size: 12px; color: #16a34a; margin-top: 4px; font-weight: 500;">
+                <i class="ri-checkbox-circle-line"></i> Đã cập nhật tồn kho
+            </div>
+        </div>
+    </div>
+
+    <!-- KHU VỰC LỌC VÀ TÌM KIẾM -->
+    <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px 20px; margin-bottom: 20px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+        <form method="get" class="row g-3 align-items-center">
+            <div class="col-md-5">
+                <label style="font-size: 12px; color: #64748b; font-weight: 600; margin-bottom: 4px; display: block;">Từ khóa tìm kiếm</label>
+                <div style="position: relative;">
+                    <i class="ri-search-line" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8;"></i>
+                    <input type="text" name="Keyword" value="@Model.Keyword" placeholder="Nhập mã phiếu (BT-...)..."
+                           class="form-control form-control-sm" style="padding-left: 36px; border-color: #e2e8f0; font-size: 13px;" />
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <label style="font-size: 12px; color: #64748b; font-weight: 600; margin-bottom: 4px; display: block;">Trạng thái</label>
+                <select name="Status" class="form-select form-select-sm" style="border-color: #e2e8f0; font-size: 13px;">
+                    <option value="">-- Tất cả trạng thái --</option>
+                    <option value="DRAFT" selected="@(Model.Status == "DRAFT" ? "selected" : null)">⏳ Chờ phê duyệt (DRAFT)</option>
+                    <option value="APPROVED" selected="@(Model.Status == "APPROVED" ? "selected" : null)">🔵 Đã duyệt - Chờ thực hiện (APPROVED)</option>
+                    <option value="ISSUED" selected="@(Model.Status == "ISSUED" ? "selected" : null)">Đã xuất - Đang di chuyển</option>
+                    <option value="RECEIVED" selected="@(Model.Status == "RECEIVED" ? "selected" : null)">Da nhap - Hoan thanh</option>
+                    <option value="COMPLETED" selected="@(Model.Status == "COMPLETED" ? "selected" : null)">✅ Đã hoàn thành (COMPLETED)</option>
+                    <option value="CANCELLED" selected="@(Model.Status == "CANCELLED" ? "selected" : null)">❌ Đã hủy (CANCELLED)</option>
+                </select>
+            </div>
+
+            <div class="col-md-2 d-flex align-items-end gap-2" style="margin-top: 24px;">
+                <button type="submit" class="btn btn-primary btn-sm flex-fill" style="background: #2563eb; border: none; font-weight: 500; font-size: 13px; padding: 7px 14px;">
+                    <i class="ri-filter-3-line"></i> Lọc
+                </button>
+                <a href="/Transfer/Index" class="btn btn-light btn-sm" style="border: 1px solid #e2e8f0; font-size: 13px; padding: 7px 12px;" title="Xóa bộ lọc">
+                    <i class="ri-refresh-line"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- BẢNG DANH SÁCH LỆNH ĐIỀU CHUYỂN -->
+    <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+        <div style="overflow-x: auto;">
+            <table class="table align-middle" style="margin: 0; font-size: 13px;">
+                <thead>
+                    <tr style="background: #f8fafc; border-bottom: 1px solid #e2e8f0; color: #475569; font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em;">
+                        <th style="padding: 12px 16px; font-weight: 600;">Mã phiếu</th>
+                        <th style="padding: 12px 16px; font-weight: 600;">Kho hàng</th>
+                        <th style="padding: 12px 16px; font-weight: 600;">Tuyến chuyển</th>
+                        <th style="padding: 12px 16px; font-weight: 600; text-align:right;">SL</th>
+                        <th style="padding: 12px 16px; font-weight: 600;">Bước tiếp</th>
+                        <th style="padding: 12px 16px; font-weight: 600;">Người tạo</th>
+                        <th style="padding: 12px 16px; font-weight: 600;">NV phụ trách</th>
+                        <th style="padding: 12px 16px; font-weight: 600;">Ngày tạo</th>
+                        <th style="padding: 12px 16px; font-weight: 600; text-align: center;">Trạng thái</th>
+                        <th style="padding: 12px 16px; font-weight: 600; text-align: right;">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.PagedResult.Items.Any())
+                    {
+                        @foreach (var item in Model.PagedResult.Items)
+                        {
+                            <tr style="border-bottom: 1px solid #f1f5f9;">
+                                <td style="padding: 14px 16px;">
+                                    <a href="/Transfer/Details?id=@item.TransferOrderId" style="font-weight: 700; color: #2563eb; text-decoration: none;">
+                                        @item.TransferOrderNumber
+                                    </a>
+                                    <div style="font-size: 11px; color: #94a3b8;">@item.TotalItems dòng</div>
+                                </td>
+                                <td style="padding: 14px 16px; font-weight: 500; color: #1e293b;">
+                                    @item.WarehouseName
+                                </td>
+                                <td style="padding: 14px 16px; color: #475569; min-width: 190px;">
+                                    <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                                        <span style="background:#fef3c7; color:#92400e; padding:3px 8px; border-radius:6px; font-size:11px; font-weight:700;">@item.SourceLocationSummary</span>
+                                        <i class="ri-arrow-right-line" style="color:#94a3b8;"></i>
+                                        <span style="background:#dbeafe; color:#1e40af; padding:3px 8px; border-radius:6px; font-size:11px; font-weight:700;">@item.DestinationLocationSummary</span>
+                                    </div>
+                                </td>
+                                <td style="padding: 14px 16px; text-align:right; color:#0f172a; font-weight:700;">
+                                    <div>@item.TotalMovedQuantity.ToString("N2") / @item.TotalRequestedQuantity.ToString("N2")</div>
+                                    <div style="font-size:11px; color:#64748b; font-weight:500;">@item.TotalItems dòng</div>
+                                </td>
+                                <td style="padding: 14px 16px; color:#475569; min-width: 150px;">
+                                    <div style="font-weight:600; color:#334155;">@item.ProgressLabel</div>
+                                    <div style="font-size:11px; color:#64748b;">@item.NextAction</div>
+                                </td>
+                                <td style="padding: 14px 16px; color: #475569;">
+                                    <div style="font-weight:500;">@item.CreatedByName</div>
+                                    <div style="font-size: 11px; color: #94a3b8;">@item.CreatedAt.ToString("dd/MM/yyyy HH:mm")</div>
+                                </td>
+                                <td style="padding: 14px 16px; color: #475569;">
+                                    @if (!string.IsNullOrEmpty(item.AssignedToName))
+                                    {
+                                        <span style="background:#eff6ff; color:#1d4ed8; padding:3px 8px; border-radius:20px; font-size:11px; font-weight:600; display:inline-flex; align-items:center; gap:3px;">
+                                            <i class="ri-user-line"></i> @item.AssignedToName
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span style="color:#94a3b8; font-size:11px; font-style:italic;">—</span>
+                                    }
+                                </td>
+                                <td style="padding: 14px 16px; color: #475569;">
+                                    @item.RequestedDate.ToString("dd/MM/yyyy")
+                                </td>
+                                <td style="padding: 14px 16px; text-align: center;">
+                                    @if (item.Status == "PENDING" || item.Status == "DRAFT")
+                                    {
+                                        <span style="background: #fffbeb; color: #b45309; border: 1px solid #fde68a; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+                                            <i class="ri-time-line"></i> Chờ duyệt
+                                        </span>
+                                    }
+                                    else if (item.Status == "COMPLETED")
+                                    {
+                                        <span style="background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+                                            <i class="ri-checkbox-circle-line"></i> Hoàn thành
+                                        </span>
+                                    }
+                                    else if (item.Status == "APPROVED" || item.Status == "ASSIGNED")
+                                    {
+                                        <span style="background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+                                            <i class="ri-truck-line"></i> Chờ thực hiện
+                                        </span>
+                                    }
+                                    else if (item.Status == "IN_PROGRESS")
+                                    {
+                                        <span style="background: #ecfeff; color: #0e7490; border: 1px solid #a5f3fc; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+                                            <i class="ri-truck-line"></i> @(item.InventoryPosted ? "Da nhap" : "Dang di chuyen")
+                                        </span>
+                                    }
+                                    else if (item.Status == "REJECTED" || item.Status == "CANCELLED")
+                                    {
+                                        <span style="background: #fff5f5; color: #b91c1c; border: 1px solid #fecaca; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+                                            <i class="ri-close-circle-line"></i> Đã hủy
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">@item.Status</span>
+                                    }
+                                </td>
+                                <td style="padding: 14px 16px; text-align: right;">
+                                    <a href="/Transfer/Details?id=@item.TransferOrderId"
+                                       class="btn btn-sm btn-outline-primary"
+                                       style="font-size: 12px; border-radius: 6px; padding: 4px 10px;">
+                                        <i class="ri-eye-line"></i> Chi tiết
+                                    </a>
+                                    @if (Model.IsManager && item.Status == "DRAFT")
+                                    {
+                                        <a href="/Transfer/Create?id=@item.TransferOrderId"
+                                           class="btn btn-sm btn-outline-secondary"
+                                           style="font-size: 12px; border-radius: 6px; padding: 4px 10px; margin-left:4px;">
+                                            <i class="ri-edit-line"></i> Sua
+                                        </a>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="10" style="text-align: center; padding: 40px; color: #94a3b8;">
+                                <i class="ri-inbox-line" style="font-size: 36px; display: block; margin-bottom: 8px;"></i>
+                                Không tìm thấy phiếu điều chuyển nào phù hợp.
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- PHÂN TRANG -->
+        @if (Model.PagedResult.TotalPages > 1)
+        {
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; background: #f8fafc; border-top: 1px solid #e2e8f0; font-size: 13px; color: #64748b;">
+                <div>
+                    Hiển thị <strong>@(((Model.PagedResult.PageIndex - 1) * Model.PagedResult.PageSize) + 1)</strong> -
+                    <strong>@(Math.Min(Model.PagedResult.PageIndex * Model.PagedResult.PageSize, Model.PagedResult.TotalCount))</strong>
+                    trong tổng số <strong>@Model.PagedResult.TotalCount</strong> phiếu
+                </div>
+                <nav>
+                    <ul class="pagination pagination-sm mb-0" style="gap: 4px;">
+                        <!-- First & Prev -->
+                        <li class="page-item @(Model.PagedResult.PageIndex == 1 ? "disabled" : "")">
+                            <a class="page-link" href="/Transfer/Index?PageIndex=1&PageSize=@Model.PageSize&Keyword=@Model.Keyword&Status=@Model.Status&WarehouseId=@Model.WarehouseId">««</a>
+                        </li>
+                        <li class="page-item @(Model.PagedResult.PageIndex == 1 ? "disabled" : "")">
+                            <a class="page-link" href="/Transfer/Index?PageIndex=@(Model.PagedResult.PageIndex - 1)&PageSize=@Model.PageSize&Keyword=@Model.Keyword&Status=@Model.Status&WarehouseId=@Model.WarehouseId">«</a>
+                        </li>
+
+                        @for (int p = Math.Max(1, Model.PagedResult.PageIndex - 2); p <= Math.Min(Model.PagedResult.TotalPages, Model.PagedResult.PageIndex + 2); p++)
+                        {
+                            <li class="page-item @(p == Model.PagedResult.PageIndex ? "active" : "")">
+                                <a class="page-link" href="/Transfer/Index?PageIndex=@p&PageSize=@Model.PageSize&Keyword=@Model.Keyword&Status=@Model.Status&WarehouseId=@Model.WarehouseId">@p</a>
+                            </li>
+                        }
+
+                        <!-- Next & Last -->
+                        <li class="page-item @(Model.PagedResult.PageIndex == Model.PagedResult.TotalPages ? "disabled" : "")">
+                            <a class="page-link" href="/Transfer/Index?PageIndex=@(Model.PagedResult.PageIndex + 1)&PageSize=@Model.PageSize&Keyword=@Model.Keyword&Status=@Model.Status&WarehouseId=@Model.WarehouseId">»</a>
+                        </li>
+                        <li class="page-item @(Model.PagedResult.PageIndex == Model.PagedResult.TotalPages ? "disabled" : "")">
+                            <a class="page-link" href="/Transfer/Index?PageIndex=@Model.PagedResult.TotalPages&PageSize=@Model.PageSize&Keyword=@Model.Keyword&Status=@Model.Status&WarehouseId=@Model.WarehouseId">»»</a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        }
+    </div>
+</div>

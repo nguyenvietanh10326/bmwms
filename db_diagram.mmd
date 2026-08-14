@@ -1,0 +1,596 @@
+erDiagram
+    Suppliers {
+        BIGINT SupplierID PK
+        VARCHAR SupplierCode
+        NVARCHAR SupplierName
+        VARCHAR PhoneNumber
+        VARCHAR Email
+        NVARCHAR Address
+        NVARCHAR RepresentativeName
+        VARCHAR TaxCode
+        VARCHAR Status
+        BIGINT CreatedByUserID
+        DATETIME2 CreatedAt
+        BIGINT UpdatedByUserID
+        DATETIME2 UpdatedAt
+    }
+    Customers {
+        BIGINT CustomerID PK
+        VARCHAR CustomerCode
+        NVARCHAR CustomerName
+        VARCHAR PhoneNumber
+        VARCHAR Email
+        NVARCHAR Address
+        VARCHAR TaxCode
+        VARCHAR Status
+        BIGINT CreatedByUserID
+        DATETIME2 CreatedAt
+        DATETIME2 UpdatedAt
+    }
+    SupplierProducts {
+        BIGINT SupplierID
+        BIGINT ProductID
+        VARCHAR SupplierProductCode
+        DECIMAL LastPurchasePrice
+        INT LeadTimeDays
+        BIT IsPreferred
+        VARCHAR Status
+    }
+    PurchaseOrders {
+        BIGINT PurchaseOrderID PK
+        VARCHAR PurchaseOrderNumber
+        BIGINT SupplierID
+        DATE OrderDate
+        DATE ExpectedDeliveryDate
+        VARCHAR Status
+        NVARCHAR Notes
+        BIGINT CreatedByUserID
+        DATETIME2 CreatedAt
+        BIGINT ConfirmedByUserID
+        DATETIME2 ConfirmedAt
+        DATETIME2 UpdatedAt
+    }
+    PurchaseOrderDetails {
+        BIGINT PurchaseOrderDetailID PK
+        BIGINT PurchaseOrderID
+        BIGINT ProductID
+        DECIMAL OrderedQuantity
+        DECIMAL UnitPrice
+        NVARCHAR Notes
+    }
+    SalesOrders {
+        BIGINT SalesOrderID PK
+        VARCHAR SalesOrderNumber
+        BIGINT CustomerID
+        DATE OrderDate
+        DATE ExpectedIssueDate
+        VARCHAR Status
+        NVARCHAR Notes
+        BIGINT CreatedByUserID
+        DATETIME2 CreatedAt
+        BIGINT ConfirmedByUserID
+        DATETIME2 ConfirmedAt
+        DATETIME2 UpdatedAt
+    }
+    SalesOrderDetails {
+        BIGINT SalesOrderDetailID PK
+        BIGINT SalesOrderID
+        BIGINT ProductID
+        DECIMAL OrderedQuantity
+        DECIMAL ReservedQuantity
+        DECIMAL FulfilledQuantity
+        DECIMAL UnitPrice
+        NVARCHAR Notes
+    }
+    InventoryReservations {
+        BIGINT InventoryReservationID PK
+        BIGINT SalesOrderDetailID
+        BIGINT ProductID
+        BIGINT StorageLocationID
+        BIGINT ProductLotID
+        DECIMAL ReservedQuantity
+        DECIMAL ConsumedQuantity
+        VARCHAR Status
+        BIGINT ReservedByUserID
+        DATETIME2 ReservedAt
+        DATETIME2 ReleasedAt
+    }
+    TransferOrders {
+        BIGINT TransferOrderID PK
+        VARCHAR TransferOrderNumber
+        VARCHAR TransferType
+        BIGINT SourceWarehouseID
+        BIGINT DestinationWarehouseID
+        DATE RequestedDate
+        DATE DueDate
+        VARCHAR Status
+        NVARCHAR Notes
+        BIGINT CreatedByUserID
+        BIGINT AssignedToUserID
+        DATETIME2 CreatedAt
+        BIGINT ConfirmedByUserID
+        DATETIME2 ConfirmedAt
+    }
+    TransferOrderDetails {
+        BIGINT TransferOrderDetailID PK
+        BIGINT TransferOrderID
+        BIGINT ProductID
+        BIGINT ProductLotID
+        BIGINT SourceLocationID
+        BIGINT DestinationLocationID
+        DECIMAL RequestedQuantity
+        DECIMAL MovedQuantity
+        NVARCHAR StaffNote
+        BIGINT ConfirmedByUserID
+        DATETIME2 ConfirmedAt
+        IS SourceLocationID
+    }
+    Roles {
+        INT RoleID PK
+        VARCHAR RoleCode
+        NVARCHAR RoleName
+        NVARCHAR Description
+        BIT IsSystemRole
+        BIT IsActive
+        DATETIME2 CreatedAt
+    }
+    Permissions {
+        INT PermissionID PK
+        VARCHAR PermissionCode
+        NVARCHAR PermissionName
+        VARCHAR ModuleCode
+        BIT IsActive
+    }
+    RolePermissions {
+        INT RoleID
+        INT PermissionID
+        DATETIME2 GrantedAt
+    }
+    Users {
+        BIGINT UserID PK
+        INT RoleID
+        VARCHAR Username
+        VARCHAR Email
+        NVARCHAR PasswordHash
+        NVARCHAR FullName
+        VARCHAR PhoneNumber
+        NVARCHAR AvatarUrl
+        VARCHAR Status
+        INT FailedLoginCount
+        DATETIME2 LockedUntil
+        DATETIME2 LastLoginAt
+        DATETIME2 CreatedAt
+        DATETIME2 UpdatedAt
+    }
+    UserSessions {
+        UNIQUEIDENTIFIER SessionID
+        BIGINT UserID
+        VARBINARY RefreshTokenHash
+        VARCHAR IpAddress
+        NVARCHAR UserAgent
+        DATETIME2 CreatedAt
+        DATETIME2 ExpiresAt
+        DATETIME2 RevokedAt
+    }
+    PasswordResetTokens {
+        BIGINT PasswordResetTokenID PK
+        BIGINT UserID
+        VARBINARY TokenHash
+        DATETIME2 RequestedAt
+        DATETIME2 ExpiresAt
+        DATETIME2 UsedAt
+    }
+    Warehouses {
+        BIGINT WarehouseID PK
+        VARCHAR WarehouseCode
+        NVARCHAR WarehouseName
+        NVARCHAR Address
+        VARCHAR PhoneNumber
+        BIT IsPrimary
+        VARCHAR Status
+        DATETIME2 CreatedAt
+        DATETIME2 UpdatedAt
+    }
+    WarehouseZones {
+        BIGINT ZoneID PK
+        BIGINT WarehouseID
+        VARCHAR ZoneCode
+        NVARCHAR ZoneName
+        NVARCHAR Description
+        VARCHAR Status
+    }
+    StorageRacks {
+        BIGINT RackID PK
+        BIGINT WarehouseID
+        BIGINT ZoneID
+        VARCHAR RackCode
+        NVARCHAR RackName
+        VARCHAR Status
+        dbo REFERENCES
+    }
+    StorageLocations {
+        BIGINT StorageLocationID PK
+        BIGINT WarehouseID
+        BIGINT RackID
+        VARCHAR LocationCode
+        NVARCHAR LocationName
+        VARCHAR LocationType
+        DECIMAL AreaSquareMeter
+        DECIMAL MaxWeightKg
+        DECIMAL MaxVolumeM3
+        BIT IsPutawayAllowed
+        BIT IsPickable
+        VARCHAR Status
+        DATETIME2 CreatedAt
+        DATETIME2 UpdatedAt
+        dbo REFERENCES
+    }
+    UnitsOfMeasure {
+        INT UnitOfMeasureID PK
+        VARCHAR UnitCode
+        NVARCHAR UnitName
+        VARCHAR Status
+    }
+    ProductGroups {
+        BIGINT ProductGroupID PK
+        BIGINT ParentGroupID
+        VARCHAR GroupCode
+        NVARCHAR GroupName
+        NVARCHAR Description
+        VARCHAR Status
+        DATETIME2 CreatedAt
+        DATETIME2 UpdatedAt
+    }
+    ProductAttributes {
+        BIGINT ProductAttributeID PK
+        VARCHAR AttributeCode
+        NVARCHAR AttributeName
+        VARCHAR DataType
+        NVARCHAR UnitLabel
+        NVARCHAR Description
+        VARCHAR Status
+    }
+    ProductAttributeOptions {
+        BIGINT ProductAttributeOptionID PK
+        BIGINT ProductAttributeID
+        VARCHAR OptionCode
+        NVARCHAR OptionValue
+        INT DisplayOrder
+        BIT IsActive
+        dbo REFERENCES
+    }
+    ProductGroupAttributes {
+        BIGINT ProductGroupID
+        BIGINT ProductAttributeID
+        BIT IsRequired
+        INT DisplayOrder
+        NVARCHAR DefaultValue
+    }
+    Products {
+        BIGINT ProductID PK
+        BIGINT ProductGroupID
+        INT UnitOfMeasureID
+        VARCHAR ProductCode
+        NVARCHAR ProductName
+        VARCHAR Barcode
+        NVARCHAR Description
+        VARCHAR RotationMethod
+        BIT TrackLot
+        BIT TrackExpiry
+        INT DefaultShelfLifeDays
+        VARCHAR Status
+        BIGINT CreatedByUserID
+        DATETIME2 CreatedAt
+        BIGINT UpdatedByUserID
+        DATETIME2 UpdatedAt
+    }
+    ProductAttributeValues {
+        BIGINT ProductID
+        BIGINT ProductAttributeID
+        NVARCHAR AttributeValue
+        DATETIME2 UpdatedAt
+    }
+    ProductLots {
+        BIGINT ProductLotID PK
+        BIGINT ProductID
+        VARCHAR LotNumber
+        DATE ManufactureDate
+        DATE ExpiryDate
+        DATE FirstReceivedDate
+        VARCHAR Status
+        DATETIME2 CreatedAt
+    }
+    ProductFixedLocations {
+        BIGINT ProductID
+        BIGINT StorageLocationID
+        INT Priority
+        BIT IsDefault
+        BIT IsActive
+    }
+    ProductWarehousePolicies {
+        BIGINT ProductID
+        BIGINT WarehouseID
+        DECIMAL MinimumStockQuantity
+        INT ExpiryWarningDays
+    }
+    InboundOrders {
+        BIGINT InboundOrderID PK
+        VARCHAR InboundOrderNumber
+        BIGINT WarehouseID
+        VARCHAR SourceType
+        BIGINT PurchaseOrderID
+        BIGINT SalesOrderID
+        BIGINT TransferOrderID
+        BIGINT ParentInboundOrderID
+        DATE ExpectedReceiptDate
+        DATE DueDate
+        VARCHAR Status
+        NVARCHAR Notes
+        BIGINT CreatedByUserID
+        BIGINT AssignedToUserID
+        DATETIME2 CreatedAt
+        BIGINT ConfirmedByUserID
+        DATETIME2 ConfirmedAt
+        BIGINT CancelledByUserID
+        DATETIME2 CancelledAt
+        NVARCHAR CancellationReason
+    }
+    InboundOrderItems {
+        BIGINT InboundOrderItemID PK
+        BIGINT InboundOrderID
+        BIGINT ProductID
+        DECIMAL ExpectedQuantity
+        DECIMAL ReceivedQuantity
+        DECIMAL DamagedQuantity
+        DECIMAL ShortageQuantity
+        NVARCHAR Notes
+    }
+    InboundOrderDetails {
+        BIGINT InboundOrderDetailID PK
+        BIGINT InboundOrderItemID
+        BIGINT InboundOrderID
+        BIGINT ProductID
+        BIGINT StorageLocationID
+        BIGINT ProductLotID
+        DECIMAL ReceivedQuantity
+        VARCHAR ConditionStatus
+        BIGINT RecordedByUserID
+        DATETIME2 RecordedAt
+        NVARCHAR Notes
+        dbo REFERENCES
+    }
+    OutboundOrders {
+        BIGINT OutboundOrderID PK
+        VARCHAR OutboundOrderNumber
+        BIGINT WarehouseID
+        VARCHAR SourceType
+        BIGINT SalesOrderID
+        BIGINT PurchaseOrderID
+        BIGINT TransferOrderID
+        DATE ExpectedIssueDate
+        DATE DueDate
+        VARCHAR Status
+        NVARCHAR Notes
+        BIGINT CreatedByUserID
+        BIGINT AssignedToUserID
+        DATETIME2 CreatedAt
+        BIGINT ConfirmedByUserID
+        DATETIME2 ConfirmedAt
+        BIGINT CancelledByUserID
+        DATETIME2 CancelledAt
+        NVARCHAR CancellationReason
+    }
+    OutboundOrderItems {
+        BIGINT OutboundOrderItemID PK
+        BIGINT OutboundOrderID
+        BIGINT ProductID
+        DECIMAL RequestedQuantity
+        DECIMAL IssuedQuantity
+        NVARCHAR Notes
+    }
+    OutboundOrderDetails {
+        BIGINT OutboundOrderDetailID PK
+        BIGINT OutboundOrderItemID
+        BIGINT OutboundOrderID
+        BIGINT ProductID
+        BIGINT StorageLocationID
+        BIGINT ProductLotID
+        BIGINT InventoryReservationID
+        DECIMAL IssuedQuantity
+        BIGINT RecordedByUserID
+        DATETIME2 RecordedAt
+        NVARCHAR Notes
+        dbo REFERENCES
+    }
+    StocktakeSchedules {
+        BIGINT StocktakeScheduleID PK
+        BIGINT WarehouseID
+        NVARCHAR ScheduleName
+        VARCHAR FrequencyType
+        TINYINT DayOfWeek
+        TINYINT DayOfMonth
+        DATE StartDate
+        DATE NextRunDate
+        BIT IsActive
+        BIGINT CreatedByUserID
+        DATETIME2 CreatedAt
+    }
+    StocktakeSessions {
+        BIGINT StocktakeSessionID PK
+        VARCHAR StocktakeNumber
+        BIGINT WarehouseID
+        BIGINT StocktakeScheduleID
+        DATE PlannedDate
+        VARCHAR Status
+        BIGINT CreatedByUserID
+        BIGINT AssignedToUserID
+        DATETIME2 CreatedAt
+        DATETIME2 StartedAt
+        DATETIME2 SubmittedAt
+        BIGINT ApprovedByUserID
+        DATETIME2 ApprovedAt
+        NVARCHAR Notes
+    }
+    StocktakeItems {
+        BIGINT StocktakeItemID PK
+        BIGINT StocktakeSessionID
+        BIGINT StorageLocationID
+        BIGINT ProductID
+        BIGINT ProductLotID
+        DECIMAL BookQuantity
+        DECIMAL CountedQuantity
+        AS DifferenceQuantity
+        DECIMAL AdjustmentQuantity
+        VARCHAR Resolution
+        BIGINT CountedByUserID
+        DATETIME2 CountedAt
+        BIGINT ApprovedByUserID
+        DATETIME2 ApprovedAt
+        NVARCHAR Notes
+    }
+    StocktakeLocations {
+        BIGINT StocktakeSessionID
+        BIGINT StorageLocationID
+        VARCHAR CountStatus
+        BIGINT CountedByUserID
+        DATETIME2 CountedAt
+        NVARCHAR Notes
+    }
+    Inventory {
+        BIGINT InventoryID PK
+        BIGINT ProductID
+        BIGINT StorageLocationID
+        BIGINT ProductLotID
+        DECIMAL OnHandQuantity
+        DECIMAL ReservedQuantity
+        AS AvailableQuantity
+        DATETIME2 LastUpdatedAt
+    }
+    InventoryTransactions {
+        BIGINT InventoryTransactionID PK
+        VARCHAR TransactionType
+        BIGINT ProductID
+        BIGINT StorageLocationID
+        BIGINT ProductLotID
+        DECIMAL OnHandDelta
+        DECIMAL ReservedDelta
+        BIGINT InboundOrderDetailID
+        BIGINT OutboundOrderDetailID
+        BIGINT TransferOrderDetailID
+        BIGINT StocktakeItemID
+        BIGINT InventoryReservationID
+        BIGINT PerformedByUserID
+        DATETIME2 TransactionAt
+        NVARCHAR Notes
+        IN TransactionType
+    }
+    Notifications {
+        BIGINT NotificationID PK
+        BIGINT UserID
+        VARCHAR NotificationType
+        NVARCHAR Title
+        NVARCHAR Message
+        VARCHAR ReferenceType
+        BIGINT ReferenceID
+        BIT IsRead
+        DATETIME2 CreatedAt
+        DATETIME2 ReadAt
+    }
+    AuditLogs {
+        BIGINT AuditLogID PK
+        BIGINT UserID
+        VARCHAR ActionType
+        VARCHAR EntityName
+        NVARCHAR EntityID
+        NVARCHAR OldValuesJson
+        NVARCHAR NewValuesJson
+        VARCHAR IpAddress
+        DATETIME2 CreatedAt
+    }
+    Suppliers ||--o{ SupplierProducts : "" 
+    Suppliers ||--o{ PurchaseOrders : "" 
+    PurchaseOrders ||--o{ PurchaseOrderDetails : "" 
+    Customers ||--o{ SalesOrders : "" 
+    SalesOrders ||--o{ SalesOrderDetails : "" 
+    TransferOrders ||--o{ TransferOrderDetails : "" 
+    Roles ||--o{ RolePermissions : "" 
+    Permissions ||--o{ RolePermissions : "" 
+    Roles ||--o{ Users : "" 
+    Users ||--o{ UserSessions : "" 
+    Users ||--o{ PasswordResetTokens : "" 
+    Warehouses ||--o{ WarehouseZones : "" 
+    Warehouses ||--o{ StorageLocations : "" 
+    ProductGroups ||--o{ ProductGroups : "" 
+    ProductAttributes ||--o{ ProductAttributeOptions : "" 
+    ProductGroups ||--o{ ProductGroupAttributes : "" 
+    ProductAttributes ||--o{ ProductGroupAttributes : "" 
+    ProductGroups ||--o{ Products : "" 
+    UnitsOfMeasure ||--o{ Products : "" 
+    Users ||--o{ Products : "" 
+    Products ||--o{ ProductAttributeValues : "" 
+    ProductAttributes ||--o{ ProductAttributeValues : "" 
+    Products ||--o{ ProductLots : "" 
+    Products ||--o{ ProductFixedLocations : "" 
+    StorageLocations ||--o{ ProductFixedLocations : "" 
+    Products ||--o{ ProductWarehousePolicies : "" 
+    Warehouses ||--o{ ProductWarehousePolicies : "" 
+    Users ||--o{ ProductWarehousePolicies : "" 
+    StorageLocations ||--o{ ProductWarehousePolicies : "" 
+    Warehouses ||--o{ InboundOrders : "" 
+    PurchaseOrders ||--o{ InboundOrders : "" 
+    SalesOrders ||--o{ InboundOrders : "" 
+    TransferOrders ||--o{ InboundOrders : "" 
+    InboundOrders ||--o{ InboundOrders : "" 
+    Users ||--o{ InboundOrders : "" 
+    InboundOrders ||--o{ InboundOrderItems : "" 
+    Products ||--o{ InboundOrderItems : "" 
+    StorageLocations ||--o{ InboundOrderDetails : "" 
+    Users ||--o{ InboundOrderDetails : "" 
+    Warehouses ||--o{ OutboundOrders : "" 
+    SalesOrders ||--o{ OutboundOrders : "" 
+    PurchaseOrders ||--o{ OutboundOrders : "" 
+    TransferOrders ||--o{ OutboundOrders : "" 
+    Users ||--o{ OutboundOrders : "" 
+    OutboundOrders ||--o{ OutboundOrderItems : "" 
+    Products ||--o{ OutboundOrderItems : "" 
+    StorageLocations ||--o{ OutboundOrderDetails : "" 
+    InventoryReservations ||--o{ OutboundOrderDetails : "" 
+    Users ||--o{ OutboundOrderDetails : "" 
+    Warehouses ||--o{ StocktakeSchedules : "" 
+    Users ||--o{ StocktakeSchedules : "" 
+    Warehouses ||--o{ StocktakeSessions : "" 
+    StocktakeSchedules ||--o{ StocktakeSessions : "" 
+    Users ||--o{ StocktakeSessions : "" 
+    StocktakeSessions ||--o{ StocktakeItems : "" 
+    StorageLocations ||--o{ StocktakeItems : "" 
+    Users ||--o{ StocktakeItems : "" 
+    StocktakeSessions ||--o{ StocktakeLocations : "" 
+    StorageLocations ||--o{ StocktakeLocations : "" 
+    Users ||--o{ StocktakeLocations : "" 
+    Products ||--o{ Inventory : "" 
+    StorageLocations ||--o{ Inventory : "" 
+    Products ||--o{ InventoryTransactions : "" 
+    StorageLocations ||--o{ InventoryTransactions : "" 
+    InboundOrderDetails ||--o{ InventoryTransactions : "" 
+    OutboundOrderDetails ||--o{ InventoryTransactions : "" 
+    TransferOrderDetails ||--o{ InventoryTransactions : "" 
+    StocktakeItems ||--o{ InventoryTransactions : "" 
+    InventoryReservations ||--o{ InventoryTransactions : "" 
+    Users ||--o{ InventoryTransactions : "" 
+    Users ||--o{ Notifications : "" 
+    Users ||--o{ AuditLogs : "" 
+    Users ||--o{ Suppliers : "" 
+    Users ||--o{ Customers : "" 
+    Products ||--o{ SupplierProducts : "" 
+    Users ||--o{ PurchaseOrders : "" 
+    Products ||--o{ PurchaseOrderDetails : "" 
+    Users ||--o{ SalesOrders : "" 
+    Products ||--o{ SalesOrderDetails : "" 
+    StorageLocations ||--o{ InventoryReservations : "" 
+    Users ||--o{ InventoryReservations : "" 
+    Warehouses ||--o{ TransferOrders : "" 
+    Users ||--o{ TransferOrders : "" 
+    Products ||--o{ TransferOrderDetails : "" 
+    StorageLocations ||--o{ TransferOrderDetails : "" 
+    Users ||--o{ TransferOrderDetails : "" 
+    Products ||--o{ StocktakeItems : "" 
