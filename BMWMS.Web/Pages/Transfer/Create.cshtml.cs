@@ -101,6 +101,7 @@ namespace BMWMS.Web.Pages.Transfer
         // ── POST: Tạo lệnh chuyển kho ─────────────────────────────────────────
         public async Task<IActionResult> OnPostAsync(
             string itemsJson,
+            string? action,
             long? transferOrderId,
             long? assignedToUserId,
             string? dueDate,
@@ -116,6 +117,7 @@ namespace BMWMS.Web.Pages.Transfer
             {
                 TransferSuccess = false;
                 TransferMessage = "Danh sách hàng hóa điều chuyển không được để trống.";
+                TempData["ErrorMessage"] = TransferMessage;
                 return await ReloadPageAsync();
             }
 
@@ -133,6 +135,7 @@ namespace BMWMS.Web.Pages.Transfer
             {
                 TransferSuccess = false;
                 TransferMessage = $"Dữ liệu không hợp lệ: {ex.Message}";
+                TempData["ErrorMessage"] = TransferMessage;
                 return await ReloadPageAsync();
             }
 
@@ -140,6 +143,7 @@ namespace BMWMS.Web.Pages.Transfer
             {
                 TransferSuccess = false;
                 TransferMessage = "Vui lòng thêm ít nhất 1 mặt hàng cần điều chuyển.";
+                TempData["ErrorMessage"] = TransferMessage;
                 return await ReloadPageAsync();
             }
 
@@ -166,12 +170,29 @@ namespace BMWMS.Web.Pages.Transfer
 
             if (result.Success)
             {
-                TempData["SuccessMessage"] = result.Message;
+                if (action == "assign" && result.TransferOrderId.HasValue)
+                {
+                    var assignResult = await _transferSvc.ApproveOrderAsync(result.TransferOrderId.Value, request.AssignedToUserId, "Tạo và giao luôn");
+                    if (!assignResult.Success)
+                    {
+                        TransferSuccess = false;
+                        TransferMessage = result.Message + " Nhưng không thể duyệt và giao: " + assignResult.Message;
+                        TempData["ErrorMessage"] = TransferMessage;
+                        return await ReloadPageAsync();
+                    }
+                    TempData["SuccessMessage"] = assignResult.Message;
+                }
+                else
+                {
+                    TempData["SuccessMessage"] = result.Message;
+                }
+                
                 return RedirectToPage("/Transfer/Details", new { id = result.TransferOrderId });
             }
 
             TransferSuccess = false;
             TransferMessage = result.Message;
+            TempData["ErrorMessage"] = TransferMessage;
             return await ReloadPageAsync();
         }
 

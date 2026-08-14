@@ -82,6 +82,7 @@ builder.Services.AddScoped<INotificationApiService, NotificationApiService>();
 
 // StockOperations (VietAnh)
 builder.Services.AddScoped<TransferApiService>();
+builder.Services.AddScoped<IStocktakeApiService, StocktakeApiService>();
 
 // Orders
 builder.Services.AddScoped<PurchaseOrderApiService>();

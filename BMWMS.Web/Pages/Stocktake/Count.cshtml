@@ -1,0 +1,233 @@
+@page
+@model BMWMS.Web.Pages.Stocktake.CountModel
+@{
+    Layout = "_AdminLayout";
+    var task = Model.CountTask;
+    ViewData["Title"] = $"Đếm kiểm kho – {task?.LocationCode}";
+    ViewData["ActivePage"] = "Stocktake";
+
+    var isLocked = task?.CountStatus == "SUBMITTED" || task?.CountStatus == "APPROVED" || task?.CountStatus == "PENDING_APPROVAL";
+    var canEdit = !isLocked && Model.IsStaff;
+}
+
+<style>
+  :root{
+    --font-ui:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    --font-mono:"IBM Plex Mono",ui-monospace,monospace;
+
+    --navy-950:#233a6b; --navy-900:#1b2d56;
+    --accent:#3e5cf6; --accent-600:#3149d4;
+
+    --bg:#f2f3f7; --card:#ffffff; --line:#e7e9f0; --line-strong:#d7dae5;
+    --ink:#161b2e; --ink-2:#525a72; --ink-3:#8890a6; --ink-4:#aeb4c6;
+
+    --sh-xs:0 1px 2px rgba(16,23,42,.05);
+    --sh-sm:0 1px 2px rgba(16,23,42,.04),0 4px 10px -4px rgba(16,23,42,.07);
+    --r-sm:8px; --r-lg:16px;
+    --ease:cubic-bezier(.4,0,.2,1);
+  }
+  
+  .transfer-page {
+    font-family: var(--font-ui);
+    color: var(--ink);
+    font-size: 14px;
+    line-height: 1.45;
+    padding: 26px 30px 64px;
+  }
+  .transfer-page * { box-sizing: border-box; }
+
+  .transfer-page .breadcrumb{font-size:11.5px;color:var(--ink-3);margin-bottom:8px;font-weight:600;letter-spacing:.02em;text-transform:uppercase;}
+  .transfer-page .breadcrumb a { color: var(--ink-3); text-decoration: none; }
+  .transfer-page .pagehead{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;gap:20px;}
+  .transfer-page .pagehead h1{font-size:20px;margin:0 0 5px;letter-spacing:-.01em;font-weight:700;}
+  .transfer-page .pagehead p{margin:0;color:var(--ink-2);font-size:13px;}
+
+  .transfer-page .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);padding:22px 24px;margin-bottom:16px;box-shadow:var(--sh-xs);}
+  .transfer-page .card h3{margin:0 0 14px;font-size:14px;font-weight:700;}
+
+  .transfer-page table{width:100%;border-collapse:collapse;font-size:13px;}
+  .transfer-page th{text-align:left;color:var(--ink-3);font-weight:600;font-size:11px;letter-spacing:.03em;padding:0 10px 10px;border-bottom:1px solid var(--line);}
+  .transfer-page td{padding:13px 10px;border-bottom:1px solid var(--line);vertical-align:middle;color:var(--ink);}
+  .transfer-page td.num{font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-size:12.5px;}
+  .transfer-page tbody tr:hover{background:#f8f9fc;}
+  .transfer-page tr:last-child td{border-bottom:none;}
+  .transfer-page .prod-code{font-family:var(--font-mono);font-size:11px;background:#eceef3;color:var(--ink-2);padding:1.5px 6px;border-radius:5px;margin-right:6px;font-weight:600;}
+  
+  .transfer-page .field input { width:100%; padding:9px 11px; border:1px solid var(--line-strong); border-radius:var(--r-sm); font-size:13px; background:#fff; color:var(--ink); font-family:inherit; }
+  .transfer-page .field input[type="number"] { font-family: var(--font-mono); font-size: 15px; text-align: right; }
+  .transfer-page .field input:focus { outline:none; border-color:var(--accent); }
+  
+  .transfer-page .btn{display:inline-flex;align-items:center;gap:7px;border:none;border-radius:var(--r-sm);padding:9px 15px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s var(--ease); text-decoration:none;}
+  .transfer-page .btn-primary{background:var(--accent-600);color:#fff;box-shadow:var(--sh-xs);}
+  .transfer-page .btn-primary:hover{background:#1d4ed8;color:#fff;}
+  .transfer-page .btn-success{background:#16a34a;color:#fff;}
+  .transfer-page .btn-success:hover{background:#15803d;color:#fff;}
+  .transfer-page .btn-light{background:#fff;border:1px solid var(--line-strong);color:var(--ink);}
+  .transfer-page .btn-light:hover{border-color:var(--ink-4);background:#fafafd;}
+</style>
+
+<div class="transfer-page" style="max-width: 1000px; margin: 0 auto;">
+    <div class="breadcrumb">
+        <a href="/Stocktake/Index">Kiểm kho</a>
+        <i class="ri-arrow-right-s-line" style="margin: 0 4px;"></i>
+        <a href="/Stocktake/Details?id=@task?.StocktakeSessionId">@task?.StocktakeNumber</a>
+        <i class="ri-arrow-right-s-line" style="margin: 0 4px;"></i>
+        <span>Đếm hàng</span>
+    </div>
+    
+    <div class="pagehead">
+        <div>
+            <h1>Đếm kiểm kho — @task?.LocationCode</h1>
+            <p>Vị trí: <strong>@task?.LocationPath</strong> · Thuộc phiên: <strong>@task?.StocktakeNumber</strong></p>
+        </div>
+        <div>
+            <a href="/Stocktake/Details?id=@task?.StocktakeSessionId" class="btn btn-light">
+                <i class="ri-arrow-left-line"></i> Trở lại
+            </a>
+        </div>
+    </div>
+
+    @if (isLocked)
+    {
+        <div style="background:#e3eaff; color:#2c48d8; padding: 12px 16px; border-radius: var(--r-sm); margin-bottom: 16px; font-size: 13px; display:flex; align-items:center; gap:8px;">
+            <i class="ri-lock-line"></i> Vị trí này đã được khóa (đã nộp hoặc phê duyệt) – chỉ xem.
+        </div>
+    }
+
+    @if (task?.Lines?.Any() == true || canEdit)
+    {
+        <form method="post" id="countForm" asp-page="/Stocktake/Count" asp-route-id="@task?.StocktakeSessionId" asp-route-locationId="@task?.StorageLocationId">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="Id" value="@task?.StocktakeSessionId" />
+            <input type="hidden" name="LocationId" value="@task?.StorageLocationId" />
+
+            <div class="card" style="padding: 0;">
+                <div style="padding: 16px 24px; border-bottom: 1px solid var(--line);">
+                    <h3 style="margin: 0;">Danh sách mặt hàng tại @task?.LocationCode</h3>
+                </div>
+                
+                <div style="overflow-x:auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 5%">#</th>
+                                <th style="width: 35%">Sản phẩm</th>
+                                <th style="width: 20%">Lô / HSD</th>
+                                <th style="width: 20%; text-align:right;">Số lượng đếm <span style="color:#dc2626;">*</span></th>
+                                <th style="width: 20%">Ghi chú</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (task?.Lines?.Any() == true)
+                            {
+                                for (int i = 0; i < task.Lines.Count; i++)
+                                {
+                                    var line = task.Lines[i];
+                                    <tr>
+                                        <td style="color:var(--ink-3);">@(i + 1)</td>
+                                        <td>
+                                            <span class="prod-code">@line.ProductCode</span>
+                                            <div style="margin-top: 4px; font-weight: 500;">@line.ProductName</div>
+                                            <div style="font-size: 11px; color: var(--ink-3);">@line.UnitCode</div>
+                                            
+                                            <input type="hidden" name="Lines[@i].StocktakeItemId" value="@line.StocktakeItemId" />
+                                            <input type="hidden" name="Lines[@i].StorageLocationId" value="@line.StorageLocationId" />
+                                            <input type="hidden" name="Lines[@i].ProductId" value="@line.ProductId" />
+                                            <input type="hidden" name="Lines[@i].ProductLotId" value="@line.ProductLotId" />
+                                            <input type="hidden" name="Lines[@i].BookQuantity" value="@line.BookQuantity" />
+                                        </td>
+                                        <td>
+                                            <div style="font-weight: 500;">@line.LotNumber</div>
+                                            @if (line.ExpiryDate.HasValue)
+                                            {
+                                                <div style="font-size: 11px; color: var(--ink-3);">HSD: @line.ExpiryDate.Value.ToString("dd/MM/yyyy")</div>
+                                            }
+                                        </td>
+                                        <td style="text-align: right;">
+                                            @if (canEdit)
+                                            {
+                                                <div class="field">
+                                                    <input type="number" step="0.001" min="0" required
+                                                           name="Lines[@i].CountedQuantity"
+                                                           value="@line.CountedQuantity"
+                                                           style="width: 140px; display: inline-block; padding: 12px; font-size: 16px; font-weight: 600;" />
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <span class="num" style="font-size: 16px; font-weight: 600;">@line.CountedQuantity?.ToString("N2")</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            @if (canEdit)
+                                            {
+                                                <div class="field">
+                                                    <input type="text" name="Lines[@i].Notes" value="@line.Notes" placeholder="Ghi chú..." />
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <span style="color:var(--ink-3);">@line.Notes</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="5" style="text-align:center; padding: 40px; color:var(--ink-3);">
+                                        <i class="ri-inbox-line" style="font-size: 24px; display: block; margin-bottom: 8px;"></i>
+                                        Vị trí này không có mặt hàng nào.
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            @if (canEdit)
+            {
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top: 20px;">
+                    <div style="font-size: 12.5px; color: var(--ink-3);">
+                        <i class="ri-information-line"></i> Lưu nháp để tiếp tục đếm sau. Bấm <b>Nộp kết quả</b> để khóa kết quả của Bin này.
+                    </div>
+                    <div style="display:flex; gap: 10px;">
+                        <button type="submit" asp-page-handler="Save" class="btn btn-light">
+                            <i class="ri-save-line"></i> Lưu nháp
+                        </button>
+                        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#submitModal">
+                            <i class="ri-check-line"></i> Nộp kết quả
+                        </button>
+                    </div>
+                </div>
+            }
+
+            @* ── SUBMIT MODAL ── *@
+            @if (canEdit)
+            {
+                <div class="modal fade" id="submitModal" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title"><i class="ri-check-line me-1 text-success"></i>Nộp kết quả</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <p class="text-muted" style="margin-bottom:0;">Nộp kết quả đếm cho vị trí <strong>@task?.LocationCode</strong>?</p>
+                                <div class="alert alert-warning" style="font-size:13px; padding:12px; margin-top:12px; margin-bottom:0;">
+                                    <i class="ri-error-warning-fill me-1"></i> Sau khi nộp, bạn sẽ không thể sửa số liệu này trừ khi Quản lý yêu cầu đếm lại.
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Đóng</button>
+                                <button type="submit" asp-page-handler="Submit" class="btn btn-success" style="background:#16a34a; color:#fff; border:none; padding:8px 16px; border-radius:6px;">Xác nhận nộp</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </form>
+    }
+</div>
