@@ -51,6 +51,8 @@ namespace BMWMS.Web.Models.Warehouse
         public int TotalLocations { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
+
+        public List<StorageLocationItemDto> StorageLocations { get; set; } = new();
     }
     public class WarehouseFilterDto
     {
@@ -59,5 +61,15 @@ namespace BMWMS.Web.Models.Warehouse
         public bool? IsPrimary { get; set; }
         public int PageIndex { get; set; } = 1;
         public int PageSize { get; set; } = 10;
+    }
+    public class StorageLocationItemDto
+    {
+        public long LocationID { get; set; }
+        public string LocationCode { get; set; } = string.Empty; // VD: LOC-A1-01
+        public string? LocationType { get; set; }               // VD: Kệ RACK-A1
+        public string? Description { get; set; }                // Mô tả thêm
+        public decimal? AreaSquareMeter { get; set; }           // Diện tích (10m²)
+        public string Status { get; set; } = "Empty";           // Có hàng / Trống
+        public int TotalProducts { get; set; }                  // Số lượng SP chứa
     }
 }

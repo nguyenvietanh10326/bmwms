@@ -28,7 +28,7 @@ namespace BMWMS.Repository.Repositories
         public async Task<Warehouse?> GetByCodeAsync(string warehouseCode)
         {
             return await _context.Warehouses
-                .AsNoTracking()
+                .AsNoTracking().Include(w => w.StorageLocations)
                 .FirstOrDefaultAsync(w => w.WarehouseCode == warehouseCode);
         }
 
