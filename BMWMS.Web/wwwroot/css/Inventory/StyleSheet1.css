@@ -1,0 +1,142 @@
+﻿/* ==========================================================================
+   OUTBOUND PROCESS - WMS CUSTOM STYLES
+   Tương thích Layout: Sidebar #07182d | Main BG #f1f5f9
+   ========================================================================== */
+
+:root {
+    --wms-primary: #0f172a; /* Màu xám xanh đậm thanh lịch */
+    --wms-accent: #2563eb; /* Xanh dương tương tác (Button/Active) */
+    --wms-accent-hover: #1d4ed8;
+    --wms-success: #10b981; /* Xanh lá hoàn thành */
+    --wms-warning: #f59e0b; /* Cảnh báo / Vị trí */
+    --wms-danger: #ef4444; /* Đỏ còn thiếu */
+    --wms-bg-card: #ffffff;
+    --wms-border-color: #e2e8f0;
+}
+
+/* --- Card Style --- */
+.wms-card {
+    background-color: var(--wms-bg-card);
+    border: 1px solid var(--wms-border-color);
+    border-radius: 12px;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+    transition: all 0.2s ease-in-out;
+}
+
+    .wms-card:hover {
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+    }
+
+/* --- Header & Breadcrumb --- */
+.wms-page-title {
+    color: var(--wms-primary);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.wms-badge-status {
+    background-color: #e0f2fe;
+    color: #0369a1;
+    font-weight: 600;
+    border-radius: 6px;
+    padding: 6px 12px;
+}
+
+/* --- Item Card Layout --- */
+.wms-item-card {
+    border-left: 4px solid var(--wms-accent);
+}
+
+    .wms-item-card.completed {
+        border-left-color: var(--wms-success);
+    }
+
+.wms-product-code {
+    background-color: #f8fafc;
+    color: #475569;
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    border: 1px solid #cbd5e1;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+}
+
+/* --- Progress Bar --- */
+.wms-progress-container {
+    background-color: #e2e8f0;
+    border-radius: 9999px;
+    height: 8px;
+    overflow: hidden;
+}
+
+.wms-progress-bar {
+    height: 100%;
+    background-color: var(--wms-accent);
+    border-radius: 9999px;
+    transition: width 0.4s ease;
+}
+
+    .wms-progress-bar.bg-success {
+        background-color: var(--wms-success) !important;
+    }
+
+/* --- Badges for Locations & Picked Details --- */
+.badge-location-available {
+    background-color: #f0fdf4;
+    color: #166534;
+    border: 1px solid #bbf7d0;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 0.825rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.badge-picked-history {
+    background-color: #eff6ff;
+    color: #1e40af;
+    border: 1px solid #bfdbfe;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 0.825rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* --- Buttons --- */
+.btn-wms-primary {
+    background-color: var(--wms-accent);
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    padding: 8px 16px;
+    transition: background-color 0.2s;
+}
+
+    .btn-wms-primary:hover {
+        background-color: var(--wms-accent-hover);
+        color: #ffffff;
+    }
+
+/* --- Modal Styling --- */
+.wms-modal .modal-content {
+    border-radius: 16px;
+    border: none;
+    overflow: hidden;
+}
+
+.wms-modal .modal-header {
+    background-color: #07182d; /* Trùng tông màu Sidebar */
+    color: #ffffff;
+    border-bottom: none;
+    padding: 1.25rem 1.5rem;
+}
+
+.wms-modal .form-control:focus,
+.wms-modal .form-select:focus {
+    border-color: var(--wms-accent);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}

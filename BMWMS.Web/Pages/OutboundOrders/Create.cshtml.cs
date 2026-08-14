@@ -37,6 +37,35 @@ namespace BMWMS.Web.Pages.OutboundOrders
             return Page();
         }
 
+        /// <summary>
+        /// Handler AJAX gọi từ JavaScript khi User chọn Sales Order từ dropdown trên UI
+        /// </summary>
+        public async Task<IActionResult> OnGetSalesOrderDetailAsync(long id)
+        {
+            if (id <= 0)
+            {
+                return new JsonResult(new { success = false, message = "SalesOrderId không hợp lệ." });
+            }
+
+            try
+            {
+                var client = _httpClientFactory.CreateClient("ApiClient");
+                var response = await client.GetAsync($"api/OutboundOrders/sales-order/{id}");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var detail = await response.Content.ReadFromJsonAsync<SalesOrderDetailApiResponse>();
+                    return new JsonResult(new { success = true, data = detail });
+                }
+
+                return new JsonResult(new { success = false, message = "Không tìm thấy chi tiết Sales Order từ server." });
+            }
+            catch (Exception ex)
+            {
+                return new JsonResult(new { success = false, message = $"Lỗi kết nối API: {ex.Message}" });
+            }
+        }
+
         public async Task<IActionResult> OnPostAsync(string actionType)
         {
             if (!ModelState.IsValid)
@@ -58,7 +87,7 @@ namespace BMWMS.Web.Pages.OutboundOrders
                     ExpectedIssueDate = Input.ExpectedIssueDate.ToString("yyyy-MM-dd"),
                     AssignedToUserId = Input.AssignedToUserId,
                     Notes = Input.ReferenceCode,
-                    IsSubmit = actionType == "submit", // IsSubmit = true khi nhấn "Tạo lệnh xuất", false khi "Lưu nháp"
+                    IsSubmit = actionType == "submit", // IsSubmit = true khi "Tạo lệnh", false khi "Lưu nháp"
                     Items = Input.Items.Select(x => new OutboundOrderItemRequest
                     {
                         ProductId = x.ProductId,
@@ -67,32 +96,37 @@ namespace BMWMS.Web.Pages.OutboundOrders
                     }).ToList()
                 };
 
+                // Log debug kiểm tra dữ liệu trước khi gửi
+                Debug.WriteLine($"POST API OutboundOrders -> SalesOrderId: {Input.SalesOrderId}, IsSubmit: {apiPayload.IsSubmit}");
+
                 var response = await client.PostAsJsonAsync("api/OutboundOrders", apiPayload);
 
                 if (response.IsSuccessStatusCode)
                 {
-                    TempData["SuccessMessage"] = actionType == "submit" ? "Tạo lệnh xuất kho thành công!" : "Lưu nháp lệnh xuất kho thành công!";
+                    TempData["SuccessMessage"] = actionType == "submit"
+                        ? "Tạo lệnh xuất kho thành công!"
+                        : "Lưu nháp lệnh xuất kho thành công!";
+
                     return RedirectToPage("./Index");
                 }
-                // Debug: Kiểm tra ID trước khi POST
-                Console.WriteLine($"SalesOrderId gửi đi: {Input.SalesOrderId}");
-                foreach (var item in Input.Items)
-                {
-                    Debug.WriteLine($"-> Item ProductId: {item.ProductId}, SL: {item.RequestedQuantity}");
-                }
-                if (!response.IsSuccessStatusCode)
-                {
-                    // Đọc toàn bộ nội dung lỗi chi tiết trả về từ Backend API
-                    var errorContent = await response.Content.ReadAsStringAsync();
 
-                    // Hiển thị trực tiếp lỗi từ Backend ra thông báo UI
-                    ModelState.AddModelError(string.Empty, $"Lỗi Backend ({response.StatusCode}): {errorContent}");
+                // Xử lý đọc đọc lỗi trả về từ Backend API
+                var errorContent = await response.Content.ReadAsStringAsync();
+                string errorMessage = "Không thể tạo lệnh xuất kho.";
 
-                    await ReloadDropdownsAndItemsAsync();
-                    return Page();
+                try
+                {
+                    var errorObj = System.Text.Json.JsonSerializer.Deserialize<ApiErrorResponse>(errorContent, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    if (!string.IsNullOrWhiteSpace(errorObj?.Message)) errorMessage = errorObj.Message;
+                    else if (!string.IsNullOrWhiteSpace(errorObj?.Detail)) errorMessage = errorObj.Detail;
+                    else if (!string.IsNullOrWhiteSpace(errorContent)) errorMessage = errorContent;
                 }
-                var errorObj = await response.Content.ReadFromJsonAsync<ApiErrorResponse>();
-                ModelState.AddModelError(string.Empty, errorObj?.Message ?? errorObj?.Detail ?? "Không thể tạo lệnh xuất kho.");
+                catch
+                {
+                    if (!string.IsNullOrWhiteSpace(errorContent)) errorMessage = errorContent;
+                }
+
+                ModelState.AddModelError(string.Empty, $"Lỗi từ Server ({response.StatusCode}): {errorMessage}");
             }
             catch (Exception ex)
             {
@@ -118,23 +152,24 @@ namespace BMWMS.Web.Pages.OutboundOrders
             {
                 var client = _httpClientFactory.CreateClient("ApiClient");
 
-                // 1. Gọi API Lấy danh sách Sales Orders đã xác nhận
+                // 1. Gọi API Lấy danh sách Sales Orders
                 var salesOrders = await client.GetFromJsonAsync<List<SalesOrderOptionDto>>("api/OutboundOrders/sales-orders") ?? new();
                 SalesOrderOptions = salesOrders.Select(x => new SelectListItem(x.SalesOrderNumber, x.SalesOrderId.ToString())).ToList();
 
-                // 2. Gọi API Lấy danh sách Người tạo/Người phụ trách
+                // 2. Gọi API Lấy danh sách Người phụ trách
                 var creators = await client.GetFromJsonAsync<List<UserOptionDto>>("api/OutboundOrders/creators") ?? new();
                 AssigneeOptions = creators.Select(x => new SelectListItem(x.FullName ?? x.Username, x.UserId.ToString())).ToList();
 
-                // 3. Gọi API Lấy danh sách Kho thật từ Backend (/AllWarehouse)
+                // 3. Gọi API Lấy danh sách Kho thật từ Backend
                 var warehouses = await client.GetFromJsonAsync<List<WarehouseOptionDto>>("AllWarehouse") ?? new();
                 WarehouseOptions = warehouses.Select(x => new SelectListItem(
                     text: $"{x.WarehouseName} ({x.WarehouseCode})",
                     value: x.WarehouseId.ToString()
                 )).ToList();
             }
-            catch
+            catch (Exception ex)
             {
+                Debug.WriteLine($"Lỗi khi tải Dropdowns: {ex.Message}");
                 SalesOrderOptions = new();
                 AssigneeOptions = new();
                 WarehouseOptions = new();
@@ -169,7 +204,6 @@ namespace BMWMS.Web.Pages.OutboundOrders
                             ProductId = x.ProductId,
                             ProductCode = x.ProductCode,
                             ProductName = x.ProductName,
-                            // Sửa chỗ này: Nếu UnitOfMeasure bị null từ API thì gán mặc định là "Cái" hoặc "N/A"
                             UnitName = string.IsNullOrWhiteSpace(x.UnitOfMeasure) ? "N/A" : x.UnitOfMeasure,
                             RequestedQuantity = x.Quantity,
                             ReservedQuantity = x.ReservedQuantity,
@@ -179,20 +213,23 @@ namespace BMWMS.Web.Pages.OutboundOrders
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                Debug.WriteLine($"Lỗi khi lấy chi tiết SO {salesOrderId}: {ex.Message}");
                 Input.Items = new List<OutboundOrderItemVM>();
             }
         }
     }
 
     #region ViewModels & DTOs Map Chi Tiết Với Backend
+
     public class WarehouseOptionDto
     {
         public long WarehouseId { get; set; }
         public string WarehouseCode { get; set; } = string.Empty;
         public string WarehouseName { get; set; } = string.Empty;
     }
+
     public class OutboundOrderVM
     {
         [Required(ErrorMessage = "Vui lòng chọn Sales Order.")]
@@ -225,7 +262,6 @@ namespace BMWMS.Web.Pages.OutboundOrders
         public string? Notes { get; set; }
     }
 
-    // Các DTO truyền nhận Payload với Backend Controller
     public class CreateOutboundOrderRequest
     {
         public long WarehouseId { get; set; }

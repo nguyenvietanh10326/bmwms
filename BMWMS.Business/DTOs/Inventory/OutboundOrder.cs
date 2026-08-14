@@ -128,4 +128,73 @@ namespace BMWMS.Business.DTOs.Inventory
         public string? LotBinInfo { get; set; }        // Thông tin Lot / Bin giữ tồn
         public decimal UnitPrice { get; set; }
     }
+   
+        // DTO Màn 2: Màn hình Thực thi Xuất kho (Process Picking)
+        public class OutboundProcessViewDto
+        {
+            public long OutboundOrderId { get; set; }
+            public string OutboundOrderNumber { get; set; } = null!;
+            public string SourceType { get; set; } = null!;
+            public string? SalesOrderNumber { get; set; }
+            public string? CustomerName { get; set; }
+            public long WarehouseId { get; set; }
+            public string WarehouseName { get; set; } = null!;
+            public string Status { get; set; } = null!;
+            public string? Notes { get; set; }
+
+            public List<OutboundProcessItemDto> Items { get; set; } = new();
+        }
+
+        public class OutboundProcessItemDto
+        {
+            public long OutboundOrderItemId { get; set; }
+            public long ProductId { get; set; }
+            public string ProductCode { get; set; } = null!;
+            public string ProductName { get; set; } = null!;
+            public string UnitName { get; set; } = null!;
+
+            // Mối quan hệ so sánh [SL Yêu cầu] vs [SL Đã Pick]
+            public decimal RequestedQuantity { get; set; }
+            public decimal IssuedQuantity { get; set; }
+            public decimal RemainingQuantity => RequestedQuantity - IssuedQuantity;
+
+            // Lịch sử các lần pick thực tế trước đó
+            public List<OutboundPickedDetailDto> PickedDetails { get; set; } = new();
+
+            // Danh sách Vị trí + Lô khả dụng trong kho để User chọn pick
+            public List<AvailableStockLocationDto> AvailableLocations { get; set; } = new();
+        }
+
+        public class OutboundPickedDetailDto
+        {
+            public long OutboundOrderDetailId { get; set; }
+            public string LocationCode { get; set; } = null!;
+            public string LotNumber { get; set; } = null!;
+            public decimal IssuedQuantity { get; set; }
+            public string RecordedByUserName { get; set; } = null!;
+            public DateTime RecordedAt { get; set; }
+        }
+
+        public class AvailableStockLocationDto
+        {
+            public long StorageLocationId { get; set; }
+            public string LocationCode { get; set; } = null!;
+            public long ProductLotId { get; set; }
+            public string LotNumber { get; set; } = null!;
+            public long? InventoryReservationId { get; set; }
+            public decimal AvailableQuantity { get; set; } // Số lượng còn trong Bin/Lot
+        }
+
+        // Request Submit hành động Pick hàng từ Màn 2
+        public class ExecutePickItemRequest
+        {
+            public long OutboundOrderId { get; set; }
+            public long OutboundOrderItemId { get; set; }
+            public long StorageLocationId { get; set; }
+            public long ProductLotId { get; set; }
+            public long? InventoryReservationId { get; set; }
+            public decimal PickQuantity { get; set; }
+            public string? Notes { get; set; }
+        }
+    
 }

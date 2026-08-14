@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using static BMWMS.Repository.Interfaces.Inventory.IOutboundOrderRepository;
 
 namespace BMWMS.Repository.Repositories.Inventory
 {
@@ -95,6 +96,57 @@ namespace BMWMS.Repository.Repositories.Inventory
         public async Task<bool> ExistsAsync(long id)
         {
             return await _context.OutboundOrders.AnyAsync(o => o.OutboundOrderId == id);
+        }
+        public async Task SavePickDetailAsync(OutboundOrderDetail detail, OutboundOrderItem item, OutboundOrder order)
+        {
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                await _context.OutboundOrderDetails.AddAsync(detail);
+
+                _context.OutboundOrderItems.Update(item);
+
+                _context.OutboundOrders.Update(order);
+
+                if (detail.InventoryReservationId.HasValue && detail.InventoryReservationId > 0)
+                {
+                    var reservation = await _context.InventoryReservations.FindAsync(detail.InventoryReservationId.Value);
+                    if (reservation != null)
+                    {
+                        reservation.Status = "FULFILLED";
+                        _context.InventoryReservations.Update(reservation);
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+
+                await transaction.CommitAsync();
+            }
+            catch (Exception)
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }
+
+        public async Task<List<AvailableLocationModel>> GetAvailableLocationsAsync(long warehouseId, long productId)
+        {
+            var availableItems = await _context.InventoryReservations
+                .Where(r => r.StorageLocation.WarehouseId == warehouseId
+                         && r.ProductId == productId
+                         && r.Status == "RESERVED")
+                .Select(r => new AvailableLocationModel
+                {
+                    StorageLocationId = r.StorageLocationId,
+                    LocationCode = r.StorageLocation.LocationCode,
+                    ProductLotId = r.ProductLotId,
+                    LotNumber = r.ProductLot.LotNumber,
+                    InventoryReservationId = r.InventoryReservationId,
+                    AvailableQuantity = r.ReservedQuantity
+                })
+                .ToListAsync();
+
+            return availableItems;
         }
     }
 }
