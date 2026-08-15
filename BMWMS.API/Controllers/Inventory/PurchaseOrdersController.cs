@@ -130,5 +130,18 @@ namespace BMWMS.API.Controllers.Inventory
                 return StatusCode(500, new { message = "Lỗi hệ thống.", detail = ex.Message });
             }
         }
+        [HttpGet("/AllCustomers")]
+        public async Task<IActionResult> GetAllCustomer()
+        {
+            try
+            {
+                var result = await _poService.GetCustomersAsync();
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi khi lấy danh sách sản phẩm.", detail = ex.Message });
+            }
+        }
     }
 }

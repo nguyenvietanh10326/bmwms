@@ -28,5 +28,6 @@ namespace BMWMS.Business.Interfaces.Inventory
         Task<IEnumerable<SupplierLookupDto>> GetLookupListAsync();
         Task<IEnumerable<WarehouseLookupDto>> GetLookListAsync();
         Task<IEnumerable<ProductLookupDto>> GetUpListAsync();
+        Task<IEnumerable<CustomerLookupDto>> GetCustomersAsync();
     }
 }

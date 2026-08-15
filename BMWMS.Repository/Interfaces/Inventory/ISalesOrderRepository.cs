@@ -14,11 +14,30 @@ namespace BMWMS.Repository.Interfaces.Inventory
     Task<List<User>> GetSalesOrderCreatorsAsync(
         CancellationToken cancellationToken = default);
         Task<List<SalesOrder>> GetConfirmedSalesOrdersAsync();
-        Task<(IEnumerable<SalesOrder> Items, int TotalCount)> GetPagedListAsync(
-            string? searchTerm, string? status, long? warehouseId, int pageIndex, int pageSize);
-        Task<SalesOrder?> GetByIdWithDetailsAsync(long salesOrderId);
-        Task AddAsync(SalesOrder entity);
-        Task<Customer?> GetCustomerByPhoneAsync(string phone);
-        Task<Customer> AddCustomerAsync(Customer customer);
+
+        // 1. Lấy danh sách phân trang & lọc theo Entity thuần
+        Task<(IEnumerable<SalesOrder> Items, int TotalCount)> GetPagedAsync(
+            string? keyword,
+            string? status,
+            int pageIndex,
+            int pageSize);
+
+        // 2. Lấy đơn hàng theo ID (kèm Includes cần thiết)
+        Task<SalesOrder?> GetByIdAsync(long salesOrderId);
+
+        // 3. Lấy theo Mã SO
+        Task<SalesOrder?> GetByNumberAsync(string salesOrderNumber);
+
+        // 4. Tạo mới Đơn bán hàng (bao gồm Details)
+        Task<SalesOrder> CreateAsync(SalesOrder salesOrder);
+
+        // 5. Cập nhật thông tin Đơn bán hàng
+        Task<bool> UpdateAsync(SalesOrder salesOrder);
+
+        // 6. Cập nhật trạng thái
+        Task<bool> UpdateStatusAsync(long salesOrderId, string status, long? confirmedByUserId = null);
+
+        // 7. Tạo mã SO tự động (Ví dụ: SO-2026-0042)
+        Task<string> GenerateSalesOrderNumberAsync();
     }
 }

@@ -153,6 +153,14 @@ namespace BMWMS.Business.DTOs.Inventory
         public string SupplierName { get; set; } = string.Empty;
         public string DisplayName => $"{SupplierCode} — {SupplierName}";
     }
+
+    public class CustomerLookupDto
+    {
+        public long CustomerId { get; set; }
+        public string CustomerCode { get; set; } = string.Empty;
+        public string CustomerName { get; set; } = string.Empty;
+        public string DisplayName => $"{CustomerCode} — {CustomerName}";
+    }
     public class ProductLookupDto
     {
         public long ProductId { get; set; }
@@ -160,6 +168,11 @@ namespace BMWMS.Business.DTOs.Inventory
         public string ProductName { get; set; } = string.Empty;
         public string UnitOfMeasure { get; set; } = string.Empty;
         public decimal PurchasePrice { get; set; }
+        public decimal OnHandQuantity { get; set; }
+
+        public decimal ReservedQuantity { get; set; }
+
+        public decimal? AvailableQuantity { get; set; }
         public string DisplayName => $"{ProductCode} — {ProductName}";
     }
 }
