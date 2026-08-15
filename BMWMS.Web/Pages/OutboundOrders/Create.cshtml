@@ -1,9 +1,9 @@
-﻿@page
+@page
 @model BMWMS.Web.Pages.OutboundOrders.CreateModel
 @{
-    Layout = "/Pages/Shared/Inventory/_Layout.cshtml";
+    Layout = "_AdminLayout";
 
-    ViewData["Title"] = "Tạo Lệnh Xuất Kho";
+    ViewData["Title"] = "T?o L?nh Xu?t Kho";
 }
 @section Styles {
     <link rel="stylesheet"
@@ -11,7 +11,7 @@
           asp-append-version="true" />
 }
 <div class="container-fluid py-4">
-    <!-- KHU VỰC THÔNG BÁO LỖI VÀ THÀNH CÔNG -->
+    <!-- KHU V?C TH�NG B�O L?I V� TH�NH C�NG -->
     <div asp-validation-summary="ModelOnly" class="alert alert-danger alert-dismissible fade show" role="alert">
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
@@ -21,66 +21,66 @@
             <!-- HEADER -->
             <div class="card-header bg-primary text-white py-3 d-flex justify-content-between align-items-center">
                 <h5 class="m-0 font-weight-bold">
-                    <i class="bi bi-box-arrow-up-right me-2"></i>Tạo Lệnh Xuất Kho Từ Đơn Bán Hàng (SO)
+                    <i class="bi bi-box-arrow-up-right me-2"></i>T?o L?nh Xu?t Kho T? �on B�n H�ng (SO)
                 </h5>
                 <a asp-page="./Index" class="btn btn-outline-light btn-sm">
-                    <i class="bi bi-arrow-left me-1"></i>Quay lại danh sách
+                    <i class="bi bi-arrow-left me-1"></i>Quay l?i danh s�ch
                 </a>
             </div>
 
             <div class="card-body p-4">
-                <!-- THÔNG TIN ĐƠN HÀNG CHÍNH -->
+                <!-- TH�NG TIN �ON H�NG CH�NH -->
                 <div class="row g-3 mb-4 bg-light p-3 rounded border">
-                    <!-- 1. Chọn Sales Order -->
+                    <!-- 1. Ch?n Sales Order -->
                     <div class="col-md-4">
-                        <label class="form-label fw-bold">1. Chọn Đơn Bán Hàng (SO) <span class="text-danger">*</span></label>
+                        <label class="form-label fw-bold">1. Ch?n �on B�n H�ng (SO) <span class="text-danger">*</span></label>
                         <select asp-for="Input.SalesOrderId" asp-items="Model.SalesOrderOptions" class="form-select border-primary" id="ddlSalesOrder" onchange="onSalesOrderChanged(this.value)">
                         </select>
                         <span asp-validation-for="Input.SalesOrderId" class="text-danger small"></span>
                     </div>
 
-                    <!-- 2. Khách hàng (Readonly, tự điền khi chọn SO) -->
+                    <!-- 2. Kh�ch h�ng (Readonly, t? di?n khi ch?n SO) -->
                     <div class="col-md-4">
-                        <label class="form-label fw-bold">Khách hàng</label>
-                        <input asp-for="Input.CustomerName" class="form-control" id="txtCustomerName" readonly placeholder="Tên khách hàng sẽ tự hiển thị..." />
+                        <label class="form-label fw-bold">Kh�ch h�ng</label>
+                        <input asp-for="Input.CustomerName" class="form-control" id="txtCustomerName" readonly placeholder="T�n kh�ch h�ng s? t? hi?n th?..." />
                     </div>
 
-                    <!-- 3. Mã tham chiếu / Ghi chú SO -->
+                    <!-- 3. M� tham chi?u / Ghi ch� SO -->
                     <div class="col-md-4">
-                        <label class="form-label fw-bold">Mã Tham Chiếu / Mã Đơn SO</label>
-                        <input asp-for="Input.ReferenceCode" class="form-control" id="txtReferenceCode" placeholder="Số đơn tham chiếu..." />
+                        <label class="form-label fw-bold">M� Tham Chi?u / M� �on SO</label>
+                        <input asp-for="Input.ReferenceCode" class="form-control" id="txtReferenceCode" placeholder="S? don tham chi?u..." />
                     </div>
 
-                    <!-- 4. Kho xuất -->
+                    <!-- 4. Kho xu?t -->
                     <div class="col-md-4">
-                        <label class="form-label fw-bold">2. Chọn Kho Xuất <span class="text-danger">*</span></label>
+                        <label class="form-label fw-bold">2. Ch?n Kho Xu?t <span class="text-danger">*</span></label>
                         <select asp-for="Input.WarehouseId" asp-items="Model.WarehouseOptions" class="form-select border-primary" id="ddlWarehouse">
                         </select>
                         <span asp-validation-for="Input.WarehouseId" class="text-danger small"></span>
                     </div>
 
-                    <!-- 5. Ngày xuất dự kiến -->
+                    <!-- 5. Ng�y xu?t d? ki?n -->
                     <div class="col-md-4">
-                        <label class="form-label fw-bold">3. Ngày xuất dự kiến <span class="text-danger">*</span></label>
+                        <label class="form-label fw-bold">3. Ng�y xu?t d? ki?n <span class="text-danger">*</span></label>
                         <input asp-for="Input.ExpectedIssueDate" type="date" class="form-control" asp-format="{0:yyyy-MM-dd}" />
                         <span asp-validation-for="Input.ExpectedIssueDate" class="text-danger small"></span>
                     </div>
 
-                    <!-- 6. Người phụ trách -->
+                    <!-- 6. Ngu?i ph? tr�ch -->
                     <div class="col-md-4">
-                        <label class="form-label fw-bold">Người phụ trách xuất kho</label>
+                        <label class="form-label fw-bold">Ngu?i ph? tr�ch xu?t kho</label>
                         <select asp-for="Input.AssignedToUserId" asp-items="Model.AssigneeOptions" class="form-select">
                         </select>
                     </div>
                 </div>
 
-                <!-- DANH SÁCH SẢN PHẨM KHU VỰC CHI TIẾT -->
+                <!-- DANH S�CH S?N PH?M KHU V?C CHI TI?T -->
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <h6 class="fw-bold text-secondary m-0">
-                        <i class="bi bi-list-check me-1"></i>Danh Sách Mặt Hàng Cần Xuất Kho
+                        <i class="bi bi-list-check me-1"></i>Danh S�ch M?t H�ng C?n Xu?t Kho
                     </h6>
                     <span class="text-muted small fw-bold" id="lblItemCount">
-                        Số lượng mặt hàng: @(Model.Input.Items?.Count ?? 0)
+                        S? lu?ng m?t h�ng: @(Model.Input.Items?.Count ?? 0)
                     </span>
                 </div>
 
@@ -89,13 +89,13 @@
                         <thead class="table-dark">
                             <tr>
                                 <th style="width: 50px;" class="text-center">#</th>
-                                <th>Mã SKU</th>
-                                <th>Tên Sản Phẩm</th>
-                                <th class="text-center" style="width: 90px;">ĐVT</th>
-                                <th class="text-end" style="width: 140px;">SL Khách Đặt</th>
-                                <th class="text-end" style="width: 140px;">SL Đã Giữ Tồn</th>
-                                <th class="text-end" style="width: 170px;">SL Yêu Cầu Xuất <span class="text-danger">*</span></th>
-                                <th>Ghi Chú</th>
+                                <th>M� SKU</th>
+                                <th>T�n S?n Ph?m</th>
+                                <th class="text-center" style="width: 90px;">�VT</th>
+                                <th class="text-end" style="width: 140px;">SL Kh�ch �?t</th>
+                                <th class="text-end" style="width: 140px;">SL �� Gi? T?n</th>
+                                <th class="text-end" style="width: 170px;">SL Y�u C?u Xu?t <span class="text-danger">*</span></th>
+                                <th>Ghi Ch�</th>
                             </tr>
                         </thead>
                         <tbody id="tbodyItems">
@@ -122,7 +122,7 @@
                                                    max="@Model.Input.Items[i].RequestedQuantity" min="0.01" required />
                                         </td>
                                         <td>
-                                            <input type="text" name="Input.Items[@i].Notes" value="@Model.Input.Items[i].Notes" class="form-control form-control-sm" placeholder="Ghi chú thêm..." />
+                                            <input type="text" name="Input.Items[@i].Notes" value="@Model.Input.Items[i].Notes" class="form-control form-control-sm" placeholder="Ghi ch� th�m..." />
                                         </td>
 
                                     </tr>
@@ -132,7 +132,7 @@
                             {
                                 <tr>
                                     <td colspan="8" class="text-center text-muted py-4">
-                                        <i class="bi bi-info-circle me-1"></i>Vui lòng chọn Sales Order ở trên để hệ thống tải danh sách sản phẩm.
+                                        <i class="bi bi-info-circle me-1"></i>Vui l�ng ch?n Sales Order ? tr�n d? h? th?ng t?i danh s�ch s?n ph?m.
                                     </td>
                                 </tr>
                             }
@@ -140,13 +140,13 @@
                     </table>
                 </div>
 
-                <!-- BUTTONS HÀNH ĐỘNG -->
+                <!-- BUTTONS H�NH �?NG -->
                 <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
                     <button type="submit" name="actionType" value="draft" class="btn btn-outline-secondary px-4">
-                        <i class="bi bi-save me-1"></i>Lưu Nháp (Draft)
+                        <i class="bi bi-save me-1"></i>Luu Nh�p (Draft)
                     </button>
                     <button type="submit" name="actionType" value="submit" class="btn btn-success px-4" id="btnSubmit" @(Model.Input.Items != null && Model.Input.Items.Any() ? "" : "disabled")>
-                        <i class="bi bi-check-circle me-1"></i>Tạo Lệnh Xuất Kho
+                        <i class="bi bi-check-circle me-1"></i>T?o L?nh Xu?t Kho
                     </button>
                 </div>
             </div>
@@ -155,12 +155,12 @@
 </div>
 
 @section Scripts {
-    <!-- Load Validation Scripts qua CDN trực tiếp để tránh lỗi thiếu Partial View -->
+    <!-- Load Validation Scripts qua CDN tr?c ti?p d? tr�nh l?i thi?u Partial View -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.19.5/jquery.validate.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validation-unobtrusive/4.0.0/jquery.validate.unobtrusive.min.js"></script>
 
     <script>
-        // Gọi AJAX khi thay đổi Dropdown Sales Order
+        // G?i AJAX khi thay d?i Dropdown Sales Order
         function onSalesOrderChanged(salesOrderId) {
             const tbody = $('#tbodyItems');
             const btnSubmit = $('#btnSubmit');
@@ -169,40 +169,40 @@
             const ddlWarehouse = $('#ddlWarehouse');
 
             if (!salesOrderId || salesOrderId <= 0) {
-                tbody.html('<tr><td colspan="8" class="text-center text-muted py-4"><i class="bi bi-info-circle me-1"></i>Vui lòng chọn Sales Order ở trên để hệ thống tải danh sách sản phẩm.</td></tr>');
-                $('#lblItemCount').text('Số lượng mặt hàng: 0');
+                tbody.html('<tr><td colspan="8" class="text-center text-muted py-4"><i class="bi bi-info-circle me-1"></i>Vui l�ng ch?n Sales Order ? tr�n d? h? th?ng t?i danh s�ch s?n ph?m.</td></tr>');
+                $('#lblItemCount').text('S? lu?ng m?t h�ng: 0');
                 txtCustomer.val('');
                 txtRefCode.val('');
                 btnSubmit.prop('disabled', true);
                 return;
             }
 
-            // Hiển thị trạng thái đang tải
-            tbody.html('<tr><td colspan="8" class="text-center py-4"><div class="spinner-border text-primary spinner-border-sm me-2" role="status"></div>Đang tải danh sách chi tiết sản phẩm...</td></tr>');
+            // Hi?n th? tr?ng th�i dang t?i
+            tbody.html('<tr><td colspan="8" class="text-center py-4"><div class="spinner-border text-primary spinner-border-sm me-2" role="status"></div>�ang t?i danh s�ch chi ti?t s?n ph?m...</td></tr>');
 
-            // Gọi Handler AJAX trong PageModel (Create.cshtml.cs)
+            // G?i Handler AJAX trong PageModel (Create.cshtml.cs)
             $.get(`?handler=SalesOrderDetail&id=${salesOrderId}`)
                 .done(function (response) {
                     const detail = response.data || response;
 
                     if (!detail || !detail.salesOrderId) {
-                        tbody.html('<tr><td colspan="8" class="text-center text-danger py-3">Không tìm thấy dữ liệu chi tiết Sales Order!</td></tr>');
+                        tbody.html('<tr><td colspan="8" class="text-center text-danger py-3">Kh�ng t�m th?y d? li?u chi ti?t Sales Order!</td></tr>');
                         btnSubmit.prop('disabled', true);
                         return;
                     }
 
-                    // 1. Tự động fill thông tin chung (Khớp chính xác với JSON API)
+                    // 1. T? d?ng fill th�ng tin chung (Kh?p ch�nh x�c v?i JSON API)
                     txtCustomer.val(detail.customerName || '');
                     txtRefCode.val(detail.salesOrderNumber || '');
                     if (detail.warehouseId && detail.warehouseId > 0) {
                         ddlWarehouse.val(detail.warehouseId);
                     }
 
-                    // 2. Render bảng danh sách sản phẩm
+                    // 2. Render b?ng danh s�ch s?n ph?m
                     if (!detail.items || detail.items.length === 0) {
-                        tbody.html('<tr><td colspan="8" class="text-center text-warning py-3">Sales Order này không có mặt hàng nào cần xuất!</td></tr>');
+                        tbody.html('<tr><td colspan="8" class="text-center text-warning py-3">Sales Order n�y kh�ng c� m?t h�ng n�o c?n xu?t!</td></tr>');
                         btnSubmit.prop('disabled', true);
-                        $('#lblItemCount').text('Số lượng mặt hàng: 0');
+                        $('#lblItemCount').text('S? lu?ng m?t h�ng: 0');
                         return;
                     }
 
@@ -227,18 +227,18 @@
                                            value="${item.quantity}" max="${item.quantity}" min="0.01" required />
                                 </td>
                                 <td>
-                                    <input type="text" name="Input.Items[${index}].Notes" class="form-control form-control-sm" placeholder="Ghi chú thêm..." />
+                                    <input type="text" name="Input.Items[${index}].Notes" class="form-control form-control-sm" placeholder="Ghi ch� th�m..." />
                                 </td>
                             </tr>
                         `;
                     });
 
                     tbody.html(html);
-                    $('#lblItemCount').text(`Số lượng mặt hàng: ${detail.items.length}`);
+                    $('#lblItemCount').text(`S? lu?ng m?t h�ng: ${detail.items.length}`);
                     btnSubmit.prop('disabled', false);
                 })
                 .fail(function () {
-                    tbody.html('<tr><td colspan="8" class="text-center text-danger py-3">Lỗi kết nối máy chủ khi lấy dữ liệu Sales Order!</td></tr>');
+                    tbody.html('<tr><td colspan="8" class="text-center text-danger py-3">L?i k?t n?i m�y ch? khi l?y d? li?u Sales Order!</td></tr>');
                     btnSubmit.prop('disabled', true);
                 });
         }

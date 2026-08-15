@@ -1,10 +1,10 @@
-﻿@page "/sales-orders/create"
+@page "/sales-orders/create"
 @model BMWMS.Web.Pages.SalesOrders.CreateModel
 
 
 @{
-   // Layout = "/Pages/Shared/Inventory/_Layout.cshtml";
-    ViewData["Title"] = "Tạo đơn bán hàng";
+   Layout = "_AdminLayout";
+    ViewData["Title"] = "T?o don b�n h�ng";
 }
 
 <!-- =========================================================
@@ -15,7 +15,7 @@
 
     <div class="text-end">
         <span class="fw-bold d-block text-dark">
-            Nguyễn Văn An
+            Nguy?n Van An
         </span>
 
         <small class="text-muted">
@@ -39,17 +39,17 @@
             <div class="d-flex align-items-center gap-2">
 
                 <h2 class="fw-bold mb-0">
-                    Tạo đơn bán hàng
+                    T?o don b�n h�ng
                 </h2>
 
                 <span class="badge bg-secondary-subtle text-secondary border px-3 py-2 fs-6 rounded-pill">
-                    Nháp
+                    Nh�p
                 </span>
 
             </div>
 
             <p class="text-muted mb-0 mt-1 small">
-                SO phải kiểm tra và giữ tồn kho trước khi khởi tạo Outbound Order.
+                SO ph?i ki?m tra v� gi? t?n kho tru?c khi kh?i t?o Outbound Order.
             </p>
         </div>
 
@@ -60,7 +60,7 @@
                class="btn btn-outline-secondary px-3">
 
                 <i class="bi bi-x-circle me-1"></i>
-                Hủy
+                H?y
 
             </a>
 
@@ -71,7 +71,7 @@
                     class="btn btn-light border px-3">
 
                 <i class="bi bi-save me-1"></i>
-                Lưu nháp
+                Luu nh�p
 
             </button>
 
@@ -82,7 +82,7 @@
                     class="btn btn-primary px-4 fw-semibold shadow-sm">
 
                 <i class="bi bi-check2-circle me-1"></i>
-                Tạo đơn bán hàng
+                T?o don b�n h�ng
 
             </button>
 
@@ -121,7 +121,7 @@
 
             <h5 class="fw-bold mb-3 text-primary">
                 <i class="bi bi-file-earmark-text me-2"></i>
-                Thông tin chứng từ
+                Th�ng tin ch?ng t?
             </h5>
 
 
@@ -131,7 +131,7 @@
                 <div class="col-md-3">
 
                     <label class="form-label fw-semibold">
-                        Khách hàng
+                        Kh�ch h�ng
                         <span class="text-danger">*</span>
                     </label>
 
@@ -147,7 +147,7 @@
                 <div class="col-md-3">
 
                     <label class="form-label fw-semibold">
-                        Ngày đặt hàng
+                        Ng�y d?t h�ng
                         <span class="text-danger">*</span>
                     </label>
 
@@ -162,7 +162,7 @@
                 <div class="col-md-3">
 
                     <label class="form-label fw-semibold">
-                        Ngày xuất dự kiến
+                        Ng�y xu?t d? ki?n
                     </label>
 
                     <input type="date"
@@ -176,7 +176,7 @@
                 <div class="col-md-3">
 
                     <label class="form-label fw-semibold">
-                        Kho xuất dự kiến
+                        Kho xu?t d? ki?n
                     </label>
 
                     <select class="form-select shadow-none"
@@ -194,13 +194,13 @@
                 <div class="col-md-3">
 
                     <label class="form-label text-muted small">
-                        Điều khoản giao hàng
+                        �i?u kho?n giao h�ng
                     </label>
 
                     <input type="text"
                            class="form-control shadow-none"
-                           value="Giao tại kho"
-                           placeholder="Nhập điều khoản..." />
+                           value="Giao t?i kho"
+                           placeholder="Nh?p di?u kho?n..." />
 
                 </div>
 
@@ -209,7 +209,7 @@
                 <div class="col-md-3">
 
                     <label class="form-label text-muted small">
-                        Người phụ trách
+                        Ngu?i ph? tr�ch
                     </label>
 
                     <select class="form-select shadow-none">
@@ -223,13 +223,13 @@
                 <div class="col-md-3">
 
                     <label class="form-label text-muted small">
-                        Mức ưu tiên
+                        M?c uu ti�n
                     </label>
 
                     <select class="form-select shadow-none">
 
                         <option value="normal">
-                            Bình thường
+                            B�nh thu?ng
                         </option>
 
                         <option value="high">
@@ -237,7 +237,7 @@
                         </option>
 
                         <option value="urgent">
-                            Gấp
+                            G?p
                         </option>
 
                     </select>
@@ -249,12 +249,12 @@
                 <div class="col-md-3">
 
                     <label class="form-label text-muted small">
-                        Mã tham chiếu
+                        M� tham chi?u
                     </label>
 
                     <input type="text"
                            class="form-control bg-light shadow-none"
-                           value="Tự động sinh khi lưu"
+                           value="T? d?ng sinh khi luu"
                            readonly />
 
                 </div>
@@ -279,7 +279,7 @@
                 <h5 class="fw-bold mb-0 text-primary">
 
                     <i class="bi bi-box-seam me-2"></i>
-                    Danh sách sản phẩm
+                    Danh s�ch s?n ph?m
 
                 </h5>
 
@@ -291,7 +291,7 @@
                         data-bs-target="#productModal">
 
                     <i class="bi bi-plus-lg me-1"></i>
-                    Thêm sản phẩm
+                    Th�m s?n ph?m
 
                 </button>
 
@@ -311,31 +311,31 @@
                         <tr>
 
                             <th>
-                                Sản phẩm
+                                S?n ph?m
                             </th>
 
                             <th style="width:130px;"
                                 class="text-center">
-                                SL đặt
+                                SL d?t
                             </th>
 
                             <th style="width:120px;"
                                 class="text-center">
-                                Khả dụng
+                                Kh? d?ng
                             </th>
 
                             <th style="width:90px;">
-                                ĐVT
+                                �VT
                             </th>
 
                             <th style="width:160px;"
                                 class="text-end">
-                                Đơn giá (VNĐ)
+                                �on gi� (VN�)
                             </th>
 
                             <th style="width:170px;"
                                 class="text-end">
-                                Thành tiền
+                                Th�nh ti?n
                             </th>
 
                             <th style="width:50px;">
@@ -379,13 +379,13 @@
                                             </span>
 
                                             <span class="text-dark">
-                                                — @product.ProductName
+                                                � @product.ProductName
                                             </span>
                                         }
                                         else
                                         {
                                             <span class="text-muted">
-                                                Mã SP: #@item.ProductId
+                                                M� SP: #@item.ProductId
                                             </span>
                                         }
 
@@ -466,13 +466,13 @@
                 <i class="bi bi-inbox fs-1 d-block mb-2 text-secondary opacity-50"></i>
 
                 <p class="mb-1">
-                    Chưa có sản phẩm nào trong đơn hàng này.
+                    Chua c� s?n ph?m n�o trong don h�ng n�y.
                 </p>
 
                 <small>
-                    Nhấn nút
-                    <strong>"Thêm sản phẩm"</strong>
-                    phía trên để chọn mặt hàng.
+                    Nh?n n�t
+                    <strong>"Th�m s?n ph?m"</strong>
+                    ph�a tr�n d? ch?n m?t h�ng.
                 </small>
 
             </div>
@@ -487,9 +487,9 @@
 
                     <i class="bi bi-info-circle me-1"></i>
 
-                    Tồn kho chỉ được giữ sau khi
-                    <strong>Tạo đơn hàng</strong>
-                    thành công.
+                    T?n kho ch? du?c gi? sau khi
+                    <strong>T?o don h�ng</strong>
+                    th�nh c�ng.
 
                 </div>
 
@@ -497,12 +497,12 @@
                 <div class="d-flex align-items-baseline gap-2">
 
                     <span class="fs-6 text-muted">
-                        Tổng cộng:
+                        T?ng c?ng:
                     </span>
 
                     <span id="lblGrandTotal"
                           class="fs-3 fw-bold text-danger">
-                        0 đ
+                        0 d
                     </span>
 
                 </div>
@@ -537,13 +537,13 @@
                     <h5 class="modal-title fw-bold"
                         id="productModalLabel">
 
-                        Chọn sản phẩm bán
+                        Ch?n s?n ph?m b�n
 
                     </h5>
 
                     <p class="text-muted small mb-0">
 
-                        Chọn từ danh sách sản phẩm khả dụng trong kho
+                        Ch?n t? danh s�ch s?n ph?m kh? d?ng trong kho
 
                     </p>
 
@@ -572,7 +572,7 @@
                     <input type="text"
                            id="modalSearchInput"
                            class="form-control border-start-0 shadow-none"
-                           placeholder="Tìm theo mã hoặc tên sản phẩm..." />
+                           placeholder="T�m theo m� ho?c t�n s?n ph?m..." />
 
                 </div>
 
@@ -618,7 +618,7 @@
 
                                     <small class="text-muted">
 
-                                        Tồn khả dụng:
+                                        T?n kh? d?ng:
 
                                         <strong class="text-dark">
                                             @product.AvailableQuantity.ToString("N0")
@@ -635,14 +635,14 @@
 
                                     <span class="fw-bold fs-6 text-primary d-block">
 
-                                        @product.UnitPrice.ToString("N0") đ
+                                        @product.UnitPrice.ToString("N0") d
 
                                     </span>
 
 
                                     <span class="btn btn-sm btn-light border mt-1">
 
-                                        Chọn
+                                        Ch?n
                                         <i class="bi bi-chevron-right"></i>
 
                                     </span>
@@ -658,7 +658,7 @@
                 {
                     <div class="text-center text-muted py-4">
 
-                        Không có sản phẩm khả dụng trong hệ thống.
+                        Kh�ng c� s?n ph?m kh? d?ng trong h? th?ng.
 
                     </div>
                 }
@@ -673,7 +673,7 @@
 @section Scripts {
     <script>
         $(function () {
-            // 1. Tìm kiếm trong Modal
+            // 1. T�m ki?m trong Modal
             $('#modalSearchInput').on('input', function () {
                 const keyword = ($(this).val() || '').toString().trim().toLowerCase();
                 $('#modalProductList .btn-select-prod').each(function () {
@@ -682,14 +682,14 @@
                 });
             });
 
-            // 2. Thay đổi số lượng / đơn giá
+            // 2. Thay d?i s? lu?ng / don gi�
             $(document).on('input', '.input-qty, .input-price', function () {
                 const row = $(this).closest('tr');
                 calculateRowAmount(row);
                 calculateTotal();
             });
 
-            // 3. Xóa sản phẩm
+            // 3. X�a s?n ph?m
             $(document).on('click', '.btn-remove', function (e) {
                 e.preventDefault();
                 $(this).closest('tr').remove();
@@ -697,14 +697,14 @@
                 calculateAll();
             });
 
-            // 4. Chọn sản phẩm từ Modal (ĐÃ FIX TRIỆT ĐỂ LỖI KHÔNG LOAD)
+            // 4. Ch?n s?n ph?m t? Modal (�� FIX TRI?T �? L?I KH�NG LOAD)
             $(document).on('click', '.btn-select-prod', function (e) {
                 e.preventDefault();
 
-                // Lấy đúng thẻ button gốc bất kể bấm trúng thẻ con nào (span, div, icon...)
+                // L?y d�ng th? button g?c b?t k? b?m tr�ng th? con n�o (span, div, icon...)
                 const button = $(e.target).closest('.btn-select-prod');
 
-                // Lấy dữ liệu bằng vanilla JS dataset để tránh lỗi jQuery cache/attr
+                // L?y d? li?u b?ng vanilla JS dataset d? tr�nh l?i jQuery cache/attr
                 const btnEl = button[0];
                 if (!btnEl) return;
 
@@ -717,15 +717,15 @@
                     price: parseFloat(btnEl.getAttribute('data-product-price')) || 0
                 };
 
-                console.log("Dữ liệu sản phẩm chọn được:", product); // Kiểm tra qua Console F12
+                console.log("D? li?u s?n ph?m ch?n du?c:", product); // Ki?m tra qua Console F12
 
                 if (!product.id) {
-                    alert('Lỗi: Sản phẩm không có ID!');
+                    alert('L?i: S?n ph?m kh�ng c� ID!');
                     return;
                 }
 
                 if (addProductRow(product)) {
-                    // Đóng Modal an toàn
+                    // ��ng Modal an to�n
                     const modalEl = document.getElementById('productModal');
                     if (window.bootstrap && bootstrap.Modal) {
                         const modalObj = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
@@ -742,7 +742,7 @@
         function addProductRow(product) {
             let exists = false;
 
-            // Kiểm tra trùng sản phẩm
+            // Ki?m tra tr�ng s?n ph?m
             $('#productTableBody input.product-id').each(function () {
                 if (String($(this).val()) === String(product.id)) {
                     exists = true;
@@ -751,7 +751,7 @@
             });
 
             if (exists) {
-                alert('Sản phẩm này đã được thêm vào danh sách!');
+                alert('S?n ph?m n�y d� du?c th�m v�o danh s�ch!');
                 return false;
             }
 
@@ -760,7 +760,7 @@
                 <tr data-index="${index}">
                     <td>
                         <input type="hidden" class="product-id" name="SalesOrder.Items[${index}].ProductId" value="${product.id}" />
-                        <span class="fw-bold text-primary">${product.code}</span> — ${product.name}
+                        <span class="fw-bold text-primary">${product.code}</span> � ${product.name}
                     </td>
                     <td>
                         <input type="number" name="SalesOrder.Items[${index}].OrderedQuantity" class="form-control text-center input-qty shadow-none" value="1" min="1" step="any" />
@@ -782,15 +782,15 @@
                     </td>
                 </tr>`;
 
-            // Thêm dòng mới vào tbody
+            // Th�m d�ng m?i v�o tbody
             $('#productTableBody').append(rowHtml);
 
-            // Tính lại tiền dòng mới và tổng đơn hàng
+            // T�nh l?i ti?n d�ng m?i v� t?ng don h�ng
             const $newRow = $('#productTableBody tr').last();
             calculateRowAmount($newRow);
             calculateTotal();
 
-            // Ẩn thông báo "Chưa có sản phẩm"
+            // ?n th�ng b�o "Chua c� s?n ph?m"
             $('#emptyProductMessage').addClass('d-none');
             return true;
         }
@@ -808,7 +808,7 @@
                 const price = parseFloat($(this).find('.input-price').val()) || 0;
                 total += (qty * price);
             });
-            $('#lblGrandTotal').text(new Intl.NumberFormat('vi-VN').format(total) + ' đ');
+            $('#lblGrandTotal').text(new Intl.NumberFormat('vi-VN').format(total) + ' d');
         }
 
         function calculateAll() {

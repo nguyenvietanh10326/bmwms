@@ -1,21 +1,21 @@
-Ôªø@page "/sales-orders"
+@page "/sales-orders"
 @model BMWMS.Web.Pages.SalesOrders.IndexModel
 @{
-    Layout = "/Pages/Shared/Inventory/_Layout.cshtml";
+    Layout = "_AdminLayout";
 
-    ViewData["Title"] = "ƒê∆°n b√°n h√†ng";
+    ViewData["Title"] = "–on b·n h‡ng";
 }
 
 <!-- Header Navigation / Breadcrumb -->
 <div class="d-flex justify-content-between align-items-center mb-3">
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb mb-0">
-            <li class="breadcrumb-item"><a href="#">ƒê∆°n h√†ng</a></li>
-            <li class="breadcrumb-item active" aria-current="page">ƒê∆°n b√°n h√†ng</li>
+            <li class="breadcrumb-item"><a href="#">–on h‡ng</a></li>
+            <li class="breadcrumb-item active" aria-current="page">–on b·n h‡ng</li>
         </ol>
     </nav>
     <div class="text-end">
-        <span class="fw-bold d-block">Nguy·ªÖn VƒÉn An</span>
+        <span class="fw-bold d-block">Nguy?n Van An</span>
         <small class="text-muted">System Administrator</small>
     </div>
 </div>
@@ -23,11 +23,11 @@
 <!-- Main Section Title & Button -->
 <div class="d-flex justify-content-between align-items-start mb-4">
     <div>
-        <h2 class="fw-bold mb-1">ƒê∆°n b√°n h√†ng</h2>
-        <p class="text-muted mb-0">Sales Order ph·∫£i ki·ªÉm tra v√† gi·ªØ t·ªìn tr∆∞·ªõc khi t·∫°o l·ªánh xu·∫•t kho.</p>
+        <h2 class="fw-bold mb-1">–on b·n h‡ng</h2>
+        <p class="text-muted mb-0">Sales Order ph?i ki?m tra v‡ gi? t?n tru?c khi t?o l?nh xu?t kho.</p>
     </div>
     <a href="/sales-orders/create" class="btn btn-dark btn-lg px-4 fs-6">
-        <i class="bi bi-plus-lg me-1"></i> T·∫°o ƒë∆°n b√°n h√†ng
+        <i class="bi bi-plus-lg me-1"></i> T?o don b·n h‡ng
     </a>
 </div>
 
@@ -58,7 +58,7 @@
             <div class="col-md-5">
                 <div class="input-group">
                     <input type="text" asp-for="Filter.Keyword" class="form-control bg-light border-end-0"
-                           placeholder="T√¨m theo m√£ ho·∫∑c ƒë·ªëi t√°c">
+                           placeholder="TÏm theo m„ ho?c d?i t·c">
                     <span class="input-group-text bg-light border-start-0 text-muted">
                         <i class="bi bi-search"></i>
                     </span>
@@ -73,8 +73,8 @@
          
             <!-- Action Buttons -->
             <div class="col-md-2 d-flex gap-2">
-                <button type="submit" class="btn btn-dark w-100">T√¨m ki·∫øm</button>
-                <a href="/sales-orders" class="btn btn-light border w-100 text-center">ƒê·∫∑t l·∫°i</a>
+                <button type="submit" class="btn btn-dark w-100">TÏm ki?m</button>
+                <a href="/sales-orders" class="btn btn-light border w-100 text-center">–?t l?i</a>
             </div>
         </form>
     </div>
@@ -87,13 +87,13 @@
             <table class="table table-hover align-middle mb-0">
                 <thead class="bg-light text-muted small text-uppercase">
                     <tr>
-                        <th class="ps-4">M√£ SO</th>
-                        <th>Kh√°ch h√†ng</th>
-                        <th>Ng√†y ƒë·∫∑t</th>
-                        <th>Xu·∫•t d·ª± ki·∫øn</th>
-                        <th>Tr·∫°ng th√°i</th>
-                        <th>T·ªïng SL</th>
-                        <th class="text-end pe-4">Thao t√°c</th>
+                        <th class="ps-4">M„ SO</th>
+                        <th>Kh·ch h‡ng</th>
+                        <th>Ng‡y d?t</th>
+                        <th>Xu?t d? ki?n</th>
+                        <th>Tr?ng th·i</th>
+                        <th>T?ng SL</th>
+                        <th class="text-end pe-4">Thao t·c</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -109,32 +109,32 @@
                                 </td>
                                 <td>
                                     <span class="fw-semibold">@item.CustomerCode</span>
-                                    <span class="text-muted">‚Äî @item.CustomerName</span>
+                                    <span class="text-muted">ó @item.CustomerName</span>
                                 </td>
                                 <td>@item.OrderDate.ToString("dd/MM/yyyy")</td>
-                                <td>@(item.ExpectedIssueDate.HasValue? item.ExpectedIssueDate.Value.ToString("dd/MM/yyyy") : "‚Äî")</td>
+                                <td>@(item.ExpectedIssueDate.HasValue? item.ExpectedIssueDate.Value.ToString("dd/MM/yyyy") : "ó")</td>
                                 <td>
                                     @switch (item.Status)
                                     {
                                         case "DRAFT":
-                                        case "Nh√°p":
-                                            <span class="badge bg-light text-dark border px-3 py-2 fw-normal">Nh√°p</span>
+                                        case "Nh·p":
+                                            <span class="badge bg-light text-dark border px-3 py-2 fw-normal">Nh·p</span>
                                             break;
                                         case "ALLOCATED":
-                                        case "ƒê√£ gi·ªØ t·ªìn":
-                                            <span class="badge bg-dark text-white px-3 py-2 fw-normal">ƒê√£ gi·ªØ t·ªìn</span>
+                                        case "–„ gi? t?n":
+                                            <span class="badge bg-dark text-white px-3 py-2 fw-normal">–„ gi? t?n</span>
                                             break;
                                         case "CONFIRMED":
-                                        case "ƒê√£ x√°c nh·∫≠n":
-                                            <span class="badge bg-secondary text-white px-3 py-2 fw-normal">ƒê√£ x√°c nh·∫≠n</span>
+                                        case "–„ x·c nh?n":
+                                            <span class="badge bg-secondary text-white px-3 py-2 fw-normal">–„ x·c nh?n</span>
                                             break;
                                         case "FULFILLED":
-                                        case "Ho√†n t·∫•t":
-                                            <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 fw-normal">Ho√†n t·∫•t</span>
+                                        case "Ho‡n t?t":
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 fw-normal">Ho‡n t?t</span>
                                             break;
                                         case "CANCELLED":
-                                        case "ƒê√£ h·ªßy":
-                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-2 fw-normal">ƒê√£ h·ªßy</span>
+                                        case "–„ h?y":
+                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-2 fw-normal">–„ h?y</span>
                                             break;
                                         default:
                                             <span class="badge bg-light text-dark px-3 py-2">@item.Status</span>
@@ -146,7 +146,7 @@
                                 </td>
                                 <td class="text-end pe-4">
                                     <a href="/sales-orders/details/@item.SalesOrderId" class="btn btn-sm btn-outline-primary">
-                                        Xem chi ti·∫øt
+                                        Xem chi ti?t
                                     </a>
                                 </td>
                             </tr>
@@ -156,7 +156,7 @@
                     {
                         <tr>
                             <td colspan="7" class="text-center py-4 text-muted">
-                                Kh√¥ng t√¨m th·∫•y b·∫£n ghi n√†o.
+                                KhÙng tÏm th?y b?n ghi n‡o.
                             </td>
                         </tr>
                     }
@@ -178,14 +178,14 @@
 
     <div class="card-footer bg-white border-0 py-3 d-flex justify-content-between align-items-center">
         <span class="text-muted fs-7">
-            Hi·ªÉn th·ªã @start‚Äì@end trong @totalCount b·∫£n ghi
+            Hi?n th? @startñ@end trong @totalCount b?n ghi
         </span>
 
         @if (totalPages > 1)
         {
             <nav>
                 <ul class="pagination pagination-sm mb-0">
-                    <!-- N√∫t Previous -->
+                    <!-- N˙t Previous -->
                     <li class="page-item @(pageIndex == 1 ? "disabled" : "")">
                         <a class="page-link" asp-page="./Index"
                            asp-route-Keyword="@Model.Filter.Keyword"
@@ -204,7 +204,7 @@
                         </li>
                     }
 
-                    <!-- N√∫t Next -->
+                    <!-- N˙t Next -->
                     <li class="page-item @(pageIndex == totalPages ? "disabled" : "")">
                         <a class="page-link" asp-page="./Index"
                            asp-route-Keyword="@Model.Filter.Keyword"

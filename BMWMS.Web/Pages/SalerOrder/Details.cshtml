@@ -1,22 +1,22 @@
-﻿@page "/sales-orders/details/{id:int}"
+@page "/sales-orders/details/{id:int}"
 @model BMWMS.Web.Pages.SaleOrder.DetailsModel
 @{
-    Layout = "/Pages/Shared/Inventory/_Layout.cshtml";
+    Layout = "_AdminLayout";
 
-    ViewData["Title"] = $"Chi tiết đơn bán hàng - {Model.SalesOrder?.SalesOrderNumber}";
+    ViewData["Title"] = $"Chi ti?t don b�n h�ng - {Model.SalesOrder?.SalesOrderNumber}";
 }
 
 <!-- Header Breadcrumb & User Info -->
 <div class="d-flex justify-content-between align-items-center mb-3 no-print">
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb mb-0">
-            <li class="breadcrumb-item"><a href="#" class="text-decoration-none">Đơn hàng</a></li>
-            <li class="breadcrumb-item"><a href="/sales-orders" class="text-decoration-none">Đơn bán hàng</a></li>
+            <li class="breadcrumb-item"><a href="#" class="text-decoration-none">�on h�ng</a></li>
+            <li class="breadcrumb-item"><a href="/sales-orders" class="text-decoration-none">�on b�n h�ng</a></li>
             <li class="breadcrumb-item active" aria-current="page">@Model.SalesOrder?.SalesOrderNumber</li>
         </ol>
     </nav>
     <div class="text-end">
-        <span class="fw-bold d-block text-dark">Nguyễn Văn An</span>
+        <span class="fw-bold d-block text-dark">Nguy?n Van An</span>
         <small class="text-muted">System Administrator</small>
     </div>
 </div>
@@ -27,21 +27,21 @@
         <div class="d-flex align-items-center gap-3">
             <h2 class="fw-bold mb-0">@Model.SalesOrder?.SalesOrderNumber</h2>
 
-            <!-- Badge Trạng thái theo Enum từ API -->
+            <!-- Badge Tr?ng th�i theo Enum t? API -->
             @switch (Model.SalesOrder?.Status)
             {
                 case "DRAFT":
-                    <span class="badge bg-secondary-subtle text-secondary border px-3 py-2 fs-6 rounded-pill">Nháp</span>
+                    <span class="badge bg-secondary-subtle text-secondary border px-3 py-2 fs-6 rounded-pill">Nh�p</span>
                     break;
                 case "CONFIRMED":
                 case "Approved":
-                    <span class="badge bg-info-subtle text-info border border-info-subtle px-3 py-2 fs-6 rounded-pill">Đã xác nhận</span>
+                    <span class="badge bg-info-subtle text-info border border-info-subtle px-3 py-2 fs-6 rounded-pill">�� x�c nh?n</span>
                     break;
                 case "COMPLETED":
-                    <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 fs-6 rounded-pill">Hoàn thành</span>
+                    <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 fs-6 rounded-pill">Ho�n th�nh</span>
                     break;
                 case "CANCELLED":
-                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-2 fs-6 rounded-pill">Đã hủy</span>
+                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-2 fs-6 rounded-pill">�� h?y</span>
                     break;
                 default:
                     <span class="badge bg-light text-dark border px-3 py-2 fs-6 rounded-pill">@Model.SalesOrder?.Status</span>
@@ -49,55 +49,55 @@
             }
         </div>
         <p class="text-muted mb-0 mt-1 small">
-            Khởi tạo ngày <strong>@Model.SalesOrder?.CreatedAt.ToString("dd/MM/yyyy HH:mm")</strong> bởi <strong>@Model.SalesOrder?.CreatedByName</strong>
+            Kh?i t?o ng�y <strong>@Model.SalesOrder?.CreatedAt.ToString("dd/MM/yyyy HH:mm")</strong> b?i <strong>@Model.SalesOrder?.CreatedByName</strong>
         </p>
     </div>
 
     <!-- Actions -->
     <div class="d-flex gap-2 no-print">
         <a href="/sales-orders" class="btn btn-outline-secondary px-3">
-            <i class="bi bi-arrow-left me-1"></i> Quay lại
+            <i class="bi bi-arrow-left me-1"></i> Quay l?i
         </a>
         <button type="button" class="btn btn-light border px-3" onclick="window.print();">
-            <i class="bi bi-printer me-1"></i> In phiếu
+            <i class="bi bi-printer me-1"></i> In phi?u
         </button>
     </div>
 </div>
 
 <div class="row g-4">
-    <!-- Cột bên trái: Thông tin chính & Sản phẩm (8 cols) -->
+    <!-- C?t b�n tr�i: Th�ng tin ch�nh & S?n ph?m (8 cols) -->
     <div class="col-lg-8">
         <div class="card border-0 shadow-sm rounded-3 mb-4">
             <div class="card-body p-4">
                 <h5 class="fw-bold mb-3 text-primary">
-                    <i class="bi bi-info-circle me-2"></i>Thông tin chung
+                    <i class="bi bi-info-circle me-2"></i>Th�ng tin chung
                 </h5>
                 <div class="row g-3">
                     <div class="col-sm-6">
-                        <span class="text-muted small d-block">Mã / Tên khách hàng</span>
+                        <span class="text-muted small d-block">M� / T�n kh�ch h�ng</span>
                         <strong class="text-dark fs-6">[@Model.SalesOrder?.CustomerCode] @Model.SalesOrder?.CustomerName</strong>
                     </div>
                     <div class="col-sm-6">
-                        <span class="text-muted small d-block">Ngày đặt hàng</span>
+                        <span class="text-muted small d-block">Ng�y d?t h�ng</span>
                         <span class="text-dark">@Model.SalesOrder?.OrderDate.ToString("dd/MM/yyyy")</span>
                     </div>
                     <div class="col-sm-6">
-                        <span class="text-muted small d-block">Ngày xuất dự kiến</span>
-                        <span class="text-dark">@(Model.SalesOrder?.ExpectedIssueDate?.ToString("dd/MM/yyyy") ?? "Chưa xác định")</span>
+                        <span class="text-muted small d-block">Ng�y xu?t d? ki?n</span>
+                        <span class="text-dark">@(Model.SalesOrder?.ExpectedIssueDate?.ToString("dd/MM/yyyy") ?? "Chua x�c d?nh")</span>
                     </div>
                     <div class="col-sm-6">
-                        <span class="text-muted small d-block">Người xác nhận</span>
-                        <span class="text-dark">@(Model.SalesOrder?.ConfirmedByName ?? "Chưa xác nhận")</span>
+                        <span class="text-muted small d-block">Ngu?i x�c nh?n</span>
+                        <span class="text-dark">@(Model.SalesOrder?.ConfirmedByName ?? "Chua x�c nh?n")</span>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Bảng danh sách sản phẩm -->
+        <!-- B?ng danh s�ch s?n ph?m -->
         <div class="card border-0 shadow-sm rounded-3 mb-4">
             <div class="card-body p-4">
                 <h5 class="fw-bold mb-3 text-primary">
-                    <i class="bi bi-box-seam me-2"></i>Danh sách mặt hàng (@(Model.SalesOrder?.Items?.Count ?? 0))
+                    <i class="bi bi-box-seam me-2"></i>Danh s�ch m?t h�ng (@(Model.SalesOrder?.Items?.Count ?? 0))
                 </h5>
 
                 <div class="table-responsive">
@@ -105,11 +105,11 @@
                         <thead class="table-light text-muted small text-uppercase">
                             <tr>
                                 <th>#</th>
-                                <th>Sản phẩm</th>
-                                <th class="text-center">ĐVT</th>
-                                <th class="text-center">SL Đặt</th>
-                                <th class="text-end">Đơn giá</th>
-                                <th class="text-end">Thành tiền</th>
+                                <th>S?n ph?m</th>
+                                <th class="text-center">�VT</th>
+                                <th class="text-center">SL �?t</th>
+                                <th class="text-end">�on gi�</th>
+                                <th class="text-end">Th�nh ti?n</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -126,8 +126,8 @@
                                         </td>
                                         <td class="text-center text-muted">@item.UnitName</td>
                                         <td class="text-center fw-bold">@item.OrderedQuantity.ToString("N0")</td>
-                                        <td class="text-end text-muted">@item.UnitPrice.ToString("N0") đ</td>
-                                        <td class="text-end fw-bold text-dark">@item.TotalAmount.ToString("N0") đ</td>
+                                        <td class="text-end text-muted">@item.UnitPrice.ToString("N0") d</td>
+                                        <td class="text-end fw-bold text-dark">@item.TotalAmount.ToString("N0") d</td>
                                     </tr>
                                 }
                             }
@@ -137,9 +137,9 @@
 
                 <div class="d-flex justify-content-end align-items-center mt-3 pt-3 border-top">
                     <div class="text-end">
-                        <span class="fs-6 text-muted me-2">Tổng giá trị đơn hàng:</span>
+                        <span class="fs-6 text-muted me-2">T?ng gi� tr? don h�ng:</span>
                         <span class="fs-3 fw-bold text-danger">
-                            @(Model.SalesOrder?.Items?.Sum(x => x.TotalAmount).ToString("N0") ?? "0") đ
+                            @(Model.SalesOrder?.Items?.Sum(x => x.TotalAmount).ToString("N0") ?? "0") d
                         </span>
                     </div>
                 </div>
@@ -147,24 +147,24 @@
         </div>
     </div>
 
-    <!-- Cột bên phải: Ghi chú & Lịch sử -->
+    <!-- C?t b�n ph?i: Ghi ch� & L?ch s? -->
     <div class="col-lg-4">
         <div class="card border-0 shadow-sm rounded-3">
             <div class="card-body p-4">
                 <h5 class="fw-bold mb-3 text-primary">
-                    <i class="bi bi-journal-text me-2"></i>Ghi chú & Thông tin bổ sung
+                    <i class="bi bi-journal-text me-2"></i>Ghi ch� & Th�ng tin b? sung
                 </h5>
                 <div class="bg-light p-3 rounded-2 mb-3">
-                    <small class="fw-bold text-dark d-block mb-1">Ghi chú đơn hàng:</small>
-                    <p class="small text-muted mb-0">@(string.IsNullOrEmpty(Model.SalesOrder?.Notes) ? "Không có ghi chú." : Model.SalesOrder.Notes)</p>
+                    <small class="fw-bold text-dark d-block mb-1">Ghi ch� don h�ng:</small>
+                    <p class="small text-muted mb-0">@(string.IsNullOrEmpty(Model.SalesOrder?.Notes) ? "Kh�ng c� ghi ch�." : Model.SalesOrder.Notes)</p>
                 </div>
                 <div class="small text-muted">
                     <div class="d-flex justify-content-between py-1 border-bottom">
-                        <span>Người tạo:</span>
+                        <span>Ngu?i t?o:</span>
                         <strong class="text-dark">@Model.SalesOrder?.CreatedByName</strong>
                     </div>
                     <div class="d-flex justify-content-between py-1">
-                        <span>Thời gian tạo:</span>
+                        <span>Th?i gian t?o:</span>
                         <strong class="text-dark">@Model.SalesOrder?.CreatedAt.ToString("dd/MM/yyyy HH:mm")</strong>
                     </div>
                 </div>

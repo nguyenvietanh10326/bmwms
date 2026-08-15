@@ -120,9 +120,9 @@
                 </div>
 
                 @{
-                    var isSalesOrderActive = Context.Request.Path.StartsWithSegments("/SalesOrders");
+                    var isSalesOrderActive = Context.Request.Path.StartsWithSegments("/sales-orders");
                 }
-                <a href="/SalesOrders/Index" class="nav-item @(isSalesOrderActive ? "active" : "")" style="opacity: 0.6;" title="Iteration 2">
+                <a href="/sales-orders" class="nav-item @(isSalesOrderActive ? "active" : "")">
                     <i class="ri-file-list-3-line nav-item-icon"></i>
                     Đơn bán hàng
                 </a>

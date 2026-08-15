@@ -1,10 +1,10 @@
-﻿@page "{id:int}"
+@page "{id:int}"
 @using System.Text.Json
 @model BMWMS.Web.Pages.OutboundOrders.ProcessModel
 @{
-    Layout = "/Pages/Shared/Inventory/_Layout.cshtml";
+    Layout = "_AdminLayout";
 
-    ViewData["Title"] = $"Xử Lý Lấy Hàng - {Model.Order.OutboundOrderNumber}";
+    ViewData["Title"] = $"X? L� L?y H�ng - {Model.Order.OutboundOrderNumber}";
 }
 @section Styles {
     <link rel="stylesheet"
@@ -17,49 +17,49 @@
         <div>
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb mb-1">
-                    <li class="breadcrumb-item"><a asp-page="./Index">Danh sách xuất kho</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">Xử lý lấy hàng</li>
+                    <li class="breadcrumb-item"><a asp-page="./Index">Danh s�ch xu?t kho</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">X? l� l?y h�ng</li>
                 </ol>
             </nav>
             <h3 class="fw-bold m-0 text-primary">
-                <i class="bi bi-box-seam me-2"></i>Lệnh Xuất Kho: @Model.Order.OutboundOrderNumber
+                <i class="bi bi-box-seam me-2"></i>L?nh Xu?t Kho: @Model.Order.OutboundOrderNumber
             </h3>
         </div>
         <a asp-page="./Index" class="btn btn-outline-secondary">
-            <i class="bi bi-arrow-left me-1"></i>Quay lại
+            <i class="bi bi-arrow-left me-1"></i>Quay l?i
         </a>
     </div>
 
-    <!-- Thông tin tổng quan đơn hàng -->
+    <!-- Th�ng tin t?ng quan don h�ng -->
     <div class="card border-0 shadow-sm rounded-3 mb-4">
         <div class="card-body p-4">
             <div class="row g-3">
                 <div class="col-md-3">
-                    <span class="text-muted small d-block">Trạng thái phiếu</span>
+                    <span class="text-muted small d-block">Tr?ng th�i phi?u</span>
                     <span class="badge bg-info text-dark fs-6 px-3 py-2 mt-1">
                         <i class="bi bi-clock-history me-1"></i>@Model.Order.Status
                     </span>
                 </div>
                 <div class="col-md-3">
-                    <span class="text-muted small d-block">Kho xuất hàng</span>
+                    <span class="text-muted small d-block">Kho xu?t h�ng</span>
                     <strong class="fs-6 text-dark"><i class="bi bi-geo-alt me-1 text-danger"></i>@Model.Order.WarehouseName</strong>
                 </div>
                 <div class="col-md-3">
-                    <span class="text-muted small d-block">Mã đơn bán hàng (SO) / Khách hàng</span>
+                    <span class="text-muted small d-block">M� don b�n h�ng (SO) / Kh�ch h�ng</span>
                     <strong class="fs-6 text-dark">@Model.Order.SalesOrderNumber</strong>
                     <span class="text-muted ms-1">(@Model.Order.CustomerName)</span>
                 </div>
                 <div class="col-md-3">
-                    <span class="text-muted small d-block">Ghi chú</span>
-                    <span class="fst-italic text-secondary">@(string.IsNullOrEmpty(Model.Order.Notes) ? "Không có" : Model.Order.Notes)</span>
+                    <span class="text-muted small d-block">Ghi ch�</span>
+                    <span class="fst-italic text-secondary">@(string.IsNullOrEmpty(Model.Order.Notes) ? "Kh�ng c�" : Model.Order.Notes)</span>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Danh sách các sản phẩm cần lấy hàng (Items) -->
+    <!-- Danh s�ch c�c s?n ph?m c?n l?y h�ng (Items) -->
     <h5 class="fw-bold text-dark mb-3">
-        <i class="bi bi-list-check me-2 text-primary"></i>Chi Tiết Mặt Hàng Cần Lấy
+        <i class="bi bi-list-check me-2 text-primary"></i>Chi Ti?t M?t H�ng C?n L?y
     </h5>
 
     <div class="row g-3">
@@ -75,21 +75,21 @@
                     <div class="card border-0 shadow-sm rounded-3">
                         <div class="card-body p-4">
                             <div class="row align-items-center">
-                                <!-- Thông tin sản phẩm -->
+                                <!-- Th�ng tin s?n ph?m -->
                                 <div class="col-md-4 border-end">
                                     <div class="d-flex align-items-center mb-2">
                                         <span class="badge bg-secondary font-monospace me-2">@item.ProductCode</span>
-                                        <span class="badge bg-light text-dark border">ĐVT: @item.UnitName</span>
+                                        <span class="badge bg-light text-dark border">�VT: @item.UnitName</span>
                                     </div>
                                     <h5 class="fw-bold text-primary mb-2">@item.ProductName</h5>
 
                                     <div class="d-flex justify-content-between pe-3 small text-muted mb-1">
-                                        <span>Yêu cầu: <strong class="text-dark">@item.RequestedQuantity.ToString("N0")</strong></span>
-                                        <span>Đã lấy: <strong class="text-success">@item.IssuedQuantity.ToString("N0")</strong></span>
-                                        <span>Còn lại: <strong class="text-danger">@item.RemainingQuantity.ToString("N0")</strong></span>
+                                        <span>Y�u c?u: <strong class="text-dark">@item.RequestedQuantity.ToString("N0")</strong></span>
+                                        <span>�� l?y: <strong class="text-success">@item.IssuedQuantity.ToString("N0")</strong></span>
+                                        <span>C�n l?i: <strong class="text-danger">@item.RemainingQuantity.ToString("N0")</strong></span>
                                     </div>
 
-                                    <!-- Thanh tiến độ lấy hàng -->
+                                    <!-- Thanh ti?n d? l?y h�ng -->
                                     <div class="progress mt-2" style="height: 8px;">
                                         <div class="progress-bar @(progressPercent == 100 ? "bg-success" : "bg-primary")"
                                              role="progressbar"
@@ -98,15 +98,15 @@
                                              aria-valuemin="0"
                                              aria-valuemax="100"></div>
                                     </div>
-                                    <div class="text-end small text-muted mt-1">@progressPercent% Hoàn thành</div>
+                                    <div class="text-end small text-muted mt-1">@progressPercent% Ho�n th�nh</div>
                                 </div>
 
-                                <!-- Chi tiết Vị trí tồn khả dụng & Đã lấy -->
+                                <!-- Chi ti?t V? tr� t?n kh? d?ng & �� l?y -->
                                 <div class="col-md-6 px-4">
-                                    <!-- Lịch sử Đã lấy -->
+                                    <!-- L?ch s? �� l?y -->
                                     <div class="mb-3">
                                         <small class="fw-bold text-secondary d-block mb-1">
-                                            <i class="bi bi-check-all me-1 text-success"></i>Đã lấy từ các vị trí:
+                                            <i class="bi bi-check-all me-1 text-success"></i>�� l?y t? c�c v? tr�:
                                         </small>
                                         @if (item.PickedDetails != null && item.PickedDetails.Any())
                                         {
@@ -114,8 +114,8 @@
                                                 @foreach (var picked in item.PickedDetails)
                                                 {
                                                     <span class="badge bg-success-subtle text-success border border-success px-2 py-1">
-                                                        <i class="bi bi-pin-map me-1"></i>Vị trí: <strong>@picked.LocationCode</strong>
-                                                        | Lô: <strong>@picked.LotNumber</strong>
+                                                        <i class="bi bi-pin-map me-1"></i>V? tr�: <strong>@picked.LocationCode</strong>
+                                                        | L�: <strong>@picked.LotNumber</strong>
                                                         | SL: <strong>@picked.Quantity.ToString("N0")</strong>
                                                     </span>
                                                 }
@@ -123,14 +123,14 @@
                                         }
                                         else
                                         {
-                                            <span class="text-muted small fst-italic">Chưa có ghi nhận lấy hàng nào.</span>
+                                            <span class="text-muted small fst-italic">Chua c� ghi nh?n l?y h�ng n�o.</span>
                                         }
                                     </div>
 
-                                    <!-- Vị trí khả dụng có thể lấy -->
+                                    <!-- V? tr� kh? d?ng c� th? l?y -->
                                     <div>
                                         <small class="fw-bold text-secondary d-block mb-1">
-                                            <i class="bi bi-box-arrow-in-down me-1 text-primary"></i>Gợi ý Vị trí & Lô hàng khả dụng:
+                                            <i class="bi bi-box-arrow-in-down me-1 text-primary"></i>G?i � V? tr� & L� h�ng kh? d?ng:
                                         </small>
                                         @if (item.AvailableLocations != null && item.AvailableLocations.Any())
                                         {
@@ -139,32 +139,32 @@
                                                 {
                                                     <span class="badge bg-light text-dark border p-2">
                                                         <i class="bi bi-geo me-1 text-primary"></i>@loc.LocationCode
-                                                        | Lô: <strong>@loc.LotNumber</strong>
-                                                        | Khả dụng: <strong class="text-primary">@loc.AvailableQuantity.ToString("N0")</strong>
+                                                        | L�: <strong>@loc.LotNumber</strong>
+                                                        | Kh? d?ng: <strong class="text-primary">@loc.AvailableQuantity.ToString("N0")</strong>
                                                     </span>
                                                 }
                                             </div>
                                         }
                                         else
                                         {
-                                            <span class="text-warning small fst-italic">Không tìm thấy vị trí tồn khả dụng nào phù hợp!</span>
+                                            <span class="text-warning small fst-italic">Kh�ng t�m th?y v? tr� t?n kh? d?ng n�o ph� h?p!</span>
                                         }
                                     </div>
                                 </div>
 
-                                <!-- Nút thao tác Pick hàng -->
+                                <!-- N�t thao t�c Pick h�ng -->
                                 <div class="col-md-2 text-center">
                                     @if (item.RemainingQuantity > 0)
                                     {
                                         <button type="button" class="btn btn-primary px-3 py-2 w-100 shadow-sm"
                                                 onclick="openPickModal(@Model.Order.OutboundOrderId, @item.OutboundOrderItemId, '@item.ProductName', @item.RemainingQuantity, @JsonSerializer.Serialize(item.AvailableLocations))">
-                                            <i class="bi bi-box-arrow-right me-1"></i>Lấy Hàng
+                                            <i class="bi bi-box-arrow-right me-1"></i>L?y H�ng
                                         </button>
                                     }
                                     else
                                     {
                                         <span class="badge bg-success px-3 py-2 fs-6">
-                                            <i class="bi bi-check-circle me-1"></i>Đã đủ SL
+                                            <i class="bi bi-check-circle me-1"></i>�� d? SL
                                         </span>
                                     }
                                 </div>
@@ -178,18 +178,18 @@
         {
             <div class="col-12 text-center py-5">
                 <i class="bi bi-inbox fs-1 text-muted d-block mb-2"></i>
-                <span class="text-muted">Không có dữ liệu mặt hàng xuất kho!</span>
+                <span class="text-muted">Kh�ng c� d? li?u m?t h�ng xu?t kho!</span>
             </div>
         }
     </div>
 </div>
 
-<!-- MODAL THAO TÁC PICK HÀNG -->
+<!-- MODAL THAO T�C PICK H�NG -->
 <div class="modal fade" id="pickModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow">
             <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title fw-bold" id="modalProductName">Thao Tác Lấy Hàng</h5>
+                <h5 class="modal-title fw-bold" id="modalProductName">Thao T�c L?y H�ng</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-4">
@@ -198,37 +198,37 @@
                     <input type="hidden" id="modalOutboundOrderId" />
                     <input type="hidden" id="modalOutboundOrderItemId" />
 
-                    <!-- Chọn Vị trí & Lô hàng -->
+                    <!-- Ch?n V? tr� & L� h�ng -->
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Chọn Vị Trí / Lô Hàng Xuất Kho <span class="text-danger">*</span></label>
+                        <label class="form-label fw-bold">Ch?n V? Tr� / L� H�ng Xu?t Kho <span class="text-danger">*</span></label>
                         <select class="form-select border-primary" id="ddlAvailableLocations" onchange="onLocationChanged()">
-                            <option value="">-- Chọn Vị trí & Lô --</option>
+                            <option value="">-- Ch?n V? tr� & L� --</option>
                         </select>
                         <input type="hidden" id="modalStorageLocationId" />
                         <input type="hidden" id="modalProductLotId" />
                         <input type="hidden" id="modalInventoryReservationId" />
                     </div>
 
-                    <!-- Số lượng cần lấy -->
+                    <!-- S? lu?ng c?n l?y -->
                     <div class="mb-3">
                         <div class="d-flex justify-content-between">
-                            <label class="form-label fw-bold">Số Lượng Lấy <span class="text-danger">*</span></label>
-                            <span class="text-muted small">Còn thiếu: <strong id="lblModalRemaining" class="text-danger">0</strong></span>
+                            <label class="form-label fw-bold">S? Lu?ng L?y <span class="text-danger">*</span></label>
+                            <span class="text-muted small">C�n thi?u: <strong id="lblModalRemaining" class="text-danger">0</strong></span>
                         </div>
                         <input type="number" step="0.01" class="form-control form-control-lg text-end fw-bold border-primary" id="txtPickQuantity" placeholder="0" min="0.01" />
                     </div>
 
-                    <!-- Ghi chú -->
+                    <!-- Ghi ch� -->
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Ghi Chú</label>
-                        <textarea class="form-control" id="txtPickNotes" rows="2" placeholder="Nhập ghi chú (nếu có)..."></textarea>
+                        <label class="form-label fw-bold">Ghi Ch�</label>
+                        <textarea class="form-control" id="txtPickNotes" rows="2" placeholder="Nh?p ghi ch� (n?u c�)..."></textarea>
                     </div>
                 </form>
             </div>
             <div class="modal-footer bg-light">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">H?y</button>
                 <button type="button" class="btn btn-primary px-4" id="btnSubmitPick" onclick="submitPick()">
-                    <i class="bi bi-check-lg me-1"></i>Xác Nhận Lấy Hàng
+                    <i class="bi bi-check-lg me-1"></i>X�c Nh?n L?y H�ng
                 </button>
             </div>
         </div>
@@ -243,28 +243,28 @@
             pickModalInstance = new bootstrap.Modal(document.getElementById('pickModal'));
         });
 
-        // Hàm mở Popup Lấy Hàng
+        // H�m m? Popup L?y H�ng
         function openPickModal(orderId, itemId, productName, remainingQty, availableLocations) {
             $('#modalOutboundOrderId').val(orderId);
             $('#modalOutboundOrderItemId').val(itemId);
-            $('#modalProductName').text(`Lấy hàng: ${productName}`);
+            $('#modalProductName').text(`L?y h�ng: ${productName}`);
             $('#lblModalRemaining').text(Number(remainingQty).toLocaleString());
             $('#txtPickQuantity').val(remainingQty);
             $('#txtPickNotes').val('');
 
-            // Fill danh sách Vị trí khả dụng vào Dropdown
+            // Fill danh s�ch V? tr� kh? d?ng v�o Dropdown
             const ddl = $('#ddlAvailableLocations');
             ddl.empty();
-            ddl.append('<option value="">-- Chọn Vị trí & Lô --</option>');
+            ddl.append('<option value="">-- Ch?n V? tr� & L� --</option>');
 
             if (availableLocations && availableLocations.length > 0) {
                 availableLocations.forEach(loc => {
-                    const text = `Vị trí: ${loc.LocationCode} | Lô: ${loc.LotNumber} (Khả dụng: ${loc.AvailableQuantity})`;
+                    const text = `V? tr�: ${loc.LocationCode} | L�: ${loc.LotNumber} (Kh? d?ng: ${loc.AvailableQuantity})`;
                     const jsonVal = JSON.stringify(loc);
                     ddl.append(`<option value='${jsonVal}'>${text}</option>`);
                 });
 
-                // Chọn mặc định vị trí đầu tiên
+                // Ch?n m?c d?nh v? tr� d?u ti�n
                 ddl.prop('selectedIndex', 1);
                 onLocationChanged();
             }
@@ -272,7 +272,7 @@
             pickModalInstance.show();
         }
 
-        // Khi thay đổi Vị trí trên Dropdown
+        // Khi thay d?i V? tr� tr�n Dropdown
         function onLocationChanged() {
             const val = $('#ddlAvailableLocations').val();
             if (!val) {
@@ -287,17 +287,17 @@
             $('#modalProductLotId').val(locData.ProductLotId || locData.productLotId);
             $('#modalInventoryReservationId').val(locData.InventoryReservationId || locData.inventoryReservationId);
 
-            // Gợi ý số lượng tối đa theo lượng tồn khả dụng của vị trí đó
+            // G?i � s? lu?ng t?i da theo lu?ng t?n kh? d?ng c?a v? tr� d�
             const maxAvailable = locData.AvailableQuantity || locData.availableQuantity || 0;
             const currentReq = parseFloat($('#lblModalRemaining').text().replace(/,/g, '')) || 0;
 
-            // Lấy min giữa số lượng còn thiếu và số lượng vị trí có
+            // L?y min gi?a s? lu?ng c�n thi?u v� s? lu?ng v? tr� c�
             const suggestQty = Math.min(maxAvailable, currentReq);
             $('#txtPickQuantity').val(suggestQty);
             $('#txtPickQuantity').attr('max', maxAvailable);
         }
 
-        // Gửi dữ liệu Lấy Hàng về Server qua Handler AJAX
+        // G?i d? li?u L?y H�ng v? Server qua Handler AJAX
         function submitPick() {
             const requestData = {
                 outboundOrderId: parseInt($('#modalOutboundOrderId').val()),
@@ -310,17 +310,17 @@
             };
 
             if (!requestData.storageLocationId || requestData.storageLocationId <= 0) {
-                alert('Vui lòng chọn Vị trí & Lô hàng!');
+                alert('Vui l�ng ch?n V? tr� & L� h�ng!');
                 return;
             }
 
             if (!requestData.pickQuantity || requestData.pickQuantity <= 0) {
-                alert('Vui lòng nhập Số lượng lấy hợp lệ!');
+                alert('Vui l�ng nh?p S? lu?ng l?y h?p l?!');
                 return;
             }
 
             const btn = $('#btnSubmitPick');
-            btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Đang xử lý...');
+            btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>�ang x? l�...');
 
             $.ajax({
                 url: '?handler=Pick',
@@ -333,15 +333,15 @@
                 success: function (res) {
                     if (res.success) {
                         pickModalInstance.hide();
-                        location.reload(); // Tải lại trang để cập nhật trạng thái mới nhất
+                        location.reload(); // T?i l?i trang d? c?p nh?t tr?ng th�i m?i nh?t
                     } else {
-                        alert(res.message || 'Thao tác thất bại!');
-                        btn.prop('disabled', false).html('<i class="bi bi-check-lg me-1"></i>Xác Nhận Lấy Hàng');
+                        alert(res.message || 'Thao t�c th?t b?i!');
+                        btn.prop('disabled', false).html('<i class="bi bi-check-lg me-1"></i>X�c Nh?n L?y H�ng');
                     }
                 },
                 error: function () {
-                    alert('Lỗi hệ thống khi kết nối Server!');
-                    btn.prop('disabled', false).html('<i class="bi bi-check-lg me-1"></i>Xác Nhận Lấy Hàng');
+                    alert('L?i h? th?ng khi k?t n?i Server!');
+                    btn.prop('disabled', false).html('<i class="bi bi-check-lg me-1"></i>X�c Nh?n L?y H�ng');
                 }
             });
         }
