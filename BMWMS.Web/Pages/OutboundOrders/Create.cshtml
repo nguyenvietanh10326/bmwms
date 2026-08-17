@@ -1,246 +1,161 @@
-﻿@page
+@page
 @model BMWMS.Web.Pages.OutboundOrders.CreateModel
 @{
-    Layout = "/Pages/Shared/Inventory/_Layout.cshtml";
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Tạo phiếu xuất kho";
+}
 
-    ViewData["Title"] = "Tạo Lệnh Xuất Kho";
-}
-@section Styles {
-    <link rel="stylesheet"
-          href="~/css/Inventory/outbound-create.css"
-          asp-append-version="true" />
-}
 <div class="container-fluid py-4">
-    <!-- KHU VỰC THÔNG BÁO LỖI VÀ THÀNH CÔNG -->
-    <div asp-validation-summary="ModelOnly" class="alert alert-danger alert-dismissible fade show" role="alert">
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h3 class="mb-1">Tạo phiếu xuất kho</h3>
+            <div class="text-muted">Chọn đúng luồng nghiệp vụ; hệ thống tự tạo phiếu điều chuyển tác nghiệp vị trí.</div>
+        </div>
+        <a asp-page="./Index" class="btn btn-outline-secondary">Quay lại danh sách</a>
     </div>
 
-    <form method="post" id="formCreateOutbound">
-        <div class="card shadow border-0 rounded-3">
-            <!-- HEADER -->
-            <div class="card-header bg-primary text-white py-3 d-flex justify-content-between align-items-center">
-                <h5 class="m-0 font-weight-bold">
-                    <i class="bi bi-box-arrow-up-right me-2"></i>Tạo Lệnh Xuất Kho Từ Đơn Bán Hàng (SO)
-                </h5>
-                <a asp-page="./Index" class="btn btn-outline-light btn-sm">
-                    <i class="bi bi-arrow-left me-1"></i>Quay lại danh sách
-                </a>
-            </div>
-
-            <div class="card-body p-4">
-                <!-- THÔNG TIN ĐƠN HÀNG CHÍNH -->
-                <div class="row g-3 mb-4 bg-light p-3 rounded border">
-                    <!-- 1. Chọn Sales Order -->
+    <form method="post" id="outboundForm">
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+        <div class="card shadow-sm border-0 mb-3">
+            <div class="card-header bg-white fw-semibold">Thông tin nguồn xuất</div>
+            <div class="card-body">
+                <div class="row g-3">
                     <div class="col-md-4">
-                        <label class="form-label fw-bold">1. Chọn Đơn Bán Hàng (SO) <span class="text-danger">*</span></label>
-                        <select asp-for="Input.SalesOrderId" asp-items="Model.SalesOrderOptions" class="form-select border-primary" id="ddlSalesOrder" onchange="onSalesOrderChanged(this.value)">
+                        <label class="form-label">Loại xuất hàng</label>
+                        <select asp-for="Input.SourceType" class="form-select" id="sourceType">
+                            <option value="SALES_ORDER">Bán hàng theo đơn bán (SO)</option>
+                            <option value="PURCHASE_RETURN">Trả hàng nhà cung cấp theo đơn mua (PO)</option>
                         </select>
-                        <span asp-validation-for="Input.SalesOrderId" class="text-danger small"></span>
                     </div>
-
-                    <!-- 2. Khách hàng (Readonly, tự điền khi chọn SO) -->
-                    <div class="col-md-4">
-                        <label class="form-label fw-bold">Khách hàng</label>
-                        <input asp-for="Input.CustomerName" class="form-control" id="txtCustomerName" readonly placeholder="Tên khách hàng sẽ tự hiển thị..." />
+                    <div class="col-md-4 source-sales">
+                        <label class="form-label">Đơn bán hàng đủ điều kiện xuất</label>
+                        <select asp-for="Input.SalesOrderId" asp-items="Model.SalesOrderOptions" class="form-select" id="salesOrder"></select>
+                        <div class="form-text">Chỉ hiển thị SO đã xác nhận, còn số lượng chưa xuất và chưa có phiếu xuất đang hoạt động.</div>
                     </div>
-
-                    <!-- 3. Mã tham chiếu / Ghi chú SO -->
-                    <div class="col-md-4">
-                        <label class="form-label fw-bold">Mã Tham Chiếu / Mã Đơn SO</label>
-                        <input asp-for="Input.ReferenceCode" class="form-control" id="txtReferenceCode" placeholder="Số đơn tham chiếu..." />
+                    <div class="col-md-4 source-purchase d-none">
+                        <label class="form-label">Đơn mua hàng đã nhập</label>
+                        <select asp-for="Input.PurchaseOrderId" asp-items="Model.PurchaseOrderOptions" class="form-select" id="purchaseOrder"></select>
+                        <div class="form-text">Chỉ hiển thị PO có hàng đã nhận và đã xếp vào vị trí kho, còn số lượng khả dụng để trả nhà cung cấp.</div>
                     </div>
-
-                    <!-- 4. Kho xuất -->
                     <div class="col-md-4">
-                        <label class="form-label fw-bold">2. Chọn Kho Xuất <span class="text-danger">*</span></label>
-                        <select asp-for="Input.WarehouseId" asp-items="Model.WarehouseOptions" class="form-select border-primary" id="ddlWarehouse">
-                        </select>
-                        <span asp-validation-for="Input.WarehouseId" class="text-danger small"></span>
+                        <label class="form-label">Đối tác</label>
+                        <input asp-for="Input.PartnerName" class="form-control" id="partnerName" readonly />
                     </div>
-
-                    <!-- 5. Ngày xuất dự kiến -->
                     <div class="col-md-4">
-                        <label class="form-label fw-bold">3. Ngày xuất dự kiến <span class="text-danger">*</span></label>
+                        <label class="form-label">Mã đơn tham chiếu</label>
+                        <input asp-for="Input.SourceReference" class="form-control" id="sourceReference" readonly />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Ngày dự kiến xuất</label>
                         <input asp-for="Input.ExpectedIssueDate" type="date" class="form-control" asp-format="{0:yyyy-MM-dd}" />
-                        <span asp-validation-for="Input.ExpectedIssueDate" class="text-danger small"></span>
                     </div>
-
-                    <!-- 6. Người phụ trách -->
                     <div class="col-md-4">
-                        <label class="form-label fw-bold">Người phụ trách xuất kho</label>
-                        <select asp-for="Input.AssignedToUserId" asp-items="Model.AssigneeOptions" class="form-select">
-                        </select>
+                        <label class="form-label">Nhân viên phụ trách</label>
+                        <select asp-for="Input.AssignedToUserId" asp-items="Model.AssigneeOptions" class="form-select"></select>
+                        <span asp-validation-for="Input.AssignedToUserId" class="text-danger"></span>
+                        <div class="form-text">Chỉ hiển thị nhân viên kho đang hoạt động và chưa giữ phiếu nhập/xuất khác.</div>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Ghi chú nghiệp vụ</label>
+                        <textarea asp-for="Input.Notes" class="form-control" rows="2" placeholder="Ví dụ: lý do trả NCC, yêu cầu giao hàng..."></textarea>
                     </div>
                 </div>
+            </div>
+        </div>
 
-                <!-- DANH SÁCH SẢN PHẨM KHU VỰC CHI TIẾT -->
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h6 class="fw-bold text-secondary m-0">
-                        <i class="bi bi-list-check me-1"></i>Danh Sách Mặt Hàng Cần Xuất Kho
-                    </h6>
-                    <span class="text-muted small fw-bold" id="lblItemCount">
-                        Số lượng mặt hàng: @(Model.Input.Items?.Count ?? 0)
-                    </span>
-                </div>
-
-                <div class="table-responsive">
-                    <table class="table table-bordered table-hover align-middle" id="tblItems">
-                        <thead class="table-dark">
-                            <tr>
-                                <th style="width: 50px;" class="text-center">#</th>
-                                <th>Mã SKU</th>
-                                <th>Tên Sản Phẩm</th>
-                                <th class="text-center" style="width: 90px;">ĐVT</th>
-                                <th class="text-end" style="width: 140px;">SL Khách Đặt</th>
-                                <th class="text-end" style="width: 140px;">SL Đã Giữ Tồn</th>
-                                <th class="text-end" style="width: 170px;">SL Yêu Cầu Xuất <span class="text-danger">*</span></th>
-                                <th>Ghi Chú</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tbodyItems">
-                            @if (Model.Input.Items != null && Model.Input.Items.Any())
-                            {
-                                @for (int i = 0; i < Model.Input.Items.Count; i++)
-                                {
-                                    <tr>
-                                        <td class="text-center fw-bold">@(i + 1)</td>
-                                        <td>
-                                            <input type="hidden" name="Input.Items[@i].ProductId" value="@Model.Input.Items[i].ProductId" />
-                                            <span class="badge bg-light text-dark font-monospace border">@Model.Input.Items[i].ProductCode</span>
-                                        </td>
-                                        <td class="fw-bold">@Model.Input.Items[i].ProductName</td>
-                                        <td class="text-center">
-                                            <span class="badge bg-secondary">@Model.Input.Items[i].UnitName</span>
-                                        </td>
-                                        <td class="text-end fw-bold text-primary">@Model.Input.Items[i].RequestedQuantity.ToString("N0")</td>
-                                        <td class="text-end text-success fw-bold">@Model.Input.Items[i].ReservedQuantity.ToString("N0")</td>
-                                        <td>
-                                            <input type="number" step="0.01" name="Input.Items[@i].RequestedQuantity"
-                                                   class="form-control text-end fw-bold border-primary"
-                                                   value="@Model.Input.Items[i].RequestedQuantity"
-                                                   max="@Model.Input.Items[i].RequestedQuantity" min="0.01" required />
-                                        </td>
-                                        <td>
-                                            <input type="text" name="Input.Items[@i].Notes" value="@Model.Input.Items[i].Notes" class="form-control form-control-sm" placeholder="Ghi chú thêm..." />
-                                        </td>
-
-                                    </tr>
-                                }
-                            }
-                            else
-                            {
-                                <tr>
-                                    <td colspan="8" class="text-center text-muted py-4">
-                                        <i class="bi bi-info-circle me-1"></i>Vui lòng chọn Sales Order ở trên để hệ thống tải danh sách sản phẩm.
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- BUTTONS HÀNH ĐỘNG -->
-                <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
-                    <button type="submit" name="actionType" value="draft" class="btn btn-outline-secondary px-4">
-                        <i class="bi bi-save me-1"></i>Lưu Nháp (Draft)
-                    </button>
-                    <button type="submit" name="actionType" value="submit" class="btn btn-success px-4" id="btnSubmit" @(Model.Input.Items != null && Model.Input.Items.Any() ? "" : "disabled")>
-                        <i class="bi bi-check-circle me-1"></i>Tạo Lệnh Xuất Kho
-                    </button>
-                </div>
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white d-flex justify-content-between">
+                <span class="fw-semibold">Mặt hàng cần xuất</span>
+                <span class="text-muted" id="itemCount">@Model.Input.Items.Count mặt hàng</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead class="table-light">
+                        <tr><th>Mã hàng</th><th>Tên sản phẩm</th><th>ĐVT</th><th class="text-end">Theo đơn/đã nhận</th><th class="text-end">Có thể xuất</th><th style="width:180px">Số lượng xuất</th><th>Ghi chú</th></tr>
+                    </thead>
+                    <tbody id="itemsBody">
+                    @for (var i = 0; i < Model.Input.Items.Count; i++)
+                    {
+                        <tr>
+                            <td><input type="hidden" asp-for="Input.Items[i].ProductId" /><input type="hidden" asp-for="Input.Items[i].ProductCode" />@Model.Input.Items[i].ProductCode</td>
+                            <td><input type="hidden" asp-for="Input.Items[i].ProductName" />@Model.Input.Items[i].ProductName</td>
+                            <td><input type="hidden" asp-for="Input.Items[i].UnitName" />@Model.Input.Items[i].UnitName</td>
+                            <td class="text-end"><input type="hidden" asp-for="Input.Items[i].ReferenceQuantity" />@FormatQuantity(Model.Input.Items[i].ReferenceQuantity, Model.Input.Items[i].QuantityScale)</td>
+                            <td class="text-end"><input type="hidden" asp-for="Input.Items[i].AvailableQuantity" />@FormatQuantity(Model.Input.Items[i].AvailableQuantity, Model.Input.Items[i].QuantityScale)</td>
+                            <td><input type="hidden" asp-for="Input.Items[i].QuantityScale" /><input type="hidden" asp-for="Input.Items[i].TrackLot" /><input asp-for="Input.Items[i].RequestedQuantity" type="number" min="@QuantityStep(Model.Input.Items[i].QuantityScale)" max="@Model.Input.Items[i].AvailableQuantity" step="@QuantityStep(Model.Input.Items[i].QuantityScale)" class="form-control text-end" /></td>
+                            <td><input asp-for="Input.Items[i].Notes" class="form-control" /></td>
+                        </tr>
+                    }
+                    @if (Model.Input.Items.Count == 0)
+                    {
+                        <tr><td colspan="7" class="text-center text-muted py-4">Chọn đơn tham chiếu để tải mặt hàng có thể xuất.</td></tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+            <div class="card-footer bg-white d-flex justify-content-end gap-2">
+                <button type="submit" name="actionType" value="draft" class="btn btn-outline-secondary">Lưu nháp</button>
+                <button type="submit" name="actionType" value="submit" class="btn btn-primary" @(Model.Input.Items.Count == 0 ? "disabled" : null)>Tạo phiếu và sẵn sàng xuất</button>
             </div>
         </div>
     </form>
 </div>
 
 @section Scripts {
-    <!-- Load Validation Scripts qua CDN trực tiếp để tránh lỗi thiếu Partial View -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.19.5/jquery.validate.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validation-unobtrusive/4.0.0/jquery.validate.unobtrusive.min.js"></script>
+<partial name="_ValidationScriptsPartial" />
+<script>
+    const sourceType = document.getElementById('sourceType');
+    const salesOrder = document.getElementById('salesOrder');
+    const purchaseOrder = document.getElementById('purchaseOrder');
+    const body = document.getElementById('itemsBody');
 
-    <script>
-        // Gọi AJAX khi thay đổi Dropdown Sales Order
-        function onSalesOrderChanged(salesOrderId) {
-            const tbody = $('#tbodyItems');
-            const btnSubmit = $('#btnSubmit');
-            const txtCustomer = $('#txtCustomerName');
-            const txtRefCode = $('#txtReferenceCode');
-            const ddlWarehouse = $('#ddlWarehouse');
+    function toggleSource() {
+        const isSales = sourceType.value === 'SALES_ORDER';
+        document.querySelector('.source-sales').classList.toggle('d-none', !isSales);
+        document.querySelector('.source-purchase').classList.toggle('d-none', isSales);
+    }
 
-            if (!salesOrderId || salesOrderId <= 0) {
-                tbody.html('<tr><td colspan="8" class="text-center text-muted py-4"><i class="bi bi-info-circle me-1"></i>Vui lòng chọn Sales Order ở trên để hệ thống tải danh sách sản phẩm.</td></tr>');
-                $('#lblItemCount').text('Số lượng mặt hàng: 0');
-                txtCustomer.val('');
-                txtRefCode.val('');
-                btnSubmit.prop('disabled', true);
-                return;
-            }
+    async function loadReference(kind, id) {
+        if (!id) { renderItems([]); return; }
+        const handler = kind === 'sales' ? 'SalesOrderDetail' : 'PurchaseOrderDetail';
+        const response = await fetch(`?handler=${handler}&id=${id}`);
+        if (!response.ok) { alert('Không tải được dữ liệu đơn tham chiếu.'); return; }
+        const data = await response.json();
+        document.getElementById('partnerName').value = kind === 'sales' ? data.customerName : data.supplierName;
+        document.getElementById('sourceReference').value = kind === 'sales' ? data.salesOrderNumber : data.purchaseOrderNumber;
+        const items = (data.items || []).map(x => ({
+            productId: x.productId, productCode: x.productCode, productName: x.productName,
+            unitName: x.unitOfMeasure || x.unitName || '',
+            quantityScale: x.quantityScale || 0, trackLot: x.trackLot || false,
+            referenceQuantity: kind === 'sales' ? x.quantity : x.receivedQuantity,
+            availableQuantity: kind === 'sales' ? x.reservedQuantity : x.remainingQuantity
+        }));
+        renderItems(items);
+    }
 
-            // Hiển thị trạng thái đang tải
-            tbody.html('<tr><td colspan="8" class="text-center py-4"><div class="spinner-border text-primary spinner-border-sm me-2" role="status"></div>Đang tải danh sách chi tiết sản phẩm...</td></tr>');
+    function escapeHtml(value) { const d = document.createElement('div'); d.textContent = value ?? ''; return d.innerHTML; }
+    function quantityStep(scale) { return scale === 0 ? '1' : `0.${'0'.repeat(scale - 1)}1`; }
+    function formatQuantity(value, scale) { return Number(value).toLocaleString('vi-VN', { minimumFractionDigits: scale, maximumFractionDigits: scale }); }
+    function renderItems(items) {
+        document.getElementById('itemCount').textContent = `${items.length} mặt hàng`;
+        if (!items.length) { body.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">Đơn không còn mặt hàng có thể xuất.</td></tr>'; return; }
+        body.innerHTML = items.map((x, i) => `<tr>
+            <td><input type="hidden" name="Input.Items[${i}].ProductId" value="${x.productId}"><input type="hidden" name="Input.Items[${i}].ProductCode" value="${escapeHtml(x.productCode)}">${escapeHtml(x.productCode)}</td>
+            <td><input type="hidden" name="Input.Items[${i}].ProductName" value="${escapeHtml(x.productName)}">${escapeHtml(x.productName)}</td>
+            <td><input type="hidden" name="Input.Items[${i}].UnitName" value="${escapeHtml(x.unitName)}">${escapeHtml(x.unitName)}</td>
+            <td class="text-end"><input type="hidden" name="Input.Items[${i}].ReferenceQuantity" value="${x.referenceQuantity}">${formatQuantity(x.referenceQuantity, x.quantityScale)}</td>
+            <td class="text-end"><input type="hidden" name="Input.Items[${i}].AvailableQuantity" value="${x.availableQuantity}">${formatQuantity(x.availableQuantity, x.quantityScale)}</td>
+            <td><input type="hidden" name="Input.Items[${i}].QuantityScale" value="${x.quantityScale}"><input type="hidden" name="Input.Items[${i}].TrackLot" value="${x.trackLot}"><input type="number" name="Input.Items[${i}].RequestedQuantity" value="${x.availableQuantity}" min="${quantityStep(x.quantityScale)}" max="${x.availableQuantity}" step="${quantityStep(x.quantityScale)}" class="form-control text-end" required></td>
+            <td><input name="Input.Items[${i}].Notes" class="form-control"></td></tr>`).join('');
+    }
 
-            // Gọi Handler AJAX trong PageModel (Create.cshtml.cs)
-            $.get(`?handler=SalesOrderDetail&id=${salesOrderId}`)
-                .done(function (response) {
-                    const detail = response.data || response;
-
-                    if (!detail || !detail.salesOrderId) {
-                        tbody.html('<tr><td colspan="8" class="text-center text-danger py-3">Không tìm thấy dữ liệu chi tiết Sales Order!</td></tr>');
-                        btnSubmit.prop('disabled', true);
-                        return;
-                    }
-
-                    // 1. Tự động fill thông tin chung (Khớp chính xác với JSON API)
-                    txtCustomer.val(detail.customerName || '');
-                    txtRefCode.val(detail.salesOrderNumber || '');
-                    if (detail.warehouseId && detail.warehouseId > 0) {
-                        ddlWarehouse.val(detail.warehouseId);
-                    }
-
-                    // 2. Render bảng danh sách sản phẩm
-                    if (!detail.items || detail.items.length === 0) {
-                        tbody.html('<tr><td colspan="8" class="text-center text-warning py-3">Sales Order này không có mặt hàng nào cần xuất!</td></tr>');
-                        btnSubmit.prop('disabled', true);
-                        $('#lblItemCount').text('Số lượng mặt hàng: 0');
-                        return;
-                    }
-
-                    let html = '';
-                    detail.items.forEach((item, index) => {
-                        const unitName = item.unitName ? item.unitName : 'N/A';
-
-                        html += `
-                            <tr>
-                                <td class="text-center fw-bold">${index + 1}</td>
-                                <td>
-                                    <input type="hidden" name="Input.Items[${index}].ProductId" value="${item.productId}" />
-                                    <span class="badge bg-light text-dark font-monospace border">${item.productCode}</span>
-                                </td>
-                                <td class="fw-bold">${item.productName}</td>
-                                <td class="text-center"><span class="badge bg-secondary">${unitName}</span></td>
-                                <td class="text-end fw-bold text-primary">${Number(item.quantity).toLocaleString()}</td>
-                                <td class="text-end text-success fw-bold">${Number(item.reservedQuantity || 0).toLocaleString()}</td>
-                                <td>
-                                    <input type="number" step="0.01" name="Input.Items[${index}].RequestedQuantity"
-                                           class="form-control text-end fw-bold border-primary"
-                                           value="${item.quantity}" max="${item.quantity}" min="0.01" required />
-                                </td>
-                                <td>
-                                    <input type="text" name="Input.Items[${index}].Notes" class="form-control form-control-sm" placeholder="Ghi chú thêm..." />
-                                </td>
-                            </tr>
-                        `;
-                    });
-
-                    tbody.html(html);
-                    $('#lblItemCount').text(`Số lượng mặt hàng: ${detail.items.length}`);
-                    btnSubmit.prop('disabled', false);
-                })
-                .fail(function () {
-                    tbody.html('<tr><td colspan="8" class="text-center text-danger py-3">Lỗi kết nối máy chủ khi lấy dữ liệu Sales Order!</td></tr>');
-                    btnSubmit.prop('disabled', true);
-                });
-        }
-    </script>
+    sourceType.addEventListener('change', () => { toggleSource(); renderItems([]); });
+    salesOrder.addEventListener('change', e => loadReference('sales', e.target.value));
+    purchaseOrder.addEventListener('change', e => loadReference('purchase', e.target.value));
+    toggleSource();
+</script>
+}
+@functions {
+    string QuantityStep(byte scale) => scale == 0 ? "1" : "0." + new string('0', scale - 1) + "1";
+    string FormatQuantity(decimal value, byte scale) => value.ToString(scale == 0 ? "N0" : $"N{scale}");
 }

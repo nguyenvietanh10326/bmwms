@@ -1,470 +1,50 @@
-﻿
 @page
 @model BMWMS.Web.Pages.OutboundOrders.IndexModel
-
 @{
-    Layout = "/Pages/Shared/Inventory/_Layout.cshtml";
-    ViewData["Title"] = "Quản lý Lệnh Xuất Kho";
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Phiếu xuất kho";
+    var totalPages = Math.Max(1, (int)Math.Ceiling(Model.PagedResult.TotalCount / (double)Math.Max(1, Model.PagedResult.PageSize)));
 }
 
-@section Styles {
-    <link rel="stylesheet"
-          href="~/css/Inventory/outbound-orders.css"
-          asp-append-version="true" />
-}
-
-<div class="page-container">
-
-    <!-- =====================================================
-         PAGE HEADER
-    ====================================================== -->
-    <div class="page-header">
-
-        <div class="page-header-content">
-
-            <div class="page-title-row">
-                <h1 class="page-header-title">
-                    Xem danh sách lệnh xuất kho
-                </h1>
-            </div>
-
-            <p class="page-header-sub">
-                Tìm kiếm và theo dõi các lệnh xuất kho
-                <span class="header-dot">•</span>
-                Actor chính: Nhân viên bán hàng
-            </p>
-
-        </div>
-
-        <a asp-page="./Create" class="btn-create-order">
-            <i class="bi bi-plus-lg"></i>
-            <span>Tạo lệnh xuất</span>
-        </a>
-
+<div class="container-fluid py-4">
+    @if (!string.IsNullOrWhiteSpace(Model.SuccessMessage)) { <div class="alert alert-success">@Model.SuccessMessage</div> }
+    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage)) { <div class="alert alert-danger">@Model.ErrorMessage</div> }
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div><h3 class="mb-1">Phiếu xuất kho</h3><div class="text-muted">Theo dõi luồng bán hàng theo SO và trả hàng nhà cung cấp theo PO.</div></div>
+        <a asp-page="./Create" class="btn btn-primary">Tạo phiếu xuất</a>
     </div>
 
-
-    <!-- =====================================================
-         ALERT NOTIFICATIONS
-    ====================================================== -->
-    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
-    {
-        <div class="custom-alert custom-alert-success"
-             role="alert">
-
-            <div class="custom-alert-content">
-                <div class="custom-alert-icon">
-                    <i class="bi bi-check-circle-fill"></i>
-                </div>
-
-                <div class="custom-alert-message">
-                    @Model.SuccessMessage
-                </div>
-            </div>
-
-            <button type="button"
-                    class="custom-alert-close"
-                    data-bs-dismiss="alert"
-                    aria-label="Close">
-                <i class="bi bi-x-lg"></i>
-            </button>
-
-        </div>
-    }
-
-    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
-    {
-        <div class="custom-alert custom-alert-error"
-             role="alert">
-
-            <div class="custom-alert-content">
-                <div class="custom-alert-icon">
-                    <i class="bi bi-exclamation-circle-fill"></i>
-                </div>
-
-                <div class="custom-alert-message">
-                    @Model.ErrorMessage
-                </div>
-            </div>
-
-            <button type="button"
-                    class="custom-alert-close"
-                    data-bs-dismiss="alert"
-                    aria-label="Close">
-                <i class="bi bi-x-lg"></i>
-            </button>
-
-        </div>
-    }
-
-
-    <!-- =====================================================
-         SEARCH & FILTER
-    ====================================================== -->
-    <div class="filter-card">
-
-        <form method="get" class="filter-form">
-
-            <input type="hidden"
-                   asp-for="Filter.PageIndex"
-                   value="1" />
-
-
-            <!-- SEARCH -->
-            <div class="filter-search">
-
-                <label class="filter-label">
-                    Tìm kiếm
-                </label>
-
-                <div class="search-box">
-
-                    <i class="bi bi-search"></i>
-
-                    <input type="text"
-                           asp-for="Filter.Search"
-                           class="form-control"
-                           placeholder="Tìm mã lệnh xuất hoặc SO..." />
-
-                </div>
-
-            </div>
-
-
-            <!-- STATUS -->
-            <div class="filter-item filter-status">
-
-                <label class="filter-label">
-                    Trạng thái
-                </label>
-
-                <select asp-for="Filter.Status"
-                        asp-items="Model.StatusOptions"
-                        class="form-select">
-                </select>
-
-            </div>
-
-
-            <!-- WAREHOUSE -->
-            <div class="filter-item filter-warehouse">
-
-                <label class="filter-label">
-                    Kho xuất
-                </label>
-
-               <select asp-for="Filter.WarehouseId"
-        asp-items="Model.WarehouseOptions"
-        class="form-select">
-</select>
-
-            </div>
-
-
-            <!-- ACTIONS -->
-            <div class="filter-actions">
-
-                <button type="submit"
-                        class="btn-search">
-
-                    <i class="bi bi-search"></i>
-                    <span>Tìm kiếm</span>
-
-                </button>
-
-                <a asp-page="./Index"
-                   class="btn-reset">
-
-                    <i class="bi bi-arrow-counterclockwise"></i>
-                    <span>Đặt lại</span>
-
-                </a>
-
-            </div>
-
-        </form>
-
-    </div>
-
-
-    <!-- =====================================================
-         DATA TABLE
-    ====================================================== -->
-    <div class="data-table-card">
-
-        <div class="table-responsive">
-
-            <table class="table custom-table">
-
-                <colgroup>
-                    <col class="col-order" />
-                    <col class="col-sales" />
-                    <col class="col-customer" />
-                    <col class="col-warehouse" />
-                    <col class="col-status" />
-                    <col class="col-quantity" />
-                    <col class="col-action" />
-                </colgroup>
-
-                <thead>
-                    <tr>
-                        <th>Mã lệnh</th>
-                        <th>Sales Order</th>
-                        <th>Khách hàng</th>
-                        <th>Kho xuất</th>
-                        <th>Trạng thái</th>
-                        <th>Tổng SL</th>
-                        <th class="text-end">Thao tác</th>
-                    </tr>
-                </thead>
-
-                <tbody>
-                    @if (Model.PagedResult.Items != null &&
-                                        Model.PagedResult.Items.Any())
-                    {
-                        @foreach (var item in Model.PagedResult.Items)
-                        {
-                            <tr>
-
-                                <!-- MÃ LỆNH -->
-                                <td>
-                                    <a asp-page="./Details"
-                                       asp-route-id="@item.OutboundOrderId"
-                                       class="code-link">
-                                        @item.OutboundOrderNumber
-                                    </a>
-                                </td>
-
-                                <!-- SALES ORDER -->
-                                <td>
-                                    <span class="sub-text">
-                                        @item.SalesOrderNumber
-                                    </span>
-                                </td>
-
-                                <!-- KHÁCH HÀNG -->
-                                <td>
-                                    <span class="customer-name">
-                                        @item.CustomerName
-                                    </span>
-                                </td>
-
-                                <!-- KHO -->
-                                <td>
-                                    <span class="sub-text">
-                                        @item.WarehouseName
-                                    </span>
-                                </td>
-
-                                <!-- STATUS -->
-                                <td>
-                                    @switch (item.Status)
-                                    {
-                                        case "COMPLETED":
-                                            <span class="status-pill status-completed">
-                                                <span class="status-dot"></span>
-                                                Đã xuất
-                                            </span>
-                                            break;
-
-                                        case "IN_PROGRESS":
-                                            <span class="status-pill status-in-progress">
-                                                <span class="status-dot"></span>
-                                                Đang picking
-                                            </span>
-                                            break;
-
-                                        case "ASSIGNED":
-                                            <span class="status-pill status-assigned">
-                                                <span class="status-dot"></span>
-                                                Chờ xử lý
-                                            </span>
-                                            break;
-
-                                        case "DRAFT":
-                                            <span class="status-pill status-draft">
-                                                <span class="status-dot"></span>
-                                                Nháp
-                                            </span>
-                                            break;
-
-                                        case "CANCELLED":
-                                            <span class="status-pill status-cancelled">
-                                                <span class="status-dot"></span>
-                                                Đã hủy
-                                            </span>
-                                            break;
-
-                                        default:
-                                            <span class="status-pill status-draft">
-                                                <span class="status-dot"></span>
-                                                @item.Status
-                                            </span>
-                                            break;
-                                    }
-                                </td>
-
-                                <!-- TỔNG SL -->
-                                <td>
-                                    <span class="quantity-value">
-                                        @item.TotalRequestedQuantity.ToString("N0")
-                                    </span>
-                                </td>
-
-                                <!-- ACTION -->
-                                <td class="text-end">
-                                    <a asp-page="./Details"
-                                       asp-route-id="@item.OutboundOrderId"
-                                       class="action-link">
-                                        Xem chi tiết
-                                        <i class="bi bi-chevron-right"></i>
-                                    </a>
-                                    <a asp-page="./Process" asp-route-id="@item.OutboundOrderId" class="btn btn-sm btn-primary">
-                                        <i class="bi bi-gear-fill me-1"></i>Xử lý
-                                    </a>
-                                </td>
-                             
-                            </tr>
-                        }
-                    }
-                    else
-                    {
-                        <tr>
-                            <td colspan="7" class="empty-state">
-
-                                <div class="empty-state-icon">
-                                    <i class="bi bi-inbox"></i>
-                                </div>
-
-                                <div class="empty-state-title">
-                                    Không tìm thấy lệnh xuất kho
-                                </div>
-
-                                <div class="empty-state-text">
-                                    Không có dữ liệu phù hợp với điều kiện tìm kiếm.
-                                </div>
-
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-
-            </table>
-
-        </div>
-
-
-        <!-- =================================================
-             PAGINATION
-        ================================================== -->
-        @if (Model.PagedResult.TotalCount > 0)
+    <form method="get" class="card border-0 shadow-sm mb-3"><div class="card-body row g-3 align-items-end">
+        <div class="col-md-5"><label class="form-label">Tìm kiếm</label><input asp-for="Filter.Search" class="form-control" placeholder="Mã phiếu, SO hoặc PO" /></div>
+        <div class="col-md-5"><label class="form-label">Trạng thái</label><select asp-for="Filter.Status" asp-items="Model.StatusOptions" class="form-select"></select></div>
+        <div class="col-md-2 d-flex gap-2"><button class="btn btn-primary flex-fill">Lọc</button><a asp-page="./Index" class="btn btn-outline-secondary">Đặt lại</a></div>
+    </div></form>
+
+    <div class="card border-0 shadow-sm"><div class="table-responsive"><table class="table align-middle mb-0">
+        <thead class="table-light"><tr><th>Mã phiếu</th><th>Luồng nghiệp vụ</th><th>Đơn tham chiếu</th><th>Đối tác</th><th>Kho</th><th>Trạng thái</th><th class="text-end">Tiến độ</th><th class="text-end">Thao tác</th></tr></thead>
+        <tbody>
+        @if (Model.PagedResult.Items.Count == 0)
+        { <tr><td colspan="8" class="text-center text-muted py-5">Không có phiếu xuất phù hợp.</td></tr> }
+        @foreach (var item in Model.PagedResult.Items)
         {
-            <div class="pagination-container">
-
-                <div class="pagination-text">
-
-                    Hiển thị
-
-                    <strong>
-                        @((Model.PagedResult.PageIndex - 1)
-                            * Model.PagedResult.PageSize + 1)
-                    </strong>
-
-                    –
-
-                    <strong>
-                        @Math.Min(
-                            Model.PagedResult.PageIndex
-                            * Model.PagedResult.PageSize,
-                            Model.PagedResult.TotalCount
-                        )
-                    </strong>
-
-                    trong
-
-                    <strong>
-                        @Model.PagedResult.TotalCount
-                    </strong>
-
-                    bản ghi
-
-                </div>
-
-
-                @if (Model.PagedResult.TotalPages > 1)
-                {
-                    <ul class="custom-pagination">
-
-                        <!-- PREVIOUS -->
-                        @if (Model.PagedResult.PageIndex > 1)
-                        {
-                            <li>
-
-                                <a class="page-link-custom page-arrow"
-                                   asp-page="./Index"
-                                   asp-route-Filter.Search="@Model.Filter.Search"
-                                   asp-route-Filter.Status="@Model.Filter.Status"
-                                   asp-route-Filter.WarehouseId="@Model.Filter.WarehouseId"
-                                   asp-route-Filter.PageIndex="@(Model.PagedResult.PageIndex - 1)"
-                                   aria-label="Trang trước">
-
-                                    <i class="bi bi-chevron-left"></i>
-
-                                </a>
-
-                            </li>
-                        }
-
-
-                        <!-- PAGE NUMBERS -->
-                        @for (int i = 1;
-                              i <= Model.PagedResult.TotalPages;
-                              i++)
-                        {
-                            <li>
-
-                                <a class="page-link-custom @(i == Model.PagedResult.PageIndex ? "active" : "")"
-                                   asp-page="./Index"
-                                   asp-route-Filter.Search="@Model.Filter.Search"
-                                   asp-route-Filter.Status="@Model.Filter.Status"
-                                   asp-route-Filter.WarehouseId="@Model.Filter.WarehouseId"
-                                   asp-route-Filter.PageIndex="@i">
-
-                                    @i
-
-                                </a>
-
-                            </li>
-                        }
-
-
-                        <!-- NEXT -->
-                        @if (Model.PagedResult.PageIndex <
-                             Model.PagedResult.TotalPages)
-                        {
-                            <li>
-
-                                <a class="page-link-custom page-arrow"
-                                   asp-page="./Index"
-                                   asp-route-Filter.Search="@Model.Filter.Search"
-                                   asp-route-Filter.Status="@Model.Filter.Status"
-                                   asp-route-Filter.WarehouseId="@Model.Filter.WarehouseId"
-                                   asp-route-Filter.PageIndex="@(Model.PagedResult.PageIndex + 1)"
-                                   aria-label="Trang sau">
-
-                                    <i class="bi bi-chevron-right"></i>
-
-                                </a>
-
-                            </li>
-                        }
-
-                    </ul>
-                }
-
-            </div>
+            <tr>
+                <td><a asp-page="./Details" asp-route-id="@item.OutboundOrderId" class="fw-semibold text-decoration-none">@item.OutboundOrderNumber</a><div class="text-muted small">@item.CreatedAt.ToString("dd/MM/yyyy HH:mm")</div></td>
+                <td>@(item.SourceType == "PURCHASE_RETURN" ? "Trả nhà cung cấp" : "Bán hàng")</td>
+                <td>@item.SourceReference</td><td>@item.PartnerName</td><td>@item.WarehouseName</td>
+                <td><span class="badge @StatusClass(item.Status)">@StatusLabel(item.Status)</span></td>
+                <td class="text-end">@item.TotalIssuedQuantity.ToString("N2") / @item.TotalRequestedQuantity.ToString("N2")</td>
+                <td class="text-end"><a asp-page="./Details" asp-route-id="@item.OutboundOrderId" class="btn btn-sm btn-outline-primary">Chi tiết</a>
+                    @if (item.Status is "READY" or "ISSUING") { <a asp-page="./Process" asp-route-id="@item.OutboundOrderId" class="btn btn-sm btn-primary">Xuất hàng</a> }
+                </td>
+            </tr>
         }
-
+        </tbody>
+    </table></div>
+    <div class="card-footer bg-white d-flex justify-content-between align-items-center"><span class="text-muted">Tổng cộng @Model.PagedResult.TotalCount phiếu</span><div class="btn-group"><a class="btn btn-outline-secondary @(Model.Filter.PageIndex <= 1 ? "disabled" : "")" asp-route-Filter.PageIndex="@(Model.Filter.PageIndex-1)" asp-route-Filter.Search="@Model.Filter.Search" asp-route-Filter.Status="@Model.Filter.Status">Trước</a><span class="btn btn-light disabled">@Model.Filter.PageIndex / @totalPages</span><a class="btn btn-outline-secondary @(Model.Filter.PageIndex >= totalPages ? "disabled" : "")" asp-route-Filter.PageIndex="@(Model.Filter.PageIndex+1)" asp-route-Filter.Search="@Model.Filter.Search" asp-route-Filter.Status="@Model.Filter.Status">Sau</a></div></div>
     </div>
-
 </div>
+
+@functions {
+    string StatusLabel(string status) => status switch { "DRAFT" => "Nháp", "READY" => "Sẵn sàng xuất", "ISSUING" => "Đang xuất hàng", "ISSUED" => "Đã xuất", "CANCELLED" => "Đã hủy", _ => status };
+    string StatusClass(string status) => status switch { "ISSUED" => "bg-success", "ISSUING" => "bg-warning text-dark", "READY" => "bg-primary", "CANCELLED" => "bg-danger", _ => "bg-secondary" };
+}

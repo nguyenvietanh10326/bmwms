@@ -77,6 +77,10 @@ namespace BMWMS.API.Controllers.Inventory
             {
                 return BadRequest(new { message = ex.Message });
             }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
             catch (Exception ex)
             {
                 var innerError = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
@@ -156,11 +160,32 @@ namespace BMWMS.API.Controllers.Inventory
 
             return Ok(users);
         }
+
+        [HttpGet("staff")]
+        public async Task<ActionResult<List<UserSelectDto>>> GetWarehouseStaff()
+        {
+            return Ok(await _outboundOrderService.GetWarehouseStaffAsync());
+        }
         [HttpGet("sales-orders")]
         public async Task<ActionResult<List<SalesOrderApiResponse>>> GetConfirmedSalesOrders()
         {
             var salesOrders = await _saleService.GetConfirmedSalesOrdersAsync();
             return Ok(salesOrders);
+        }
+
+        [HttpGet("purchase-orders/returnable")]
+        public async Task<ActionResult<List<PurchaseOrderReturnOptionDto>>> GetReturnablePurchaseOrders()
+        {
+            return Ok(await _outboundOrderService.GetReturnablePurchaseOrdersAsync());
+        }
+
+        [HttpGet("purchase-order/{id:long}/return")]
+        public async Task<ActionResult<PurchaseOrderForReturnDto>> GetPurchaseOrderForReturn(long id)
+        {
+            var result = await _outboundOrderService.GetPurchaseOrderForReturnAsync(id);
+            return result == null
+                ? NotFound(new { message = "PO không có hàng đã nhập còn có thể trả nhà cung cấp." })
+                : Ok(result);
         }
         /// <summary>
         /// 4. MÀN 2: Lấy dữ liệu thực thi Pick hàng (Chi tiết Items, So sánh SL Cần/Đã Pick, Danh sách Bin/Lot khả dụng)

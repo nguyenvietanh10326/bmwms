@@ -16,6 +16,9 @@ namespace BMWMS.Business.Interfaces.Inventory
         Task<bool> CancelOutboundOrderAsync(long outboundOrderId);
         Task<(bool Success, string Message)> ExecutePickAsync(ExecutePickItemRequest request, long userId);
         Task<OutboundProcessViewDto?> GetOutboundProcessDetailAsync(long outboundOrderId);
+        Task<List<PurchaseOrderReturnOptionDto>> GetReturnablePurchaseOrdersAsync();
+        Task<PurchaseOrderForReturnDto?> GetPurchaseOrderForReturnAsync(long purchaseOrderId);
+        Task<List<UserSelectDto>> GetWarehouseStaffAsync();
 
     }
 }
