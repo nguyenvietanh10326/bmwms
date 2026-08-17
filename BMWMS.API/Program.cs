@@ -36,7 +36,6 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
     });
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
 
 // AutoMapper
 builder.Services.AddAutoMapper(cfg =>
@@ -132,11 +131,6 @@ var app = builder.Build();
 
 app.UseCors("AllowAll");
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
 
 app.UseAuthentication();
 app.UseAuthorization();
