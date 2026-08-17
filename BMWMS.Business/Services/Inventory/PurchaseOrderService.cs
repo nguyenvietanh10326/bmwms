@@ -210,6 +210,32 @@ namespace BMWMS.Business.Services.Inventory
             // 4. Lưu vào Database
             var createdEntity = await _poRepository.AddAsync(poEntity);
 
+            if (dto.IsSubmitForConfirmation)
+            {
+                var supplier = await _context.Suppliers.FindAsync(dto.SupplierId);
+                if (supplier != null && !string.IsNullOrEmpty(supplier.Email))
+                {
+                    string subject = $"Xác nhận Đơn đặt hàng {poNumber}";
+                    string body = $@"
+                        <h3>Kính gửi {supplier.SupplierName},</h3>
+                        <p>Đơn đặt hàng <strong>{poNumber}</strong> của chúng tôi đã được xác nhận.</p>
+                        <p>Ngày đặt: {dto.OrderDate:dd/MM/yyyy}</p>
+                        <p>Ngày giao dự kiến: {dto.ExpectedDeliveryDate?.ToString("dd/MM/yyyy") ?? "Chưa xác định"}</p>
+                        <p>Số lượng vật tư: {dto.Items.Sum(d => d.OrderedQuantity)}</p>
+                        <br/>
+                        <p>Trân trọng,<br/>BMWMS System</p>
+                    ";
+                    try
+                    {
+                        await _emailService.SendEmailAsync(supplier.Email, subject, body);
+                    }
+                    catch
+                    {
+                        // Ignore email error
+                    }
+                }
+            }
+
             return (true, dto.IsSubmitForConfirmation ? "Tạo và xác nhận đơn thành công!" : "Lưu đơn nháp thành công!", createdEntity.PurchaseOrderId);
         }
 
@@ -281,7 +307,29 @@ namespace BMWMS.Business.Services.Inventory
             po.UpdatedAt = DateTime.Now;
 
             await _poRepository.UpdateAsync(po);
-            return (true, "Đã hủy đơn mua hàng thành công!");
+
+            // Send email to supplier for cancellation
+            if (po.Supplier != null && !string.IsNullOrEmpty(po.Supplier.Email))
+            {
+                string subject = $"Hủy Đơn đặt hàng {po.PurchaseOrderNumber}";
+                string body = $@"
+                    <h3>Kính gửi {po.Supplier.SupplierName},</h3>
+                    <p>Đơn đặt hàng <strong>{po.PurchaseOrderNumber}</strong> của chúng tôi đã bị hủy.</p>
+                    <p>Lý do hủy: {reason}</p>
+                    <br/>
+                    <p>Trân trọng,<br/>BMWMS System</p>
+                ";
+                try
+                {
+                    await _emailService.SendEmailAsync(po.Supplier.Email, subject, body);
+                }
+                catch
+                {
+                    // Ignore email error
+                }
+            }
+
+            return (true, "Đã hủy đơn mua hàng thành công.");
         }
 
         public async Task<IEnumerable<ProductLookupDto>> GetUpListAsync()
