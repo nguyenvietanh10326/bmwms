@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css" rel="stylesheet">
+    <link href="~/css/dashboard.css" rel="stylesheet" asp-append-version="true" />
+    @RenderSection("Styles", required: false)
+</head>
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <a href="/" class="sidebar-logo" style="text-decoration: none; display: block;">
+            <div class="sidebar-logo-name">
+                <i class="ri-building-4-fill" style="color: #3b82f6; margin-right: 6px;"></i>BMWMS
+            </div>
+            <div class="sidebar-logo-sub">Quản lý kho vật liệu xây dựng</div>
+        </a>
+
+        <nav class="sidebar-nav">
+            @{
+                var currentRole = Context.Session.GetString("RoleCode") ?? "";
+                var isSysAdmin = currentRole == "SYSTEM_ADMIN";
+                var isPurchasing = currentRole == "PURCHASING_STAFF";
+                var isWhManager = currentRole == "WAREHOUSE_MANAGER";
+            }
+            <!-- 1. TỔNG QUAN -->
+            <div class="nav-section">
+                <div class="nav-section-label">TỔNG QUAN</div>
+                <a href="/Admin/Dashboard" class="nav-item @(Context.Request.Path == "/Admin/Dashboard" ? "active" : "")">
+                    <i class="ri-dashboard-line nav-item-icon"></i>
+                    Bảng điều khiển
+                </a>
+            </div>
+
+            <!-- 2. DANH MỤC & MASTER DATA -->
+            <div class="nav-section">
+                <div class="nav-section-label">DANH MỤC CƠ SỞ</div>
+
+                <!-- Kho & Vị trí -->
+                @{
+                    var isWhActive = Context.Request.Path.StartsWithSegments("/Warehouse") || Context.Request.Path.StartsWithSegments("/StorageLocations");
+                }
+                <div class="nav-item nav-item-has-sub @(isWhActive ? "expanded active" : "")" onclick="toggleSubmenu(this)">
+                    <div class="nav-item-main">
+                        <i class="ri-store-2-line nav-item-icon"></i>
+                        Kho & Vị trí
+                    </div>
+                    <i class="ri-arrow-right-s-line nav-item-arrow"></i>
+                </div>
+                <div class="nav-submenu @(isWhActive ? "expanded" : "")">
+                    <a href="/Warehouse/Index" class="nav-sub-item @(Context.Request.Path == "/Warehouse/Index" || Context.Request.Path == "/Warehouse" ? "active" : "")">Danh sách kho hàng</a>
+                    <a href="/StorageLocations/Index" class="nav-sub-item @(Context.Request.Path.StartsWithSegments("/StorageLocations") ? "active" : "")">Vị trí lưu trữ</a>
+                    @if (isSysAdmin || isWhManager)
+                    {
+                        <a href="/Warehouse/Create" class="nav-sub-item @(Context.Request.Path == "/Warehouse/Create" ? "active" : "")">Thêm kho mới</a>
+                    }
+                </div>
+
+                <!-- Sản phẩm & Danh mục -->
+                @{
+                    var isProductActive = Context.Request.Path.StartsWithSegments("/Products") || Context.Request.Path.StartsWithSegments("/Categories");
+                }
+                <div class="nav-item nav-item-has-sub @(isProductActive ? "expanded active" : "")" onclick="toggleSubmenu(this)">
+                    <div class="nav-item-main">
+                        <i class="ri-box-3-line nav-item-icon"></i>
+                        Sản phẩm VLXD
+                    </div>
+                    <i class="ri-arrow-right-s-line nav-item-arrow"></i>
+                </div>
+                <div class="nav-submenu @(isProductActive ? "expanded" : "")">
+                    <a href="/Products/Index" class="nav-sub-item @(Context.Request.Path == "/Products" || Context.Request.Path == "/Products/Index" ? "active" : "")">Danh sách hàng hóa</a>
+                    @if (isSysAdmin || isWhManager)
+                    {
+                        <a href="/Products/Create" class="nav-sub-item @(Context.Request.Path == "/Products/Create" ? "active" : "")">Thêm hàng hóa mới</a>
+                    }
+                    <a href="/Categories/Index" class="nav-sub-item @(Context.Request.Path == "/Categories" || Context.Request.Path == "/Categories/Index" ? "active" : "")">Nhóm danh mục</a>
+                </div>
+
+                <!-- Nhà cung cấp -->
+                @{
+                    var isSupplierActive = Context.Request.Path.StartsWithSegments("/Admin/Suppliers");
+                }
+                <div class="nav-item nav-item-has-sub @(isSupplierActive ? "expanded active" : "")" onclick="toggleSubmenu(this)">
+                    <div class="nav-item-main">
+                        <i class="ri-truck-line nav-item-icon"></i>
+                        Nhà cung cấp
+                    </div>
+                    <i class="ri-arrow-right-s-line nav-item-arrow"></i>
+                </div>
+                <div class="nav-submenu @(isSupplierActive ? "expanded" : "")">
+                    <a href="/Admin/Suppliers" class="nav-sub-item @(Context.Request.Path == "/Admin/Suppliers" ? "active" : "")">Danh sách nhà cung cấp</a>
+                    @if (isSysAdmin || isPurchasing)
+                    {
+                        <a href="/Admin/Suppliers/Create" class="nav-sub-item @(Context.Request.Path == "/Admin/Suppliers/Create" ? "active" : "")">Thêm nhà cung cấp</a>
+                    }
+                </div>
+            </div>
+
+            <!-- 3. ĐƠN HÀNG -->
+            <div class="nav-section">
+                <div class="nav-section-label">ĐƠN HÀNG</div>
+
+                @{
+                    var isPurchaseOrderActive = Context.Request.Path.StartsWithSegments("/PurchaseOrders");
+                }
+                <div class="nav-item nav-item-has-sub @(isPurchaseOrderActive ? "expanded active" : "")" onclick="toggleSubmenu(this)">
+                    <div class="nav-item-main">
+                        <i class="ri-shopping-cart-2-line nav-item-icon"></i>
+                        Lệnh mua hàng (PO)
+                    </div>
+                    <i class="ri-arrow-right-s-line nav-item-arrow"></i>
+                </div>
+                <div class="nav-submenu @(isPurchaseOrderActive ? "expanded" : "")">
+                    <a href="/PurchaseOrders/Index" class="nav-sub-item @(Context.Request.Path == "/PurchaseOrders" || Context.Request.Path == "/PurchaseOrders/Index" ? "active" : "")">Danh sách PO</a>
+                    <a href="/PurchaseOrders/Create" class="nav-sub-item @(Context.Request.Path == "/PurchaseOrders/Create" ? "active" : "")">Tạo PO mới</a>
+                </div>
+
+                @{
+                    var isSalesOrderActive = Context.Request.Path.StartsWithSegments("/sales-orders");
+                }
+                <div class="nav-item nav-item-has-sub @(isSalesOrderActive ? "expanded active" : "")" onclick="toggleSubmenu(this)">
+                    <div class="nav-item-main">
+                        <i class="ri-file-list-3-line nav-item-icon"></i>
+                        Đơn bán hàng (SO)
+                    </div>
+                    <i class="ri-arrow-right-s-line nav-item-arrow"></i>
+                </div>
+                <div class="nav-submenu @(isSalesOrderActive ? "expanded" : "")">
+                    <a href="/sales-orders" class="nav-sub-item @(Context.Request.Path == "/sales-orders" || Context.Request.Path == "/sales-orders/Index" ? "active" : "")">Danh sách đơn bán hàng</a>
+                    <a href="/sales-orders/create" class="nav-sub-item @(Context.Request.Path == "/sales-orders/create" ? "active" : "")">Tạo đơn bán hàng</a>
+                </div>
+            </div>
+
+            <!-- 4. NGHIỆP VỤ KHO -->
+            <div class="nav-section">
+                <div class="nav-section-label">NGHIỆP VỤ KHO</div>
+
+                <!-- Tồn kho -->
+                @{
+                    var isInvActive = Context.Request.Path.StartsWithSegments("/Inventory");
+                }
+                <div class="nav-item nav-item-has-sub @(isInvActive ? "expanded active" : "")" onclick="toggleSubmenu(this)">
+                    <div class="nav-item-main">
+                        <i class="ri-archive-line nav-item-icon"></i>
+                        Kiểm soát tồn kho
+                    </div>
+                    <i class="ri-arrow-right-s-line nav-item-arrow"></i>
+                </div>
+                <div class="nav-submenu @(isInvActive ? "expanded" : "")">
+                    <a href="/Inventory/Index" class="nav-sub-item @(Context.Request.Path == "/Inventory" || Context.Request.Path == "/Inventory/Index" ? "active" : "")">Bảng theo dõi tồn kho</a>
+                    <a href="/Inventory/Inventory" class="nav-sub-item @(Context.Request.Path == "/Inventory/Inventory" ? "active" : "")">Tồn kho theo vị trí</a>
+                </div>
+
+                @{
+                    var isInboundActive = Context.Request.Path.StartsWithSegments("/Admin/Inbound");
+                }
+                <div class="nav-item nav-item-has-sub @(isInboundActive ? "expanded active" : "")" onclick="toggleSubmenu(this)">
+                    <div class="nav-item-main">
+                        <i class="ri-download-2-line nav-item-icon"></i>
+                        Nhập kho (Inbound)
+                    </div>
+                    <i class="ri-arrow-right-s-line nav-item-arrow"></i>
+                </div>
+                <div class="nav-submenu @(isInboundActive ? "expanded" : "")">
+                    <a href="/Admin/Inbound" class="nav-sub-item @(Context.Request.Path == "/Admin/Inbound" || Context.Request.Path == "/Admin/Inbound/Index" ? "active" : "")">Danh sách lệnh nhập</a>
+                    <a href="/Admin/Inbound/Create" class="nav-sub-item @(Context.Request.Path == "/Admin/Inbound/Create" ? "active" : "")">Tạo lệnh nhập</a>
+                </div>
+                @{
+                    var isOutboundActive = Context.Request.Path.StartsWithSegments("/OutboundOrders");
+                }
+                <a href="/OutboundOrders/Index" class="nav-item @(isOutboundActive ? "active" : "")">
+                    <i class="ri-upload-2-line nav-item-icon"></i>
+                    Xuất kho (Outbound)
+                </a>
+                <!-- Chuyển vị trí nội bộ -->
+                @{
+                    var isTransferActive = Context.Request.Path.StartsWithSegments("/Transfer");
+                }
+                <div class="nav-item nav-item-has-sub @(isTransferActive ? "expanded active" : "")" onclick="toggleSubmenu(this)">
+                    <div class="nav-item-main">
+                        <i class="ri-arrow-left-right-line nav-item-icon"></i>
+                        Chuyển kho (Transfer)
+                    </div>
+                    <i class="ri-arrow-right-s-line nav-item-arrow"></i>
+                </div>
+                <div class="nav-submenu @(isTransferActive ? "expanded" : "")">
+                    <a href="/Transfer/Index" class="nav-sub-item @(Context.Request.Path == "/Transfer/Index" || Context.Request.Path == "/Transfer" ? "active" : "")">Danh sách phiếu chuyển kho</a>
+                    <a href="/Transfer/Create" class="nav-sub-item @(Context.Request.Path == "/Transfer/Create" ? "active" : "")">Tạo phiếu chuyển vị trí</a>
+                </div>
+
+                <!-- Kiểm kê -->
+                @{
+                    var isStocktakeActive = Context.Request.Path.StartsWithSegments("/Stocktake");
+                }
+                <div class="nav-item nav-item-has-sub @(isStocktakeActive ? "expanded active" : "")" onclick="toggleSubmenu(this)">
+                    <div class="nav-item-main">
+                        <i class="ri-checkbox-multiple-line nav-item-icon"></i>
+                        Kiểm kê (Stocktake)
+                    </div>
+                    <i class="ri-arrow-right-s-line nav-item-arrow"></i>
+                </div>
+                <div class="nav-submenu @(isStocktakeActive ? "expanded" : "")">
+                    <a href="/Stocktake/Index" class="nav-sub-item @(Context.Request.Path == "/Stocktake/Index" || Context.Request.Path == "/Stocktake" ? "active" : "")">Danh sách đợt kiểm kê</a>
+                    <a href="/Stocktake/Create" class="nav-sub-item @(Context.Request.Path == "/Stocktake/Create" ? "active" : "")">Tạo đợt kiểm kê mới</a>
+                </div>
+            </div>
+
+            <!-- 5. BÁO CÁO & THỐNG KÊ -->
+            <div class="nav-section">
+                <div class="nav-section-label">BÁO CÁO & THỐNG KÊ</div>
+
+                @{
+                    var isReportActive = Context.Request.Path.StartsWithSegments("/Admin/Reports");
+                }
+                <div class="nav-item nav-item-has-sub @(isReportActive ? "expanded active" : "")" onclick="toggleSubmenu(this)">
+                    <div class="nav-item-main">
+                        <i class="ri-file-chart-line nav-item-icon"></i>
+                        Báo cáo & Thống kê
+                    </div>
+                    <i class="ri-arrow-right-s-line nav-item-arrow"></i>
+                </div>
+                <div class="nav-submenu @(isReportActive ? "expanded" : "")">
+                    <a href="/Admin/Reports/Inventory" class="nav-sub-item @(Context.Request.Path == "/Admin/Reports/Inventory" ? "active" : "")">Báo cáo tồn kho</a>
+                    <a href="/Admin/Reports/Inbound" class="nav-sub-item @(Context.Request.Path == "/Admin/Reports/Inbound" ? "active" : "")">Báo cáo nhập kho</a>
+                    <a href="/Admin/Reports/Outbound" class="nav-sub-item @(Context.Request.Path == "/Admin/Reports/Outbound" ? "active" : "")">Báo cáo xuất kho</a>
+                    <a href="/Admin/Reports/InOutStock" class="nav-sub-item @(Context.Request.Path == "/Admin/Reports/InOutStock" ? "active" : "")">Báo cáo Nhập-Xuất-Tồn</a>
+                    <a href="/Admin/Reports/ProductStatistics" class="nav-sub-item @(Context.Request.Path == "/Admin/Reports/ProductStatistics" ? "active" : "")">Thống kê sản phẩm</a>
+                    <a href="/Admin/Reports/SupplierStatistics" class="nav-sub-item @(Context.Request.Path == "/Admin/Reports/SupplierStatistics" ? "active" : "")">Thống kê NCC</a>
+                    <a href="/Admin/Reports/StocktakeStatistics" class="nav-sub-item @(Context.Request.Path == "/Admin/Reports/StocktakeStatistics" ? "active" : "")">Kết quả kiểm kho</a>
+                    <a href="/Admin/Reports/LowStock" class="nav-sub-item @(Context.Request.Path == "/Admin/Reports/LowStock" ? "active" : "")">Cảnh báo tồn kho</a>
+                    <a href="/Admin/Reports/ExpiringLot" class="nav-sub-item @(Context.Request.Path == "/Admin/Reports/ExpiringLot" ? "active" : "")">Lô sắp hết hạn</a>
+                    <a href="/Admin/Reports/OverdueOrder" class="nav-sub-item @(Context.Request.Path == "/Admin/Reports/OverdueOrder" ? "active" : "")">Đơn hàng quá hạn</a>
+                    <a href="/Admin/Reports/Notifications" class="nav-sub-item @(Context.Request.Path == "/Admin/Reports/Notifications" ? "active" : "")">Thông báo hệ thống</a>
+                    <a href="/Admin/Reports/KPIs" class="nav-sub-item @(Context.Request.Path == "/Admin/Reports/KPIs" ? "active" : "")">KPI vận hành</a>
+                </div>
+            </div>
+
+            <!-- 5. HỆ THỐNG & TÀI KHOẢN -->
+            <div class="nav-section">
+                <div class="nav-section-label">QUẢN TRỊ & HỆ THỐNG</div>
+
+                <!-- Người dùng -->
+                @if (isSysAdmin)
+                {
+                    var isUserActive = Context.Request.Path.StartsWithSegments("/Admin/Users");
+                    <div class="nav-item nav-item-has-sub @(isUserActive ? "expanded active" : "")" onclick="toggleSubmenu(this)">
+                        <div class="nav-item-main">
+                            <i class="ri-user-settings-line nav-item-icon"></i>
+                            Tài khoản & Phân quyền
+                        </div>
+                        <i class="ri-arrow-right-s-line nav-item-arrow"></i>
+                    </div>
+                    <div class="nav-submenu @(isUserActive ? "expanded" : "")">
+                        <a href="/Admin/Users" class="nav-sub-item @(Context.Request.Path == "/Admin/Users" ? "active" : "")">Danh sách người dùng</a>
+                        <a href="/Admin/Users/Create" class="nav-sub-item @(Context.Request.Path == "/Admin/Users/Create" ? "active" : "")">Tạo tài khoản mới</a>
+                    </div>
+                }
+
+                <a href="/Admin/Profile" class="nav-item @(Context.Request.Path == "/Admin/Profile" ? "active" : "")">
+                    <i class="ri-shield-user-line nav-item-icon"></i>
+                    Hồ sơ cá nhân
+                </a>
+            </div>
+        </nav>
+
+        <div style="padding: 14px 16px; border-top: 1px solid rgba(255, 255, 255, 0.08); font-size: 12px; color: var(--sidebar-muted);">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+                <span>Phiên bản v1.0</span>
+                <a href="/" style="color: #60a5fa; text-decoration: none;"><i class="ri-home-line"></i> Trang chủ</a>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="header-title" style="display: flex; align-items: center; gap: 12px;">
+            <button class="mobile-menu-btn" onclick="document.querySelector('.sidebar').classList.toggle('open')" style="background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-primary); display: none;">
+                <i class="ri-menu-line"></i>
+            </button>
+            <span>@(ViewData["HeaderTitle"] ?? ViewData["Title"] ?? "Hệ thống Quản lý Kho BMWMS")</span>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 16px;">
+            <!-- Quick Links -->
+            <a href="/" class="header-quick-link" style="text-decoration: none; color: var(--text-secondary); font-size: 13px; display: flex; align-items: center; gap: 4px; padding: 6px 10px; border-radius: 6px; background: #f1f5f9;">
+                <i class="ri-home-4-line"></i> Trang chủ
+            </a>
+            <a href="http://localhost:5076/swagger" target="_blank" class="header-quick-link" style="text-decoration: none; color: #2563b8; font-size: 13px; display: flex; align-items: center; gap: 4px; padding: 6px 10px; border-radius: 6px; background: #eff6ff; border: 1px solid #dbeafe;">
+                <i class="ri-code-s-slash-line"></i> Swagger API
+            </a>
+
+            <!-- User Menu -->
+            @{
+                var fullName = Context.Session.GetString("FullName");
+                var roleName = Context.Session.GetString("RoleName");
+                var isLoggedIn = !string.IsNullOrEmpty(fullName);
+            }
+
+            @if (isLoggedIn)
+            {
+                <!-- Notification Bell -->
+                <div class="notification-wrapper" style="position: relative; cursor: pointer; margin-right: 8px;" title="Thông báo">
+                    <a href="/Admin/Reports/Notifications" style="text-decoration: none; color: inherit; display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 50%; background: #f1f5f9; transition: all 0.2s;">
+                        <i class="ri-notification-3-line" style="font-size: 18px; color: #475569;"></i>
+                        <span class="notification-badge" style="position: absolute; top: 0; right: 0; background: #ef4444; color: white; border-radius: 50%; font-size: 10px; font-weight: bold; width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; border: 2px solid white; box-sizing: content-box;">1</span>
+                    </a>
+                </div>
+            }
+
+            @if (isLoggedIn)
+            {
+                <div class="header-user" onclick="document.getElementById('userDropdown').classList.toggle('show')">
+                    <div class="header-user-info">
+                        <div class="header-user-name">@fullName</div>
+                        <div class="header-user-role">@(string.IsNullOrEmpty(roleName) ? "Staff" : roleName)</div>
+                    </div>
+                    <div class="header-user-avatar">
+                        @(fullName?.Substring(0, 1).ToUpper() ?? "U")
+                    </div>
+
+                    <div class="user-dropdown" id="userDropdown">
+                        <div class="user-dropdown-header">
+                            <div class="user-dropdown-name">@fullName</div>
+                            <div class="user-dropdown-role">@(string.IsNullOrEmpty(roleName) ? "Staff" : roleName)</div>
+                        </div>
+                        <a href="/Admin/Profile" class="user-dropdown-item">
+                            <i class="ri-user-line"></i> Hồ sơ cá nhân
+                        </a>
+                        <a href="/Admin/Profile?tab=password" class="user-dropdown-item">
+                            <i class="ri-lock-password-line"></i> Đổi mật khẩu
+                        </a>
+                        <hr class="user-dropdown-divider" />
+                        <a href="/Auth/Logout" class="user-dropdown-item danger">
+                            <i class="ri-logout-box-line"></i> Đăng xuất
+                        </a>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <a href="/Auth/Login" style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; background: #2563b8; color: #fff; text-decoration: none; border-radius: 6px; font-weight: 500; font-size: 13px;">
+                    <i class="ri-login-box-line"></i> Đăng nhập
+                </a>
+            }
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert" style="margin: 20px 20px 0 20px; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                <i class="ri-checkbox-circle-line me-1"></i> @TempData["SuccessMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert" style="margin: 20px 20px 0 20px; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                <i class="ri-error-warning-line me-1"></i> @TempData["ErrorMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+        @RenderBody()
+    </main>
+
+    <!-- Footer -->
+    <footer class="dashboard-footer">
+        <div>© 2026 <strong>BMWMS</strong> - Hệ thống quản lý kho vật liệu xây dựng. Powered by ASP.NET Core 9</div>
+        <div style="color: var(--text-muted);">Trạng thái: <span style="color: #16a34a; font-weight: 600;">● Online</span></div>
+    </footer>
+
+    <script>
+        // Close user dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            var userMenu = document.querySelector('.header-user');
+            var userDropdown = document.getElementById('userDropdown');
+            if (userMenu && userDropdown && !userMenu.contains(event.target)) {
+                userDropdown.classList.remove('show');
+            }
+        });
+
+        // Toggle Submenu sidebar
+        function toggleSubmenu(element) {
+            element.classList.toggle('expanded');
+            var submenu = element.nextElementSibling;
+            if (submenu && submenu.classList.contains('nav-submenu')) {
+                submenu.classList.toggle('expanded');
+            }
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                Toastify({
+                    text: "@Html.Raw(TempData["SuccessMessage"])",
+                    duration: 3000,
+                    gravity: "top",
+                    position: "right",
+                    style: { background: "#16a34a", color: "#fff", borderRadius: "8px", padding: "12px 20px", fontWeight: "600", fontSize: "14px" }
+                }).showToast();
+            });
+        </script>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                Toastify({
+                    text: "@Html.Raw(TempData["ErrorMessage"])",
+                    duration: 4000,
+                    gravity: "top",
+                    position: "right",
+                    style: { background: "#dc2626", color: "#fff", borderRadius: "8px", padding: "12px 20px", fontWeight: "600", fontSize: "14px" }
+                }).showToast();
+            });
+        </script>
+    }
+
+    @RenderSection("Scripts", required: false)
+</body>
+</html>

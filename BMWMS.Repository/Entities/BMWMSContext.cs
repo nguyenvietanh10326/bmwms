@@ -2,15 +2,15 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 
-namespace BMWMS.Repository.Models;
+namespace BMWMS.Repository.Entities;
 
-public partial class BmwmsContext : DbContext
+public partial class BMWMSContext : DbContext
 {
-    public BmwmsContext()
+    public BMWMSContext()
     {
     }
 
-    public BmwmsContext(DbContextOptions<BmwmsContext> options)
+    public BMWMSContext(DbContextOptions<BMWMSContext> options)
         : base(options)
     {
     }
@@ -99,8 +99,6 @@ public partial class BmwmsContext : DbContext
 
     public virtual DbSet<UserSession> UserSessions { get; set; }
 
-    public virtual DbSet<UserPasswordHistory> UserPasswordHistories { get; set; }
-
     public virtual DbSet<VwExpiringLotAlert> VwExpiringLotAlerts { get; set; }
 
     public virtual DbSet<VwInboundReport> VwInboundReports { get; set; }
@@ -129,9 +127,9 @@ public partial class BmwmsContext : DbContext
 
     public virtual DbSet<WarehouseZone> WarehouseZones { get; set; }
 
-//    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-//#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-//        => optionsBuilder.UseSqlServer("Server=.;uid=sa;pwd=1401;Database=BMWMS;TrustServerCertificate=True");
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
+        => optionsBuilder.UseSqlServer("Server=(localdb)\\MSSQLLocalDB;Database=BMWMS;Trusted_Connection=True;TrustServerCertificate=True");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -1062,6 +1060,7 @@ public partial class BmwmsContext : DbContext
             entity.Property(e => e.CreatedByUserId).HasColumnName("CreatedByUserID");
             entity.Property(e => e.CustomerId).HasColumnName("CustomerID");
             entity.Property(e => e.Notes).HasMaxLength(2000);
+            entity.Property(e => e.AllocationStrategy).HasMaxLength(20).HasDefaultValue("FIFO");
             entity.Property(e => e.SalesOrderNumber)
                 .HasMaxLength(50)
                 .IsUnicode(false);
@@ -1582,24 +1581,6 @@ public partial class BmwmsContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_UserSessions_User");
-        });
-
-        modelBuilder.Entity<UserPasswordHistory>(entity =>
-        {
-            entity.HasKey(e => e.HistoryId).HasName("PK__UserPass__4D7B4ADD5A11F68C");
-
-            entity.ToTable("UserPasswordHistories");
-
-            entity.Property(e => e.CreatedAt)
-                .HasPrecision(0)
-                .HasDefaultValueSql("(sysutcdatetime())");
-            entity.Property(e => e.PasswordHash).HasMaxLength(255);
-            entity.Property(e => e.UserId).HasColumnName("UserID");
-
-            entity.HasOne(d => d.User).WithMany(p => p.UserPasswordHistories)
-                .HasForeignKey(d => d.UserId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_UserPasswordHistories_User");
         });
 
         modelBuilder.Entity<VwExpiringLotAlert>(entity =>
