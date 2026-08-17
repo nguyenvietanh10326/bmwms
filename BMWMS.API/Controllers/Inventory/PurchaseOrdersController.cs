@@ -1,4 +1,4 @@
-using BMWMS.Business.DTOs.Inventory;
+﻿using BMWMS.Business.DTOs.Inventory;
 using BMWMS.Business.Interfaces.Inventory;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -19,7 +19,7 @@ namespace BMWMS.API.Controllers.Inventory
         }
 
         /// <summary>
-        /// 2. Lấy chi tiết 1 Purchase Order theo ID
+        /// 2. Láº¥y chi tiáº¿t 1 Purchase Order theo ID
         /// GET: api/PurchaseOrders/13
         /// </summary>
         [HttpGet("{id:long}")]
@@ -30,14 +30,14 @@ namespace BMWMS.API.Controllers.Inventory
                 var po = await _poService.GetOrderDetailAsync(id);
                 if (po == null)
                 {
-                    return NotFound(new { message = $"Không tìm thấy đơn mua hàng với ID = {id}" });
+                    return NotFound(new { message = $"KhÃ´ng tÃ¬m tháº¥y Ä‘Æ¡n mua hÃ ng vá»›i ID = {id}" });
                 }
 
                 return Ok(po);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Lỗi hệ thống khi lấy chi tiết đơn mua hàng.", detail = ex.Message });
+                return StatusCode(500, new { message = "Lá»—i há»‡ thá»‘ng khi láº¥y chi tiáº¿t Ä‘Æ¡n mua hÃ ng.", detail = ex.Message });
             }
         }
 
@@ -69,7 +69,7 @@ namespace BMWMS.API.Controllers.Inventory
             {
                 // In a real app, we would get the UserId from claims.
                 // For now, we hardcode 1 or get from headers if provided.
-                long userId = 1;
+                long userId = 4;
                 if (Request.Headers.TryGetValue("X-User-Id", out var userIdStr) && long.TryParse(userIdStr, out var uid))
                 {
                     userId = uid;
@@ -78,7 +78,7 @@ namespace BMWMS.API.Controllers.Inventory
                 var result = await _poService.CreatePurchaseOrderAsync(request, userId);
                 if (result.Success)
                 {
-                    return Ok(new { message = "Tạo lệnh mua hàng thành công.", data = result.Message });
+                    return Ok(new { message = "Táº¡o lá»‡nh mua hÃ ng thÃ nh cÃ´ng.", data = result.Message });
                 }
                 else
                 {
@@ -88,7 +88,7 @@ namespace BMWMS.API.Controllers.Inventory
             catch (Exception ex)
             {
                 var innerMsg = ex.ToString();
-                return StatusCode(500, new { message = "Lỗi hệ thống khi tạo Lệnh mua hàng.", detail = innerMsg });
+                return StatusCode(500, new { message = "Lá»—i há»‡ thá»‘ng khi táº¡o Lá»‡nh mua hÃ ng.", detail = innerMsg });
             }
         }
 
@@ -104,14 +104,14 @@ namespace BMWMS.API.Controllers.Inventory
         {
             try
             {
-                long userId = 1; // Demo
+                long userId = 4; // Demo
                 var result = await _poService.ConfirmOrderAsync(id, userId);
                 if (result.Success) return Ok(new { message = result.Message });
                 return BadRequest(new { message = result.Message });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Lỗi hệ thống.", detail = ex.Message });
+                return StatusCode(500, new { message = "Lá»—i há»‡ thá»‘ng.", detail = ex.Message });
             }
         }
 
@@ -120,14 +120,27 @@ namespace BMWMS.API.Controllers.Inventory
         {
             try
             {
-                long userId = 1; // Demo
+                long userId = 4; // Demo
                 var result = await _poService.CancelOrderAsync(id, userId, reason);
                 if (result.Success) return Ok(new { message = result.Message });
                 return BadRequest(new { message = result.Message });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Lỗi hệ thống.", detail = ex.Message });
+                return StatusCode(500, new { message = "Lá»—i há»‡ thá»‘ng.", detail = ex.Message });
+            }
+        }
+        [HttpGet("/AllCustomers")]
+        public async Task<IActionResult> GetAllCustomer()
+        {
+            try
+            {
+                var result = await _poService.GetCustomersAsync();
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi khi lấy danh sách khách hàng.", detail = ex.Message });
             }
         }
     }

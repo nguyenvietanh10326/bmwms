@@ -39,8 +39,6 @@ namespace BMWMS.Business.DTOs.Inventory
 
         public DateOnly OrderDate { get; set; }
         public DateOnly? ExpectedDeliveryDate { get; set; }
-        public long? WarehouseId { get; set; }
-        public string? WarehouseName { get; set; }
 
         public string Status { get; set; } = string.Empty;
         public string? Notes { get; set; }
@@ -53,7 +51,9 @@ namespace BMWMS.Business.DTOs.Inventory
         public string? ConfirmedByUserName { get; set; }
         public DateTime? ConfirmedAt { get; set; }
 
-        public decimal TotalAmount { get; set; }
+        public bool CanConfirm { get; set; }
+        public bool CanCancel { get; set; }
+        public bool CanCreateInbound { get; set; }
 
         public List<PurchaseOrderItemDto> Items { get; set; } = new();
         public List<RelatedInboundDto> Inbounds { get; set; } = new();
@@ -66,6 +66,9 @@ namespace BMWMS.Business.DTOs.Inventory
         public DateOnly ExpectedReceiptDate { get; set; }
         public string Status { get; set; } = string.Empty;
         public string? Notes { get; set; }
+        public decimal ExpectedQuantity { get; set; }
+        public decimal ReceivedQuantity { get; set; }
+        public bool IsSupplemental { get; set; }
     }
 
     public class PurchaseOrderItemDto
@@ -76,9 +79,9 @@ namespace BMWMS.Business.DTOs.Inventory
         public string ProductName { get; set; } = string.Empty;
         public string Unit { get; set; } = string.Empty;
         public decimal OrderedQuantity { get; set; }
+        public decimal PlannedInboundQuantity { get; set; }
         public decimal ReceivedQuantity { get; set; }
-        public decimal UnitPrice { get; set; }
-        public decimal TotalPrice => OrderedQuantity * UnitPrice;
+        public decimal RemainingQuantity { get; set; }
         public string? Notes { get; set; }
     }
     #endregion
@@ -153,6 +156,16 @@ namespace BMWMS.Business.DTOs.Inventory
         public string SupplierName { get; set; } = string.Empty;
         public string DisplayName => $"{SupplierCode} — {SupplierName}";
     }
+
+    public class CustomerLookupDto
+    {
+        public long CustomerId { get; set; }
+        public string CustomerCode { get; set; } = string.Empty;
+        public string CustomerName { get; set; } = string.Empty;
+        public string PhoneNumber { get; set; } = string.Empty;
+        public string Address { get; set; } = string.Empty;
+        public string DisplayName => $"{CustomerCode} — {CustomerName}";
+    }
     public class ProductLookupDto
     {
         public long ProductId { get; set; }
@@ -160,6 +173,15 @@ namespace BMWMS.Business.DTOs.Inventory
         public string ProductName { get; set; } = string.Empty;
         public string UnitOfMeasure { get; set; } = string.Empty;
         public decimal PurchasePrice { get; set; }
+        public decimal OnHandQuantity { get; set; }
+
+        public decimal ReservedQuantity { get; set; }
+
+        public decimal? AvailableQuantity { get; set; }
+        public long ProductGroupId { get; set; }
+        public string ProductGroupName { get; set; } = string.Empty;
+        public string? Barcode { get; set; }
+        public string RotationMethod { get; set; } = "FIFO";
         public string DisplayName => $"{ProductCode} — {ProductName}";
     }
 }
