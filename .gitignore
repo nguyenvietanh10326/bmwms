@@ -24,3 +24,5 @@ publish/
 # Test
 TestResults/
 .codex-build/
+
+.env*
