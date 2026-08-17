@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=Your_password123
+    ports:
+      - "1433:1433"
+    volumes:
+      - sql_data:/var/opt/mssql
+
+  db-init:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    depends_on:
+      - db
+    volumes:
+      - ./BMWMS_Data_Final.sql:/scripts/BMWMS_Data_Final.sql
+    command: >
+      bash -c "
+      echo 'Waiting for SQL Server to become available...';
+      for i in {1..30}; do
+        /opt/mssql-tools18/bin/sqlcmd -S db -U sa -P 'Your_password123' -C -Q 'SELECT 1' && break
+        sleep 2
+      done;
+      echo 'Running initialization script BMWMS_Data_Final.sql...';
+      /opt/mssql-tools18/bin/sqlcmd -S db -U sa -P 'Your_password123' -C -i /scripts/BMWMS_Data_Final.sql;
+      echo 'Initialization complete.';
+      "
+
+  api:
+    build:
+      context: .
+      dockerfile: BMWMS.API/Dockerfile
+    depends_on:
+      - db
+    ports:
+      - "5076:8080"
+    environment:
+      - ConnectionStrings__DefaultConnection=Server=db;Database=BMWMS;User Id=sa;Password=Your_password123;TrustServerCertificate=True
+      - SmtpSettings__Host=smtp.gmail.com
+      - SmtpSettings__Port=587
+      - SmtpSettings__Username=wangdumb123@gmail.com
+      - SmtpSettings__Password=kqao mafd muds zrrt
+      - SmtpSettings__EnableSsl=true
+      - SmtpSettings__FromEmail=wangdumb123@gmail.com
+      - Jwt__Key=SuperSecretKeyForBMWMS_WhichIsAtLeast32BytesLong!
+      - Jwt__Issuer=BMWMS.API
+      - Jwt__Audience=BMWMS.Web
+      - Jwt__ExpireMinutes=480
+
+  web:
+    build:
+      context: .
+      dockerfile: BMWMS.Web/Dockerfile
+    depends_on:
+      - api
+    ports:
+      - "5100:8080"
+    environment:
+      - ApiSettings__BaseUrl=http://api:8080
+
+volumes:
+  sql_data:
