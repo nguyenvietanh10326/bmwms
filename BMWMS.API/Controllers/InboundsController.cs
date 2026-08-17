@@ -46,6 +46,12 @@ public class InboundsController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("putaway-locations")]
+    public async Task<ActionResult<List<PutawayLocationDto>>> GetPutawayLocations([FromQuery] long warehouseId, [FromQuery] long productId)
+    {
+        return Ok(await _inboundService.GetPutawayLocationsAsync(warehouseId, productId));
+    }
+
     [HttpPost]
     [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
     public async Task<ActionResult<long>> CreateInboundOrder([FromBody] CreateInboundOrderDto dto)
@@ -75,6 +81,12 @@ public class InboundsController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("staff/available")]
+    public async Task<ActionResult<List<AvailableWarehouseStaffDto>>> GetAvailableWarehouseStaff()
+    {
+        return Ok(await _inboundService.GetAvailableWarehouseStaffAsync());
+    }
+
     [HttpGet("sales-orders/returnable")]
     public async Task<ActionResult<List<SourceOrderDropdownDto>>> GetReturnableSalesOrders()
     {
@@ -90,28 +102,13 @@ public class InboundsController : ControllerBase
         return Ok(result);
     }
 
-    [HttpGet("shortages")]
-    public async Task<ActionResult<List<ShortageInboundOrderDto>>> GetShortageInboundOrders()
-    {
-        var result = await _inboundService.GetShortageInboundOrdersAsync();
-        return Ok(result);
-    }
-
-    [HttpGet("{parentId}/supplement")]
-    public async Task<ActionResult<PurchaseOrderForInboundDto>> GetInboundOrderForSupplement(long parentId)
-    {
-        var result = await _inboundService.GetInboundOrderForSupplementAsync(parentId);
-        if (result == null) return NotFound();
-        return Ok(result);
-    }
-
     [HttpPut("{id}")]
     [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
     public async Task<IActionResult> Update(long id, [FromBody] UpdateInboundOrderDto dto)
     {
         try
         {
-            var userId = 1; // Tạm hardcode
+            if (!long.TryParse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var userId)) return Unauthorized();
             await _inboundService.UpdateInboundOrderAsync(id, dto, userId);
             return Ok();
         }
@@ -127,7 +124,7 @@ public class InboundsController : ControllerBase
     {
         try
         {
-            var userId = 1; // Tạm hardcode
+            if (!long.TryParse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var userId)) return Unauthorized();
             await _inboundService.CancelInboundOrderAsync(id, dto, userId);
             return Ok();
         }
@@ -143,7 +140,7 @@ public class InboundsController : ControllerBase
     {
         try
         {
-            var userId = 1; // Tạm hardcode
+            if (!long.TryParse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var userId)) return Unauthorized();
             await _inboundService.ConfirmInboundOrderAsync(id, userId);
             return Ok();
         }
@@ -173,12 +170,9 @@ public class InboundsController : ControllerBase
     [HttpPost("{id}/receive-batch")]
     public async Task<IActionResult> ReceiveBatch(long id, [FromBody] ReceiveBatchInboundDto dto)
     {
-        var currentUserId = 1; // Fake logic for current user
+        long currentUserId;
         var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (long.TryParse(userIdClaim, out var parsedId))
-        {
-            currentUserId = (int)parsedId;
-        }
+        if (!long.TryParse(userIdClaim, out currentUserId)) return Unauthorized();
 
         try
         {

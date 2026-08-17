@@ -29,6 +29,12 @@ public class ProductsModel : PageModel
 
     public async Task<IActionResult> OnGetAsync(string supplierCode)
     {
+        var roleCode = HttpContext.Session.GetString("RoleCode");
+        if (roleCode != "SYSTEM_ADMIN" && roleCode != "WAREHOUSE_MANAGER" && roleCode != "PURCHASING_STAFF")
+        {
+            return Forbid();
+        }
+
         SupplierCode = supplierCode;
 
         Products = await _supplierApiService.GetSupplierProductsAsync(supplierCode, Search, Status, PageNumber, 20);

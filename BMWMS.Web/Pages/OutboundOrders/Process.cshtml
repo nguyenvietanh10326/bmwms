@@ -1,0 +1,121 @@
+@page "{id:int}"
+@using System.Text.Json
+@model BMWMS.Web.Pages.OutboundOrders.ProcessModel
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = $"Thực hiện xuất kho - {Model.Order.OutboundOrderNumber}";
+    var isSale = Model.Order.SourceType == "SALES_ORDER";
+}
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-start mb-3">
+        <div>
+            <div class="text-muted mb-1">Thực hiện lấy hàng và xác nhận xuất kho</div>
+            <h3 class="mb-0">@Model.Order.OutboundOrderNumber</h3>
+        </div>
+        <a asp-page="./Details" asp-route-id="@Model.Order.OutboundOrderId" class="btn btn-outline-secondary">Xem chi tiết phiếu</a>
+    </div>
+
+    <div class="alert alert-info">
+        <strong>@(isSale ? "Xuất bán theo SO" : "Trả hàng nhà cung cấp theo PO"):</strong>
+        @Model.Order.SourceReference — @Model.Order.PartnerName.
+        Lấy đúng vị trí/lô được hệ thống phân bổ; tồn kho được trừ ngay khi xác nhận.
+    </div>
+
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body row g-3">
+            <div class="col-md-3"><div class="text-muted small">Trạng thái</div><strong>@StatusLabel(Model.Order.Status)</strong></div>
+            <div class="col-md-3"><div class="text-muted small">Kho xuất</div><strong>@Model.Order.WarehouseName</strong></div>
+            <div class="col-md-3"><div class="text-muted small">Phiếu điều chuyển tác nghiệp</div><a asp-page="/Transfer/Details" asp-route-id="@Model.Order.TransferOrderId">@Model.Order.TransferOrderNumber</a></div>
+            <div class="col-md-3"><div class="text-muted small">Ghi chú</div><span>@(string.IsNullOrWhiteSpace(Model.Order.Notes) ? "Không có" : Model.Order.Notes)</span></div>
+        </div>
+    </div>
+
+    @foreach (var item in Model.Order.Items)
+    {
+        var progress = item.RequestedQuantity > 0 ? Math.Min(100, (int)(item.IssuedQuantity * 100 / item.RequestedQuantity)) : 0;
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div><span class="badge bg-secondary">@item.ProductCode</span><h5 class="mt-2 mb-1">@item.ProductName</h5><span class="text-muted">Đơn vị: @item.UnitName</span></div>
+                    <div class="text-end"><strong>@FormatQuantity(item.IssuedQuantity, item.QuantityScale) / @FormatQuantity(item.RequestedQuantity, item.QuantityScale)</strong><div class="text-muted">Còn @FormatQuantity(item.RemainingQuantity, item.QuantityScale)</div></div>
+                </div>
+                <div class="progress mb-3" style="height:8px"><div class="progress-bar" style="width:@progress%"></div></div>
+
+                @if (item.PickedDetails.Count > 0)
+                {
+                    <div class="mb-3"><div class="fw-semibold mb-2">Đã xuất</div>
+                    @foreach (var picked in item.PickedDetails)
+                    { <span class="badge bg-success-subtle text-success border me-2">@picked.LocationCode · @(item.TrackLot ? $"Lô {picked.LotNumber}" : "Hàng lẻ") · @FormatQuantity(picked.IssuedQuantity, item.QuantityScale)</span> }
+                    </div>
+                }
+
+                <div class="fw-semibold mb-2">Phân bổ lấy hàng</div>
+                @if (item.AvailableLocations.Count == 0)
+                { <div class="text-muted">Không còn phân bổ khả dụng.</div> }
+                else
+                {
+                    <div class="table-responsive"><table class="table table-sm align-middle">
+                        <thead><tr><th>Vị trí</th><th>Lô</th><th class="text-end">Được lấy</th><th class="text-end">Thao tác</th></tr></thead>
+                        <tbody>
+                        @foreach (var location in item.AvailableLocations)
+                        {
+                            var json = JsonSerializer.Serialize(location, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+                            <tr><td>@location.LocationCode</td><td>@(item.TrackLot ? location.LotNumber : "Hàng lẻ")</td><td class="text-end">@FormatQuantity(location.AvailableQuantity, item.QuantityScale)</td>
+                            <td class="text-end"><button type="button" class="btn btn-primary btn-sm" onclick='openPick(@Model.Order.OutboundOrderId,@item.OutboundOrderItemId,@item.RemainingQuantity,@item.QuantityScale,@item.TrackLot.ToString().ToLowerInvariant(),@Html.Raw(json))'>Xác nhận lấy/xuất</button></td></tr>
+                        }
+                        </tbody>
+                    </table></div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+<div class="modal fade" id="pickModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title">Xác nhận lấy và xuất hàng</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body">
+        <div class="alert alert-warning">Thao tác này ghi bút toán OUTBOUND và trừ tồn ngay; không thể sửa sổ giao dịch sau khi xác nhận.</div>
+        <div class="mb-2"><span class="text-muted">Vị trí/lô:</span> <strong id="routeText"></strong></div>
+        <label class="form-label">Số lượng thực xuất</label><input id="pickQuantity" type="number" min="0.0001" step="0.0001" class="form-control mb-3" />
+        <label class="form-label">Ghi chú</label><textarea id="pickNotes" class="form-control" rows="2"></textarea>
+    </div>
+    <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Đóng</button><button type="button" id="confirmPick" class="btn btn-primary" onclick="submitPick()">Xác nhận xuất</button></div>
+</div></div></div>
+
+@functions {
+    string StatusLabel(string status) => status switch { "READY" => "Sẵn sàng xuất", "ISSUING" => "Đang xuất hàng", "ISSUED" => "Đã xuất", "CANCELLED" => "Đã hủy", _ => "Nháp" };
+    string FormatQuantity(decimal value, byte scale) => value.ToString(scale == 0 ? "N0" : $"N{scale}");
+}
+
+@section Scripts {
+@Html.AntiForgeryToken()
+<script>
+    let currentPick = null;
+    const modal = new bootstrap.Modal(document.getElementById('pickModal'));
+    function openPick(orderId, itemId, remaining, scale, trackLot, route) {
+        currentPick = { orderId, itemId, route, scale };
+        document.getElementById('routeText').textContent = `${route.locationCode} · ${trackLot ? `Lô ${route.lotNumber}` : 'Hàng lẻ'}`;
+        document.getElementById('pickQuantity').min = scale === 0 ? '1' : `0.${'0'.repeat(scale - 1)}1`;
+        document.getElementById('pickQuantity').step = document.getElementById('pickQuantity').min;
+        document.getElementById('pickQuantity').max = route.availableQuantity;
+        document.getElementById('pickQuantity').value = Math.min(remaining, route.availableQuantity);
+        document.getElementById('pickNotes').value = '';
+        modal.show();
+    }
+    async function submitPick() {
+        const quantity = Number(document.getElementById('pickQuantity').value);
+        if (!currentPick || quantity <= 0 || quantity > currentPick.route.availableQuantity) { alert('Số lượng thực xuất không hợp lệ.'); return; }
+        const payload = {
+            outboundOrderId: currentPick.orderId, outboundOrderItemId: currentPick.itemId,
+            storageLocationId: currentPick.route.storageLocationId, productLotId: currentPick.route.productLotId,
+            inventoryReservationId: currentPick.route.inventoryReservationId || null,
+            pickQuantity: quantity, notes: document.getElementById('pickNotes').value
+        };
+        const button = document.getElementById('confirmPick'); button.disabled = true;
+        const response = await fetch('?handler=Pick', { method:'POST', headers:{ 'Content-Type':'application/json', 'RequestVerificationToken':document.querySelector('input[name="__RequestVerificationToken"]').value }, body:JSON.stringify(payload) });
+        const result = await response.json();
+        if (result.success) location.reload(); else { alert(result.message || 'Không thể xuất hàng.'); button.disabled = false; }
+    }
+</script>
+}

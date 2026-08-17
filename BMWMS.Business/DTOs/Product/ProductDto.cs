@@ -70,6 +70,7 @@ namespace BMWMS.Business.DTOs.Product
         public string GroupName { get; set; } = string.Empty;
         public int UnitOfMeasureId { get; set; }
         public string UnitName { get; set; } = string.Empty;
+        public byte QuantityScale { get; set; }
         public string? Barcode { get; set; }
         public string? Description { get; set; }
         public string RotationMethod { get; set; } = "FIFO";
@@ -135,6 +136,7 @@ namespace BMWMS.Business.DTOs.Product
         public int UnitOfMeasureId { get; set; }
         public string UnitCode { get; set; } = string.Empty;
         public string UnitName { get; set; } = string.Empty;
+        public byte QuantityScale { get; set; }
     }
 
     public class ProductGroupOptionDto

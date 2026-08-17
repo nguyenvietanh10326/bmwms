@@ -177,9 +177,17 @@ namespace BMWMS.Business.Services
                 CreatedAt = entity.CreatedAt,
                 UpdatedAt = entity.UpdatedAt,
                 TotalLocations = entity.StorageLocations?.Count ?? 0,
-                ManagerName = string.IsNullOrEmpty(entity.PhoneNumber) ? "N/A" : $"WAREHOUSE MANAGER"
+                ManagerName = string.IsNullOrEmpty(entity.PhoneNumber) ? "N/A" : $"WAREHOUSE MANAGER",
+                StorageLocations = entity.StorageLocations?.Select(loc => new StorageLocationItemDto
+                {
+                    LocationID = loc.StorageLocationId,
+                    LocationCode = loc.LocationCode,
+                    LocationType = string.IsNullOrWhiteSpace(loc.LocationType) ? "Kệ chung" : loc.LocationType,
+                    AreaSquareMeter = loc.AreaSquareMeter,
+                    Status = loc.Status ?? "Empty",
+                }).ToList() ?? new List<StorageLocationItemDto>()
             };
         }
-        #endregion
+            #endregion
+        }
     }
-}

@@ -57,7 +57,7 @@ public class SuppliersController : ControllerBase
     {
         try
         {
-            var userId = long.Parse(User.FindFirst("UserId")?.Value ?? "0");
+            var userId = long.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0");
             var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
 
             var supplierId = await _supplierService.CreateSupplierAsync(dto, userId, ipAddress);
@@ -69,7 +69,7 @@ public class SuppliersController : ControllerBase
         }
         catch (Exception ex)
         {
-            return StatusCode(500, ex.Message);
+            return StatusCode(500, ex.InnerException?.Message ?? ex.Message);
         }
     }
 
@@ -79,7 +79,7 @@ public class SuppliersController : ControllerBase
     {
         try
         {
-            var userId = long.Parse(User.FindFirst("UserId")?.Value ?? "0");
+            var userId = long.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0");
             var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
 
             await _supplierService.UpdateSupplierAsync(supplierCode, dto, userId, ipAddress);
@@ -146,6 +146,25 @@ public class SuppliersController : ControllerBase
             var detail = await _supplierService.GetSupplierInboundHistoryDetailAsync(supplierCode, inboundOrderNumber);
             if (detail == null) return NotFound("Inbound order not found or does not belong to this supplier.");
             return Ok(detail);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ex.Message);
+        }
+    }
+
+    [Authorize(Roles = "SYSTEM_ADMIN,PURCHASING_MANAGER,PURCHASING_STAFF")]
+    [HttpPost("{supplierCode}/products")]
+    public async Task<IActionResult> AssignProducts(string supplierCode, [FromBody] BMWMS.Business.DTOs.Inventory.AssignSupplierProductsDto dto)
+    {
+        try
+        {
+            await _supplierService.AssignProductsToSupplierAsync(supplierCode, dto);
+            return Ok(new { message = "Gán danh mục vật tư thành công." });
+        }
+        catch (ArgumentException ex)
+        {
+            return NotFound(ex.Message);
         }
         catch (Exception ex)
         {

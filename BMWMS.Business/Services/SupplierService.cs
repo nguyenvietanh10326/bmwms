@@ -70,9 +70,12 @@ public class SupplierService : ISupplierService
             PreferredProducts = supplier.SupplierProducts.Count(sp => sp.IsPreferred),
             SuppliedProducts = supplier.SupplierProducts.Select(sp => new SupplierProductDto
             {
+                ProductId = sp.ProductId,
                 ProductCode = sp.Product.ProductCode,
                 ProductName = sp.Product.ProductName,
                 GroupName = sp.Product.ProductGroup.GroupName,
+                Unit = sp.Product.UnitOfMeasure?.UnitName ?? string.Empty,
+                QuantityScale = sp.Product.UnitOfMeasure?.QuantityScale ?? 0,
                 LastPurchasePrice = sp.LastPurchasePrice,
                 LeadTimeDays = sp.LeadTimeDays,
                 Status = sp.Status
@@ -278,5 +281,13 @@ public class SupplierService : ISupplierService
                 ReceivedQuantity = (int)d.ReceivedQuantity
             }).ToList()
         };
+    }
+
+    public async Task AssignProductsToSupplierAsync(string supplierCode, BMWMS.Business.DTOs.Inventory.AssignSupplierProductsDto dto)
+    {
+        var supplier = await _supplierRepository.GetSupplierByCodeAsync(supplierCode);
+        if (supplier == null) throw new ArgumentException($"Nhà cung cấp {supplierCode} không tồn tại.");
+
+        await _supplierRepository.AssignProductsAsync(supplier.SupplierId, dto.ProductIds);
     }
 }

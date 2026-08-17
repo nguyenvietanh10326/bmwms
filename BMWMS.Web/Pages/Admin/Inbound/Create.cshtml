@@ -86,7 +86,7 @@
 
 <div class="inbound-page">
     <div class="pagehead">
-        <div><h1>Tạo lệnh nhập kho</h1><p>Tạo lệnh nhập từ Purchase Order đã xác nhận, hoặc bổ sung cho thiếu/hỏng của một lệnh trước đó.</p></div>
+        <div><h1>Tạo phiếu nhập kho</h1><p>Tạo phiếu nhập hàng mua theo PO hoặc nhận hàng khách trả theo SO.</p></div>
         <div>
             <a href="/Admin/Inbound" class="btn btn-light" style="margin-right:10px;">Hủy bỏ</a>
             <button type="submit" form="createForm" class="btn btn-dark">Lưu & Tiếp tục</button>
@@ -106,7 +106,6 @@
             <div class="filters" style="margin-bottom:0">
                 <label class="radio-opt"><input type="radio" asp-for="InboundOrder.SourceType" value="PURCHASE_ORDER" onchange="toggleSource(this)">Nhập từ Nhà cung cấp (PO)</label>
                 <label class="radio-opt"><input type="radio" asp-for="InboundOrder.SourceType" value="SALES_RETURN" onchange="toggleSource(this)">Nhập hàng Khách trả lại (SO)</label>
-                <label class="radio-opt"><input type="radio" asp-for="InboundOrder.SourceType" value="SUPPLEMENT" onchange="toggleSource(this)">Nhập bổ sung cho lệnh thiếu</label>
             </div>
         </div>
 
@@ -116,28 +115,19 @@
                 <div class="field" id="po-field">
                     <label>Chọn đơn PO *</label>
                     <select asp-for="InboundOrder.PurchaseOrderId" asp-items="Model.PurchaseOrders" onchange="fetchSourceDetails('PURCHASE_ORDER', this.value)">
-                        <option value="">-- Chọn PO --</option>
+                        <option value="">@(Model.PurchaseOrders.Any() ? "-- Chọn PO đã xác nhận --" : "-- Không có PO còn số lượng có thể nhập --")</option>
                     </select>
-                </div>
-                <div class="field" id="supplement-field" style="display:none;">
-                    <label>Chọn lệnh nhập gốc (Bị thiếu) *</label>
-                    <select asp-for="InboundOrder.ParentInboundOrderId" asp-items="Model.ShortageOrders" onchange="fetchSourceDetails('SUPPLEMENT', this.value)">
-                        <option value="">-- Chọn lệnh nhập thiếu --</option>
-                    </select>
+                    <small>Chỉ hiển thị PO đã xác nhận và còn số lượng chưa được phiếu nhập khác giữ chỗ.</small>
                 </div>
                 <div class="field" id="so-field" style="display:none;">
                     <label>Chọn đơn SO *</label>
                     <select asp-for="InboundOrder.SalesOrderId" asp-items="Model.SalesOrders" onchange="fetchSourceDetails('SALES_RETURN', this.value)">
-                        <option value="">-- Chọn SO --</option>
+                        <option value="">@(Model.SalesOrders.Any() ? "-- Chọn SO đã xuất hàng --" : "-- Không có SO còn số lượng có thể nhận trả --")</option>
                     </select>
+                    <small>Chỉ hiển thị SO đã xuất hàng và còn số lượng khách có thể trả lại.</small>
                 </div>
                 <div class="field"><label>Mã lệnh nhập</label><input disabled value="Tự động sinh khi tạo"></div>
                 <div class="field"><label>Nhà cung cấp</label><input id="SupplierName" disabled value=""></div>
-                <div class="field" style="display: none;">
-                    <label>Kho nhận *</label>
-                    <select asp-for="InboundOrder.WarehouseId" asp-items="Model.Warehouses">
-                    </select>
-                </div>
             </div>
             <div class="grid2" style="margin-top:14px">
                 <div class="field">
@@ -147,12 +137,9 @@
                 <div class="field">
                     <label>Người phụ trách *</label>
                     <select asp-for="InboundOrder.AssignedToUserId" asp-items="Model.Users" required>
-                        <option value="">-- Chọn người phụ trách --</option>
+                        <option value="">@(Model.Users.Any() ? "-- Chọn nhân viên kho đang rảnh --" : "-- Không có nhân viên kho đang rảnh --")</option>
                     </select>
-                </div>
-                <div class="field">
-                    <label>Độ ưu tiên</label>
-                    <select><option>Bình thường</option><option>Cao</option></select>
+                    <small>Mỗi nhân viên chỉ được phụ trách một phiếu nhập hoặc xuất đang hoạt động.</small>
                 </div>
                 <div class="field">
                     <label>Ghi chú</label>
@@ -170,8 +157,8 @@
                 <thead>
                     <tr>
                         <th style="width: 35%">Sản phẩm</th>
-                        <th class="num" style="width: 12%">SL PO ban đầu</th>
-                        <th class="num" style="width: 12%">SL còn lại (thiếu)</th>
+                        <th class="num" style="width: 12%">SL theo đơn</th>
+                        <th class="num" style="width: 12%">SL còn có thể nhập</th>
                         <th class="num" style="width: 12%">SL dự kiến nhập</th>
                         <th style="width: 5%">ĐVT</th>
                         <th style="width: 19%">Ghi chú</th>
@@ -191,28 +178,27 @@
     <script>
         var productsOptions = `@foreach(var p in Model.Products) { <option value="@p.Value">@Html.Raw(p.Text)</option> }`;
         
-        function toggleSource(radio) {
+        function toggleSource(radio, clearValues = true) {
             document.querySelectorAll('.radio-opt').forEach(el => el.classList.remove('sel'));
             radio.closest('.radio-opt').classList.add('sel');
             
             document.getElementById('po-field').style.display = 'none';
             document.getElementById('so-field').style.display = 'none';
-            document.getElementById('supplement-field').style.display = 'none';
             
-            document.getElementById('InboundOrder_PurchaseOrderId').value = '';
-            document.getElementById('InboundOrder_SalesOrderId').value = '';
-            document.getElementById('InboundOrder_ParentInboundOrderId').value = '';
+            if (clearValues) {
+                document.getElementById('InboundOrder_PurchaseOrderId').value = '';
+                document.getElementById('InboundOrder_SalesOrderId').value = '';
+            }
             
             if(radio.value === 'PURCHASE_ORDER') {
                 document.getElementById('po-field').style.display = 'block';
-            } else if (radio.value === 'SUPPLEMENT') {
-                document.getElementById('supplement-field').style.display = 'block';
             } else {
                 document.getElementById('so-field').style.display = 'block';
             }
         }
 
         var rowCount = 0;
+        const quantityStep = scale => scale === 0 ? '1' : `0.${'0'.repeat(scale - 1)}1`;
 
         function addRow() {
             var html = `
@@ -268,9 +254,6 @@
                 if (sourceType === 'PURCHASE_ORDER') {
                     handler = 'PoDetails';
                     paramName = 'poId';
-                } else if (sourceType === 'SUPPLEMENT') {
-                    handler = 'SupplementDetails';
-                    paramName = 'parentId';
                 } else if (sourceType === 'SALES_RETURN') {
                     handler = 'SoDetails';
                     paramName = 'soId';
@@ -310,6 +293,7 @@
                         const productName = item.productName || item.ProductName;
                         const remainingQuantity = item.remainingQuantity !== undefined ? item.remainingQuantity : item.RemainingQuantity;
                         const unitName = item.unitName || item.UnitName || '--';
+                        const quantityScale = Number(item.quantityScale ?? item.QuantityScale ?? 0);
                         
                         const productCode = item.productCode || item.ProductCode || '';
                         const orderedQuantity = item.orderedQuantity !== undefined ? item.orderedQuantity : item.OrderedQuantity;
@@ -332,7 +316,7 @@
                                     <input type="text" disabled value="${remainingQuantity}" class="cell-input" style="background:#f2f3f7; color:#8890a6; text-align:right; border:none;" />
                                 </td>
                                 <td class="num">
-                                    <input type="number" name="InboundOrder.Items[${rowCount}].ExpectedQuantity" min="1" max="${remainingQuantity}" step="0.01" value="${remainingQuantity > 0 ? remainingQuantity : 1}" required class="cell-input expected-qty" />
+                                    <input type="number" name="InboundOrder.Items[${rowCount}].ExpectedQuantity" min="${quantityStep(quantityScale)}" max="${remainingQuantity}" step="${quantityStep(quantityScale)}" value="${remainingQuantity > 0 ? remainingQuantity : 1}" required class="cell-input expected-qty" />
                                 </td>
                                 <td>
                                     <input type="text" disabled value="${unitName}" style="width: 50px; background: transparent; border: none; text-align: center;" />
@@ -362,7 +346,7 @@
             // Trigger radio button toggle on load to sync UI state
             var checkedRadio = document.querySelector('input[type="radio"]:checked');
             if (checkedRadio) {
-                toggleSource(checkedRadio);
+                toggleSource(checkedRadio, false);
             } else {
                 // Default fallback if nothing is checked
                 var firstRadio = document.querySelector('input[type="radio"]');
@@ -373,16 +357,12 @@
             }
 
             var poEl = document.getElementById('InboundOrder_PurchaseOrderId');
-            var parentEl = document.getElementById('InboundOrder_ParentInboundOrderId');
             var initialPo = poEl ? poEl.value : '';
-            var initialParent = parentEl ? parentEl.value : '';
             var soEl = document.getElementById('InboundOrder_SalesOrderId');
             var initialSo = soEl ? soEl.value : '';
             
             if(initialPo && checkedRadio && checkedRadio.value === 'PURCHASE_ORDER') {
                 fetchSourceDetails('PURCHASE_ORDER', initialPo);
-            } else if (initialParent && checkedRadio && checkedRadio.value === 'SUPPLEMENT') {
-                fetchSourceDetails('SUPPLEMENT', initialParent);
             } else if (initialSo && checkedRadio && checkedRadio.value === 'SALES_RETURN') {
                 fetchSourceDetails('SALES_RETURN', initialSo);
             } else {

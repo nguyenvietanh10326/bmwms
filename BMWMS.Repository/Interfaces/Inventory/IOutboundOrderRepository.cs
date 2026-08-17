@@ -15,5 +15,21 @@ namespace BMWMS.Repository.Interfaces.Inventory
         Task<OutboundOrder> CreateAsync(OutboundOrder outboundOrder);
         Task<bool> UpdateStatusAsync(long outboundOrderId, string status);
         Task<bool> ExistsAsync(long id);
+
+
+        Task SavePickDetailAsync(OutboundOrderDetail detail, OutboundOrderItem item, OutboundOrder order);
+
+
+        Task<List<AvailableLocationModel>> GetAvailableLocationsAsync(long warehouseId, long productId);
+
+        public class AvailableLocationModel
+        {
+            public long StorageLocationId { get; set; }
+            public string LocationCode { get; set; } = null!;
+            public long ProductLotId { get; set; }
+            public string LotNumber { get; set; } = null!;
+            public long? InventoryReservationId { get; set; }
+            public decimal AvailableQuantity { get; set; }
+        }
     }
 }

@@ -1517,6 +1517,7 @@ public partial class BmwmsContext : DbContext
                 .HasMaxLength(30)
                 .IsUnicode(false);
             entity.Property(e => e.UnitName).HasMaxLength(100);
+            entity.Property(e => e.QuantityScale).HasDefaultValue((byte)0);
         });
 
         modelBuilder.Entity<User>(entity =>

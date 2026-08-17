@@ -51,26 +51,16 @@ public class InboundApiService
         return null;
     }
 
-    public async Task<List<ShortageInboundOrderDto>> GetShortageInboundOrdersAsync()
-    {
-        var response = await _httpClient.GetFromJsonAsync<List<ShortageInboundOrderDto>>("api/inbounds/shortages");
-        return response ?? new List<ShortageInboundOrderDto>();
-    }
-
-    public async Task<PurchaseOrderForInboundDto?> GetInboundOrderForSupplementAsync(long parentId)
-    {
-        var response = await _httpClient.GetAsync($"api/inbounds/{parentId}/supplement");
-        if (response.IsSuccessStatusCode)
-        {
-            return await response.Content.ReadFromJsonAsync<PurchaseOrderForInboundDto>();
-        }
-        return null;
-    }
-
     public async Task<List<SourceOrderDropdownDto>> GetPendingPurchaseOrdersAsync()
     {
         var response = await _httpClient.GetFromJsonAsync<List<SourceOrderDropdownDto>>("api/inbounds/purchase-orders/pending");
         return response ?? new List<SourceOrderDropdownDto>();
+    }
+
+    public async Task<List<AvailableWarehouseStaffDto>> GetAvailableWarehouseStaffAsync()
+    {
+        return await _httpClient.GetFromJsonAsync<List<AvailableWarehouseStaffDto>>("api/inbounds/staff/available")
+            ?? new List<AvailableWarehouseStaffDto>();
     }
 
     public async Task<List<SourceOrderDropdownDto>> GetReturnableSalesOrdersAsync()

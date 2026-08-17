@@ -11,6 +11,8 @@ public partial class UnitsOfMeasure
 
     public string UnitName { get; set; } = null!;
 
+    public byte QuantityScale { get; set; }
+
     public string Status { get; set; } = null!;
 
     public virtual ICollection<Product> Products { get; set; } = new List<Product>();

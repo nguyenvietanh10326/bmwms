@@ -2,6 +2,8 @@
 using BMWMS.Business.Interfaces.Inventory;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
+using System;
 
 namespace BMWMS.API.Controllers.Inventory
 {
@@ -17,25 +19,7 @@ namespace BMWMS.API.Controllers.Inventory
         }
 
         /// <summary>
-        /// 1. Lấy danh sách Purchase Orders có Phân trang, Tìm kiếm, Lọc Trạng thái & Kho
-        /// GET: api/PurchaseOrders?searchTerm=SUP-001&status=Confirmed&warehouseId=1&pageIndex=1&pageSize=10
-        /// </summary>
-        [HttpGet]
-        public async Task<IActionResult> GetPagedList([FromQuery] PurchaseOrderFilterDto filter)
-        {
-            try
-            {
-                var result = await _poService.GetPagedOrdersAsync(filter);
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Lỗi hệ thống khi lấy danh sách đơn mua hàng.", detail = ex.Message });
-            }
-        }
-
-        /// <summary>
-        /// 2. Lấy chi tiết 1 Purchase Order theo ID
+        /// 2. Láº¥y chi tiáº¿t 1 Purchase Order theo ID
         /// GET: api/PurchaseOrders/13
         /// </summary>
         [HttpGet("{id:long}")]
@@ -46,140 +30,118 @@ namespace BMWMS.API.Controllers.Inventory
                 var po = await _poService.GetOrderDetailAsync(id);
                 if (po == null)
                 {
-                    return NotFound(new { message = $"Không tìm thấy đơn mua hàng với ID = {id}" });
+                    return NotFound(new { message = $"KhÃ´ng tÃ¬m tháº¥y Ä‘Æ¡n mua hÃ ng vá»›i ID = {id}" });
                 }
+
                 return Ok(po);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Lỗi hệ thống khi lấy chi tiết đơn mua hàng.", detail = ex.Message });
+                return StatusCode(500, new { message = "Lá»—i há»‡ thá»‘ng khi láº¥y chi tiáº¿t Ä‘Æ¡n mua hÃ ng.", detail = ex.Message });
             }
         }
 
-        /// <summary>
-        /// 3. Tạo mới Purchase Order (Có thể Lưu nháp hoặc Xác nhận ngay)
-        /// POST: api/PurchaseOrders
-        /// </summary>
-        [HttpPost]
-        public async Task<IActionResult> Create([FromBody] CreatePurchaseOrderDto dto)
-        {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            try
-            {
-                // TODO: Thay giá trị 1L bên dưới bằng ID User đang đăng nhập từ Claim/Token (ví dụ: GetCurrentUserId())
-                long currentUserId = 1L;
-
-                var (success, message, orderId) = await _poService.CreateOrderAsync(dto, currentUserId);
-                if (!success)
-                {
-                    return BadRequest(new { message });
-                }
-
-                return CreatedAtAction(nameof(GetById), new { id = orderId }, new { message, orderId });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Lỗi hệ thống khi tạo đơn mua hàng.", detail = ex.Message });
-            }
-        }
-
-        /// <summary>
-        /// 4. Xác nhận Đơn mua hàng (Chuyển trạng thái từ Nháp -> Đã xác nhận)
-        /// PUT: api/PurchaseOrders/13/confirm
-        /// </summary>
-        [HttpPut("{id:long}/confirm")]
-        public async Task<IActionResult> ConfirmOrder(long id)
-        {
-            try
-            {
-                long currentUserId = 1L; // Lấy từ Token/Claim nếu có
-                var (success, message) = await _poService.ConfirmOrderAsync(id, currentUserId);
-
-                if (!success)
-                {
-                    return BadRequest(new { message });
-                }
-
-                return Ok(new { message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Lỗi hệ thống khi xác nhận đơn mua hàng.", detail = ex.Message });
-            }
-        }
-
-        /// <summary>
-        /// 5. Hủy Đơn mua hàng
-        /// PUT: api/PurchaseOrders/13/cancel
-        /// </summary>
-        [HttpPut("{id:long}/cancel")]
-        public async Task<IActionResult> CancelOrder(long id, [FromBody] CancelOrderRequest request)
-        {
-            try
-            {
-                long currentUserId = 1L; // Lấy từ Token/Claim nếu có
-                var (success, message) = await _poService.CancelOrderAsync(id, currentUserId, request?.Reason);
-
-                if (!success)
-                {
-                    return BadRequest(new { message });
-                }
-
-                return Ok(new { message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Lỗi hệ thống khi hủy đơn mua hàng.", detail = ex.Message });
-            }
-        }
-        [HttpGet("/AllSupplier")]
+        [HttpGet("AllSupplier")]
         public async Task<IActionResult> GetAllSupplier()
         {
-            try
-            {
-                var result = await _poService.GetLookupListAsync();
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Lỗi khi lấy danh sách nhà cung cấp.", detail = ex.Message });
-            }
+            var users = await _poService.GetLookupListAsync();
+            return Ok(users);
         }
-        [HttpGet("/AllWarehouse")]
+
+        [HttpGet("AllWarehouse")]
         public async Task<IActionResult> GetAllWarehouse()
         {
-            try
-            {
-                var result = await _poService.GetLookListAsync();
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Lỗi khi lấy danh sách kho.", detail = ex.Message });
-            }
+            var wh = await _poService.GetLookListAsync();
+            return Ok(wh);
         }
-        [HttpGet("/AllProduct")]
+
+        [HttpGet("AllProduct")]
         public async Task<IActionResult> GetAllProduct()
+        {
+            var p = await _poService.GetUpListAsync();
+            return Ok(p);
+        }
+    
+        [HttpPost]
+        public async Task<IActionResult> Create([FromBody] BMWMS.Business.DTOs.Inventory.PurchaseOrderCreateDto request)
         {
             try
             {
-                var result = await _poService.GetUpListAsync();
+                // In a real app, we would get the UserId from claims.
+                // For now, we hardcode 1 or get from headers if provided.
+                long userId = 4;
+                if (Request.Headers.TryGetValue("X-User-Id", out var userIdStr) && long.TryParse(userIdStr, out var uid))
+                {
+                    userId = uid;
+                }
+
+                var result = await _poService.CreatePurchaseOrderAsync(request, userId);
+                if (result.Success)
+                {
+                    return Ok(new { message = "Táº¡o lá»‡nh mua hÃ ng thÃ nh cÃ´ng.", data = result.Message });
+                }
+                else
+                {
+                    return BadRequest(new { message = result.Message });
+                }
+            }
+            catch (Exception ex)
+            {
+                var innerMsg = ex.ToString();
+                return StatusCode(500, new { message = "Lá»—i há»‡ thá»‘ng khi táº¡o Lá»‡nh mua hÃ ng.", detail = innerMsg });
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetPaged([FromQuery] BMWMS.Business.DTOs.Inventory.PurchaseOrderFilterDto filter)
+        {
+            var result = await _poService.GetPagedOrdersAsync(filter);
+            return Ok(result);
+        }
+
+        [HttpPost("{id}/confirm")]
+        public async Task<IActionResult> Confirm(long id)
+        {
+            try
+            {
+                long userId = 4; // Demo
+                var result = await _poService.ConfirmOrderAsync(id, userId);
+                if (result.Success) return Ok(new { message = result.Message });
+                return BadRequest(new { message = result.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lá»—i há»‡ thá»‘ng.", detail = ex.Message });
+            }
+        }
+
+        [HttpPost("{id}/cancel")]
+        public async Task<IActionResult> Cancel(long id, [FromQuery] string? reason)
+        {
+            try
+            {
+                long userId = 4; // Demo
+                var result = await _poService.CancelOrderAsync(id, userId, reason);
+                if (result.Success) return Ok(new { message = result.Message });
+                return BadRequest(new { message = result.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lá»—i há»‡ thá»‘ng.", detail = ex.Message });
+            }
+        }
+        [HttpGet("/AllCustomers")]
+        public async Task<IActionResult> GetAllCustomer()
+        {
+            try
+            {
+                var result = await _poService.GetCustomersAsync();
                 return Ok(result);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Lỗi khi lấy danh sách sản phẩm.", detail = ex.Message });
+                return StatusCode(500, new { message = "Lỗi khi lấy danh sách khách hàng.", detail = ex.Message });
             }
         }
-    }
-
-    // Helper DTO nhận lý do hủy đơn
-    public class CancelOrderRequest
-    {
-        public string? Reason { get; set; }
     }
 }

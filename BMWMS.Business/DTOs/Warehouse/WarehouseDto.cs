@@ -51,6 +51,8 @@ namespace BMWMS.Business.DTOs.Warehouse
         public int TotalLocations { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
+
+        public List<StorageLocationItemDto> StorageLocations { get; set; } = new();
     }
     public class WarehouseFilterDto
     {
@@ -59,5 +61,63 @@ namespace BMWMS.Business.DTOs.Warehouse
         public bool? IsPrimary { get; set; }
         public int PageIndex { get; set; } = 1;
         public int PageSize { get; set; } = 10;
+    }
+
+    // DTO Tổng quan thông số Kho
+    public class StorageLocationOverviewDto
+    {
+        public long WarehouseId { get; set; }
+        public string WarehouseName { get; set; } = string.Empty;
+        public int TotalZones { get; set; }
+        public int TotalRacks { get; set; }
+        public int TotalBins { get; set; }
+        public int EmptyBins { get; set; }
+        public int OccupiedBins { get; set; }
+        public int LockedBins { get; set; }
+        public double OccupancyRate => TotalBins == 0 ? 0 : Math.Round((double)OccupiedBins / TotalBins * 100, 1);
+        public List<ZoneMatrixDto> Zones { get; set; } = new();
+    }
+    // DTO rút gọn chỉ truyền thông tin vị trí cần hiển thị trên danh sách
+    public class StorageLocationItemDto
+    {
+        public long LocationID { get; set; }
+        public string LocationCode { get; set; } = string.Empty; // VD: LOC-A1-01
+        public string? LocationType { get; set; }               // VD: Kệ RACK-A1
+        public string? Description { get; set; }                // Mô tả thêm
+        public decimal? AreaSquareMeter { get; set; }           // Diện tích (10m²)
+        public string Status { get; set; } = "Empty";           // Có hàng / Trống
+        public int TotalProducts { get; set; }                  // Số lượng SP chứa
+    }
+    // DTO Cấp 1: Khu vực (Zone)
+    public class ZoneMatrixDto
+    {
+        public string ZoneCode { get; set; } = string.Empty;
+        public string ZoneName { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public int TotalRacks { get; set; }
+        public int TotalBins { get; set; }
+        public int OccupiedBins { get; set; }
+        public List<RackMatrixDto> Racks { get; set; } = new();
+    }
+
+    // DTO Cấp 2: Kệ (Rack)
+    public class RackMatrixDto
+    {
+        public string RackCode { get; set; } = string.Empty;
+        public string RackName { get; set; } = string.Empty;
+        public int TotalBins { get; set; }
+        public List<BinMatrixDto> Bins { get; set; } = new();
+    }
+
+    // DTO Cấp 3: Ô vị trí (Bin / Location)
+    public class BinMatrixDto
+    {
+        public long LocationId { get; set; }
+        public string LocationCode { get; set; } = string.Empty; // VD: LOC-A1-01
+        public string Status { get; set; } = "EMPTY"; // EMPTY, OCCUPIED, LOCKED
+        public string CapacityInfo { get; set; } = string.Empty; // VD: BIN - 10m²
+        public int TotalProducts { get; set; }
+        public int TotalLots { get; set; }
+        public decimal TotalQuantity { get; set; }
     }
 }

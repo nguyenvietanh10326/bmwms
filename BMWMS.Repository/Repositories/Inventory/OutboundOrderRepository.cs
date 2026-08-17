@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using static BMWMS.Repository.Interfaces.Inventory.IOutboundOrderRepository;
 
 namespace BMWMS.Repository.Repositories.Inventory
 {
@@ -23,6 +24,9 @@ namespace BMWMS.Repository.Repositories.Inventory
                 .Include(o => o.AssignedToUser)
                 .Include(o => o.SalesOrder)
                     .ThenInclude(s => s!.Customer)
+                .Include(o => o.PurchaseOrder)
+                    .ThenInclude(p => p!.Supplier)
+                .Include(o => o.TransferOrder)
                 .Include(o => o.OutboundOrderItems)
                     .ThenInclude(i => i.Product)
                         .ThenInclude(p => p!.UnitOfMeasure)
@@ -33,12 +37,20 @@ namespace BMWMS.Repository.Repositories.Inventory
             {
                 search = search.Trim().ToLower();
                 query = query.Where(o => o.OutboundOrderNumber.ToLower().Contains(search)
-                                      || (o.SalesOrder != null && o.SalesOrder.SalesOrderNumber.ToLower().Contains(search)));
+                                      || (o.SalesOrder != null && o.SalesOrder.SalesOrderNumber.ToLower().Contains(search))
+                                      || (o.PurchaseOrder != null && o.PurchaseOrder.PurchaseOrderNumber.ToLower().Contains(search)));
             }
 
             if (!string.IsNullOrWhiteSpace(status))
             {
-                query = query.Where(o => o.Status == status);
+                var dbStatus = status.Trim().ToUpperInvariant() switch
+                {
+                    "READY" => "ASSIGNED",
+                    "ISSUING" => "IN_PROGRESS",
+                    "ISSUED" => "COMPLETED",
+                    var value => value
+                };
+                query = query.Where(o => o.Status == dbStatus);
             }
 
             if (warehouseId.HasValue && warehouseId > 0)
@@ -56,9 +68,25 @@ namespace BMWMS.Repository.Repositories.Inventory
                 .Include(o => o.AssignedToUser)
                 .Include(o => o.SalesOrder)
                     .ThenInclude(s => s!.Customer)
+                .Include(o => o.PurchaseOrder)
+                    .ThenInclude(p => p!.Supplier)
+                .Include(o => o.TransferOrder)
+                    .ThenInclude(t => t!.TransferOrderDetails)
                 .Include(o => o.OutboundOrderItems)
                     .ThenInclude(i => i.Product)
                         .ThenInclude(p => p!.UnitOfMeasure)
+                .Include(o => o.OutboundOrderItems)
+                    .ThenInclude(i => i.OutboundOrderDetails)
+                        .ThenInclude(d => d.StorageLocation)
+                .Include(o => o.OutboundOrderItems)
+                    .ThenInclude(i => i.OutboundOrderDetails)
+                        .ThenInclude(d => d.ProductLot)
+                .Include(o => o.OutboundOrderItems)
+                    .ThenInclude(i => i.OutboundOrderDetails)
+                        .ThenInclude(d => d.RecordedByUser)
+                .Include(o => o.OutboundOrderItems)
+                    .ThenInclude(i => i.OutboundOrderDetails)
+                        .ThenInclude(d => d.InventoryTransaction)
                 .FirstOrDefaultAsync(o => o.OutboundOrderId == id);
         }
 
@@ -95,6 +123,57 @@ namespace BMWMS.Repository.Repositories.Inventory
         public async Task<bool> ExistsAsync(long id)
         {
             return await _context.OutboundOrders.AnyAsync(o => o.OutboundOrderId == id);
+        }
+        public async Task SavePickDetailAsync(OutboundOrderDetail detail, OutboundOrderItem item, OutboundOrder order)
+        {
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                await _context.OutboundOrderDetails.AddAsync(detail);
+
+                _context.OutboundOrderItems.Update(item);
+
+                _context.OutboundOrders.Update(order);
+
+                if (detail.InventoryReservationId.HasValue && detail.InventoryReservationId > 0)
+                {
+                    var reservation = await _context.InventoryReservations.FindAsync(detail.InventoryReservationId.Value);
+                    if (reservation != null)
+                    {
+                        reservation.Status = "FULFILLED";
+                        _context.InventoryReservations.Update(reservation);
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+
+                await transaction.CommitAsync();
+            }
+            catch (Exception)
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }
+
+        public async Task<List<AvailableLocationModel>> GetAvailableLocationsAsync(long warehouseId, long productId)
+        {
+            var availableItems = await _context.InventoryReservations
+                .Where(r => r.StorageLocation.WarehouseId == warehouseId
+                         && r.ProductId == productId
+                         && (r.Status == "ACTIVE" || r.Status == "PARTIALLY_CONSUMED"))
+                .Select(r => new AvailableLocationModel
+                {
+                    StorageLocationId = r.StorageLocationId,
+                    LocationCode = r.StorageLocation.LocationCode,
+                    ProductLotId = r.ProductLotId,
+                    LotNumber = r.ProductLot.LotNumber,
+                    InventoryReservationId = r.InventoryReservationId,
+                    AvailableQuantity = r.ReservedQuantity - r.ConsumedQuantity
+                })
+                .ToListAsync();
+
+            return availableItems;
         }
     }
 }

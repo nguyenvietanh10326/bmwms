@@ -23,3 +23,4 @@ publish/
 
 # Test
 TestResults/
+.codex-build/

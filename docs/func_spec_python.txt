@@ -1,0 +1,53 @@
+4.3 External API Inventory
+Fill details of each external API into the table with the columns and sample data as below
+4.4 Background Job Inventory
+Fill details of each background job into the table with the columns and sample data as below
+5. Global Business Rules
+5.1 Global Business Rule Table
+6. Non-Functional Requirements & Constraints
+6.1 Performance Requirements
+These values cascade into TDS §9.1 — keep them in sync.
+6.2 Security Requirements
+State the requirement, not the implementation mechanism. Implementation details → TDS §4.
+6.3 Out of Scope
+AI-assisted CV screening or job description generation
+Email or SMS notifications (all communication happens within the system)
+Single sign-on (SSO) or third-party login
+Native mobile application
+Multi-language support
+Export in PDF format
+Integration with external job boards or HR management systems
+Good receipt for Inbound/Outbound Process
+6.4 Technical Assumptions
+Things believed true about the operating environment. If an assumption proves false, TDS must be revisited.
+The system runs as a single application on a single server — not split into separate services.
+Files uploaded by users are stored on the same server — no external file storage service in this version.
+The database runs on the same server or in the same private network, providing fast data access.
+Users access the system through a modern desktop web browser. Mobile browser support desirable but not required. Native app out of scope.
+API-ID | API Name | Calling Path | Description
+API-01 | Employee sync API | HRM System  → TalentHub | allows an external HR management system to push employee records and automatically create Interviewer accounts
+API-02 | Outbound webhook | TalentHub → External HRM | notifies an external system when a Candidate's status changes to HIRED
+JOB-ID | Job Name | Group | Description | FT-ID | UC-ID
+JOB-01 | Unlock expired locked accounts | Scheduled | Every 15 minutes | FT-05 | UC-02
+JOB-02 | Clean up old audit log entries | Scheduled | Daily at 2:00 AM | FT-24 | —
+GBR-ID | Rule Statement | Applies To | Rationale | Enforced By | UC-IDs
+GB-01 | Status changes are one-way and permanent. No status may be reverted to a previous value. | Job posting status, Application status, Interview status | Prevents data integrity loss; maintains clear audit trail. | The system automatically on every status change | UC-08, UC-14
+GB-02 | Internal Notes are never visible to Candidates, regardless of how they access the system. | All views accessible to Candidates | Allows HR to write candid internal assessments. | The system automatically on every page and data request | UC-11, UC-15
+GB-03 | CV files may only be accessed by staff with permission to view the associated Application. Access verified on every download. | All CV file access | Protects Candidates' personal data from unauthorised access. | The system automatically on every file access request | UC-10, UC-13
+GB-04 | When a sign-in fails, the message must not reveal whether the username exists or the password was wrong. | Sign-in | Prevents attackers from discovering valid usernames. | The system automatically on every failed sign-in | UC-02
+GB-05 | A deactivated account cannot sign in, regardless of password correctness. | Sign-in | Ensures departed staff lose access immediately. | The system automatically on every sign-in attempt | UC-02
+GB-06 | An Interviewer may only access Applications they have been explicitly assigned to. | Application access | Maintains pipeline confidentiality; prevents evaluation bias. | The system automatically on every Application access request | UC-13, UC-17
+Guidance Measurable quality targets and hard constraints. Values here cascade into TDS §9 (Performance) and §4 (Security). State WHAT is required — HOW to implement is in TDS.
+Requirement | Target | Condition
+Page load time | Any page loads within 2 seconds | Up to 100 users active simultaneously
+Form submission response | System acknowledges within 2 seconds | Up to 100 users active simultaneously
+Maximum simultaneous users | System remains fully functional for up to 100 users | Single server deployment
+CV file size | System accepts files up to 5 MB | Per file, per submission
+CV file formats | System accepts PDF and DOCX files only | Verified by content inspection, not filename
+Requirement | Description
+Authentication required | Every page and action other than the sign-in page, registration page, and public job listings requires the user to be signed in.
+Password protection | Passwords must never be stored in a form that a person or program can read.
+Account lockout | After a defined number of consecutive failed sign-in attempts, the account is temporarily locked. Threshold and duration defined in TDS §4.
+CV file access | CV files may only be accessed by users with permission to view the associated Application. The system verifies permission on every access.
+Internal notes | Application notes may only be read by HR Manager and Admin. The system enforces this on every request.
+Regulatory compliance | No specific regulatory compliance required for this version.

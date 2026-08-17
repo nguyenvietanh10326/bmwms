@@ -209,7 +209,8 @@ VALUES
 
 -- Vị trí Ống & Thiết bị điện Khu G, H
 (16, 1, 7, 'LOC-G1-01', N'Giá ống Tiền Phong G1', 'BIN', 15.0, 5000.0, 25.0, 1, 1, 'AVAILABLE', SYSUTCDATETIME()),
-(17, 1, 8, 'LOC-H1-01', N'Kệ Dây điện Cadivi H1', 'BIN', 5.0, 2000.0, 8.0, 1, 1, 'AVAILABLE', SYSUTCDATETIME());
+(17, 1, 8, 'LOC-H1-01', N'Kệ Dây điện Cadivi H1', 'BIN', 5.0, 2000.0, 8.0, 1, 1, 'AVAILABLE', SYSUTCDATETIME()),
+(18, 1, NULL, 'LOC-QUARANTINE-01', N'Khu cách ly hàng hỏng/chờ xử lý', 'QUARANTINE', NULL, NULL, NULL, 1, 0, 'AVAILABLE', SYSUTCDATETIME());
 SET IDENTITY_INSERT dbo.StorageLocations OFF;
 GO
 
@@ -236,6 +237,11 @@ VALUES
 (13, 'CAI', N'Cái / Chiếc', 'ACTIVE'),
 (14, 'TAM', N'Tấm / Khổ', 'ACTIVE');
 SET IDENTITY_INSERT dbo.UnitsOfMeasure OFF;
+GO
+
+-- Đơn vị đếm/đóng gói chỉ nhận số nguyên; khối lượng, diện tích và thể tích nhận số thập phân.
+UPDATE dbo.UnitsOfMeasure
+SET QuantityScale = CASE WHEN UnitCode IN ('KG','TAN','M2','M3') THEN 3 ELSE 0 END;
 GO
 
 -- 5.2. 15 Nhóm Ngành Hàng VLXD Chuẩn (PG01 -> PG15)

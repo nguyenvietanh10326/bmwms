@@ -1,0 +1,534 @@
+@page "/sales-orders/create"
+@model BMWMS.Web.Pages.SalesOrders.CreateModel
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Tạo đơn bán hàng";
+}
+
+<form method="post" id="createSoForm">
+    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-start gap-3 mb-4">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <h1 class="h3 mb-0">Tạo đơn bán hàng</h1>
+                <span class="badge bg-secondary-subtle text-secondary border">Nháp</span>
+            </div>
+            <p class="text-muted mb-0">
+                Ghi nhận nhu cầu xuất vật tư cho khách hàng. Mã đơn được hệ thống tự động tạo khi lưu.
+            </p>
+        </div>
+
+        <div class="d-flex flex-wrap gap-2">
+            <a href="/sales-orders" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i>Quay lại
+            </a>
+            <button type="submit" asp-page-handler="SaveDraft" class="btn btn-primary px-4">
+                <i class="bi bi-save me-1"></i>Tạo đơn nháp
+            </button>
+        </div>
+    </div>
+
+    <div class="alert alert-light border d-flex align-items-start gap-2 py-2" role="note">
+        <i class="bi bi-info-circle text-primary mt-1"></i>
+        <div class="small text-muted">
+            SO được tạo ở trạng thái <strong class="text-dark">Nháp</strong>, nhưng tồn khả dụng được giữ ngay khi lưu.
+            Tồn thực tế chỉ giảm khi nhân viên kho xác nhận xuất hàng.
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>@Model.ErrorMessage
+        </div>
+    }
+
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h2 class="h5 fw-bold text-primary mb-0">
+                    <i class="bi bi-file-earmark-text me-2"></i>Thông tin đơn bán hàng
+                </h2>
+                <span class="text-muted small">Các trường có dấu <span class="text-danger">*</span> là bắt buộc</span>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-lg-6">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <label asp-for="SalesOrder.CustomerId" class="form-label fw-semibold mb-0">
+                            Khách hàng <span class="text-danger">*</span>
+                        </label>
+                        <button type="button" class="btn btn-link btn-sm text-decoration-none p-0"
+                                data-bs-toggle="modal" data-bs-target="#customerModal">
+                            <i class="bi bi-person-plus me-1"></i>Thêm khách hàng
+                        </button>
+                    </div>
+                    <select asp-for="SalesOrder.CustomerId" asp-items="Model.CustomerOptions" class="form-select"></select>
+                    <span asp-validation-for="SalesOrder.CustomerId" class="text-danger small"></span>
+                    <div class="form-text">Chỉ hiển thị khách hàng đang hoạt động.</div>
+                </div>
+
+                <div class="col-lg-3 col-md-6">
+                    <label asp-for="SalesOrder.OrderDate" class="form-label fw-semibold">
+                        Ngày đặt hàng <span class="text-danger">*</span>
+                    </label>
+                    <input asp-for="SalesOrder.OrderDate" type="date" class="form-control" />
+                    <span asp-validation-for="SalesOrder.OrderDate" class="text-danger small"></span>
+                </div>
+
+                <div class="col-lg-3 col-md-6">
+                    <label asp-for="SalesOrder.ExpectedIssueDate" class="form-label fw-semibold">Ngày xuất dự kiến</label>
+                    <input asp-for="SalesOrder.ExpectedIssueDate" type="date" class="form-control" />
+                    <span asp-validation-for="SalesOrder.ExpectedIssueDate" class="text-danger small"></span>
+                    <div class="form-text">Không bắt buộc, nhưng không được trước ngày đặt hàng.</div>
+                </div>
+
+                <div class="col-12">
+                    <label asp-for="SalesOrder.Notes" class="form-label fw-semibold">Ghi chú nghiệp vụ</label>
+                    <textarea asp-for="SalesOrder.Notes" class="form-control" rows="3" maxlength="2000"
+                              placeholder="Ví dụ: yêu cầu đóng gói, thời điểm khách nhận hàng hoặc lưu ý khi xuất kho"></textarea>
+                    <div class="d-flex justify-content-between">
+                        <span asp-validation-for="SalesOrder.Notes" class="text-danger small"></span>
+                        <span class="form-text">Tối đa 2.000 ký tự</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body p-4">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
+                <div>
+                    <h2 class="h5 fw-bold text-primary mb-1">
+                        <i class="bi bi-box-seam me-2"></i>Vật tư cần xuất
+                    </h2>
+                    <p class="text-muted small mb-0">Khi lưu nháp, hệ thống giữ tồn ngay để nhân viên khác không thể chọn trùng lượng hàng này.</p>
+                </div>
+                <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#productModal">
+                    <i class="bi bi-plus-lg me-1"></i>Chọn sản phẩm
+                </button>
+            </div>
+
+            <span asp-validation-for="SalesOrder.Items" class="text-danger small d-block mb-2"></span>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" id="productTable">
+                    <thead class="table-light text-muted small">
+                        <tr>
+                            <th style="min-width: 230px;">Sản phẩm</th>
+                            <th class="text-center" style="width: 140px;">Số lượng đặt</th>
+                            <th style="min-width: 190px;">Tình trạng tồn kho</th>
+                            <th style="min-width: 120px;">Đơn vị / nguyên tắc</th>
+                            <th style="min-width: 220px;">Ghi chú dòng</th>
+                            <th style="width: 50px;"><span class="visually-hidden">Xóa</span></th>
+                        </tr>
+                    </thead>
+                    <tbody id="productTableBody">
+                        @if (Model.SalesOrder.Items?.Any() == true)
+                        {
+                            @for (var i = 0; i < Model.SalesOrder.Items.Count; i++)
+                            {
+                                var item = Model.SalesOrder.Items[i];
+                                var product = Model.ProductList.FirstOrDefault(p => p.ProductId == item.ProductId);
+                                var available = product?.Available ?? 0;
+                                var quantityScale = product?.QuantityScale ?? 0;
+
+                                <tr data-index="@i" data-available="@available.ToString(System.Globalization.CultureInfo.InvariantCulture)">
+                                    <td>
+                                        <input type="hidden" class="product-id" name="SalesOrder.Items[@i].ProductId" value="@item.ProductId" />
+                                        <span class="fw-semibold d-block">@(product?.ProductName ?? $"Sản phẩm #{item.ProductId}")</span>
+                                        <span class="text-muted small">@(product?.ProductCode ?? "Không xác định") · @(product?.ProductGroupName ?? "Chưa phân nhóm")</span>
+                                    </td>
+                                    <td>
+                                        <input type="number" name="SalesOrder.Items[@i].OrderedQuantity"
+                                               class="form-control text-end input-qty" value="@item.OrderedQuantity"
+                                               min="@QuantityStep(quantityScale)" step="@QuantityStep(quantityScale)" required />
+                                        <span class="stock-warning text-warning small d-none">Vượt lượng khả dụng</span>
+                                    </td>
+                                    <td>
+                                        <div class="small">Khả dụng: <strong>@FormatQuantity(available, quantityScale)</strong></div>
+                                    </td>
+                                    <td>
+                                        <span class="d-block">@(product?.UnitOfMeasure ?? "-")</span>
+                                        <span class="badge bg-light text-dark border">@(product?.RotationMethod ?? "FIFO")</span>
+                                    </td>
+                                    <td>
+                                        <input type="text" name="SalesOrder.Items[@i].Notes" class="form-control input-note"
+                                               value="@item.Notes" maxlength="1000" placeholder="Lưu ý khi xuất vật tư" />
+                                    </td>
+                                    <td class="text-center">
+                                        <button type="button" class="btn btn-link text-danger p-0 btn-remove" aria-label="Xóa sản phẩm">
+                                            <i class="bi bi-trash fs-5"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="emptyProductMessage"
+                 class="text-center text-muted py-5 border rounded-3 bg-light-subtle mt-3 @(Model.SalesOrder.Items?.Any() == true ? "d-none" : string.Empty)">
+                <i class="bi bi-inbox fs-1 d-block mb-2 opacity-50"></i>
+                <div class="fw-semibold">Chưa có sản phẩm trong đơn bán hàng</div>
+                <small>Chọn ít nhất một sản phẩm đang hoạt động để tiếp tục.</small>
+            </div>
+        </div>
+    </div>
+</form>
+
+<div class="modal fade" id="productModal" tabindex="-1" aria-labelledby="productModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h2 class="modal-title h5 fw-bold" id="productModalLabel">Chọn sản phẩm</h2>
+                    <p class="text-muted small mb-0">Danh mục chỉ gồm sản phẩm đang hoạt động trong hệ thống một kho.</p>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+
+            <div class="modal-body">
+                <div class="row g-2 mb-3">
+                    <div class="col-lg-6">
+                        <label for="productSearchInput" class="form-label small fw-semibold">Tìm sản phẩm</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
+                            <input type="search" id="productSearchInput" class="form-control"
+                                   placeholder="Nhập mã, tên, mã vạch hoặc nhóm sản phẩm" autocomplete="off" />
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6">
+                        <label for="productGroupFilter" class="form-label small fw-semibold">Nhóm sản phẩm</label>
+                        <select id="productGroupFilter" class="form-select">
+                            <option value="">Tất cả nhóm</option>
+                            @foreach (var group in Model.ProductGroups)
+                            {
+                                <option value="@group.ProductGroupId">@group.ProductGroupName</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-lg-3 col-md-6">
+                        <label for="availabilityFilter" class="form-label small fw-semibold">Tồn khả dụng</label>
+                        <select id="availabilityFilter" class="form-select">
+                            <option value="">Tất cả</option>
+                            <option value="available">Còn khả dụng</option>
+                            <option value="unavailable">Hết khả dụng</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span id="productResultCount" class="text-muted small"></span>
+                    <button type="button" id="clearProductFilters" class="btn btn-link btn-sm text-decoration-none">Xóa bộ lọc</button>
+                </div>
+
+                <div id="modalProductList" class="row g-2">
+                    @foreach (var product in Model.ProductList)
+                    {
+                        var available = product.Available.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                        var searchText = $"{product.ProductCode} {product.ProductName} {product.Barcode} {product.ProductGroupName}".ToLowerInvariant();
+
+                        <div class="col-lg-6 product-option"
+                             data-search="@searchText"
+                             data-group="@product.ProductGroupId"
+                             data-available="@available">
+                            <button type="button"
+                                    class="btn btn-light border text-start w-100 h-100 p-3 btn-select-product"
+                                    data-product-id="@product.ProductId"
+                                    data-product-code="@product.ProductCode"
+                                    data-product-name="@product.ProductName"
+                                    data-product-group="@product.ProductGroupName"
+                                    data-product-unit="@product.UnitOfMeasure"
+                                    data-product-scale="@product.QuantityScale"
+                                    data-product-on-hand="@product.OnHandQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                    data-product-reserved="@product.ReservedQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                    data-product-available="@available"
+                                    data-product-rotation="@product.RotationMethod">
+                                <div class="d-flex justify-content-between gap-3">
+                                    <div>
+                                        <div class="fw-semibold">@product.ProductName</div>
+                                        <div class="text-primary small">@product.ProductCode</div>
+                                    </div>
+                                    <span class="selection-label badge bg-primary align-self-start">Chọn</span>
+                                </div>
+                                <div class="text-muted small mt-2">
+                                    <span>@product.ProductGroupName</span>
+                                    @if (!string.IsNullOrWhiteSpace(product.Barcode))
+                                    {
+                                        <span> · Mã vạch: @product.Barcode</span>
+                                    }
+                                </div>
+                                <div class="row g-1 mt-2 small">
+                                    <div class="col-4">Thực tế<br /><strong>@FormatQuantity(product.OnHandQuantity, product.QuantityScale)</strong></div>
+                                    <div class="col-4">Đã giữ<br /><strong>@FormatQuantity(product.ReservedQuantity, product.QuantityScale)</strong></div>
+                                    <div class="col-4">Khả dụng<br /><strong class="@(product.Available > 0 ? "text-success" : "text-danger")">@FormatQuantity(product.Available, product.QuantityScale)</strong> @product.UnitOfMeasure</div>
+                                </div>
+                                <div class="mt-2"><span class="badge bg-white text-dark border">@product.RotationMethod</span></div>
+                            </button>
+                        </div>
+                    }
+                </div>
+
+                <div id="noProductResult" class="text-center text-muted py-5 d-none">
+                    <i class="bi bi-search fs-2 d-block mb-2"></i>
+                    Không tìm thấy sản phẩm phù hợp với bộ lọc.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="customerModal" tabindex="-1" aria-labelledby="customerModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h2 class="modal-title h5 fw-bold" id="customerModalLabel">Thêm nhanh khách hàng</h2>
+                    <p class="text-muted small mb-0">Nhập thông tin nhận diện tối thiểu để dùng ngay cho đơn bán hàng.</p>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body">
+                <div id="customerModalError" class="alert alert-danger d-none" role="alert"></div>
+                <div class="row g-3">
+                    <div class="col-md-7">
+                        <label for="newCustomerName" class="form-label fw-semibold">Tên khách hàng <span class="text-danger">*</span></label>
+                        <input id="newCustomerName" class="form-control customer-field" maxlength="250" required />
+                    </div>
+                    <div class="col-md-5">
+                        <label for="newCustomerPhone" class="form-label fw-semibold">Số điện thoại <span class="text-danger">*</span></label>
+                        <input id="newCustomerPhone" class="form-control customer-field" maxlength="20" inputmode="tel" required />
+                    </div>
+                    <div class="col-12">
+                        <label for="newCustomerAddress" class="form-label fw-semibold">Địa chỉ <span class="text-danger">*</span></label>
+                        <textarea id="newCustomerAddress" class="form-control customer-field" rows="2" maxlength="500" required></textarea>
+                    </div>
+                    <div class="col-12">
+                        <label for="newCustomerEmail" class="form-label">Email</label>
+                        <input id="newCustomerEmail" type="email" class="form-control customer-field" maxlength="255" />
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" id="saveNewCustomer" class="btn btn-primary">
+                    <span class="normal-label"><i class="bi bi-person-plus me-1"></i>Tạo và chọn khách hàng</span>
+                    <span class="loading-label d-none"><span class="spinner-border spinner-border-sm me-1"></span>Đang lưu</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (() => {
+            const numberFormatter = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 4 });
+            const quantityStep = scale => scale === 0 ? '1' : `0.${'0'.repeat(scale - 1)}1`;
+            const productBody = document.getElementById('productTableBody');
+            const emptyMessage = document.getElementById('emptyProductMessage');
+            const productOptions = Array.from(document.querySelectorAll('.product-option'));
+
+            const escapeHtml = value => {
+                const element = document.createElement('div');
+                element.textContent = value ?? '';
+                return element.innerHTML;
+            };
+
+            const normalizeSearchText = value => (value ?? '')
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/đ/g, 'd')
+                .replace(/Đ/g, 'D')
+                .toLowerCase();
+
+            const selectedProductIds = () => new Set(
+                Array.from(productBody.querySelectorAll('.product-id')).map(input => String(input.value))
+            );
+
+            const reindexRows = () => {
+                const rows = Array.from(productBody.querySelectorAll('tr'));
+                rows.forEach((row, index) => {
+                    row.dataset.index = index;
+                    row.querySelector('.product-id').name = `SalesOrder.Items[${index}].ProductId`;
+                    row.querySelector('.input-qty').name = `SalesOrder.Items[${index}].OrderedQuantity`;
+                    row.querySelector('.input-note').name = `SalesOrder.Items[${index}].Notes`;
+                });
+                emptyMessage.classList.toggle('d-none', rows.length > 0);
+                updateProductOptionStates();
+            };
+
+            const updateQuantityWarning = row => {
+                const quantity = Number(row.querySelector('.input-qty').value || 0);
+                const available = Number(row.dataset.available || 0);
+                const warning = row.querySelector('.stock-warning');
+                const exceeds = quantity > available;
+                row.classList.toggle('table-warning', exceeds);
+                warning.classList.toggle('d-none', !exceeds);
+            };
+
+            const addProductRow = button => {
+                const productId = String(button.dataset.productId);
+                if (selectedProductIds().has(productId)) return;
+
+                const index = productBody.querySelectorAll('tr').length;
+                const available = Number(button.dataset.productAvailable || 0);
+                const onHand = Number(button.dataset.productOnHand || 0);
+                const reserved = Number(button.dataset.productReserved || 0);
+                const row = document.createElement('tr');
+                row.dataset.index = index;
+                row.dataset.available = String(available);
+                row.innerHTML = `
+                    <td>
+                        <input type="hidden" class="product-id" name="SalesOrder.Items[${index}].ProductId" value="${escapeHtml(productId)}" />
+                        <span class="fw-semibold d-block">${escapeHtml(button.dataset.productName)}</span>
+                        <span class="text-muted small">${escapeHtml(button.dataset.productCode)} · ${escapeHtml(button.dataset.productGroup || 'Chưa phân nhóm')}</span>
+                    </td>
+                    <td>
+                        <input type="number" name="SalesOrder.Items[${index}].OrderedQuantity" class="form-control text-end input-qty" value="1" min="${quantityStep(Number(button.dataset.productScale || 0))}" step="${quantityStep(Number(button.dataset.productScale || 0))}" required />
+                        <span class="stock-warning text-warning small d-none">Vượt lượng khả dụng</span>
+                    </td>
+                    <td>
+                        <div class="small">Thực tế: <strong>${numberFormatter.format(onHand)}</strong></div>
+                        <div class="small">Đã giữ: <strong>${numberFormatter.format(reserved)}</strong></div>
+                        <div class="small">Khả dụng: <strong>${numberFormatter.format(available)}</strong></div>
+                    </td>
+                    <td>
+                        <span class="d-block">${escapeHtml(button.dataset.productUnit || '-')}</span>
+                        <span class="badge bg-light text-dark border">${escapeHtml(button.dataset.productRotation || 'FIFO')}</span>
+                    </td>
+                    <td><input type="text" name="SalesOrder.Items[${index}].Notes" class="form-control input-note" maxlength="1000" placeholder="Lưu ý khi xuất vật tư" /></td>
+                    <td class="text-center"><button type="button" class="btn btn-link text-danger p-0 btn-remove" aria-label="Xóa sản phẩm"><i class="bi bi-trash fs-5"></i></button></td>`;
+
+                productBody.appendChild(row);
+                updateQuantityWarning(row);
+                reindexRows();
+            };
+
+            const updateProductOptionStates = () => {
+                const selected = selectedProductIds();
+                document.querySelectorAll('.btn-select-product').forEach(button => {
+                    const isSelected = selected.has(String(button.dataset.productId));
+                    button.disabled = isSelected;
+                    button.classList.toggle('opacity-50', isSelected);
+                    const label = button.querySelector('.selection-label');
+                    label.classList.toggle('bg-secondary', isSelected);
+                    label.classList.toggle('bg-primary', !isSelected);
+                });
+            };
+
+            const applyProductFilters = () => {
+                const keyword = normalizeSearchText(document.getElementById('productSearchInput').value.trim());
+                const group = document.getElementById('productGroupFilter').value;
+                const availability = document.getElementById('availabilityFilter').value;
+                let visibleCount = 0;
+
+                productOptions.forEach(option => {
+                    const available = Number(option.dataset.available || 0);
+                    const matchesKeyword = !keyword || normalizeSearchText(option.dataset.search).includes(keyword);
+                    const matchesGroup = !group || option.dataset.group === group;
+                    const matchesAvailability = !availability ||
+                        (availability === 'available' && available > 0) ||
+                        (availability === 'unavailable' && available <= 0);
+                    const visible = matchesKeyword && matchesGroup && matchesAvailability;
+                    option.classList.toggle('d-none', !visible);
+                    if (visible) visibleCount++;
+                });
+
+                document.getElementById('productResultCount').textContent = `${visibleCount} sản phẩm phù hợp`;
+                document.getElementById('noProductResult').classList.toggle('d-none', visibleCount > 0);
+            };
+
+            document.getElementById('productSearchInput').addEventListener('input', applyProductFilters);
+            document.getElementById('productGroupFilter').addEventListener('change', applyProductFilters);
+            document.getElementById('availabilityFilter').addEventListener('change', applyProductFilters);
+            document.getElementById('clearProductFilters').addEventListener('click', () => {
+                document.getElementById('productSearchInput').value = '';
+                document.getElementById('productGroupFilter').value = '';
+                document.getElementById('availabilityFilter').value = '';
+                applyProductFilters();
+            });
+
+            document.addEventListener('click', event => {
+                const selectButton = event.target.closest('.btn-select-product');
+                if (selectButton) addProductRow(selectButton);
+
+                const removeButton = event.target.closest('.btn-remove');
+                if (removeButton) {
+                    removeButton.closest('tr').remove();
+                    reindexRows();
+                }
+            });
+
+            document.addEventListener('input', event => {
+                if (event.target.matches('.input-qty')) updateQuantityWarning(event.target.closest('tr'));
+            });
+
+            document.getElementById('saveNewCustomer').addEventListener('click', async () => {
+                const button = document.getElementById('saveNewCustomer');
+                const errorBox = document.getElementById('customerModalError');
+                const payload = {
+                    customerName: document.getElementById('newCustomerName').value.trim(),
+                    phoneNumber: document.getElementById('newCustomerPhone').value.trim(),
+                    address: document.getElementById('newCustomerAddress').value.trim(),
+                    email: document.getElementById('newCustomerEmail').value.trim() || null
+                };
+
+                errorBox.classList.add('d-none');
+                if (!payload.customerName || !payload.phoneNumber || !payload.address) {
+                    errorBox.textContent = 'Vui lòng nhập tên khách hàng, số điện thoại và địa chỉ.';
+                    errorBox.classList.remove('d-none');
+                    return;
+                }
+
+                button.disabled = true;
+                button.querySelector('.normal-label').classList.add('d-none');
+                button.querySelector('.loading-label').classList.remove('d-none');
+
+                try {
+                    const token = document.querySelector('#createSoForm input[name="__RequestVerificationToken"]').value;
+                    const response = await fetch('?handler=CreateCustomer', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'RequestVerificationToken': token
+                        },
+                        body: JSON.stringify(payload)
+                    });
+                    const result = await response.json();
+                    const validationMessage = Object.values(result.errors || {}).flat()[0];
+                    if (!response.ok || !result.success) {
+                        throw new Error(result.message || validationMessage || 'Không thể tạo khách hàng.');
+                    }
+
+                    const customer = result.data;
+                    const select = document.getElementById('SalesOrder_CustomerId');
+                    const option = new Option(`${customer.customerCode} — ${customer.customerName}`, customer.customerId, true, true);
+                    select.add(option);
+                    document.querySelectorAll('.customer-field').forEach(field => field.value = '');
+                    bootstrap.Modal.getOrCreateInstance(document.getElementById('customerModal')).hide();
+                } catch (error) {
+                    errorBox.textContent = error.message;
+                    errorBox.classList.remove('d-none');
+                } finally {
+                    button.disabled = false;
+                    button.querySelector('.normal-label').classList.remove('d-none');
+                    button.querySelector('.loading-label').classList.add('d-none');
+                }
+            });
+
+            productBody.querySelectorAll('tr').forEach(updateQuantityWarning);
+            reindexRows();
+            applyProductFilters();
+        })();
+    </script>
+}
+@functions {
+    string QuantityStep(byte scale) => scale == 0 ? "1" : "0." + new string('0', scale - 1) + "1";
+    string FormatQuantity(decimal value, byte scale) => value.ToString(scale == 0 ? "N0" : $"N{scale}");
+}

@@ -2,340 +2,49 @@
 @model BMWMS.Web.Pages.Admin.Inbound.ReceiveModel
 @{
     Layout = "_AdminLayout";
-    ViewData["Title"] = "Xác nhận nhận hàng tại kho";
-    ViewData["ActivePage"] = "Inbound";
+    ViewData["Title"] = "Nhận hàng vào kho";
 }
-
-<style>
-  :root{
-    --font-ui:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-    --font-mono:"IBM Plex Mono",ui-monospace,monospace;
-
-    --navy-950:#233a6b; --navy-900:#1b2d56; --navy-800:#152d57;
-    --accent:#3e5cf6; --accent-600:#3149d4; --accent-100:#e8ecff;
-
-    --bg:#f2f3f7; --card:#ffffff; --line:#e7e9f0; --line-strong:#d7dae5;
-    --ink:#161b2e; --ink-2:#525a72; --ink-3:#8890a6; --ink-4:#aeb4c6;
-
-    --g-bg:#e2f8ea; --g-tx:#0f7a3e; --g-dot:#1fa855;
-    --y-bg:#fef3d6; --y-tx:#93650a; --y-dot:#e2a336;
-    --gy-bg:#eceef3; --gy-tx:#565f78; --gy-dot:#9aa1b5;
-    --r-bg:#fce3e4; --r-tx:#c1222f; --r-dot:#e2454f;
-    --b-bg:#e3eaff; --b-tx:#2c48d8; --b-dot:#5876f2;
-
-    --sh-xs:0 1px 2px rgba(16,23,42,.05);
-    --sh-sm:0 1px 2px rgba(16,23,42,.04),0 4px 10px -4px rgba(16,23,42,.07);
-    --sh-md:0 8px 24px -8px rgba(16,23,42,.14);
-    --r-sm:8px; --r-md:12px; --r-lg:16px;
-    --ease:cubic-bezier(.4,0,.2,1);
-  }
-  
-  .inbound-page {
-    font-family: var(--font-ui);
-    color: var(--ink);
-    font-size: 14px;
-    line-height: 1.45;
-    padding: 26px 30px 64px;
-    max-width: 100%;
-    background: transparent;
-  }
-  .inbound-page * {
-    box-sizing: border-box;
-  }
-  
-  .inbound-page button{font-family:inherit;}
-
-  /* ---------- page head ---------- */
-  .inbound-page .pagehead{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;gap:20px;}
-  .inbound-page .pagehead h1{font-size:20px;margin:0 0 5px;letter-spacing:-.01em;font-weight:700;}
-  .inbound-page .pagehead p{margin:0;color:var(--ink-2);font-size:13px;max-width:560px;}
-  .inbound-page .breadcrumb{font-size:11.5px;color:var(--ink-3);margin-bottom:8px;font-weight:600;letter-spacing:.02em;text-transform:uppercase; display:block; padding:0; background:transparent;}
-
-  /* ---------- buttons ---------- */
-  .inbound-page .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border:none;border-radius:var(--r-sm);padding:9px 15px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s var(--ease); text-decoration:none;}
-  .inbound-page .btn svg{width:15px;height:15px;}
-  .inbound-page .btn-dark{background:var(--ink);color:#fff;box-shadow:var(--sh-xs);}
-  .inbound-page .btn-dark:hover{background:#000;transform:translateY(-1px);box-shadow:var(--sh-sm); color:#fff;}
-  .inbound-page .btn-light{background:#fff;border:1px solid var(--line-strong);color:var(--ink);}
-  .inbound-page .btn-light:hover{border-color:var(--ink-4);background:#fafafd; color:var(--ink);}
-  .inbound-page .btn-sm{padding:5px 12px;font-size:12px;border-radius:6px;}
-  
-  /* ---------- cards ---------- */
-  .inbound-page .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);padding:22px 24px;margin-bottom:16px;box-shadow:var(--sh-xs);}
-  .inbound-page .card-title{font-size: 15px; font-weight: 700; margin: 0 0 16px; display:flex; align-items:center; gap: 10px;}
-
-  /* ---------- badges ---------- */
-  .inbound-page .badge{display:inline-flex;align-items:center;gap:6px;padding:3.5px 10px 3.5px 8px;border-radius:999px;font-size:11.5px;font-weight:600;}
-  .inbound-page .badge .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
-  .inbound-page .b-g{background:var(--g-bg);color:var(--g-tx);} .inbound-page .b-g .dot{background:var(--g-dot);}
-  .inbound-page .b-y{background:var(--y-bg);color:var(--y-tx);} .inbound-page .b-y .dot{background:var(--y-dot);}
-  .inbound-page .b-gy{background:var(--gy-bg);color:var(--gy-tx);} .inbound-page .b-gy .dot{background:var(--gy-dot);}
-  .inbound-page .b-r{background:var(--r-bg);color:var(--r-tx);} .inbound-page .b-r .dot{background:var(--r-dot);}
-  .inbound-page .b-b{background:var(--b-bg);color:var(--b-tx);} .inbound-page .b-b .dot{background:var(--b-dot);}
-
-  /* ---------- table ---------- */
-  .inbound-page table{width:100%;border-collapse:collapse;font-size:13px; margin: 0;}
-  .inbound-page th{text-align:left;color:var(--ink-3);font-weight:600;font-size:11px;letter-spacing:.03em;padding:0 10px 10px;border-bottom:1px solid var(--line); text-transform:none;}
-  .inbound-page th.num, .inbound-page td.num{text-align:center;}
-  .inbound-page td{padding:13px 10px;border-bottom:1px solid var(--line);vertical-align:middle;color:var(--ink);}
-  .inbound-page td.num{font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-size:12.5px;}
-  .inbound-page tbody tr{transition:background .12s var(--ease);}
-  .inbound-page tbody tr:hover{background:#f8f9fc;}
-  .inbound-page tr:last-child td{border-bottom:none;}
-  .inbound-page a.link{color:var(--accent);text-decoration:none;font-weight:600;}
-  .inbound-page a.link:hover{color:var(--accent-600);text-decoration:underline;}
-  .inbound-page .icon-link{display:inline-flex;align-items:center;gap:5px;color:var(--ink-2);text-decoration:none;font-weight:600;font-size:12.5px;transition:color .15s;}
-  .inbound-page .icon-link:hover{color:var(--ink);}
-  .inbound-page .icon-link svg{width:14px;height:14px;}
-  
-  /* ---------- filters ---------- */
-  .inbound-page .filters{display:flex;gap:9px;margin-bottom:16px;flex-wrap:wrap;}
-  .inbound-page .filters input, .inbound-page .filters select{padding:9px 12px;border:1px solid var(--line-strong);border-radius:var(--r-sm);font-size:13px;color:var(--ink);background:#fff;transition:border-color .15s; outline: none;}
-  .inbound-page .filters input:focus, .inbound-page .filters select:focus{border-color:var(--accent);}
-  .inbound-page .filters .search-wrap{position:relative;flex:1;min-width:220px;}
-  .inbound-page .filters .search-wrap svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);width:15px;height:15px;color:var(--ink-4);}
-  .inbound-page .filters .search-wrap input{width:100%;padding-left:34px;}
-
-  /* ---------- form input ---------- */
-  .inbound-page .form-input{padding:7px 10px;border:1px solid var(--line-strong);border-radius:6px;font-size:13px;width:100%;transition:all .15s;background:#fff; text-align:center;}
-  .inbound-page .form-input:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 3px var(--accent-100);}
-  .inbound-page .form-input[readonly]{background:#f8f9fc;color:var(--ink-2);border-color:var(--line);}
-  
-  .inbound-page .summary-box {
-    margin-top: 16px; 
-    padding-top: 16px; 
-    border-top: 1px solid var(--line); 
-    display: flex; 
-    justify-content: space-between; 
-    align-items: center; 
-    font-size: 13px;
-  }
-  .inbound-page .alert-box {
-    background: #f4f6ff; 
-    border: 1px solid #d9e2ff; 
-    color: #2b45a6; 
-    padding: 12px 16px; 
-    border-radius: 8px; 
-    font-size: 13px; 
-    margin-top: 16px; 
-    display: flex; 
-    gap: 8px; 
-    align-items: center;
-  }
-</style>
-
-<svg width="0" height="0" style="position:absolute; display:none;">
-    <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></symbol>
-    <symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></symbol>
-    <symbol id="i-arrow-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M19 12l-7 7-7-7"/></symbol>
-    <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></symbol>
-</svg>
-
-<div class="inbound-page">
-  <div class="breadcrumb">Nhập kho > Xác nhận nhận hàng tại kho</div>
-  <div class="pagehead">
-    <div>
-        <h1>Xác nhận nhận hàng tại kho</h1>
-        <p>Ghi nhận số lượng thực giao, chấp nhận, hỏng, lô/hạn dùng cho từng dòng của lệnh nhập.</p>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-title">Lệnh nhập đang chờ nhận</div>
-    <form method="get" class="filters">
-      <div class="search-wrap">
-          <svg><use href="#i-search"/></svg>
-          <input asp-for="Filter.Keyword" placeholder="Tìm mã lệnh nhập">
-      </div>
-      <select asp-for="Filter.Status">
-          <option value="">Tất cả trạng thái</option>
-          <option value="ASSIGNED">Chờ xử lý</option>
-          <option value="IN_PROGRESS">Đang nhận</option>
-      </select>
-      
-      <select><option>Tất cả kho</option></select>
-      
-      <button type="submit" class="btn btn-dark">Tìm kiếm</button>
-    </form>
-
-    <table>
-      <thead>
-          <tr>
-              <th>Mã lệnh nhập</th>
-              <th>Nhà cung cấp</th>
-              <th>Kho nhận</th>
-              <th>Ngày dự kiến</th>
-              <th class="num">SL dự kiến</th>
-              <th>Trạng thái</th>
-              <th></th>
-          </tr>
-      </thead>
-      <tbody>
-          @if (Model.Data.Items.Any())
-          {
-              foreach (var item in Model.Data.Items)
-              {
-                  <tr>
-                      <td style="font-weight: 500;">@item.InboundOrderNumber</td>
-                      <td>@item.SupplierName</td>
-                      <td>Kho chính</td> <!-- Giả lập tên kho vì API List chưa trả về -->
-                      <td>@item.ExpectedReceiptDate.ToString("dd/MM/yyyy")</td>
-                      <td class="num" style="font-weight: 600;">@item.TotalExpectedQuantity.ToString("0.##")</td>
-                      <td>
-                          @if (item.Status == "ASSIGNED" || item.Status == "PENDING")
-                          {
-                              <span class="badge b-y"><span class="dot"></span>Chờ xử lý</span>
-                          }
-                          else if (item.Status == "IN_PROGRESS")
-                          {
-                              <span class="badge b-b"><span class="dot"></span>Đang nhận</span>
-                          }
-                          else
-                          {
-                              <span class="badge b-gy"><span class="dot"></span>@item.Status</span>
-                          }
-                      </td>
-                      <td style="text-align: right;">
-                          <a href="/Admin/Inbound/Receive/@item.InboundOrderId" class="icon-link">
-                              <svg><use href="#i-arrow-down"/></svg>
-                              @(item.Status == "IN_PROGRESS" ? "Tiếp tục" : "Bắt đầu")
-                          </a>
-                      </td>
-                  </tr>
-              }
-          }
-          else
-          {
-              <tr>
-                  <td colspan="7" style="text-align: center; color: var(--ink-3); padding: 30px;">
-                      Không có lệnh nhập nào đang chờ nhận.
-                  </td>
-              </tr>
-          }
-      </tbody>
-    </table>
-  </div>
-
-  @if (Model.Order != null && Model.Order.InboundOrderId > 0)
-  {
-      <div class="card">
-        <div class="card-title">
-            Nhận hàng — @Model.Order.InboundOrderNumber · @Model.Order.SupplierName
-            <span class="badge b-b" style="margin-left: auto;"><span class="dot"></span>IN_PROGRESS</span>
-        </div>
-        
-        <form id="receiveForm" method="post" asp-page-handler="ReceiveBatch" asp-route-id="@Model.Order.InboundOrderId">
-            <table>
-                <thead>
-                    <tr>
-                        <th style="width:22%">Sản phẩm</th>
-                        <th style="width:8%" class="num">SL dự kiến</th>
-                        <th style="width:12%" class="num">SL thực giao</th>
-                        <th style="width:12%" class="num">SL chấp nhận</th>
-                        <th style="width:12%" class="num">SL hỏng</th>
-                        <th style="width:16%">Lot</th>
-                        <th style="width:18%">Hạn dùng</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @{
-                        int index = 0;
-                        decimal totalExpected = 0;
-                        decimal totalAccepted = 0;
-                        decimal totalDamaged = 0;
-                    }
-                    @foreach (var item in Model.Order.Items)
+<div class="container-fluid py-4">
+    <div class="mb-3"><h3 class="mb-1">Nhận và kiểm đếm hàng</h3><div class="text-muted">Ghi nhận thực giao, hàng hỏng, lô và hạn dùng; bước này chưa tăng tồn kho.</div></div>
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+    <div class="row g-3">
+        <div class="col-lg-4"><div class="card border-0 shadow-sm"><div class="card-header bg-white fw-semibold">Phiếu đang chờ nhận</div><div class="list-group list-group-flush">
+            @if (Model.Data.Items.Count == 0) { <div class="p-4 text-muted text-center">Không có phiếu được phân công.</div> }
+            @foreach (var item in Model.Data.Items)
+            {
+                <a asp-page="./Receive" asp-route-id="@item.InboundOrderId" class="list-group-item list-group-item-action @(Model.Order?.InboundOrderId == item.InboundOrderId ? "active" : "")"><div class="d-flex justify-content-between"><strong>@item.InboundOrderNumber</strong><span>@StatusLabel(item.Status)</span></div><div class="small">@(item.SourceType == "SALES_RETURN" ? "Khách trả theo SO" : "Nhập mua theo PO") · @item.SourceReference</div><div class="small">@item.TotalReceivedQuantity.ToString("N2") / @item.TotalExpectedQuantity.ToString("N2")</div></a>
+            }
+        </div></div></div>
+        <div class="col-lg-8">
+        @if (Model.Order?.InboundOrderId > 0)
+        {
+            <form method="post" asp-page-handler="ReceiveBatch" asp-route-id="@Model.Order.InboundOrderId" class="card border-0 shadow-sm">
+                <div class="card-header bg-white"><strong>@Model.Order.InboundOrderNumber</strong><div class="text-muted small">@Model.Order.SourceReference — @Model.Order.PartnerName — @Model.Order.WarehouseName</div></div>
+                <div class="card-body"><div class="alert alert-warning">Hàng hỏng sẽ chuyển vào khu cách ly và chưa tính vào tồn khả dụng. Chỉ sản phẩm có cấu hình theo dõi hạn dùng mới bắt buộc nhập hạn dùng trong tương lai.</div>
+                    @{ var row = 0; }
+                    @foreach (var item in Model.Order.Items.Where(i => i.ReceivedQuantity < i.ExpectedQuantity))
                     {
-                        var missing = item.ExpectedQuantity - item.ReceivedQuantity;
-                        if (missing <= 0) continue; // Bỏ qua những dòng đã nhận đủ
-
-                        totalExpected += missing;
-                        
-                        <tr>
-                            <td>
-                                <div style="display:flex; align-items:center; gap:8px;">
-                                    <span style="background:var(--line); padding:2px 6px; border-radius:4px; font-size:11px; font-weight:600; font-family:var(--font-mono); color:var(--ink-2)">@item.ProductCode</span>
-                                    <span style="font-weight: 500;">@item.ProductName</span>
-                                </div>
-                            </td>
-                            <td class="num" style="font-weight: 600;">@missing.ToString("0.##")</td>
-                            <td>
-                                <input type="hidden" name="ReceiveDto.Items[@index].InboundOrderItemId" value="@item.InboundOrderItemId" />
-                                <input type="number" name="ReceiveDto.Items[@index].DeliveredQuantity" class="form-input dt-delivered" required min="1" max="@missing.ToString("0.##")" value="@missing.ToString("0.##")" oninput="calcTotals()" />
-                            </td>
-                            <td>
-                                <input type="number" class="form-input dt-accepted" readonly value="@missing.ToString("0.##")" />
-                            </td>
-                            <td>
-                                <input type="number" name="ReceiveDto.Items[@index].DamagedQuantity" class="form-input dt-damaged" min="0" value="0" oninput="calcTotals()" />
-                            </td>
-                            <td>
-                                <input type="text" name="ReceiveDto.Items[@index].LotNumber" class="form-input" required placeholder="VD: LOT-01" />
-                            </td>
-                            <td>
-                                <input type="date" name="ReceiveDto.Items[@index].ExpiryDate" class="form-input" />
-                            </td>
-                        </tr>
-                        index++;
+                        var remaining = item.ExpectedQuantity - item.ReceivedQuantity;
+                        <div class="border rounded p-3 mb-3"><div class="d-flex justify-content-between mb-2"><span><strong>@item.ProductName</strong> <span class="text-muted">(@item.ProductCode)</span></span><span>Còn nhận @FormatQuantity(remaining, item.QuantityScale) @item.UnitName</span></div>
+                            <input type="hidden" name="ReceiveDto.Items[@row].InboundOrderItemId" value="@item.InboundOrderItemId" />
+                            <div class="row g-2"><div class="col-md-3"><label class="form-label">Thực giao</label><input name="ReceiveDto.Items[@row].DeliveredQuantity" type="number" min="0" max="@remaining" step="@QuantityStep(item.QuantityScale)" value="0" class="form-control" /></div><div class="col-md-3"><label class="form-label">Hàng hỏng</label><input name="ReceiveDto.Items[@row].DamagedQuantity" type="number" min="0" step="@QuantityStep(item.QuantityScale)" value="0" class="form-control" /></div>
+                                @if (item.TrackLot) { <div class="col-md-3"><label class="form-label">Số lô</label><input name="ReceiveDto.Items[@row].LotNumber" class="form-control" required /></div> }
+                                else { <div class="col-md-3"><label class="form-label">Kiểu quản lý</label><input class="form-control" value="Hàng lẻ — không theo dõi lô" readonly /><input type="hidden" name="ReceiveDto.Items[@row].LotNumber" value="" /></div> }
+                                @if (item.TrackExpiry) { <div class="col-md-3"><label class="form-label">Hạn dùng</label><input name="ReceiveDto.Items[@row].ExpiryDate" type="date" class="form-control" required /></div> }
+                                else { <div class="col-md-3"><label class="form-label">Hạn dùng</label><input class="form-control" value="Không theo dõi" readonly /></div> }
+                            </div>
+                        </div>
+                        row++;
                     }
-                </tbody>
-            </table>
-
-            <div class="summary-box">
-                <div style="color: var(--ink-2);">
-                    Thiếu (<span id="txt-expected">0</span> - <span id="txt-delivered">0</span>): <strong id="txt-missing" style="color:var(--y-tx)">0</strong> 
-                    - Hỏng: <strong id="txt-damaged" style="color:var(--r-tx)">0</strong> 
-                    — sẽ tạo được lệnh nhập bổ sung sau khi xác nhận
-                </div>
-                <div style="font-size: 15px; font-weight: 600;">
-                    SL chấp nhận: <span id="txt-accepted">0</span>
-                </div>
-            </div>
-
-
-
-            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 25px;">
-                <button type="button" class="btn btn-light" onclick="window.location.href='/Admin/Inbound/Receive'">Lưu tạm, chưa xác nhận</button>
-                <button type="submit" class="btn btn-dark"><svg><use href="#i-check"/></svg>Xác nhận nhận hàng</button>
-            </div>
-        </form>
-      </div>
-  }
+                </div><div class="card-footer bg-white d-flex justify-content-end"><button class="btn btn-primary">Xác nhận lần nhận hàng</button></div>
+            </form>
+        }
+        else { <div class="card border-0 shadow-sm p-5 text-center text-muted">Chọn một phiếu bên trái để bắt đầu nhận hàng.</div> }
+        </div>
+    </div>
 </div>
-
-<script>
-    const totalExpected = @(Model.Order?.Items.Sum(i => i.ExpectedQuantity - i.ReceivedQuantity) ?? 0);
-    
-    function calcTotals() {
-        let totalDelivered = 0;
-        let totalDamaged = 0;
-        let totalAccepted = 0;
-
-        document.querySelectorAll('tbody tr').forEach(tr => {
-            if (!tr.querySelector('.dt-delivered')) return;
-            
-            const delivered = parseFloat(tr.querySelector('.dt-delivered').value) || 0;
-            const damaged = parseFloat(tr.querySelector('.dt-damaged').value) || 0;
-            const accepted = Math.max(0, delivered - damaged);
-            
-            tr.querySelector('.dt-accepted').value = accepted;
-
-            totalDelivered += delivered;
-            totalDamaged += damaged;
-            totalAccepted += accepted;
-        });
-
-        const missing = totalExpected - totalDelivered;
-
-        document.getElementById('txt-expected').innerText = totalExpected;
-        document.getElementById('txt-delivered').innerText = totalDelivered;
-        document.getElementById('txt-missing').innerText = Math.max(0, missing);
-        document.getElementById('txt-damaged').innerText = totalDamaged;
-        document.getElementById('txt-accepted').innerText = totalAccepted;
-    }
-
-    // Call initially
-    if (document.getElementById('txt-expected')) {
-        calcTotals();
-    }
-</script>
+@functions {
+    string StatusLabel(string status) => status == "READY" ? "Sẵn sàng" : "Đang nhận";
+    string QuantityStep(byte scale) => scale == 0 ? "1" : "0." + new string('0', scale - 1) + "1";
+    string FormatQuantity(decimal value, byte scale) => value.ToString(scale == 0 ? "N0" : $"N{scale}");
+}

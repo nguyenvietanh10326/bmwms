@@ -19,8 +19,14 @@ public class IndexModel : PageModel
 
     public PagedResultModel<SupplierListResponseModel> Suppliers { get; set; } = new();
 
-    public async Task OnGetAsync()
+    public async Task<IActionResult> OnGetAsync()
     {
+        var roleCode = HttpContext.Session.GetString("RoleCode");
+        if (roleCode != "SYSTEM_ADMIN" && roleCode != "WAREHOUSE_MANAGER" && roleCode != "PURCHASING_STAFF")
+        {
+            return Forbid();
+        }
+
         if (Filter.PageIndex < 1) Filter.PageIndex = 1;
         if (Filter.PageSize < 1) Filter.PageSize = 10;
 
@@ -29,5 +35,7 @@ public class IndexModel : PageModel
         {
             Suppliers = result;
         }
+
+        return Page();
     }
 }

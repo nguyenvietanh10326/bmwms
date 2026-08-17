@@ -111,6 +111,8 @@
         <tbody>
             @for (int i = 0; i < Model.EditOrder.Items.Count; i++)
             {
+                var sourceItem = Model.Order.Items.FirstOrDefault(x => x.ProductId == Model.EditOrder.Items[i].ProductId);
+                var scale = sourceItem?.QuantityScale ?? 0;
                 <tr style="border-bottom:1px solid var(--line);">
                     <td style="padding:12px 0;">
                         <input type="hidden" asp-for="EditOrder.Items[i].ProductId" />
@@ -118,7 +120,7 @@
                     </td>
                     <td style="padding:12px 0; text-align:right;">
                         <div class="field" style="margin:0;">
-                            <input type="number" step="0.01" min="0.01" asp-for="EditOrder.Items[i].ExpectedQuantity" style="text-align:right;" required />
+                            <input type="number" step="@QuantityStep(scale)" min="@QuantityStep(scale)" asp-for="EditOrder.Items[i].ExpectedQuantity" style="text-align:right;" required />
                         </div>
                     </td>
                 </tr>
@@ -133,3 +135,6 @@
     </div>
   </form>
 </div>
+@functions {
+    string QuantityStep(byte scale) => scale == 0 ? "1" : "0." + new string('0', scale - 1) + "1";
+}

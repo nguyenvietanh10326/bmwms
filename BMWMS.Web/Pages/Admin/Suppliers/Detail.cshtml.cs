@@ -8,16 +8,28 @@ namespace BMWMS.Web.Pages.Admin.Suppliers;
 public class DetailModel : PageModel
 {
     private readonly SupplierApiService _supplierApiService;
+    private readonly ProductApiService _productApiService;
 
-    public DetailModel(SupplierApiService supplierApiService)
+    public DetailModel(SupplierApiService supplierApiService, ProductApiService productApiService)
     {
         _supplierApiService = supplierApiService;
+        _productApiService = productApiService;
     }
 
     public SupplierDetailResponseModel Supplier { get; set; } = null!;
+    public List<ProductResponseModel> AllProducts { get; set; } = new();
+
+    [BindProperty]
+    public List<long> SelectedProductIds { get; set; } = new();
 
     public async Task<IActionResult> OnGetAsync(string supplierCode)
     {
+        var roleCode = HttpContext.Session.GetString("RoleCode");
+        if (roleCode != "SYSTEM_ADMIN" && roleCode != "WAREHOUSE_MANAGER" && roleCode != "PURCHASING_STAFF")
+        {
+            return Forbid();
+        }
+
         if (string.IsNullOrWhiteSpace(supplierCode))
         {
             return RedirectToPage("/Admin/Suppliers/Index");
@@ -27,17 +39,23 @@ public class DetailModel : PageModel
         
         if (result == null)
         {
-            // Trở về danh sách kèm thông báo (có thể dùng TempData)
             TempData["ErrorMessage"] = "Không tìm thấy nhà cung cấp hoặc bạn không có quyền xem.";
             return RedirectToPage("/Admin/Suppliers/Index");
         }
 
         Supplier = result;
+
         return Page();
     }
 
     public async Task<IActionResult> OnPostSuspendAsync(string supplierCode)
     {
+        var roleCode = HttpContext.Session.GetString("RoleCode");
+        if (roleCode != "SYSTEM_ADMIN" && roleCode != "WAREHOUSE_MANAGER" && roleCode != "PURCHASING_STAFF")
+        {
+            return Forbid();
+        }
+
         if (string.IsNullOrWhiteSpace(supplierCode)) return RedirectToPage("/Admin/Suppliers/Index");
 
         var supplier = await _supplierApiService.GetSupplierDetailAsync(supplierCode);

@@ -44,6 +44,7 @@ namespace BMWMS.Business.Services
                 GroupName = p.ProductGroup?.GroupName ?? "N/A",
                 UnitOfMeasureId = p.UnitOfMeasureId,
                 UnitName = p.UnitOfMeasure?.UnitName ?? "N/A",
+                QuantityScale = p.UnitOfMeasure?.QuantityScale ?? 0,
                 Barcode = p.Barcode,
                 Description = p.Description,
                 RotationMethod = p.RotationMethod,
@@ -79,6 +80,7 @@ namespace BMWMS.Business.Services
                 GroupName = product.ProductGroup?.GroupName ?? "N/A",
                 UnitOfMeasureId = product.UnitOfMeasureId,
                 UnitName = product.UnitOfMeasure?.UnitName ?? "N/A",
+                QuantityScale = product.UnitOfMeasure?.QuantityScale ?? 0,
                 Barcode = product.Barcode,
                 Description = product.Description,
                 RotationMethod = product.RotationMethod,
@@ -137,7 +139,8 @@ namespace BMWMS.Business.Services
             {
                 UnitOfMeasureId = u.UnitOfMeasureId,
                 UnitCode = u.UnitCode,
-                UnitName = u.UnitName
+                UnitName = u.UnitName,
+                QuantityScale = u.QuantityScale
             }).ToList();
         }
 

@@ -77,6 +77,10 @@ namespace BMWMS.API.Controllers.Inventory
             {
                 return BadRequest(new { message = ex.Message });
             }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
             catch (Exception ex)
             {
                 var innerError = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
@@ -156,6 +160,12 @@ namespace BMWMS.API.Controllers.Inventory
 
             return Ok(users);
         }
+
+        [HttpGet("staff")]
+        public async Task<ActionResult<List<UserSelectDto>>> GetWarehouseStaff()
+        {
+            return Ok(await _outboundOrderService.GetWarehouseStaffAsync());
+        }
         [HttpGet("sales-orders")]
         public async Task<ActionResult<List<SalesOrderApiResponse>>> GetConfirmedSalesOrders()
         {
@@ -163,6 +173,103 @@ namespace BMWMS.API.Controllers.Inventory
             return Ok(salesOrders);
         }
 
+        [HttpGet("purchase-orders/returnable")]
+        public async Task<ActionResult<List<PurchaseOrderReturnOptionDto>>> GetReturnablePurchaseOrders()
+        {
+            return Ok(await _outboundOrderService.GetReturnablePurchaseOrdersAsync());
+        }
+
+        [HttpGet("purchase-order/{id:long}/return")]
+        public async Task<ActionResult<PurchaseOrderForReturnDto>> GetPurchaseOrderForReturn(long id)
+        {
+            var result = await _outboundOrderService.GetPurchaseOrderForReturnAsync(id);
+            return result == null
+                ? NotFound(new { message = "PO không có hàng đã nhập còn có thể trả nhà cung cấp." })
+                : Ok(result);
+        }
+        /// <summary>
+        /// 4. MÀN 2: Lấy dữ liệu thực thi Pick hàng (Chi tiết Items, So sánh SL Cần/Đã Pick, Danh sách Bin/Lot khả dụng)
+        /// </summary>
+        [HttpGet("{id:long}/process")]
+        public async Task<IActionResult> GetProcessDetail(long id)
+        {
+            var processData = await _outboundOrderService.GetOutboundProcessDetailAsync(id);
+            if (processData == null)
+            {
+                return NotFound(new { message = $"Không tìm thấy lệnh xuất kho với ID = {id}" });
+            }
+            return Ok(processData);
+        }
+
+        /// <summary>
+        /// 5. MÀN 2: Thực thi Pick hàng từ Bin/Lot cụ thể
+        /// </summary>
+        [HttpPost("execute-pick")]
+        public async Task<IActionResult> ExecutePick([FromBody] ExecutePickItemRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            try
+            {
+                long currentUserId = GetCurrentUserId();
+                var (success, message) = await _outboundOrderService.ExecutePickAsync(request, currentUserId);
+
+                if (!success)
+                {
+                    return BadRequest(new { message });
+                }
+
+                return Ok(new { success = true, message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi khi xử lý Pick hàng!", detail = ex.Message });
+            }
+        }
+        /// <summary>
+        /// 6. Cập nhật trạng thái thủ công (ASSIGNED, IN_PROGRESS, COMPLETED, CANCELLED)
+        /// </summary>
+        [HttpPut("{id:long}/status")]
+        public async Task<IActionResult> UpdateStatus(long id, [FromBody] UpdateOutboundOrderStatusRequest request)
+        {
+            if (id != request.OutboundOrderId)
+            {
+                return BadRequest(new { message = "Mã ID không trùng khớp!" });
+            }
+
+            var success = await _outboundOrderService.UpdateStatusAsync(id, request.Status);
+            if (!success)
+            {
+                return NotFound(new { message = "Không tìm thấy lệnh xuất kho để cập nhật trạng thái!" });
+            }
+
+            return Ok(new { success = true, message = "Cập nhật trạng thái thành công!" });
+        }
+
+        /// <summary>
+        /// 7. Hủy lệnh xuất kho
+        /// </summary>
+        [HttpPut("{id:long}/cancel")]
+        public async Task<IActionResult> CancelOrder(long id)
+        {
+            try
+            {
+                var success = await _outboundOrderService.CancelOutboundOrderAsync(id);
+                if (!success)
+                {
+                    return NotFound(new { message = "Không tìm thấy lệnh xuất kho để hủy!" });
+                }
+
+                return Ok(new { success = true, message = "Đã hủy lệnh xuất kho thành công!" });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
         #region Helper Methods
         private long GetCurrentUserId()
         {

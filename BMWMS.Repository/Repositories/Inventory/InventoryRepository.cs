@@ -130,5 +130,130 @@ namespace BMWMS.Repository.Repositories.Inventory
                     .ThenInclude(sl => sl.Warehouse)
                 .FirstOrDefaultAsync(i => i.InventoryId == inventoryId);
         }
+
+        public async Task<decimal> GetAvailableQuantityAsync(long productId)
+        {
+            return await _context.Inventories
+                .Where(x => x.ProductId == productId)
+                .SumAsync(x => x.OnHandQuantity - x.ReservedQuantity);
+        }
+        public async Task<bool> ReserveStockAsync(long productId, decimal quantity)
+        {
+            if (quantity <= 0)
+                return false;
+
+            var inventories = await _context.Inventories
+                .Where(x => x.ProductId == productId)
+                .OrderBy(x => x.InventoryId)
+                .ToListAsync();
+
+            decimal totalAvailable = inventories.Sum(
+                x => x.OnHandQuantity - x.ReservedQuantity);
+
+            // Không đủ tồn
+            if (totalAvailable < quantity)
+                return false;
+
+            decimal remaining = quantity;
+
+            foreach (var inventory in inventories)
+            {
+                if (remaining <= 0)
+                    break;
+
+                decimal available =
+                    inventory.OnHandQuantity -
+                    inventory.ReservedQuantity;
+
+                if (available <= 0)
+                    continue;
+
+                decimal reserveQuantity =
+                    Math.Min(available, remaining);
+
+                inventory.ReservedQuantity += reserveQuantity;
+
+                remaining -= reserveQuantity;
+            }
+
+            await _context.SaveChangesAsync();
+
+            return remaining == 0;
+        }
+
+        public async Task<bool> ReserveStockForOrderAsync(long productId, decimal quantity, long salesOrderDetailId, long userId, string allocationStrategy = "FIFO")
+        {
+            if (quantity <= 0) return false;
+
+            var query = _context.Inventories
+                .Include(i => i.ProductLot)
+                .Include(i => i.StorageLocation)
+                .Where(x => x.ProductId == productId &&
+                            (x.OnHandQuantity - x.ReservedQuantity) > 0 &&
+                            x.ProductLot.Status == "AVAILABLE" &&
+                            x.StorageLocation.IsPickable &&
+                            x.StorageLocation.Status != "BLOCKED" &&
+                            x.StorageLocation.Status != "INACTIVE" &&
+                            x.StorageLocation.LocationType != "QUARANTINE");
+
+            if (allocationStrategy == "FEFO")
+            {
+                query = query.OrderBy(x => x.ProductLot != null ? x.ProductLot.ExpiryDate : null)
+                             .ThenBy(x => x.InventoryId);
+            }
+            else
+            {
+                query = query.OrderBy(x => x.ProductLot != null ? (DateTime?)x.ProductLot.CreatedAt : null)
+                             .ThenBy(x => x.InventoryId);
+            }
+
+            var inventories = await query.ToListAsync();
+
+            decimal totalAvailable = inventories.Sum(x => x.OnHandQuantity - x.ReservedQuantity);
+            if (totalAvailable < quantity) return false;
+
+            decimal remaining = quantity;
+
+            foreach (var inventory in inventories)
+            {
+                if (remaining <= 0) break;
+
+                decimal available = inventory.OnHandQuantity - inventory.ReservedQuantity;
+                decimal reserveQuantity = Math.Min(available, remaining);
+
+                var reservation = new InventoryReservation
+                {
+                    SalesOrderDetailId = salesOrderDetailId,
+                    ProductId = productId,
+                    StorageLocationId = inventory.StorageLocationId,
+                    ProductLotId = inventory.ProductLotId, // Fallback if no lot
+                    ReservedQuantity = reserveQuantity,
+                    Status = "ACTIVE",
+                    ReservedAt = DateTime.UtcNow,
+                    ReservedByUserId = userId
+                };
+
+                _context.InventoryReservations.Add(reservation);
+                _context.InventoryTransactions.Add(new InventoryTransaction
+                {
+                    TransactionType = "RESERVE",
+                    ProductId = productId,
+                    StorageLocationId = inventory.StorageLocationId,
+                    ProductLotId = inventory.ProductLotId,
+                    OnHandDelta = 0,
+                    ReservedDelta = reserveQuantity,
+                    InventoryReservation = reservation,
+                    PerformedByUserId = userId,
+                    TransactionAt = DateTime.UtcNow,
+                    Notes = "Giữ tồn ngay khi lưu nháp Sales Order."
+                });
+
+                remaining -= reserveQuantity;
+            }
+
+            return remaining == 0;
+            // Caller commits SaveChanges/transaction so the entire SO is reserved atomically.
+        }
+
     }
 }

@@ -34,21 +34,33 @@ public class ReceiveModel : PageModel
             Filter.Status = "ASSIGNED,IN_PROGRESS"; // Backend might need support for comma separated, if not we just fetch all and filter in memory or backend handles it.
         }
 
-        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (long.TryParse(userIdClaim, out var currentUserId))
+        if (User.IsInRole("WAREHOUSE_STAFF"))
         {
-            Filter.AssignedToUserId = currentUserId;
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (long.TryParse(userIdClaim, out var currentUserId))
+            {
+                Filter.AssignedToUserId = currentUserId;
+            }
         }
 
         Data = await _inboundApi.GetInboundOrdersPageAsync(Filter);
 
         // Filter the data to only include ASSIGNED and IN_PROGRESS
-        Data.Items = Data.Items.Where(x => x.Status == "ASSIGNED" || x.Status == "IN_PROGRESS").ToList();
+        Data.Items = Data.Items.Where(x => x.Status == "READY" || x.Status == "RECEIVING").ToList();
 
         if (id.HasValue)
         {
             var order = await _inboundApi.GetInboundOrderByIdAsync(id.Value);
-            if (order != null) Order = order;
+            if (order != null) 
+            {
+                var userIdClaimForCheck = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (User.IsInRole("WAREHOUSE_STAFF") && long.TryParse(userIdClaimForCheck, out var userId) && order.AssignedToUserId != userId)
+                {
+                    TempData["ErrorMessage"] = "Bạn không có quyền nhận hàng cho lệnh này vì nó không được phân công cho bạn.";
+                    return RedirectToPage("Index");
+                }
+                Order = order;
+            }
         }
 
         return Page();
@@ -62,7 +74,9 @@ public class ReceiveModel : PageModel
             
             // Fetch order again to find items needing putaway
             var order = await _inboundApi.GetInboundOrderByIdAsync(id);
-            var itemNeedingPutaway = order?.Items.FirstOrDefault(i => i.Receipts.Any(r => r.ReceivedQuantity > r.PutawayQuantity));
+            var itemNeedingPutaway = order?.Status == "RECEIVED"
+                ? order.Items.FirstOrDefault(i => i.Receipts.Any(r => r.ConditionStatus == "GOOD" && r.ReceivedQuantity > r.PutawayQuantity))
+                : null;
             
             if (itemNeedingPutaway != null)
             {

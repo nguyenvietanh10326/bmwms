@@ -76,6 +76,52 @@
         </div>
     </div>
 
+    <div class="form-card" style="padding: 24px; margin-bottom: 24px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h3 style="font-size: 16px; font-weight: 600; color: var(--text-main); margin: 0;">Danh mục vật tư cung ứng</h3>
+        </div>
+
+        <div style="overflow-x: auto; margin-bottom: 24px; max-height: 400px;">
+            <table class="table" style="width: 100%; min-width: 800px; border-collapse: collapse;">
+                <thead>
+                    <tr style="border-bottom: 1px solid var(--border-color); position: sticky; top: 0; background: white;">
+                        <th style="width: 40px; text-align: left; padding: 12px 0;"></th>
+                        <th style="text-align: left; padding: 12px 0; color: var(--text-muted); font-size: 13px; font-weight: 500;">Mã SP</th>
+                        <th style="text-align: left; padding: 12px 0; color: var(--text-muted); font-size: 13px; font-weight: 500;">Sản phẩm</th>
+                        <th style="text-align: left; padding: 12px 0; color: var(--text-muted); font-size: 13px; font-weight: 500;">Nhóm</th>
+                        <th style="text-align: left; padding: 12px 0; color: var(--text-muted); font-size: 13px; font-weight: 500;">Đơn vị tính</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.AllProducts != null && Model.AllProducts.Any())
+                    {
+                        @foreach (var p in Model.AllProducts)
+                        {
+                            bool isSelected = Model.SelectedProductIds.Contains(p.ProductId);
+                            <tr style="border-bottom: 1px solid #f4f4f5;">
+                                <td style="padding: 16px 0;">
+                                    <input type="checkbox" name="SelectedProductIds" value="@p.ProductId" @(isSelected ? "checked" : "") style="width: 16px; height: 16px; accent-color: #27272a;" />
+                                </td>
+                                <td style="padding: 16px 0; color: #2563eb; font-size: 14px;">@p.ProductCode</td>
+                                <td style="padding: 16px 0; color: var(--text-main); font-size: 14px;">@p.ProductName</td>
+                                <td style="padding: 16px 0; color: var(--text-muted); font-size: 14px;">@p.GroupName</td>
+                                <td style="padding: 16px 0; color: var(--text-muted); font-size: 14px;">@p.UnitName</td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="5" style="text-align: center; padding: 24px; color: var(--text-muted);">
+                                Hệ thống chưa có vật tư nào.
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
     <div style="background-color: #faf5ff; border: 1px solid #e9d5ff; border-radius: 6px; padding: 16px; margin-bottom: 24px; display: flex; align-items: center; gap: 12px; color: #7e22ce; font-size: 14px;">
         <div style="width: 8px; height: 8px; background-color: #a855f7; border-radius: 50%;"></div>
         Nhà cung cấp là dữ liệu danh mục; lịch sử nhập được liên kết qua đơn mua và lệnh nhập kho. 

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace BMWMS.Repository.Entities;
@@ -18,6 +18,8 @@ public partial class SalesOrder
     public string Status { get; set; } = null!;
 
     public string? Notes { get; set; }
+
+    public string AllocationStrategy { get; set; } = "FIFO";
 
     public long CreatedByUserId { get; set; }
 

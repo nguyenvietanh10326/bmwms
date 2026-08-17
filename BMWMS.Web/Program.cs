@@ -84,6 +84,10 @@ builder.Services.AddScoped<INotificationApiService, NotificationApiService>();
 builder.Services.AddScoped<TransferApiService>();
 builder.Services.AddScoped<IStocktakeApiService, StocktakeApiService>();
 
+// Orders
+builder.Services.AddScoped<PurchaseOrderApiService>();
+builder.Services.AddScoped<SalesOrderApiService>();
+
 var app = builder.Build();
 
 if (!app.Environment.IsDevelopment())
