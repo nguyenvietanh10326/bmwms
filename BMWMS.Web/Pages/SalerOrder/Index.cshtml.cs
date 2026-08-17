@@ -1,4 +1,4 @@
-﻿using BMWMS.Web.Models.Inventory;
+using BMWMS.Web.Models.Inventory;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -14,110 +14,137 @@ namespace BMWMS.Web.Pages.SalesOrders
             _httpClientFactory = httpClientFactory;
         }
 
-        // Tự động bind Query Parameters từ URL
         [BindProperty(SupportsGet = true)]
-        public SalesOrderSearchCriteria Filter { get; set; } = new();
+        public string? Keyword { get; set; }
 
-        // Kết quả phân trang từ API Backend
+        [BindProperty(SupportsGet = true)]
+        public string? Status { get; set; }
+
+        [BindProperty(SupportsGet = true)]
+        public DateOnly? FromDate { get; set; }
+
+        [BindProperty(SupportsGet = true)]
+        public DateOnly? ToDate { get; set; }
+
+        [BindProperty(SupportsGet = true)]
+        public int PageIndex { get; set; } = 1;
+
+        [BindProperty(SupportsGet = true)]
+        public int PageSize { get; set; } = 10;
+
         public PagedResult<SalesOrderListDto> PagedResult { get; set; } = new();
 
-        public List<SelectListItem> WarehouseOptions { get; set; } = new();
-
-        // Dropdown trạng thái Đơn bán hàng
-        public List<SelectListItem> StatusOptions { get; set; } = new()
+        public List<SelectListItem> StatusOptions { get; } = new()
         {
-            new SelectListItem { Text = "-- Tất cả trạng thái --", Value = "" },
-            new SelectListItem { Text = "Nháp (DRAFT)", Value = "DRAFT" },
-            new SelectListItem { Text = "Đã giữ tồn (ALLOCATED)", Value = "ALLOCATED" },
-            new SelectListItem { Text = "Đã xác nhận (CONFIRMED)", Value = "CONFIRMED" },
-            new SelectListItem { Text = "Hoàn tất (FULFILLED)", Value = "FULFILLED" },
-            new SelectListItem { Text = "Đã hủy (CANCELLED)", Value = "CANCELLED" }
+            new("Tất cả trạng thái", string.Empty),
+            new("Nháp", "DRAFT"),
+            new("Đã xác nhận", "CONFIRMED"),
+            new("Đã xuất một phần", "PARTIALLY_ISSUED"),
+            new("Đã xuất", "ISSUED"),
+            new("Đã hủy", "CANCELLED")
         };
+
+        public List<SelectListItem> PageSizeOptions { get; } = new()
+        {
+            new("10 bản ghi", "10"),
+            new("20 bản ghi", "20"),
+            new("50 bản ghi", "50"),
+            new("100 bản ghi", "100")
+        };
+
+        public bool HasActiveFilters =>
+            !string.IsNullOrWhiteSpace(Keyword) ||
+            !string.IsNullOrWhiteSpace(Status) ||
+            FromDate.HasValue ||
+            ToDate.HasValue;
 
         [TempData]
         public string? SuccessMessage { get; set; }
 
-        [TempData]
         public string? ErrorMessage { get; set; }
 
-        // GET: Gọi API Backend lấy danh sách Sales Order + Phân trang
         public async Task<IActionResult> OnGetAsync()
         {
-            Filter.PageIndex = Filter.PageIndex < 1 ? 1 : Filter.PageIndex;
-            Filter.PageSize = Filter.PageSize < 1 ? 10 : Filter.PageSize;
+            PageIndex = Math.Max(1, PageIndex);
+            PageSize = PageSize is 10 or 20 or 50 or 100 ? PageSize : 10;
+
+            if (FromDate.HasValue && ToDate.HasValue && FromDate.Value > ToDate.Value)
+            {
+                ErrorMessage = "Ngày bắt đầu không được sau ngày kết thúc.";
+                PagedResult = new PagedResult<SalesOrderListDto>
+                {
+                    PageIndex = PageIndex,
+                    PageSize = PageSize
+                };
+                return Page();
+            }
+
+            var criteria = new SalesOrderSearchCriteria
+            {
+                Keyword = Keyword?.Trim(),
+                Status = Status,
+                FromDate = FromDate,
+                ToDate = ToDate,
+                PageIndex = PageIndex,
+                PageSize = PageSize
+            };
 
             var client = _httpClientFactory.CreateClient("ApiClient");
 
             try
             {
-                string queryString =
-                    $"?Keyword={Uri.EscapeDataString(Filter.Keyword ?? "")}" +
-                    $"&Status={Uri.EscapeDataString(Filter.Status ?? "")}" +
-                    $"&PageIndex={Filter.PageIndex}" +
-                    $"&PageSize={Filter.PageSize}";
+                var queryString =
+                    $"?Keyword={Uri.EscapeDataString(criteria.Keyword ?? string.Empty)}" +
+                    $"&Status={Uri.EscapeDataString(criteria.Status ?? string.Empty)}" +
+                    $"&FromDate={Uri.EscapeDataString(criteria.FromDate?.ToString("yyyy-MM-dd") ?? string.Empty)}" +
+                    $"&ToDate={Uri.EscapeDataString(criteria.ToDate?.ToString("yyyy-MM-dd") ?? string.Empty)}" +
+                    $"&PageIndex={criteria.PageIndex}" +
+                    $"&PageSize={criteria.PageSize}";
 
-                var response = await client.GetAsync($"salesorders{queryString}");
+                var response = await client.GetAsync($"api/SalesOrders{queryString}");
 
-                if (response.IsSuccessStatusCode)
+                if (!response.IsSuccessStatusCode)
                 {
-                    // Trường hợp Backend API trả dạng { success: true, data: PagedResult }
-                    var apiWrapper = await response.Content.ReadFromJsonAsync<ApiWrapper<PagedResult<SalesOrderListDto>>>();
-                    if (apiWrapper != null && apiWrapper.Data != null)
-                    {
-                        PagedResult = apiWrapper.Data;
-                    }
-                    else
-                    {
-                        // Trường hợp Backend API trả trực tiếp PagedResult
-                        PagedResult = await response.Content.ReadFromJsonAsync<PagedResult<SalesOrderListDto>>()
-                                      ?? new PagedResult<SalesOrderListDto>();
-                    }
+                    ErrorMessage = "Không thể tải danh sách đơn bán hàng. Vui lòng thử lại.";
+                    return Page();
                 }
-                else
+
+                var apiWrapper = await response.Content
+                    .ReadFromJsonAsync<ApiWrapper<PagedResult<SalesOrderListDto>>>();
+
+                PagedResult = apiWrapper?.Data ?? new PagedResult<SalesOrderListDto>
                 {
-                    ErrorMessage = "Không thể lấy dữ liệu Đơn bán hàng từ hệ thống Backend API!";
-                }
+                    PageIndex = PageIndex,
+                    PageSize = PageSize
+                };
             }
-            catch (Exception ex)
+            catch
             {
-                ErrorMessage = $"Lỗi kết nối API Backend: {ex.Message}";
+                ErrorMessage = "Không thể kết nối đến hệ thống dữ liệu. Vui lòng thử lại sau.";
             }
 
             return Page();
         }
 
-        // POST: Gọi API Backend để hủy đơn bán hàng
-        public async Task<IActionResult> OnPostCancelOrderAsync(long id, int pageIndex)
+        public string GetStatusLabel(string? status) => status switch
         {
-            var client = _httpClientFactory.CreateClient("ApiClient");
+            "DRAFT" => "Nháp",
+            "CONFIRMED" => "Đã xác nhận",
+            "PARTIALLY_ISSUED" => "Đã xuất một phần",
+            "ISSUED" => "Đã xuất",
+            "CANCELLED" => "Đã hủy",
+            _ => "Không xác định"
+        };
 
-            try
-            {
-                var response = await client.PostAsync($"api/SalesOrders/{id}/cancel", null);
-
-                if (response.IsSuccessStatusCode)
-                {
-                    SuccessMessage = "Hủy đơn bán hàng thành công!";
-                }
-                else
-                {
-                    var errorData = await response.Content.ReadFromJsonAsync<ErrorResponse>();
-                    ErrorMessage = errorData?.Message ?? "Lỗi từ server khi thực hiện hủy đơn!";
-                }
-            }
-            catch (Exception ex)
-            {
-                ErrorMessage = $"Lỗi kết nối API Backend: {ex.Message}";
-            }
-
-            // Redirect reload lại trang kèm giữ nguyên bộ lọc & trang hiện tại
-            return RedirectToPage("./Index", new
-            {
-                Keyword = Filter.Keyword,
-                Status = Filter.Status,
-                PageIndex = pageIndex
-            });
-        }
+        public string GetStatusBadgeClass(string? status) => status switch
+        {
+            "DRAFT" => "bg-secondary-subtle text-secondary border-secondary-subtle",
+            "CONFIRMED" => "bg-primary-subtle text-primary border-primary-subtle",
+            "PARTIALLY_ISSUED" => "bg-warning-subtle text-warning-emphasis border-warning-subtle",
+            "ISSUED" => "bg-success-subtle text-success border-success-subtle",
+            "CANCELLED" => "bg-danger-subtle text-danger border-danger-subtle",
+            _ => "bg-light text-dark border-secondary-subtle"
+        };
     }
 
     public class ApiWrapper<T>

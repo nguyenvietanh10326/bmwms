@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -18,10 +18,10 @@ namespace BMWMS.Web.Pages.SaleOrder
 
         public async Task<IActionResult> OnGetAsync(int id)
         {
-            var client = _httpClientFactory.CreateClient();
+            var client = _httpClientFactory.CreateClient("ApiClient");
 
             // Gọi API backend lấy dữ liệu JSON
-            var response = await client.GetAsync($"https://localhost:7194/{id}");
+            var response = await client.GetAsync($"api/SalesOrders/{id}");
 
             if (response.IsSuccessStatusCode)
             {
@@ -62,6 +62,7 @@ namespace BMWMS.Web.Pages.SaleOrder
         public DateTime? ExpectedIssueDate { get; set; }
         public string Status { get; set; } = string.Empty;
         public string? Notes { get; set; }
+        public string AllocationStrategy { get; set; } = "FIFO";
         public string CreatedByName { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
         public string? ConfirmedByName { get; set; }
@@ -76,12 +77,13 @@ namespace BMWMS.Web.Pages.SaleOrder
         public string ProductCode { get; set; } = string.Empty;
         public string ProductName { get; set; } = string.Empty;
         public string UnitName { get; set; } = string.Empty;
+        public byte QuantityScale { get; set; }
+        public bool TrackLot { get; set; }
         public decimal OrderedQuantity { get; set; }
         public decimal ReservedQuantity { get; set; }
         public decimal FulfilledQuantity { get; set; }
         public decimal AvailableQuantity { get; set; }
-        public decimal UnitPrice { get; set; }
-        public decimal TotalAmount { get; set; }
         public string? Notes { get; set; }
+        public string AllocationStrategy { get; set; } = "FIFO";
     }
 }

@@ -1,152 +1,151 @@
-﻿@page "/sales-orders"
+@page "/sales-orders"
 @model BMWMS.Web.Pages.SalesOrders.IndexModel
 @{
-    Layout = "/Pages/Shared/Inventory/_Layout.cshtml";
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Danh sách đơn bán hàng";
 
-    ViewData["Title"] = "Đơn bán hàng";
+    var totalCount = Model.PagedResult.TotalCount;
+    var pageIndex = Model.PagedResult.PageIndex > 0 ? Model.PagedResult.PageIndex : Model.PageIndex;
+    var pageSize = Model.PagedResult.PageSize > 0 ? Model.PagedResult.PageSize : Model.PageSize;
+    var totalPages = Model.PagedResult.TotalPages;
+    var start = totalCount == 0 ? 0 : (pageIndex - 1) * pageSize + 1;
+    var end = Math.Min(pageIndex * pageSize, totalCount);
 }
 
-<!-- Header Navigation / Breadcrumb -->
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <nav aria-label="breadcrumb">
-        <ol class="breadcrumb mb-0">
-            <li class="breadcrumb-item"><a href="#">Đơn hàng</a></li>
-            <li class="breadcrumb-item active" aria-current="page">Đơn bán hàng</li>
-        </ol>
-    </nav>
-    <div class="text-end">
-        <span class="fw-bold d-block">Nguyễn Văn An</span>
-        <small class="text-muted">System Administrator</small>
-    </div>
-</div>
-
-<!-- Main Section Title & Button -->
-<div class="d-flex justify-content-between align-items-start mb-4">
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-3 mb-4">
     <div>
-        <h2 class="fw-bold mb-1">Đơn bán hàng</h2>
-        <p class="text-muted mb-0">Sales Order phải kiểm tra và giữ tồn trước khi tạo lệnh xuất kho.</p>
+        <h1 class="h3 mb-1 text-gray-800">Danh sách đơn bán hàng (SO)</h1>
+        <p class="text-muted mb-0">Theo dõi đơn bán hàng từ khi tạo nháp đến khi xuất hàng hoặc hủy đơn.</p>
     </div>
-    <a href="/sales-orders/create" class="btn btn-dark btn-lg px-4 fs-6">
-        <i class="bi bi-plus-lg me-1"></i> Tạo đơn bán hàng
+    <a href="/sales-orders/create" class="btn btn-primary shadow-sm flex-shrink-0">
+        <i class="bi bi-plus-lg me-2"></i>Tạo đơn bán hàng
     </a>
 </div>
 
-<!-- Display Alert Messages -->
-@if (!string.IsNullOrEmpty(Model.SuccessMessage))
+@if (!string.IsNullOrWhiteSpace(Model.SuccessMessage))
 {
     <div class="alert alert-success alert-dismissible fade show" role="alert">
         <i class="bi bi-check-circle-fill me-2"></i>@Model.SuccessMessage
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-}
-@if (!string.IsNullOrEmpty(Model.ErrorMessage))
-{
-    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-        <i class="bi bi-exclamation-triangle-fill me-2"></i>@Model.ErrorMessage
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Đóng thông báo"></button>
     </div>
 }
 
-<!-- Filter Bar -->
+@if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+{
+    <div class="alert alert-danger" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>@Model.ErrorMessage
+    </div>
+}
+
+<div class="alert alert-light border d-flex align-items-start gap-2 py-2" role="note">
+    <i class="bi bi-diagram-3 text-primary mt-1"></i>
+    <div class="small text-muted">
+        <span class="fw-semibold text-dark">Quy trình trạng thái:</span>
+        Nháp → Đã xác nhận → Đã xuất một phần → Đã xuất.
+        Đơn nháp hoặc đã xác nhận có thể chuyển sang Đã hủy.
+    </div>
+</div>
+
 <div class="card border-0 shadow-sm mb-4">
-    <div class="card-body p-3">
-        <form method="get" class="row g-2 align-items-center">
-            <!-- Reset PageIndex khi Submit Filter -->
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-end">
             <input type="hidden" name="PageIndex" value="1" />
 
-            <!-- Search Keyword -->
-            <div class="col-md-5">
+            <div class="col-lg-4 col-md-6">
+                <label asp-for="Keyword" class="form-label">Tìm kiếm</label>
                 <div class="input-group">
-                    <input type="text" asp-for="Filter.Keyword" class="form-control bg-light border-end-0"
-                           placeholder="Tìm theo mã hoặc đối tác">
-                    <span class="input-group-text bg-light border-start-0 text-muted">
-                        <i class="bi bi-search"></i>
-                    </span>
+                    <span class="input-group-text bg-light text-muted"><i class="bi bi-search"></i></span>
+                    <input asp-for="Keyword" class="form-control" placeholder="Nhập mã đơn, mã hoặc tên khách hàng" />
                 </div>
             </div>
 
-            <!-- Status Filter -->
-            <div class="col-md-3">
-                <select asp-for="Filter.Status" asp-items="Model.StatusOptions" class="form-select bg-light"></select>
+            <div class="col-lg-2 col-md-6">
+                <label asp-for="Status" class="form-label">Trạng thái</label>
+                <select asp-for="Status" asp-items="Model.StatusOptions" class="form-select"></select>
             </div>
 
-         
-            <!-- Action Buttons -->
-            <div class="col-md-2 d-flex gap-2">
-                <button type="submit" class="btn btn-dark w-100">Tìm kiếm</button>
-                <a href="/sales-orders" class="btn btn-light border w-100 text-center">Đặt lại</a>
+            <div class="col-lg-2 col-md-4">
+                <label asp-for="FromDate" class="form-label">Từ ngày</label>
+                <input asp-for="FromDate" type="date" class="form-control" />
+            </div>
+
+            <div class="col-lg-2 col-md-4">
+                <label asp-for="ToDate" class="form-label">Đến ngày</label>
+                <input asp-for="ToDate" type="date" class="form-control" />
+            </div>
+
+            <div class="col-lg-2 col-md-4">
+                <label asp-for="PageSize" class="form-label">Số dòng mỗi trang</label>
+                <select asp-for="PageSize" asp-items="Model.PageSizeOptions" class="form-select"></select>
+            </div>
+
+            <div class="col-12 d-flex flex-wrap justify-content-end gap-2">
+                @if (Model.HasActiveFilters || Model.PageSize != 10)
+                {
+                    <a href="/sales-orders" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-counterclockwise me-1"></i>Xóa bộ lọc
+                    </a>
+                }
+                <button type="submit" class="btn btn-dark">
+                    <i class="bi bi-funnel me-1"></i>Áp dụng
+                </button>
             </div>
         </form>
     </div>
 </div>
 
-<!-- Data Table -->
 <div class="card border-0 shadow-sm">
     <div class="card-body p-0">
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
-                <thead class="bg-light text-muted small text-uppercase">
+                <thead class="table-light text-muted small">
                     <tr>
-                        <th class="ps-4">Mã SO</th>
+                        <th class="ps-4">Mã đơn bán hàng</th>
                         <th>Khách hàng</th>
-                        <th>Ngày đặt</th>
-                        <th>Xuất dự kiến</th>
+                        <th>Ngày đặt / dự kiến xuất</th>
                         <th>Trạng thái</th>
-                        <th>Tổng SL</th>
+                        <th class="text-center">Mặt hàng</th>
+                        <th>Người tạo</th>
                         <th class="text-end pe-4">Thao tác</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @if (Model.PagedResult.Items != null && Model.PagedResult.Items.Any())
+                    @if (Model.PagedResult.Items?.Any() == true)
                     {
                         @foreach (var item in Model.PagedResult.Items)
                         {
                             <tr>
-                                <td class="ps-4 fw-bold">
-                                    <a href="/sales-orders/detail/@item.SalesOrderId" class="text-primary text-decoration-none">
+                                <td class="ps-4">
+                                    <a href="/sales-orders/details/@item.SalesOrderId" class="fw-semibold text-primary text-decoration-none">
                                         @item.SalesOrderNumber
                                     </a>
                                 </td>
                                 <td>
-                                    <span class="fw-semibold">@item.CustomerCode</span>
-                                    <span class="text-muted">— @item.CustomerName</span>
+                                    <span class="fw-semibold d-block">@item.CustomerName</span>
+                                    <span class="text-muted small">@item.CustomerCode</span>
                                 </td>
-                                <td>@item.OrderDate.ToString("dd/MM/yyyy")</td>
-                                <td>@(item.ExpectedIssueDate.HasValue? item.ExpectedIssueDate.Value.ToString("dd/MM/yyyy") : "—")</td>
                                 <td>
-                                    @switch (item.Status)
-                                    {
-                                        case "DRAFT":
-                                        case "Nháp":
-                                            <span class="badge bg-light text-dark border px-3 py-2 fw-normal">Nháp</span>
-                                            break;
-                                        case "ALLOCATED":
-                                        case "Đã giữ tồn":
-                                            <span class="badge bg-dark text-white px-3 py-2 fw-normal">Đã giữ tồn</span>
-                                            break;
-                                        case "CONFIRMED":
-                                        case "Đã xác nhận":
-                                            <span class="badge bg-secondary text-white px-3 py-2 fw-normal">Đã xác nhận</span>
-                                            break;
-                                        case "FULFILLED":
-                                        case "Hoàn tất":
-                                            <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 fw-normal">Hoàn tất</span>
-                                            break;
-                                        case "CANCELLED":
-                                        case "Đã hủy":
-                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-2 fw-normal">Đã hủy</span>
-                                            break;
-                                        default:
-                                            <span class="badge bg-light text-dark px-3 py-2">@item.Status</span>
-                                            break;
-                                    }
+                                    <span class="d-block">@item.OrderDate.ToString("dd/MM/yyyy")</span>
+                                    <span class="text-muted small">
+                                        Dự kiến: @(item.ExpectedIssueDate?.ToString("dd/MM/yyyy") ?? "Chưa xác định")
+                                    </span>
                                 </td>
-                                <td class="fw-semibold">
-                                    @item.TotalQuantity.ToString("N0") @item.PrimaryUnitName
+                                <td>
+                                    <span class="badge border px-3 py-2 fw-normal @Model.GetStatusBadgeClass(item.Status)">
+                                        @Model.GetStatusLabel(item.Status)
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="fw-semibold">@item.ItemCount.ToString("N0")</span>
+                                </td>
+                                <td>
+                                    <span class="d-block">@(string.IsNullOrWhiteSpace(item.CreatedByName) ? "Chưa xác định" : item.CreatedByName)</span>
+                                    <span class="text-muted small">@item.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
                                 </td>
                                 <td class="text-end pe-4">
-                                    <a href="/sales-orders/details/@item.SalesOrderId" class="btn btn-sm btn-outline-primary">
-                                        Xem chi tiết
+                                    <a href="/sales-orders/details/@item.SalesOrderId" class="btn btn-sm btn-outline-primary"
+                                       aria-label="Xem chi tiết đơn @item.SalesOrderNumber">
+                                        <i class="bi bi-eye me-1"></i>Xem chi tiết
                                     </a>
                                 </td>
                             </tr>
@@ -155,8 +154,10 @@
                     else
                     {
                         <tr>
-                            <td colspan="7" class="text-center py-4 text-muted">
-                                Không tìm thấy bản ghi nào.
+                            <td colspan="7" class="text-center py-5">
+                                <i class="bi bi-inbox fs-2 text-muted d-block mb-2"></i>
+                                <span class="fw-semibold d-block">Không có đơn bán hàng phù hợp</span>
+                                <span class="text-muted small">Hãy thay đổi điều kiện tìm kiếm hoặc xóa bộ lọc.</span>
                             </td>
                         </tr>
                     }
@@ -165,51 +166,50 @@
         </div>
     </div>
 
-    <!-- Table Footer / Pagination -->
-    @{
-        var totalCount = Model.PagedResult.TotalCount;
-        var pageIndex = Model.PagedResult.PageIndex;
-        var pageSize = Model.PagedResult.PageSize;
-        var totalPages = Model.PagedResult.TotalPages;
-
-        var start = totalCount == 0 ? 0 : (pageIndex - 1) * pageSize + 1;
-        var end = Math.Min(pageIndex * pageSize, totalCount);
-    }
-
-    <div class="card-footer bg-white border-0 py-3 d-flex justify-content-between align-items-center">
-        <span class="text-muted fs-7">
-            Hiển thị @start–@end trong @totalCount bản ghi
-        </span>
+    <div class="card-footer bg-white border-top py-3 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+        <span class="text-muted small">Hiển thị @start–@end trong tổng số @totalCount bản ghi</span>
 
         @if (totalPages > 1)
         {
-            <nav>
+            var firstPage = Math.Max(1, pageIndex - 2);
+            var lastPage = Math.Min(totalPages, firstPage + 4);
+            firstPage = Math.Max(1, lastPage - 4);
+
+            <nav aria-label="Phân trang danh sách đơn bán hàng">
                 <ul class="pagination pagination-sm mb-0">
-                    <!-- Nút Previous -->
-                    <li class="page-item @(pageIndex == 1 ? "disabled" : "")">
+                    <li class="page-item @(pageIndex == 1 ? "disabled" : string.Empty)">
                         <a class="page-link" asp-page="./Index"
-                           asp-route-Keyword="@Model.Filter.Keyword"
-                           asp-route-Status="@Model.Filter.Status"
-                           asp-route-PageIndex="@(pageIndex - 1)">&lsaquo;</a>
+                           asp-route-Keyword="@Model.Keyword"
+                           asp-route-Status="@Model.Status"
+                           asp-route-FromDate="@Model.FromDate?.ToString("yyyy-MM-dd")"
+                           asp-route-ToDate="@Model.ToDate?.ToString("yyyy-MM-dd")"
+                           asp-route-PageSize="@Model.PageSize"
+                           asp-route-PageIndex="@(pageIndex - 1)"
+                           aria-label="Trang trước">‹</a>
                     </li>
 
-                    @for (int i = 1; i <= totalPages; i++)
+                    @for (var i = firstPage; i <= lastPage; i++)
                     {
-                        <li class="page-item @(i == pageIndex ? "active" : "")">
-                            <a class="page-link @(i == pageIndex ? "bg-dark border-dark" : "")"
-                               asp-page="./Index"
-                               asp-route-Keyword="@Model.Filter.Keyword"
-                               asp-route-Status="@Model.Filter.Status"
+                        <li class="page-item @(i == pageIndex ? "active" : string.Empty)">
+                            <a class="page-link" asp-page="./Index"
+                               asp-route-Keyword="@Model.Keyword"
+                               asp-route-Status="@Model.Status"
+                               asp-route-FromDate="@Model.FromDate?.ToString("yyyy-MM-dd")"
+                               asp-route-ToDate="@Model.ToDate?.ToString("yyyy-MM-dd")"
+                               asp-route-PageSize="@Model.PageSize"
                                asp-route-PageIndex="@i">@i</a>
                         </li>
                     }
 
-                    <!-- Nút Next -->
-                    <li class="page-item @(pageIndex == totalPages ? "disabled" : "")">
+                    <li class="page-item @(pageIndex == totalPages ? "disabled" : string.Empty)">
                         <a class="page-link" asp-page="./Index"
-                           asp-route-Keyword="@Model.Filter.Keyword"
-                           asp-route-Status="@Model.Filter.Status"
-                           asp-route-PageIndex="@(pageIndex + 1)">&rsaquo;</a>
+                           asp-route-Keyword="@Model.Keyword"
+                           asp-route-Status="@Model.Status"
+                           asp-route-FromDate="@Model.FromDate?.ToString("yyyy-MM-dd")"
+                           asp-route-ToDate="@Model.ToDate?.ToString("yyyy-MM-dd")"
+                           asp-route-PageSize="@Model.PageSize"
+                           asp-route-PageIndex="@(pageIndex + 1)"
+                           aria-label="Trang sau">›</a>
                     </li>
                 </ul>
             </nav>
