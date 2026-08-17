@@ -19,7 +19,7 @@ services:
     environment:
       - MSSQL_SA_PASSWORD=${MSSQL_SA_PASSWORD}
     volumes:
-      - ./BMWMS_Data_Final.sql:/scripts/BMWMS_Data_Final.sql
+      - /home/bmwms/BMWMS_Data_Final.sql:/scripts/BMWMS_Data_Final.sql
     command: >
       bash -c "
       echo 'Waiting for SQL Server to become available...';
