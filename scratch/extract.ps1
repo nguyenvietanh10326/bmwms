@@ -1,1 +1,0 @@
-$file = Get-Content scratch/WarehouseIndex_Conflict.cshtml -Raw; $pattern = '(?s)<!-- 2\. DÒNG PH? N?M BÊN DU?I: HI?N TH? DANH SÁCH STORAGELOCATIONS \(RACK / BINS\) -->.*?</tr>'; $match = [regex]::Match($file, $pattern); if ($match.Success) { Set-Content scratch/StorageLocationsRow.html $match.Value -Encoding UTF8; Write-Host "Extracted!" } else { Write-Host "Not found" }
