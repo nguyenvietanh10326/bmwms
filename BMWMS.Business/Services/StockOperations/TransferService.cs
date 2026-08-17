@@ -224,6 +224,9 @@ namespace BMWMS.Business.Services.StockOperations
             var inventoryPosted = HasInventoryPosted(order);
             var totalRequested = order.TransferOrderDetails.Sum(d => d.RequestedQuantity);
             var totalMoved = order.TransferOrderDetails.Sum(d => d.MovedQuantity);
+            var linkedInbound = order.InboundOrders.FirstOrDefault();
+            var linkedOutbound = order.OutboundOrders.FirstOrDefault();
+            var isWorkflowLinked = linkedInbound != null || linkedOutbound != null;
 
             return new TransferOrderDetailViewDto
             {
@@ -245,11 +248,15 @@ namespace BMWMS.Business.Services.StockOperations
                 ConfirmedByName = order.ConfirmedByUser?.FullName,
                 ConfirmedAt = order.ConfirmedAt,
                 InventoryPosted = inventoryPosted,
-                CanEdit = order.Status == "DRAFT",
-                CanApprove = order.Status == "DRAFT",
-                CanReject = order.Status == "DRAFT" || order.Status == "APPROVED" || order.Status == "ASSIGNED",
-                CanIssue = order.Status == "APPROVED" || order.Status == "ASSIGNED",
-                CanReceive = order.Status == "IN_PROGRESS" && !inventoryPosted,
+                IsWorkflowLinked = isWorkflowLinked,
+                ParentDocumentType = linkedInbound != null ? "INBOUND" : linkedOutbound != null ? "OUTBOUND" : null,
+                ParentDocumentId = linkedInbound?.InboundOrderId ?? linkedOutbound?.OutboundOrderId,
+                ParentDocumentNumber = linkedInbound?.InboundOrderNumber ?? linkedOutbound?.OutboundOrderNumber,
+                CanEdit = !isWorkflowLinked && order.Status == "DRAFT",
+                CanApprove = !isWorkflowLinked && order.Status == "DRAFT",
+                CanReject = !isWorkflowLinked && (order.Status == "DRAFT" || order.Status == "APPROVED" || order.Status == "ASSIGNED"),
+                CanIssue = !isWorkflowLinked && (order.Status == "APPROVED" || order.Status == "ASSIGNED"),
+                CanReceive = !isWorkflowLinked && order.Status == "IN_PROGRESS" && !inventoryPosted,
                 TotalRequestedQuantity = totalRequested,
                 TotalMovedQuantity = totalMoved,
                 Details = order.TransferOrderDetails.Select(d => new TransferOrderDetailItemDto

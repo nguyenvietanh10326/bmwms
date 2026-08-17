@@ -122,10 +122,17 @@
                 @{
                     var isSalesOrderActive = Context.Request.Path.StartsWithSegments("/sales-orders");
                 }
-                <a href="/sales-orders" class="nav-item @(isSalesOrderActive ? "active" : "")">
-                    <i class="ri-file-list-3-line nav-item-icon"></i>
-                    Đơn bán hàng
-                </a>
+                <div class="nav-item nav-item-has-sub @(isSalesOrderActive ? "expanded active" : "")" onclick="toggleSubmenu(this)">
+                    <div class="nav-item-main">
+                        <i class="ri-file-list-3-line nav-item-icon"></i>
+                        Đơn bán hàng (SO)
+                    </div>
+                    <i class="ri-arrow-right-s-line nav-item-arrow"></i>
+                </div>
+                <div class="nav-submenu @(isSalesOrderActive ? "expanded" : "")">
+                    <a href="/sales-orders" class="nav-sub-item @(Context.Request.Path == "/sales-orders" || Context.Request.Path == "/sales-orders/Index" ? "active" : "")">Danh sách đơn bán hàng</a>
+                    <a href="/sales-orders/create" class="nav-sub-item @(Context.Request.Path == "/sales-orders/create" ? "active" : "")">Tạo đơn bán hàng</a>
+                </div>
             </div>
 
             <!-- 4. NGHIỆP VỤ KHO -->

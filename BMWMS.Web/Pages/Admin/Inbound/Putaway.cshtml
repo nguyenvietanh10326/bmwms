@@ -2,213 +2,43 @@
 @model BMWMS.Web.Pages.Admin.Inbound.PutawayModel
 @{
     Layout = "_AdminLayout";
-    ViewData["Title"] = "Xếp vị trí kho";
-    ViewData["ActivePage"] = "Inbound";
-    var totalToPutaway = Model.Receipt.ReceivedQuantity - Model.Receipt.PutawayQuantity;
+    ViewData["Title"] = "Xếp hàng vào vị trí kho";
+    var remaining = Model.Receipt.ReceivedQuantity - Model.Receipt.PutawayQuantity;
 }
-
-<style>
-  :root{
-    --font-ui:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-    --navy-950:#233a6b;
-    --accent:#3e5cf6; --accent-600:#3149d4; --accent-100:#e8ecff;
-    --bg:#f2f3f7; --card:#ffffff; --line:#e7e9f0; --line-strong:#d7dae5;
-    --ink:#161b2e; --ink-2:#525a72; --ink-3:#8890a6;
-    --g-tx:#0f7a3e; --g-bg:#e2f8ea;
-    --sh-xs:0 1px 2px rgba(16,23,42,.05);
-    --r-sm:8px; --r-lg:16px;
-  }
-  .putaway-page { padding: 26px 30px 64px; font-family: var(--font-ui); color: var(--ink); }
-  .putaway-page .breadcrumb { font-size: 11.5px; color: var(--ink-3); margin-bottom: 8px; font-weight: 600; text-transform: uppercase; }
-  .putaway-page .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 22px 24px; margin-bottom: 16px; box-shadow: var(--sh-xs); }
-  .putaway-page h3 { font-size: 16px; margin-top: 0; margin-bottom: 15px; font-weight: 700; }
-  
-  .stats-row { display: flex; gap: 16px; margin-bottom: 20px; }
-  .stat-card { flex: 1; background: #fff; border: 1px solid var(--line); border-radius: var(--r-sm); padding: 16px; display: flex; flex-direction: column; position: relative; overflow: hidden; box-shadow: var(--sh-xs); }
-  .stat-label { font-size: 12px; color: var(--ink-2); font-weight: 600; margin-bottom: 8px; }
-  .stat-val { font-size: 24px; font-weight: 700; color: var(--ink); }
-  
-  table{width:100%;border-collapse:collapse;font-size:13px; margin: 0;}
-  th{text-align:left;color:var(--ink-3);font-weight:600;font-size:11px;padding:10px;border-bottom:1px solid var(--line);}
-  td{padding:10px;border-bottom:1px solid var(--line);vertical-align:middle;color:var(--ink);}
-  
-  .form-input { padding: 8px 10px; border: 1px solid var(--line-strong); border-radius: var(--r-sm); font-size: 13px; width: 100%; outline: none; }
-  .form-input:focus { border-color: var(--accent); }
-  
-  .btn { display: inline-flex; align-items: center; justify-content: center; border: none; border-radius: var(--r-sm); padding: 9px 15px; font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: none; }
-  .btn-dark { background: var(--navy-950); color: #fff; }
-  .btn-light { background: #fff; border: 1px solid var(--line-strong); color: var(--ink); }
-</style>
-
-<div class="putaway-page">
-    <div class="breadcrumb">
-        <a asp-page="/Admin/Inbound/Receive" asp-route-id="@Model.Order.InboundOrderId" style="color:var(--ink-3); text-decoration:none;">Nhập kho</a> &rsaquo; Xếp hàng vào vị trí cố định
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-start mb-3">
+        <div><div class="text-muted">Putaway theo vị trí cố định</div><h3>@Model.Order.InboundOrderNumber</h3></div>
+        <a asp-page="./Details" asp-route-id="@Model.Order.InboundOrderId" class="btn btn-outline-secondary">Quay lại phiếu nhập</a>
     </div>
-
-    <div class="pagehead" style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
-        <div>
-            <h1 style="font-size: 20px; margin: 0 0 5px; font-weight: 700;">
-                Xếp hàng vào vị trí cố định — @Model.Order.InboundOrderNumber
-            </h1>
-            <p style="margin: 0; color: var(--ink-2); font-size: 13px;">Phân bổ số lượng đã chấp nhận vào bin cố định và cập nhật tồn kho.</p>
-        </div>
-        <span style="background: var(--b-bg); color: var(--b-tx); padding: 4px 10px; border-radius: 999px; font-size: 11.5px; font-weight: 600;">@Model.Order.Status</span>
-    </div>
-
-    <div class="stats-row">
-        <div class="stat-card">
-            <div class="stat-label">Cần xếp</div>
-            <div class="stat-val" id="val-canxep">@totalToPutaway</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">Đã xếp</div>
-            <div class="stat-val" id="val-daxep">0</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">Còn lại</div>
-            <div class="stat-val" id="val-conlai">@totalToPutaway</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">Số bin sử dụng</div>
-            <div class="stat-val" id="val-sobin">1</div>
-        </div>
-    </div>
-
-    <div class="card">
-        <form method="post" id="putawayForm">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                <h3 style="margin:0;">Sản phẩm/Lot cần xếp</h3>
-                <button type="button" class="btn btn-light" style="padding: 5px 10px; font-size: 12px;" onclick="addBinRow()">+ Thêm dòng xếp (chia bin)</button>
-            </div>
-
-            <table id="binTable">
-                <thead>
-                    <tr>
-                        <th style="width: 30%;">Sản phẩm / Lot</th>
-                        <th style="width: 15%;">SL đã chấp nhận</th>
-                        <th style="width: 25%;">Vị trí thực tế</th>
-                        <th style="width: 15%;">SL xếp tại đây</th>
-                        <th style="width: 15%;">Trạng thái dòng</th>
-                    </tr>
-                </thead>
-                <tbody id="binTbody">
-                    <!-- First Row -->
-                    <tr>
-                        <td>
-                            <div style="font-weight: 600;">@Model.Item.ProductName</div>
-                            <div style="font-size: 11.5px; color: var(--ink-3);">@Model.Receipt.LotNumber - Hạn @(Model.Receipt.ExpiryDate?.ToString("dd/MM/yyyy") ?? "—")</div>
-                        </td>
-                        <td style="font-weight: 600;">@totalToPutaway.ToString("0.##")</td>
-                        <td>
-                            <input type="hidden" name="PutawayDtos[0].InboundOrderItemId" value="@Model.Item.InboundOrderItemId" />
-                            <input type="hidden" name="PutawayDtos[0].ProductLotId" value="@Model.Receipt.ProductLotId" />
-                            <select name="PutawayDtos[0].StorageLocationId" class="form-input" required asp-items="Model.Locations">
-                                <option value="">-- Chọn vị trí --</option>
-                            </select>
-                        </td>
-                        <td>
-                            <input type="number" name="PutawayDtos[0].PutawayQuantity" class="form-input qty-input" required min="1" max="@totalToPutaway.ToString("0.##")" value="@totalToPutaway.ToString("0.##")" oninput="calcTotals()" />
-                        </td>
-                        <td style="font-weight: 600; font-size: 12px;" class="row-status">
-                            <span style="color: var(--g-tx);">Đủ</span>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
-                <div style="color: var(--ink-2); font-size: 13px;" id="total-text">
-                    Tổng đã xếp: <span id="js-total">@totalToPutaway.ToString("0.##")</span> / @totalToPutaway.ToString("0.##") cần xếp
-                </div>
-                <div style="color: var(--g-tx); font-weight: 600; font-size: 13px;" id="status-text">
-                    Đủ điều kiện hoàn tất
-                </div>
-            </div>
-
-            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 25px; padding-top: 15px; border-top: 1px solid var(--line);">
-                <a asp-page="Receive" asp-route-id="@Model.Order.InboundOrderId" class="btn btn-light">Hủy</a>
-                <button type="submit" class="btn btn-dark" id="submitBtn">Hoàn tất putaway</button>
-            </div>
-        </form>
+    <div class="alert alert-info">Chỉ hiển thị bin cố định đang hoạt động của sản phẩm. Khi lưu, hệ thống ghi bút toán INBOUND và tăng tồn tại từng bin.</div>
+    @if (!Model.Locations.Any()) { <div class="alert alert-danger">Sản phẩm chưa có vị trí cố định hợp lệ. Hãy cấu hình ProductFixedLocation trước khi putaway.</div> }
+    <div class="card border-0 shadow-sm"><div class="card-header bg-white"><strong>@Model.Item.ProductName</strong> (@Model.Item.ProductCode) · @(Model.Item.TrackLot ? $"Lô {Model.Receipt.LotNumber}" : "Hàng lẻ") · Còn xếp @FormatQuantity(remaining, Model.Item.QuantityScale)</div>
+        <form method="post" id="putawayForm"><div class="table-responsive"><table class="table align-middle mb-0"><thead class="table-light"><tr><th>Vị trí cố định</th><th style="width:220px">Số lượng xếp</th><th style="width:100px"></th></tr></thead><tbody id="rows">
+            <tr>
+                <td><input type="hidden" name="PutawayDtos[0].InboundOrderItemId" value="@Model.Item.InboundOrderItemId" /><input type="hidden" name="PutawayDtos[0].ProductLotId" value="@Model.Receipt.ProductLotId" /><select name="PutawayDtos[0].StorageLocationId" asp-items="Model.Locations" class="form-select location" required><option value="">-- Chọn bin --</option></select></td>
+                <td><input name="PutawayDtos[0].PutawayQuantity" type="number" min="@QuantityStep(Model.Item.QuantityScale)" max="@remaining" step="@QuantityStep(Model.Item.QuantityScale)" value="@remaining" class="form-control quantity" required /></td><td></td>
+            </tr>
+        </tbody></table></div>
+        <div class="card-footer bg-white d-flex justify-content-between align-items-center"><div>Đã phân bổ: <strong id="assigned">@FormatQuantity(remaining, Model.Item.QuantityScale)</strong> / @FormatQuantity(remaining, Model.Item.QuantityScale)</div><div class="d-flex gap-2"><button type="button" class="btn btn-outline-primary" onclick="addRow()">Chia thêm bin</button><button class="btn btn-primary" id="save" @(!Model.Locations.Any() ? "disabled" : null)>Ghi nhận xếp vị trí</button></div></div></form>
     </div>
 </div>
-
 <script>
-    const totalNeeded = @totalToPutaway;
-    const itemId = @Model.Item.InboundOrderItemId;
-    const lotId = @Model.Receipt.ProductLotId;
-    
-    // Copy options from first select
-    let optionsHtml = '';
-    document.addEventListener('DOMContentLoaded', () => {
-        optionsHtml = document.querySelector('select[name="PutawayDtos[0].StorageLocationId"]').innerHTML;
-        calcTotals();
-    });
-
-    function addBinRow() {
-        const tbody = document.getElementById('binTbody');
-        const rowCount = tbody.children.length;
-        
+    const maximum = @remaining.ToString(System.Globalization.CultureInfo.InvariantCulture);
+    const quantityStep = '@QuantityStep(Model.Item.QuantityScale)';
+    const rows = document.getElementById('rows');
+    let options = '';
+    document.addEventListener('DOMContentLoaded', () => { options = document.querySelector('.location').innerHTML; recalculate(); });
+    function addRow() {
+        const index = rows.children.length;
         const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>
-                <div style="color: var(--ink-3); font-size: 12.5px;">↳ chia sang bin khác</div>
-            </td>
-            <td style="color: var(--ink-4);">—</td>
-            <td>
-                <input type="hidden" name="PutawayDtos[${rowCount}].InboundOrderItemId" value="${itemId}" />
-                <input type="hidden" name="PutawayDtos[${rowCount}].ProductLotId" value="${lotId}" />
-                <select name="PutawayDtos[${rowCount}].StorageLocationId" class="form-input" required>
-                    ${optionsHtml}
-                </select>
-            </td>
-            <td>
-                <input type="number" name="PutawayDtos[${rowCount}].PutawayQuantity" class="form-input qty-input" required min="1" max="${totalNeeded}" value="0" oninput="calcTotals()" />
-            </td>
-            <td style="font-weight: 600; font-size: 12px;" class="row-status">
-                <span style="color: var(--ink-3);">—</span>
-            </td>
-        `;
-        tbody.appendChild(tr);
-        calcTotals();
+        tr.innerHTML = `<td><input type="hidden" name="PutawayDtos[${index}].InboundOrderItemId" value="@Model.Item.InboundOrderItemId"><input type="hidden" name="PutawayDtos[${index}].ProductLotId" value="@Model.Receipt.ProductLotId"><select name="PutawayDtos[${index}].StorageLocationId" class="form-select location" required>${options}</select></td><td><input name="PutawayDtos[${index}].PutawayQuantity" type="number" min="${quantityStep}" max="${maximum}" step="${quantityStep}" value="0" class="form-control quantity" required></td><td><button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('tr').remove(); renameRows(); recalculate();">Xóa</button></td>`;
+        rows.appendChild(tr); tr.querySelector('.quantity').addEventListener('input', recalculate); recalculate();
     }
-
-    function calcTotals() {
-        const inputs = document.querySelectorAll('.qty-input');
-        let totalAssigned = 0;
-        
-        inputs.forEach(input => {
-            const val = parseFloat(input.value) || 0;
-            totalAssigned += val;
-        });
-
-        const remaining = totalNeeded - totalAssigned;
-        
-        document.getElementById('val-daxep').innerText = totalAssigned;
-        document.getElementById('val-conlai').innerText = Math.max(0, remaining);
-        document.getElementById('val-sobin').innerText = inputs.length;
-
-        const totalText = document.getElementById('total-text');
-        const statusText = document.getElementById('status-text');
-        const submitBtn = document.getElementById('submitBtn');
-
-        totalText.innerText = `Tổng đã xếp: ${totalAssigned} / ${totalNeeded} cần xếp`;
-
-        if (totalAssigned === totalNeeded) {
-            statusText.innerText = 'Đủ điều kiện hoàn tất';
-            statusText.style.color = 'var(--g-tx)';
-            submitBtn.disabled = false;
-            submitBtn.innerText = 'Hoàn tất putaway';
-        } else if (totalAssigned > 0 && totalAssigned < totalNeeded) {
-            statusText.innerText = 'Chưa xếp đủ số lượng (Có thể Lưu xếp một phần)';
-            statusText.style.color = '#93650a'; // warning
-            submitBtn.disabled = false;
-            submitBtn.innerText = 'Lưu xếp một phần';
-        } else {
-            statusText.innerText = 'Chưa xếp đủ số lượng';
-            statusText.style.color = 'var(--r-tx)';
-            submitBtn.disabled = true;
-            submitBtn.innerText = 'Hoàn tất putaway';
-        }
-    }
+    function renameRows() { [...rows.children].forEach((row,i) => row.querySelectorAll('[name]').forEach(x => x.name=x.name.replace(/\[\d+\]/,`[${i}]`))); }
+    function recalculate() { const total=[...document.querySelectorAll('.quantity')].reduce((s,x)=>s+(Number(x.value)||0),0); document.getElementById('assigned').textContent=total.toLocaleString('vi-VN'); document.getElementById('save').disabled=total<=0||total>maximum||!document.querySelector('.location option:not([value=""])'); }
+    document.addEventListener('input', e => { if(e.target.classList.contains('quantity')) recalculate(); });
 </script>
+@functions {
+    string QuantityStep(byte scale) => scale == 0 ? "1" : "0." + new string('0', scale - 1) + "1";
+    string FormatQuantity(decimal value, byte scale) => value.ToString(scale == 0 ? "N0" : $"N{scale}");
+}

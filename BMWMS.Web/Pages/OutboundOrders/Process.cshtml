@@ -3,347 +3,119 @@
 @model BMWMS.Web.Pages.OutboundOrders.ProcessModel
 @{
     Layout = "_AdminLayout";
+    ViewData["Title"] = $"Th·ª±c hi·ªán xu·∫•t kho - {Model.Order.OutboundOrderNumber}";
+    var isSale = Model.Order.SourceType == "SALES_ORDER";
+}
 
-    ViewData["Title"] = $"X? L˝ L?y H‡ng - {Model.Order.OutboundOrderNumber}";
-}
-@section Styles {
-    <link rel="stylesheet"
-          href="~/css/Inventory/StyleSheet1.css"
-          asp-append-version="true" />
-}
 <div class="container-fluid py-4">
-    <!-- Header Page -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex justify-content-between align-items-start mb-3">
         <div>
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-1">
-                    <li class="breadcrumb-item"><a asp-page="./Index">Danh s·ch xu?t kho</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">X? l˝ l?y h‡ng</li>
-                </ol>
-            </nav>
-            <h3 class="fw-bold m-0 text-primary">
-                <i class="bi bi-box-seam me-2"></i>L?nh Xu?t Kho: @Model.Order.OutboundOrderNumber
-            </h3>
+            <div class="text-muted mb-1">Th·ª±c hi·ªán l·∫•y h√†ng v√† x√°c nh·∫≠n xu·∫•t kho</div>
+            <h3 class="mb-0">@Model.Order.OutboundOrderNumber</h3>
         </div>
-        <a asp-page="./Index" class="btn btn-outline-secondary">
-            <i class="bi bi-arrow-left me-1"></i>Quay l?i
-        </a>
+        <a asp-page="./Details" asp-route-id="@Model.Order.OutboundOrderId" class="btn btn-outline-secondary">Xem chi ti·∫øt phi·∫øu</a>
     </div>
 
-    <!-- ThÙng tin t?ng quan don h‡ng -->
-    <div class="card border-0 shadow-sm rounded-3 mb-4">
-        <div class="card-body p-4">
-            <div class="row g-3">
-                <div class="col-md-3">
-                    <span class="text-muted small d-block">Tr?ng th·i phi?u</span>
-                    <span class="badge bg-info text-dark fs-6 px-3 py-2 mt-1">
-                        <i class="bi bi-clock-history me-1"></i>@Model.Order.Status
-                    </span>
-                </div>
-                <div class="col-md-3">
-                    <span class="text-muted small d-block">Kho xu?t h‡ng</span>
-                    <strong class="fs-6 text-dark"><i class="bi bi-geo-alt me-1 text-danger"></i>@Model.Order.WarehouseName</strong>
-                </div>
-                <div class="col-md-3">
-                    <span class="text-muted small d-block">M„ don b·n h‡ng (SO) / Kh·ch h‡ng</span>
-                    <strong class="fs-6 text-dark">@Model.Order.SalesOrderNumber</strong>
-                    <span class="text-muted ms-1">(@Model.Order.CustomerName)</span>
-                </div>
-                <div class="col-md-3">
-                    <span class="text-muted small d-block">Ghi ch˙</span>
-                    <span class="fst-italic text-secondary">@(string.IsNullOrEmpty(Model.Order.Notes) ? "KhÙng cÛ" : Model.Order.Notes)</span>
-                </div>
-            </div>
+    <div class="alert alert-info">
+        <strong>@(isSale ? "Xu·∫•t b√°n theo SO" : "Tr·∫£ h√†ng nh√† cung c·∫•p theo PO"):</strong>
+        @Model.Order.SourceReference ‚Äî @Model.Order.PartnerName.
+        L·∫•y ƒë√∫ng v·ªã tr√≠/l√¥ ƒë∆∞·ª£c h·ªá th·ªëng ph√¢n b·ªï; t·ªìn kho ƒë∆∞·ª£c tr·ª´ ngay khi x√°c nh·∫≠n.
+    </div>
+
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body row g-3">
+            <div class="col-md-3"><div class="text-muted small">Tr·∫°ng th√°i</div><strong>@StatusLabel(Model.Order.Status)</strong></div>
+            <div class="col-md-3"><div class="text-muted small">Kho xu·∫•t</div><strong>@Model.Order.WarehouseName</strong></div>
+            <div class="col-md-3"><div class="text-muted small">Phi·∫øu ƒëi·ªÅu chuy·ªÉn t√°c nghi·ªáp</div><a asp-page="/Transfer/Details" asp-route-id="@Model.Order.TransferOrderId">@Model.Order.TransferOrderNumber</a></div>
+            <div class="col-md-3"><div class="text-muted small">Ghi ch√∫</div><span>@(string.IsNullOrWhiteSpace(Model.Order.Notes) ? "Kh√¥ng c√≥" : Model.Order.Notes)</span></div>
         </div>
     </div>
 
-    <!-- Danh s·ch c·c s?n ph?m c?n l?y h‡ng (Items) -->
-    <h5 class="fw-bold text-dark mb-3">
-        <i class="bi bi-list-check me-2 text-primary"></i>Chi Ti?t M?t H‡ng C?n L?y
-    </h5>
+    @foreach (var item in Model.Order.Items)
+    {
+        var progress = item.RequestedQuantity > 0 ? Math.Min(100, (int)(item.IssuedQuantity * 100 / item.RequestedQuantity)) : 0;
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div><span class="badge bg-secondary">@item.ProductCode</span><h5 class="mt-2 mb-1">@item.ProductName</h5><span class="text-muted">ƒê∆°n v·ªã: @item.UnitName</span></div>
+                    <div class="text-end"><strong>@FormatQuantity(item.IssuedQuantity, item.QuantityScale) / @FormatQuantity(item.RequestedQuantity, item.QuantityScale)</strong><div class="text-muted">C√≤n @FormatQuantity(item.RemainingQuantity, item.QuantityScale)</div></div>
+                </div>
+                <div class="progress mb-3" style="height:8px"><div class="progress-bar" style="width:@progress%"></div></div>
 
-    <div class="row g-3">
-        @if (Model.Order.Items != null && Model.Order.Items.Any())
-        {
-            @foreach (var item in Model.Order.Items)
-            {
-                var progressPercent = item.RequestedQuantity > 0
-                ? (int)((item.IssuedQuantity / item.RequestedQuantity) * 100)
-                : 0;
-
-                <div class="col-12">
-                    <div class="card border-0 shadow-sm rounded-3">
-                        <div class="card-body p-4">
-                            <div class="row align-items-center">
-                                <!-- ThÙng tin s?n ph?m -->
-                                <div class="col-md-4 border-end">
-                                    <div class="d-flex align-items-center mb-2">
-                                        <span class="badge bg-secondary font-monospace me-2">@item.ProductCode</span>
-                                        <span class="badge bg-light text-dark border">–VT: @item.UnitName</span>
-                                    </div>
-                                    <h5 class="fw-bold text-primary mb-2">@item.ProductName</h5>
-
-                                    <div class="d-flex justify-content-between pe-3 small text-muted mb-1">
-                                        <span>YÍu c?u: <strong class="text-dark">@item.RequestedQuantity.ToString("N0")</strong></span>
-                                        <span>–„ l?y: <strong class="text-success">@item.IssuedQuantity.ToString("N0")</strong></span>
-                                        <span>CÚn l?i: <strong class="text-danger">@item.RemainingQuantity.ToString("N0")</strong></span>
-                                    </div>
-
-                                    <!-- Thanh ti?n d? l?y h‡ng -->
-                                    <div class="progress mt-2" style="height: 8px;">
-                                        <div class="progress-bar @(progressPercent == 100 ? "bg-success" : "bg-primary")"
-                                             role="progressbar"
-                                             style="width: @progressPercent%;"
-                                             aria-valuenow="@progressPercent"
-                                             aria-valuemin="0"
-                                             aria-valuemax="100"></div>
-                                    </div>
-                                    <div class="text-end small text-muted mt-1">@progressPercent% Ho‡n th‡nh</div>
-                                </div>
-
-                                <!-- Chi ti?t V? trÌ t?n kh? d?ng & –„ l?y -->
-                                <div class="col-md-6 px-4">
-                                    <!-- L?ch s? –„ l?y -->
-                                    <div class="mb-3">
-                                        <small class="fw-bold text-secondary d-block mb-1">
-                                            <i class="bi bi-check-all me-1 text-success"></i>–„ l?y t? c·c v? trÌ:
-                                        </small>
-                                        @if (item.PickedDetails != null && item.PickedDetails.Any())
-                                        {
-                                            <div class="d-flex flex-wrap gap-2">
-                                                @foreach (var picked in item.PickedDetails)
-                                                {
-                                                    <span class="badge bg-success-subtle text-success border border-success px-2 py-1">
-                                                        <i class="bi bi-pin-map me-1"></i>V? trÌ: <strong>@picked.LocationCode</strong>
-                                                        | LÙ: <strong>@picked.LotNumber</strong>
-                                                        | SL: <strong>@picked.Quantity.ToString("N0")</strong>
-                                                    </span>
-                                                }
-                                            </div>
-                                        }
-                                        else
-                                        {
-                                            <span class="text-muted small fst-italic">Chua cÛ ghi nh?n l?y h‡ng n‡o.</span>
-                                        }
-                                    </div>
-
-                                    <!-- V? trÌ kh? d?ng cÛ th? l?y -->
-                                    <div>
-                                        <small class="fw-bold text-secondary d-block mb-1">
-                                            <i class="bi bi-box-arrow-in-down me-1 text-primary"></i>G?i ˝ V? trÌ & LÙ h‡ng kh? d?ng:
-                                        </small>
-                                        @if (item.AvailableLocations != null && item.AvailableLocations.Any())
-                                        {
-                                            <div class="d-flex flex-wrap gap-2">
-                                                @foreach (var loc in item.AvailableLocations)
-                                                {
-                                                    <span class="badge bg-light text-dark border p-2">
-                                                        <i class="bi bi-geo me-1 text-primary"></i>@loc.LocationCode
-                                                        | LÙ: <strong>@loc.LotNumber</strong>
-                                                        | Kh? d?ng: <strong class="text-primary">@loc.AvailableQuantity.ToString("N0")</strong>
-                                                    </span>
-                                                }
-                                            </div>
-                                        }
-                                        else
-                                        {
-                                            <span class="text-warning small fst-italic">KhÙng tÏm th?y v? trÌ t?n kh? d?ng n‡o ph˘ h?p!</span>
-                                        }
-                                    </div>
-                                </div>
-
-                                <!-- N˙t thao t·c Pick h‡ng -->
-                                <div class="col-md-2 text-center">
-                                    @if (item.RemainingQuantity > 0)
-                                    {
-                                        <button type="button" class="btn btn-primary px-3 py-2 w-100 shadow-sm"
-                                                onclick="openPickModal(@Model.Order.OutboundOrderId, @item.OutboundOrderItemId, '@item.ProductName', @item.RemainingQuantity, @JsonSerializer.Serialize(item.AvailableLocations))">
-                                            <i class="bi bi-box-arrow-right me-1"></i>L?y H‡ng
-                                        </button>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge bg-success px-3 py-2 fs-6">
-                                            <i class="bi bi-check-circle me-1"></i>–„ d? SL
-                                        </span>
-                                    }
-                                </div>
-                            </div>
-                        </div>
+                @if (item.PickedDetails.Count > 0)
+                {
+                    <div class="mb-3"><div class="fw-semibold mb-2">ƒê√£ xu·∫•t</div>
+                    @foreach (var picked in item.PickedDetails)
+                    { <span class="badge bg-success-subtle text-success border me-2">@picked.LocationCode ¬∑ @(item.TrackLot ? $"L√¥ {picked.LotNumber}" : "H√†ng l·∫ª") ¬∑ @FormatQuantity(picked.IssuedQuantity, item.QuantityScale)</span> }
                     </div>
-                </div>
-            }
-        }
-        else
-        {
-            <div class="col-12 text-center py-5">
-                <i class="bi bi-inbox fs-1 text-muted d-block mb-2"></i>
-                <span class="text-muted">KhÙng cÛ d? li?u m?t h‡ng xu?t kho!</span>
+                }
+
+                <div class="fw-semibold mb-2">Ph√¢n b·ªï l·∫•y h√†ng</div>
+                @if (item.AvailableLocations.Count == 0)
+                { <div class="text-muted">Kh√¥ng c√≤n ph√¢n b·ªï kh·∫£ d·ª•ng.</div> }
+                else
+                {
+                    <div class="table-responsive"><table class="table table-sm align-middle">
+                        <thead><tr><th>V·ªã tr√≠</th><th>L√¥</th><th class="text-end">ƒê∆∞·ª£c l·∫•y</th><th class="text-end">Thao t√°c</th></tr></thead>
+                        <tbody>
+                        @foreach (var location in item.AvailableLocations)
+                        {
+                            var json = JsonSerializer.Serialize(location, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+                            <tr><td>@location.LocationCode</td><td>@(item.TrackLot ? location.LotNumber : "H√†ng l·∫ª")</td><td class="text-end">@FormatQuantity(location.AvailableQuantity, item.QuantityScale)</td>
+                            <td class="text-end"><button type="button" class="btn btn-primary btn-sm" onclick='openPick(@Model.Order.OutboundOrderId,@item.OutboundOrderItemId,@item.RemainingQuantity,@item.QuantityScale,@item.TrackLot.ToString().ToLowerInvariant(),@Html.Raw(json))'>X√°c nh·∫≠n l·∫•y/xu·∫•t</button></td></tr>
+                        }
+                        </tbody>
+                    </table></div>
+                }
             </div>
-        }
-    </div>
+        </div>
+    }
 </div>
 
-<!-- MODAL THAO T¡C PICK H¿NG -->
-<div class="modal fade" id="pickModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title fw-bold" id="modalProductName">Thao T·c L?y H‡ng</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body p-4">
-                <form id="formPick">
-                    <!-- Hidden inputs cho API -->
-                    <input type="hidden" id="modalOutboundOrderId" />
-                    <input type="hidden" id="modalOutboundOrderItemId" />
-
-                    <!-- Ch?n V? trÌ & LÙ h‡ng -->
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Ch?n V? TrÌ / LÙ H‡ng Xu?t Kho <span class="text-danger">*</span></label>
-                        <select class="form-select border-primary" id="ddlAvailableLocations" onchange="onLocationChanged()">
-                            <option value="">-- Ch?n V? trÌ & LÙ --</option>
-                        </select>
-                        <input type="hidden" id="modalStorageLocationId" />
-                        <input type="hidden" id="modalProductLotId" />
-                        <input type="hidden" id="modalInventoryReservationId" />
-                    </div>
-
-                    <!-- S? lu?ng c?n l?y -->
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between">
-                            <label class="form-label fw-bold">S? Lu?ng L?y <span class="text-danger">*</span></label>
-                            <span class="text-muted small">CÚn thi?u: <strong id="lblModalRemaining" class="text-danger">0</strong></span>
-                        </div>
-                        <input type="number" step="0.01" class="form-control form-control-lg text-end fw-bold border-primary" id="txtPickQuantity" placeholder="0" min="0.01" />
-                    </div>
-
-                    <!-- Ghi ch˙ -->
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Ghi Ch˙</label>
-                        <textarea class="form-control" id="txtPickNotes" rows="2" placeholder="Nh?p ghi ch˙ (n?u cÛ)..."></textarea>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer bg-light">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">H?y</button>
-                <button type="button" class="btn btn-primary px-4" id="btnSubmitPick" onclick="submitPick()">
-                    <i class="bi bi-check-lg me-1"></i>X·c Nh?n L?y H‡ng
-                </button>
-            </div>
-        </div>
+<div class="modal fade" id="pickModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title">X√°c nh·∫≠n l·∫•y v√† xu·∫•t h√†ng</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body">
+        <div class="alert alert-warning">Thao t√°c n√†y ghi b√∫t to√°n OUTBOUND v√† tr·ª´ t·ªìn ngay; kh√¥ng th·ªÉ s·ª≠a s·ªï giao d·ªãch sau khi x√°c nh·∫≠n.</div>
+        <div class="mb-2"><span class="text-muted">V·ªã tr√≠/l√¥:</span> <strong id="routeText"></strong></div>
+        <label class="form-label">S·ªë l∆∞·ª£ng th·ª±c xu·∫•t</label><input id="pickQuantity" type="number" min="0.0001" step="0.0001" class="form-control mb-3" />
+        <label class="form-label">Ghi ch√∫</label><textarea id="pickNotes" class="form-control" rows="2"></textarea>
     </div>
-</div>
+    <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">ƒê√≥ng</button><button type="button" id="confirmPick" class="btn btn-primary" onclick="submitPick()">X√°c nh·∫≠n xu·∫•t</button></div>
+</div></div></div>
+
+@functions {
+    string StatusLabel(string status) => status switch { "READY" => "S·∫µn s√†ng xu·∫•t", "ISSUING" => "ƒêang xu·∫•t h√†ng", "ISSUED" => "ƒê√£ xu·∫•t", "CANCELLED" => "ƒê√£ h·ªßy", _ => "Nh√°p" };
+    string FormatQuantity(decimal value, byte scale) => value.ToString(scale == 0 ? "N0" : $"N{scale}");
+}
 
 @section Scripts {
-    <script>
-        let pickModalInstance;
-
-        $(document).ready(function () {
-            pickModalInstance = new bootstrap.Modal(document.getElementById('pickModal'));
-        });
-
-        // H‡m m? Popup L?y H‡ng
-        function openPickModal(orderId, itemId, productName, remainingQty, availableLocations) {
-            $('#modalOutboundOrderId').val(orderId);
-            $('#modalOutboundOrderItemId').val(itemId);
-            $('#modalProductName').text(`L?y h‡ng: ${productName}`);
-            $('#lblModalRemaining').text(Number(remainingQty).toLocaleString());
-            $('#txtPickQuantity').val(remainingQty);
-            $('#txtPickNotes').val('');
-
-            // Fill danh s·ch V? trÌ kh? d?ng v‡o Dropdown
-            const ddl = $('#ddlAvailableLocations');
-            ddl.empty();
-            ddl.append('<option value="">-- Ch?n V? trÌ & LÙ --</option>');
-
-            if (availableLocations && availableLocations.length > 0) {
-                availableLocations.forEach(loc => {
-                    const text = `V? trÌ: ${loc.LocationCode} | LÙ: ${loc.LotNumber} (Kh? d?ng: ${loc.AvailableQuantity})`;
-                    const jsonVal = JSON.stringify(loc);
-                    ddl.append(`<option value='${jsonVal}'>${text}</option>`);
-                });
-
-                // Ch?n m?c d?nh v? trÌ d?u tiÍn
-                ddl.prop('selectedIndex', 1);
-                onLocationChanged();
-            }
-
-            pickModalInstance.show();
-        }
-
-        // Khi thay d?i V? trÌ trÍn Dropdown
-        function onLocationChanged() {
-            const val = $('#ddlAvailableLocations').val();
-            if (!val) {
-                $('#modalStorageLocationId').val(0);
-                $('#modalProductLotId').val(0);
-                $('#modalInventoryReservationId').val(0);
-                return;
-            }
-
-            const locData = JSON.parse(val);
-            $('#modalStorageLocationId').val(locData.StorageLocationId || locData.storageLocationId);
-            $('#modalProductLotId').val(locData.ProductLotId || locData.productLotId);
-            $('#modalInventoryReservationId').val(locData.InventoryReservationId || locData.inventoryReservationId);
-
-            // G?i ˝ s? lu?ng t?i da theo lu?ng t?n kh? d?ng c?a v? trÌ dÛ
-            const maxAvailable = locData.AvailableQuantity || locData.availableQuantity || 0;
-            const currentReq = parseFloat($('#lblModalRemaining').text().replace(/,/g, '')) || 0;
-
-            // L?y min gi?a s? lu?ng cÚn thi?u v‡ s? lu?ng v? trÌ cÛ
-            const suggestQty = Math.min(maxAvailable, currentReq);
-            $('#txtPickQuantity').val(suggestQty);
-            $('#txtPickQuantity').attr('max', maxAvailable);
-        }
-
-        // G?i d? li?u L?y H‡ng v? Server qua Handler AJAX
-        function submitPick() {
-            const requestData = {
-                outboundOrderId: parseInt($('#modalOutboundOrderId').val()),
-                outboundOrderItemId: parseInt($('#modalOutboundOrderItemId').val()),
-                storageLocationId: parseInt($('#modalStorageLocationId').val()),
-                productLotId: parseInt($('#modalProductLotId').val()),
-                inventoryReservationId: parseInt($('#modalInventoryReservationId').val()),
-                pickQuantity: parseFloat($('#txtPickQuantity').val()),
-                notes: $('#txtPickNotes').val()
-            };
-
-            if (!requestData.storageLocationId || requestData.storageLocationId <= 0) {
-                alert('Vui lÚng ch?n V? trÌ & LÙ h‡ng!');
-                return;
-            }
-
-            if (!requestData.pickQuantity || requestData.pickQuantity <= 0) {
-                alert('Vui lÚng nh?p S? lu?ng l?y h?p l?!');
-                return;
-            }
-
-            const btn = $('#btnSubmitPick');
-            btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>–ang x? l˝...');
-
-            $.ajax({
-                url: '?handler=Pick',
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify(requestData),
-                headers: {
-                    "RequestVerificationToken": $('input:hidden[name="__RequestVerificationToken"]').val()
-                },
-                success: function (res) {
-                    if (res.success) {
-                        pickModalInstance.hide();
-                        location.reload(); // T?i l?i trang d? c?p nh?t tr?ng th·i m?i nh?t
-                    } else {
-                        alert(res.message || 'Thao t·c th?t b?i!');
-                        btn.prop('disabled', false).html('<i class="bi bi-check-lg me-1"></i>X·c Nh?n L?y H‡ng');
-                    }
-                },
-                error: function () {
-                    alert('L?i h? th?ng khi k?t n?i Server!');
-                    btn.prop('disabled', false).html('<i class="bi bi-check-lg me-1"></i>X·c Nh?n L?y H‡ng');
-                }
-            });
-        }
-    </script>
+@Html.AntiForgeryToken()
+<script>
+    let currentPick = null;
+    const modal = new bootstrap.Modal(document.getElementById('pickModal'));
+    function openPick(orderId, itemId, remaining, scale, trackLot, route) {
+        currentPick = { orderId, itemId, route, scale };
+        document.getElementById('routeText').textContent = `${route.locationCode} ¬∑ ${trackLot ? `L√¥ ${route.lotNumber}` : 'H√†ng l·∫ª'}`;
+        document.getElementById('pickQuantity').min = scale === 0 ? '1' : `0.${'0'.repeat(scale - 1)}1`;
+        document.getElementById('pickQuantity').step = document.getElementById('pickQuantity').min;
+        document.getElementById('pickQuantity').max = route.availableQuantity;
+        document.getElementById('pickQuantity').value = Math.min(remaining, route.availableQuantity);
+        document.getElementById('pickNotes').value = '';
+        modal.show();
+    }
+    async function submitPick() {
+        const quantity = Number(document.getElementById('pickQuantity').value);
+        if (!currentPick || quantity <= 0 || quantity > currentPick.route.availableQuantity) { alert('S·ªë l∆∞·ª£ng th·ª±c xu·∫•t kh√¥ng h·ª£p l·ªá.'); return; }
+        const payload = {
+            outboundOrderId: currentPick.orderId, outboundOrderItemId: currentPick.itemId,
+            storageLocationId: currentPick.route.storageLocationId, productLotId: currentPick.route.productLotId,
+            inventoryReservationId: currentPick.route.inventoryReservationId || null,
+            pickQuantity: quantity, notes: document.getElementById('pickNotes').value
+        };
+        const button = document.getElementById('confirmPick'); button.disabled = true;
+        const response = await fetch('?handler=Pick', { method:'POST', headers:{ 'Content-Type':'application/json', 'RequestVerificationToken':document.querySelector('input[name="__RequestVerificationToken"]').value }, body:JSON.stringify(payload) });
+        const result = await response.json();
+        if (result.success) location.reload(); else { alert(result.message || 'Kh√¥ng th·ªÉ xu·∫•t h√†ng.'); button.disabled = false; }
+    }
+</script>
 }

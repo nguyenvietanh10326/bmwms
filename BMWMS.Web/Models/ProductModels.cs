@@ -35,6 +35,7 @@ namespace BMWMS.Web.Models
         public string GroupName { get; set; } = string.Empty;
         public int UnitOfMeasureId { get; set; }
         public string UnitName { get; set; } = string.Empty;
+        public byte QuantityScale { get; set; }
         public string? Barcode { get; set; }
         public string? Description { get; set; }
         public string RotationMethod { get; set; } = "FIFO";
@@ -134,6 +135,7 @@ namespace BMWMS.Web.Models
     {
         public int UnitOfMeasureId { get; set; }
         public string UnitCode { get; set; } = string.Empty;
+        public byte QuantityScale { get; set; }
         public string UnitName { get; set; } = string.Empty;
     }
 

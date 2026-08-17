@@ -301,6 +301,10 @@ namespace BMWMS.Repository.Repositories.StockOperations
                     .FirstOrDefaultAsync(o => o.TransferOrderId == transferOrderId)
                     ?? throw new InvalidOperationException("Khong tim thay phieu dieu chuyen.");
 
+                if (await _context.InboundOrders.AnyAsync(o => o.TransferOrderId == transferOrderId) ||
+                    await _context.OutboundOrders.AnyAsync(o => o.TransferOrderId == transferOrderId))
+                    throw new InvalidOperationException("Phiếu điều chuyển tác nghiệp liên kết phải được xử lý từ phiếu nhập/xuất nguồn.");
+
                 if (order.Status != StatusDraft && !IsApprovedStatus(order.Status))
                     throw new InvalidOperationException("Chi co the tu choi phieu dang o trang thai DRAFT hoac da duyet/chua xuat.");
 
@@ -429,6 +433,8 @@ namespace BMWMS.Repository.Repositories.StockOperations
                 .Include(o => o.ConfirmedByUser)
                 .Include(o => o.SourceWarehouse)
                 .Include(o => o.DestinationWarehouse)
+                .Include(o => o.InboundOrders)
+                .Include(o => o.OutboundOrders)
                 .Include(o => o.TransferOrderDetails)
                     .ThenInclude(d => d.Product).ThenInclude(p => p.UnitOfMeasure)
                 .Include(o => o.TransferOrderDetails)
@@ -453,6 +459,9 @@ namespace BMWMS.Repository.Repositories.StockOperations
 
             var order = await query.FirstOrDefaultAsync(o => o.TransferOrderId == transferOrderId)
                 ?? throw new InvalidOperationException("Khong tim thay phieu dieu chuyen.");
+
+            if (order.InboundOrders.Count > 0 || order.OutboundOrders.Count > 0)
+                throw new InvalidOperationException("Phiếu điều chuyển tác nghiệp liên kết phải được xử lý từ phiếu nhập/xuất nguồn để tránh ghi tồn hai lần.");
 
             if (!includeTransactions)
                 return order;

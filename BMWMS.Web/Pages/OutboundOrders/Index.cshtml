@@ -1,470 +1,50 @@
-
 @page
 @model BMWMS.Web.Pages.OutboundOrders.IndexModel
-
 @{
     Layout = "_AdminLayout";
-    ViewData["Title"] = "Qu?n l˝ L?nh Xu?t Kho";
+    ViewData["Title"] = "Phi·∫øu xu·∫•t kho";
+    var totalPages = Math.Max(1, (int)Math.Ceiling(Model.PagedResult.TotalCount / (double)Math.Max(1, Model.PagedResult.PageSize)));
 }
 
-@section Styles {
-    <link rel="stylesheet"
-          href="~/css/Inventory/outbound-orders.css"
-          asp-append-version="true" />
-}
-
-<div class="page-container">
-
-    <!-- =====================================================
-         PAGE HEADER
-    ====================================================== -->
-    <div class="page-header">
-
-        <div class="page-header-content">
-
-            <div class="page-title-row">
-                <h1 class="page-header-title">
-                    Xem danh s·ch l?nh xu?t kho
-                </h1>
-            </div>
-
-            <p class="page-header-sub">
-                TÏm ki?m v‡ theo dıi c·c l?nh xu?t kho
-                <span class="header-dot">ï</span>
-                Actor chÌnh: Nh‚n viÍn b·n h‡ng
-            </p>
-
-        </div>
-
-        <a asp-page="./Create" class="btn-create-order">
-            <i class="bi bi-plus-lg"></i>
-            <span>T?o l?nh xu?t</span>
-        </a>
-
+<div class="container-fluid py-4">
+    @if (!string.IsNullOrWhiteSpace(Model.SuccessMessage)) { <div class="alert alert-success">@Model.SuccessMessage</div> }
+    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage)) { <div class="alert alert-danger">@Model.ErrorMessage</div> }
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div><h3 class="mb-1">Phi·∫øu xu·∫•t kho</h3><div class="text-muted">Theo d√µi lu·ªìng b√°n h√†ng theo SO v√† tr·∫£ h√†ng nh√† cung c·∫•p theo PO.</div></div>
+        <a asp-page="./Create" class="btn btn-primary">T·∫°o phi·∫øu xu·∫•t</a>
     </div>
 
-
-    <!-- =====================================================
-         ALERT NOTIFICATIONS
-    ====================================================== -->
-    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
-    {
-        <div class="custom-alert custom-alert-success"
-             role="alert">
-
-            <div class="custom-alert-content">
-                <div class="custom-alert-icon">
-                    <i class="bi bi-check-circle-fill"></i>
-                </div>
-
-                <div class="custom-alert-message">
-                    @Model.SuccessMessage
-                </div>
-            </div>
-
-            <button type="button"
-                    class="custom-alert-close"
-                    data-bs-dismiss="alert"
-                    aria-label="Close">
-                <i class="bi bi-x-lg"></i>
-            </button>
-
-        </div>
-    }
-
-    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
-    {
-        <div class="custom-alert custom-alert-error"
-             role="alert">
-
-            <div class="custom-alert-content">
-                <div class="custom-alert-icon">
-                    <i class="bi bi-exclamation-circle-fill"></i>
-                </div>
-
-                <div class="custom-alert-message">
-                    @Model.ErrorMessage
-                </div>
-            </div>
-
-            <button type="button"
-                    class="custom-alert-close"
-                    data-bs-dismiss="alert"
-                    aria-label="Close">
-                <i class="bi bi-x-lg"></i>
-            </button>
-
-        </div>
-    }
-
-
-    <!-- =====================================================
-         SEARCH & FILTER
-    ====================================================== -->
-    <div class="filter-card">
-
-        <form method="get" class="filter-form">
-
-            <input type="hidden"
-                   asp-for="Filter.PageIndex"
-                   value="1" />
-
-
-            <!-- SEARCH -->
-            <div class="filter-search">
-
-                <label class="filter-label">
-                    TÏm ki?m
-                </label>
-
-                <div class="search-box">
-
-                    <i class="bi bi-search"></i>
-
-                    <input type="text"
-                           asp-for="Filter.Search"
-                           class="form-control"
-                           placeholder="TÏm m„ l?nh xu?t ho?c SO..." />
-
-                </div>
-
-            </div>
-
-
-            <!-- STATUS -->
-            <div class="filter-item filter-status">
-
-                <label class="filter-label">
-                    Tr?ng th·i
-                </label>
-
-                <select asp-for="Filter.Status"
-                        asp-items="Model.StatusOptions"
-                        class="form-select">
-                </select>
-
-            </div>
-
-
-            <!-- WAREHOUSE -->
-            <div class="filter-item filter-warehouse">
-
-                <label class="filter-label">
-                    Kho xu?t
-                </label>
-
-               <select asp-for="Filter.WarehouseId"
-        asp-items="Model.WarehouseOptions"
-        class="form-select">
-</select>
-
-            </div>
-
-
-            <!-- ACTIONS -->
-            <div class="filter-actions">
-
-                <button type="submit"
-                        class="btn-search">
-
-                    <i class="bi bi-search"></i>
-                    <span>TÏm ki?m</span>
-
-                </button>
-
-                <a asp-page="./Index"
-                   class="btn-reset">
-
-                    <i class="bi bi-arrow-counterclockwise"></i>
-                    <span>–?t l?i</span>
-
-                </a>
-
-            </div>
-
-        </form>
-
-    </div>
-
-
-    <!-- =====================================================
-         DATA TABLE
-    ====================================================== -->
-    <div class="data-table-card">
-
-        <div class="table-responsive">
-
-            <table class="table custom-table">
-
-                <colgroup>
-                    <col class="col-order" />
-                    <col class="col-sales" />
-                    <col class="col-customer" />
-                    <col class="col-warehouse" />
-                    <col class="col-status" />
-                    <col class="col-quantity" />
-                    <col class="col-action" />
-                </colgroup>
-
-                <thead>
-                    <tr>
-                        <th>M„ l?nh</th>
-                        <th>Sales Order</th>
-                        <th>Kh·ch h‡ng</th>
-                        <th>Kho xu?t</th>
-                        <th>Tr?ng th·i</th>
-                        <th>T?ng SL</th>
-                        <th class="text-end">Thao t·c</th>
-                    </tr>
-                </thead>
-
-                <tbody>
-                    @if (Model.PagedResult.Items != null &&
-                                        Model.PagedResult.Items.Any())
-                    {
-                        @foreach (var item in Model.PagedResult.Items)
-                        {
-                            <tr>
-
-                                <!-- M√ L?NH -->
-                                <td>
-                                    <a asp-page="./Details"
-                                       asp-route-id="@item.OutboundOrderId"
-                                       class="code-link">
-                                        @item.OutboundOrderNumber
-                                    </a>
-                                </td>
-
-                                <!-- SALES ORDER -->
-                                <td>
-                                    <span class="sub-text">
-                                        @item.SalesOrderNumber
-                                    </span>
-                                </td>
-
-                                <!-- KH¡CH H¿NG -->
-                                <td>
-                                    <span class="customer-name">
-                                        @item.CustomerName
-                                    </span>
-                                </td>
-
-                                <!-- KHO -->
-                                <td>
-                                    <span class="sub-text">
-                                        @item.WarehouseName
-                                    </span>
-                                </td>
-
-                                <!-- STATUS -->
-                                <td>
-                                    @switch (item.Status)
-                                    {
-                                        case "COMPLETED":
-                                            <span class="status-pill status-completed">
-                                                <span class="status-dot"></span>
-                                                –„ xu?t
-                                            </span>
-                                            break;
-
-                                        case "IN_PROGRESS":
-                                            <span class="status-pill status-in-progress">
-                                                <span class="status-dot"></span>
-                                                –ang picking
-                                            </span>
-                                            break;
-
-                                        case "ASSIGNED":
-                                            <span class="status-pill status-assigned">
-                                                <span class="status-dot"></span>
-                                                Ch? x? l˝
-                                            </span>
-                                            break;
-
-                                        case "DRAFT":
-                                            <span class="status-pill status-draft">
-                                                <span class="status-dot"></span>
-                                                Nh·p
-                                            </span>
-                                            break;
-
-                                        case "CANCELLED":
-                                            <span class="status-pill status-cancelled">
-                                                <span class="status-dot"></span>
-                                                –„ h?y
-                                            </span>
-                                            break;
-
-                                        default:
-                                            <span class="status-pill status-draft">
-                                                <span class="status-dot"></span>
-                                                @item.Status
-                                            </span>
-                                            break;
-                                    }
-                                </td>
-
-                                <!-- T?NG SL -->
-                                <td>
-                                    <span class="quantity-value">
-                                        @item.TotalRequestedQuantity.ToString("N0")
-                                    </span>
-                                </td>
-
-                                <!-- ACTION -->
-                                <td class="text-end">
-                                    <a asp-page="./Details"
-                                       asp-route-id="@item.OutboundOrderId"
-                                       class="action-link">
-                                        Xem chi ti?t
-                                        <i class="bi bi-chevron-right"></i>
-                                    </a>
-                                    <a asp-page="./Process" asp-route-id="@item.OutboundOrderId" class="btn btn-sm btn-primary">
-                                        <i class="bi bi-gear-fill me-1"></i>X·ª≠ l√Ω
-                                    </a>
-                                </td>
-                             
-                            </tr>
-                        }
-                    }
-                    else
-                    {
-                        <tr>
-                            <td colspan="7" class="empty-state">
-
-                                <div class="empty-state-icon">
-                                    <i class="bi bi-inbox"></i>
-                                </div>
-
-                                <div class="empty-state-title">
-                                    KhÙng tÏm th?y l?nh xu?t kho
-                                </div>
-
-                                <div class="empty-state-text">
-                                    KhÙng cÛ d? li?u ph˘ h?p v?i di?u ki?n tÏm ki?m.
-                                </div>
-
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-
-            </table>
-
-        </div>
-
-
-        <!-- =================================================
-             PAGINATION
-        ================================================== -->
-        @if (Model.PagedResult.TotalCount > 0)
+    <form method="get" class="card border-0 shadow-sm mb-3"><div class="card-body row g-3 align-items-end">
+        <div class="col-md-5"><label class="form-label">T√¨m ki·∫øm</label><input asp-for="Filter.Search" class="form-control" placeholder="M√£ phi·∫øu, SO ho·∫∑c PO" /></div>
+        <div class="col-md-5"><label class="form-label">Tr·∫°ng th√°i</label><select asp-for="Filter.Status" asp-items="Model.StatusOptions" class="form-select"></select></div>
+        <div class="col-md-2 d-flex gap-2"><button class="btn btn-primary flex-fill">L·ªçc</button><a asp-page="./Index" class="btn btn-outline-secondary">ƒê·∫∑t l·∫°i</a></div>
+    </div></form>
+
+    <div class="card border-0 shadow-sm"><div class="table-responsive"><table class="table align-middle mb-0">
+        <thead class="table-light"><tr><th>M√£ phi·∫øu</th><th>Lu·ªìng nghi·ªáp v·ª•</th><th>ƒê∆°n tham chi·∫øu</th><th>ƒê·ªëi t√°c</th><th>Kho</th><th>Tr·∫°ng th√°i</th><th class="text-end">Ti·∫øn ƒë·ªô</th><th class="text-end">Thao t√°c</th></tr></thead>
+        <tbody>
+        @if (Model.PagedResult.Items.Count == 0)
+        { <tr><td colspan="8" class="text-center text-muted py-5">Kh√¥ng c√≥ phi·∫øu xu·∫•t ph√π h·ª£p.</td></tr> }
+        @foreach (var item in Model.PagedResult.Items)
         {
-            <div class="pagination-container">
-
-                <div class="pagination-text">
-
-                    Hi?n th?
-
-                    <strong>
-                        @((Model.PagedResult.PageIndex - 1)
-                            * Model.PagedResult.PageSize + 1)
-                    </strong>
-
-                    ñ
-
-                    <strong>
-                        @Math.Min(
-                            Model.PagedResult.PageIndex
-                            * Model.PagedResult.PageSize,
-                            Model.PagedResult.TotalCount
-                        )
-                    </strong>
-
-                    trong
-
-                    <strong>
-                        @Model.PagedResult.TotalCount
-                    </strong>
-
-                    b?n ghi
-
-                </div>
-
-
-                @if (Model.PagedResult.TotalPages > 1)
-                {
-                    <ul class="custom-pagination">
-
-                        <!-- PREVIOUS -->
-                        @if (Model.PagedResult.PageIndex > 1)
-                        {
-                            <li>
-
-                                <a class="page-link-custom page-arrow"
-                                   asp-page="./Index"
-                                   asp-route-Filter.Search="@Model.Filter.Search"
-                                   asp-route-Filter.Status="@Model.Filter.Status"
-                                   asp-route-Filter.WarehouseId="@Model.Filter.WarehouseId"
-                                   asp-route-Filter.PageIndex="@(Model.PagedResult.PageIndex - 1)"
-                                   aria-label="Trang tru?c">
-
-                                    <i class="bi bi-chevron-left"></i>
-
-                                </a>
-
-                            </li>
-                        }
-
-
-                        <!-- PAGE NUMBERS -->
-                        @for (int i = 1;
-                              i <= Model.PagedResult.TotalPages;
-                              i++)
-                        {
-                            <li>
-
-                                <a class="page-link-custom @(i == Model.PagedResult.PageIndex ? "active" : "")"
-                                   asp-page="./Index"
-                                   asp-route-Filter.Search="@Model.Filter.Search"
-                                   asp-route-Filter.Status="@Model.Filter.Status"
-                                   asp-route-Filter.WarehouseId="@Model.Filter.WarehouseId"
-                                   asp-route-Filter.PageIndex="@i">
-
-                                    @i
-
-                                </a>
-
-                            </li>
-                        }
-
-
-                        <!-- NEXT -->
-                        @if (Model.PagedResult.PageIndex <
-                             Model.PagedResult.TotalPages)
-                        {
-                            <li>
-
-                                <a class="page-link-custom page-arrow"
-                                   asp-page="./Index"
-                                   asp-route-Filter.Search="@Model.Filter.Search"
-                                   asp-route-Filter.Status="@Model.Filter.Status"
-                                   asp-route-Filter.WarehouseId="@Model.Filter.WarehouseId"
-                                   asp-route-Filter.PageIndex="@(Model.PagedResult.PageIndex + 1)"
-                                   aria-label="Trang sau">
-
-                                    <i class="bi bi-chevron-right"></i>
-
-                                </a>
-
-                            </li>
-                        }
-
-                    </ul>
-                }
-
-            </div>
+            <tr>
+                <td><a asp-page="./Details" asp-route-id="@item.OutboundOrderId" class="fw-semibold text-decoration-none">@item.OutboundOrderNumber</a><div class="text-muted small">@item.CreatedAt.ToString("dd/MM/yyyy HH:mm")</div></td>
+                <td>@(item.SourceType == "PURCHASE_RETURN" ? "Tr·∫£ nh√† cung c·∫•p" : "B√°n h√†ng")</td>
+                <td>@item.SourceReference</td><td>@item.PartnerName</td><td>@item.WarehouseName</td>
+                <td><span class="badge @StatusClass(item.Status)">@StatusLabel(item.Status)</span></td>
+                <td class="text-end">@item.TotalIssuedQuantity.ToString("N2") / @item.TotalRequestedQuantity.ToString("N2")</td>
+                <td class="text-end"><a asp-page="./Details" asp-route-id="@item.OutboundOrderId" class="btn btn-sm btn-outline-primary">Chi ti·∫øt</a>
+                    @if (item.Status is "READY" or "ISSUING") { <a asp-page="./Process" asp-route-id="@item.OutboundOrderId" class="btn btn-sm btn-primary">Xu·∫•t h√†ng</a> }
+                </td>
+            </tr>
         }
-
+        </tbody>
+    </table></div>
+    <div class="card-footer bg-white d-flex justify-content-between align-items-center"><span class="text-muted">T·ªïng c·ªông @Model.PagedResult.TotalCount phi·∫øu</span><div class="btn-group"><a class="btn btn-outline-secondary @(Model.Filter.PageIndex <= 1 ? "disabled" : "")" asp-route-Filter.PageIndex="@(Model.Filter.PageIndex-1)" asp-route-Filter.Search="@Model.Filter.Search" asp-route-Filter.Status="@Model.Filter.Status">Tr∆∞·ªõc</a><span class="btn btn-light disabled">@Model.Filter.PageIndex / @totalPages</span><a class="btn btn-outline-secondary @(Model.Filter.PageIndex >= totalPages ? "disabled" : "")" asp-route-Filter.PageIndex="@(Model.Filter.PageIndex+1)" asp-route-Filter.Search="@Model.Filter.Search" asp-route-Filter.Status="@Model.Filter.Status">Sau</a></div></div>
     </div>
-
 </div>
+
+@functions {
+    string StatusLabel(string status) => status switch { "DRAFT" => "Nh√°p", "READY" => "S·∫µn s√†ng xu·∫•t", "ISSUING" => "ƒêang xu·∫•t h√†ng", "ISSUED" => "ƒê√£ xu·∫•t", "CANCELLED" => "ƒê√£ h·ªßy", _ => status };
+    string StatusClass(string status) => status switch { "ISSUED" => "bg-success", "ISSUING" => "bg-warning text-dark", "READY" => "bg-primary", "CANCELLED" => "bg-danger", _ => "bg-secondary" };
+}

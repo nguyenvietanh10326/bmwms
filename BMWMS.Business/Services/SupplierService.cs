@@ -75,6 +75,7 @@ public class SupplierService : ISupplierService
                 ProductName = sp.Product.ProductName,
                 GroupName = sp.Product.ProductGroup.GroupName,
                 Unit = sp.Product.UnitOfMeasure?.UnitName ?? string.Empty,
+                QuantityScale = sp.Product.UnitOfMeasure?.QuantityScale ?? 0,
                 LastPurchasePrice = sp.LastPurchasePrice,
                 LeadTimeDays = sp.LeadTimeDays,
                 Status = sp.Status

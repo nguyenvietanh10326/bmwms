@@ -132,7 +132,7 @@
                     </a>
                 }
 
-                @if (isDraft && Model.IsManager)
+                @if (Model.Order?.CanApprove == true && Model.IsManager)
                 {
                     <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#approveModal" style="padding: 6px 12px;">
                         <i class="ri-check-line"></i> Phê duyệt
@@ -159,10 +159,19 @@
         </div>
     </div>
 
-
-
     @if (Model.Order != null)
     {
+        @if (Model.Order.IsWorkflowLinked)
+        {
+            var parentUrl = Model.Order.ParentDocumentType == "INBOUND"
+                ? $"/Admin/Inbound/Details/{Model.Order.ParentDocumentId}"
+                : $"/OutboundOrders/Details/{Model.Order.ParentDocumentId}";
+            <div class="alert alert-info">
+                Đây là phiếu điều chuyển tác nghiệp tự động của
+                <a href="@parentUrl" class="fw-semibold">@Model.Order.ParentDocumentNumber</a>.
+                Hãy nhận/putaway hoặc lấy/xuất từ phiếu nguồn; phiếu này không tự ghi TRANSFER_IN/TRANSFER_OUT.
+            </div>
+        }
         <div class="card">
             <h3>Thông tin chung</h3>
             <div class="grid2">

@@ -860,12 +860,27 @@ BEGIN
         UnitOfMeasureID     INT IDENTITY(1,1) NOT NULL,
         UnitCode            VARCHAR(30) NOT NULL,
         UnitName            NVARCHAR(100) NOT NULL,
+        QuantityScale       TINYINT NOT NULL CONSTRAINT DF_UnitsOfMeasure_QuantityScale DEFAULT (0),
         Status              VARCHAR(20) NOT NULL CONSTRAINT DF_UnitsOfMeasure_Status DEFAULT ('ACTIVE'),
         CONSTRAINT PK_UnitsOfMeasure PRIMARY KEY (UnitOfMeasureID),
         CONSTRAINT UQ_UnitsOfMeasure_Code UNIQUE (UnitCode),
-        CONSTRAINT CK_UnitsOfMeasure_Status CHECK (Status IN ('ACTIVE','INACTIVE'))
+        CONSTRAINT CK_UnitsOfMeasure_Status CHECK (Status IN ('ACTIVE','INACTIVE')),
+        CONSTRAINT CK_UnitsOfMeasure_QuantityScale CHECK (QuantityScale BETWEEN 0 AND 4)
     );
 END;
+GO
+
+IF COL_LENGTH(N'dbo.UnitsOfMeasure', N'QuantityScale') IS NULL
+BEGIN
+    ALTER TABLE dbo.UnitsOfMeasure
+        ADD QuantityScale TINYINT NOT NULL
+            CONSTRAINT DF_UnitsOfMeasure_QuantityScale DEFAULT (0) WITH VALUES;
+END;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = N'CK_UnitsOfMeasure_QuantityScale')
+    EXEC(N'ALTER TABLE dbo.UnitsOfMeasure ADD CONSTRAINT CK_UnitsOfMeasure_QuantityScale
+        CHECK (QuantityScale BETWEEN 0 AND 4);');
 GO
 
 IF OBJECT_ID(N'dbo.ProductGroups', N'U') IS NULL
@@ -1142,9 +1157,9 @@ BEGIN
         CONSTRAINT CK_InboundOrders_Status CHECK (Status IN ('DRAFT','ASSIGNED','IN_PROGRESS','COMPLETED','CANCELLED')),
         CONSTRAINT CK_InboundOrders_SourceReference CHECK
         (
-            (SourceType = 'PURCHASE_ORDER' AND PurchaseOrderID IS NOT NULL AND SalesOrderID IS NULL AND TransferOrderID IS NULL)
+            (SourceType = 'PURCHASE_ORDER' AND PurchaseOrderID IS NOT NULL AND SalesOrderID IS NULL)
             OR
-            (SourceType = 'SALES_RETURN' AND PurchaseOrderID IS NULL AND SalesOrderID IS NOT NULL AND TransferOrderID IS NULL)
+            (SourceType = 'SALES_RETURN' AND PurchaseOrderID IS NULL AND SalesOrderID IS NOT NULL)
             OR
             (SourceType = 'TRANSFER_ORDER' AND PurchaseOrderID IS NULL AND SalesOrderID IS NULL AND TransferOrderID IS NOT NULL)
         ),
@@ -1248,9 +1263,9 @@ BEGIN
         CONSTRAINT CK_OutboundOrders_Status CHECK (Status IN ('DRAFT','ASSIGNED','IN_PROGRESS','COMPLETED','CANCELLED')),
         CONSTRAINT CK_OutboundOrders_SourceReference CHECK
         (
-            (SourceType = 'SALES_ORDER' AND SalesOrderID IS NOT NULL AND PurchaseOrderID IS NULL AND TransferOrderID IS NULL)
+            (SourceType = 'SALES_ORDER' AND SalesOrderID IS NOT NULL AND PurchaseOrderID IS NULL)
             OR
-            (SourceType = 'PURCHASE_RETURN' AND SalesOrderID IS NULL AND PurchaseOrderID IS NOT NULL AND TransferOrderID IS NULL)
+            (SourceType = 'PURCHASE_RETURN' AND SalesOrderID IS NULL AND PurchaseOrderID IS NOT NULL)
             OR
             (SourceType = 'TRANSFER_ORDER' AND SalesOrderID IS NULL AND PurchaseOrderID IS NULL AND TransferOrderID IS NOT NULL)
         ),
@@ -1932,8 +1947,13 @@ BEGIN
 
     BEGIN TRANSACTION;
     BEGIN TRY
-        IF NOT EXISTS (SELECT 1 FROM dbo.SalesOrders WITH (UPDLOCK, HOLDLOCK) WHERE SalesOrderID = @SalesOrderID AND Status = 'CONFIRMED')
-            THROW 51102, N'Chi don ban CONFIRMED moi duoc giu ton.', 1;
+        DECLARE @InitialStatus VARCHAR(30);
+        SELECT @InitialStatus = Status
+        FROM dbo.SalesOrders WITH (UPDLOCK, HOLDLOCK)
+        WHERE SalesOrderID = @SalesOrderID;
+
+        IF @InitialStatus NOT IN ('DRAFT','CONFIRMED')
+            THROW 51102, N'Chi don ban DRAFT hoac CONFIRMED moi duoc giu ton.', 1;
 
         DECLARE @SalesOrderDetailID BIGINT, @ProductID BIGINT, @Need DECIMAL(18,4);
         DECLARE DetailCursor CURSOR LOCAL FAST_FORWARD FOR
@@ -2027,7 +2047,7 @@ BEGIN
         DEALLOCATE DetailCursor;
 
         UPDATE dbo.SalesOrders
-        SET Status = 'ALLOCATED', UpdatedAt = SYSUTCDATETIME()
+        SET Status = @InitialStatus, UpdatedAt = SYSUTCDATETIME()
         WHERE SalesOrderID = @SalesOrderID;
 
         COMMIT TRANSACTION;

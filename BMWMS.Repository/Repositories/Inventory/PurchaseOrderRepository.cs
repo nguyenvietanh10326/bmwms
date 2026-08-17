@@ -160,7 +160,12 @@ namespace BMWMS.Repository.Repositories.Inventory
         public async Task<IEnumerable<Product>> GetAllProductAsync()
         {
             return await _context.Products
-                .AsNoTracking().Include(a=>a.UnitOfMeasure).Include(a=>a.SupplierProducts).Include(a=>a.Inventories)
+                .AsNoTracking()
+                .Include(a => a.UnitOfMeasure)
+                .Include(a => a.ProductGroup)
+                .Include(a => a.SupplierProducts)
+                .Include(a => a.Inventories)
+                .Where(p => p.Status == "ACTIVE" && p.ProductGroup.Status == "ACTIVE")
                 .ToListAsync();
         }
 
@@ -168,6 +173,8 @@ namespace BMWMS.Repository.Repositories.Inventory
         {
             return await _context.Customers
                 .AsNoTracking()
+                .Where(c => c.Status == "ACTIVE")
+                .OrderBy(c => c.CustomerName)
                 .ToListAsync();
         }
     }

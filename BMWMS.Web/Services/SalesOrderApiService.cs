@@ -31,39 +31,6 @@ namespace BMWMS.Web.Services
             return await _httpClient.GetFromJsonAsync<SalesOrderDetailDto>($"api/SalesOrders/{id}");
         }
 
-        public async Task<List<UserLookupDto>> GetAllUsersAsync()
-        {
-            return await _httpClient.GetFromJsonAsync<List<UserLookupDto>>("api/SalesOrders/AllUser") ?? new();
-        }
-
-        public async Task<List<WarehouseLookupDto>> GetAllWarehousesAsync()
-        {
-            return await _httpClient.GetFromJsonAsync<List<WarehouseLookupDto>>("api/SalesOrders/AllWarehouse") ?? new();
-        }
-
-        public async Task<List<ProductLookupDto>> GetAllProductsAsync()
-        {
-            return await _httpClient.GetFromJsonAsync<List<ProductLookupDto>>("api/SalesOrders/AllProduct") ?? new();
-        }
-
-        public class UserLookupDto
-        {
-            public long UserId { get; set; }
-            public string FullName { get; set; } = string.Empty;
-        }
-
-        public class WarehouseLookupDto
-        {
-            public long WarehouseId { get; set; }
-            public string WarehouseName { get; set; } = string.Empty;
-        }
-
-        public class ProductLookupDto
-        {
-            public long ProductId { get; set; }
-            public string ProductName { get; set; } = string.Empty;
-            public string UnitName { get; set; } = string.Empty;
-        }
     }
 }
 

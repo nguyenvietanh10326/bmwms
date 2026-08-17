@@ -1,8 +1,11 @@
-﻿using BMWMS.Business.DTOs.Inventory;
+using BMWMS.Business.DTOs.Inventory;
 using BMWMS.Business.Interfaces.Inventory;
 using BMWMS.Repository.Interfaces.Inventory;
 using BMWMS.Repository.Models;
 using BMWMS.Repository.Repositories.Inventory;
+using BMWMS.Business.Common;
+using Microsoft.EntityFrameworkCore;
+using System.Data;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,29 +18,23 @@ namespace BMWMS.Business.Services.Inventory
     {
         private readonly ISalesOrderRepository _salesOrderRepository;
         private readonly IInventoryRepository _invenRepository;
+        private readonly BmwmsContext _context;
 
         public SalesOrderService(
-            ISalesOrderRepository salesOrderRepository, IInventoryRepository invenRepository)
+            ISalesOrderRepository salesOrderRepository,
+            IInventoryRepository invenRepository,
+            BmwmsContext context)
         {
             _salesOrderRepository = salesOrderRepository;
             _invenRepository = invenRepository;
+            _context = context;
         }
 
         public async Task<SalesOrderDetailApiResponse?>
             GetSalesOrderDetailForOutboundAsync(
-                long outboundOrderId)
+                long salesOrderId)
         {
-            var outboundOrder =
-                await _salesOrderRepository
-                    .GetOutboundOrderDetailAsync(outboundOrderId);
-
-            if (outboundOrder == null)
-            {
-                return null;
-            }
-
-            var salesOrder = outboundOrder.SalesOrder;
-
+            var salesOrder = await _salesOrderRepository.GetByIdAsync(salesOrderId);
             if (salesOrder == null)
             {
                 return null;
@@ -72,19 +69,19 @@ namespace BMWMS.Business.Services.Inventory
                     // Số lượng khách đặt
                     Quantity = detail.OrderedQuantity,
 
-                    // Tổng số lượng đã reserve
-                    ReservedQuantity = detail.ReservedQuantity,
+                    // Số lượng có thể lập phiếu xuất. Với SO cũ chưa có reservation,
+                    // CreateOutboundOrder sẽ giữ bù tồn kho trong transaction trước khi tạo phiếu.
+                    ReservedQuantity = Math.Max(0, detail.OrderedQuantity - detail.FulfilledQuantity),
 
                     // Đơn vị tính
                     UnitName =
                         detail.Product?.UnitOfMeasure?.UnitName
                         ?? "Đơn vị",
+                    QuantityScale = detail.Product?.UnitOfMeasure?.QuantityScale ?? 0,
+                    TrackLot = detail.Product?.TrackLot ?? false,
 
                     // LOT · BIN
-                    LotBinInfo = lotBinInfo,
-
-                    // Giá bán
-                    UnitPrice = detail.UnitPrice ?? 0
+                    LotBinInfo = lotBinInfo
                 });
             }
 
@@ -100,11 +97,8 @@ namespace BMWMS.Business.Services.Inventory
                     salesOrder.Customer?.CustomerName
                     ?? "N/A",
 
-                WarehouseId =
-                    outboundOrder.WarehouseId,
-
-                WarehouseName =
-                    outboundOrder.Warehouse?.WarehouseName,
+                WarehouseId = null,
+                WarehouseName = null,
 
                 Items = items
             };
@@ -133,9 +127,14 @@ namespace BMWMS.Business.Services.Inventory
         }
         public async Task<PagedResult<SalesOrderListDto>> GetPagedAsync(SalesOrderSearchCriteria criteria)
         {
+            criteria.PageIndex = Math.Max(1, criteria.PageIndex);
+            criteria.PageSize = Math.Clamp(criteria.PageSize, 10, 100);
+
             var (entities, totalCount) = await _salesOrderRepository.GetPagedAsync(
                 criteria.Keyword,
                 criteria.Status,
+                criteria.FromDate,
+                criteria.ToDate,
                 criteria.PageIndex,
                 criteria.PageSize
             );
@@ -149,9 +148,12 @@ namespace BMWMS.Business.Services.Inventory
                 CustomerName = x.Customer?.CustomerName ?? string.Empty,
                 OrderDate = x.OrderDate,
                 ExpectedIssueDate = x.ExpectedIssueDate,
-                Status = x.Status,
+                Status = NormalizeSalesOrderStatus(x.Status),
                 TotalQuantity = x.SalesOrderDetails.Sum(d => d.OrderedQuantity),
-                PrimaryUnitName = x.SalesOrderDetails.Select(d => d.Product?.UnitOfMeasure?.UnitName).FirstOrDefault() ?? ""
+                PrimaryUnitName = x.SalesOrderDetails.Select(d => d.Product?.UnitOfMeasure?.UnitName).FirstOrDefault() ?? "",
+                ItemCount = x.SalesOrderDetails.Count,
+                CreatedByName = x.CreatedByUser?.FullName ?? string.Empty,
+                CreatedAt = x.CreatedAt
             }).ToList();
 
             return new PagedResult<SalesOrderListDto>
@@ -160,6 +162,17 @@ namespace BMWMS.Business.Services.Inventory
                 TotalCount = totalCount,
                 PageIndex = criteria.PageIndex,
                 PageSize = criteria.PageSize
+            };
+        }
+
+        private static string NormalizeSalesOrderStatus(string status)
+        {
+            return status switch
+            {
+                "ALLOCATED" => "CONFIRMED",
+                "PARTIALLY_FULFILLED" => "PARTIALLY_ISSUED",
+                "FULFILLED" or "CLOSED" => "ISSUED",
+                _ => status
             };
         }
 
@@ -190,77 +203,193 @@ namespace BMWMS.Business.Services.Inventory
                     ProductCode = d.Product?.ProductCode ?? string.Empty,
                     ProductName = d.Product?.ProductName ?? string.Empty,
                     UnitName = d.Product?.UnitOfMeasure?.UnitName ?? string.Empty,
+                    QuantityScale = d.Product?.UnitOfMeasure?.QuantityScale ?? 0,
+                    TrackLot = d.Product?.TrackLot ?? false,
                     OrderedQuantity = d.OrderedQuantity,
                     ReservedQuantity = d.ReservedQuantity,
                     FulfilledQuantity = d.FulfilledQuantity,
                     AvailableQuantity = 1000, // Logic: Cần join Inventory để lấy OnHand - Reserved thực tế
-                    UnitPrice = d.UnitPrice,
                     Notes = d.Notes
                 }).ToList()
             };
         }
 
+        public async Task<List<SalesOrderProductLookupDto>> GetActiveProductLookupsAsync()
+        {
+            var products = await _salesOrderRepository.GetActiveProductsForLookupAsync();
+
+            return products.Select(p => new SalesOrderProductLookupDto
+            {
+                ProductId = p.ProductId,
+                ProductCode = p.ProductCode,
+                ProductName = p.ProductName,
+                ProductGroupId = p.ProductGroupId,
+                ProductGroupName = p.ProductGroup?.GroupName ?? string.Empty,
+                Barcode = p.Barcode,
+                UnitOfMeasure = p.UnitOfMeasure?.UnitName ?? string.Empty,
+                QuantityScale = p.UnitOfMeasure?.QuantityScale ?? 0,
+                TrackLot = p.TrackLot,
+                TrackExpiry = p.TrackExpiry,
+                RotationMethod = p.RotationMethod,
+                OnHandQuantity = p.Inventories.Sum(i => i.OnHandQuantity),
+                ReservedQuantity = p.Inventories.Sum(i => i.ReservedQuantity),
+                AvailableQuantity = p.Inventories.Sum(i => i.OnHandQuantity - i.ReservedQuantity)
+            }).ToList();
+        }
+
         public async Task<SalesOrderDetailDto> CreateDraftAsync(CreateUpdateSalesOrderDto dto)
         {
-            string newSoNumber = await _salesOrderRepository.GenerateSalesOrderNumberAsync();
+            if (dto.CustomerId <= 0)
+                throw new ArgumentException("Vui lòng chọn khách hàng.");
 
-            var order = new SalesOrder
+            if (dto.OrderDate == default)
+                throw new ArgumentException("Ngày đặt hàng không hợp lệ.");
+
+            if (dto.ExpectedIssueDate.HasValue && dto.ExpectedIssueDate.Value < dto.OrderDate)
+                throw new ArgumentException("Ngày xuất dự kiến không được trước ngày đặt hàng.");
+
+            if (dto.Items == null || dto.Items.Count == 0)
+                throw new ArgumentException("Đơn bán hàng phải có ít nhất một sản phẩm.");
+
+            if (dto.Items.Any(i => i.ProductId <= 0 || i.OrderedQuantity <= 0))
+                throw new ArgumentException("Mỗi sản phẩm phải có số lượng đặt lớn hơn 0.");
+
+            var productIds = dto.Items.Select(i => i.ProductId).ToList();
+            if (productIds.Distinct().Count() != productIds.Count)
+                throw new ArgumentException("Mỗi sản phẩm chỉ được xuất hiện một lần trong đơn bán hàng.");
+
+            var customer = await _salesOrderRepository.GetActiveCustomerAsync(dto.CustomerId);
+            if (customer == null)
+                throw new ArgumentException("Khách hàng không tồn tại hoặc đã ngừng hoạt động.");
+
+            var activeProducts = await _salesOrderRepository.GetActiveProductsAsync(productIds);
+            if (activeProducts.Count != productIds.Count)
+                throw new ArgumentException("Một hoặc nhiều sản phẩm không tồn tại hoặc đã ngừng hoạt động.");
+
+            var productsById = activeProducts.ToDictionary(p => p.ProductId);
+            foreach (var item in dto.Items)
+                QuantityRules.EnsureValid(productsById[item.ProductId], item.OrderedQuantity, "Số lượng đặt");
+
+            await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+            try
             {
-                SalesOrderNumber = newSoNumber,
-                CustomerId = dto.CustomerId,
-                OrderDate = dto.OrderDate,
-                ExpectedIssueDate = dto.ExpectedIssueDate,
-                Status = "DRAFT",
-                Notes = dto.Notes,
-                CreatedByUserId = dto.CurrentUserId,
-                CreatedAt = DateTime.Now,
-                SalesOrderDetails = dto.Items.Select(i => new SalesOrderDetail
-                {
-                    ProductId = i.ProductId,
-                    OrderedQuantity = i.OrderedQuantity,
-                    ReservedQuantity = 0,
-                    FulfilledQuantity = 0,
-                    UnitPrice = i.UnitPrice,
-                    Notes = i.Notes
-                }).ToList()
-            };
+                string newSoNumber = await _salesOrderRepository.GenerateSalesOrderNumberAsync();
 
-            var created = await _salesOrderRepository.CreateAsync(order);
-            return (await GetByIdAsync(created.SalesOrderId))!;
+                var order = new SalesOrder
+                {
+                    SalesOrderNumber = newSoNumber,
+                    CustomerId = dto.CustomerId,
+                    OrderDate = dto.OrderDate,
+                    ExpectedIssueDate = dto.ExpectedIssueDate,
+                    Status = "DRAFT",
+                    Notes = dto.Notes,
+                    AllocationStrategy = dto.AllocationStrategy,
+                    CreatedByUserId = dto.CurrentUserId,
+                    CreatedAt = DateTime.UtcNow,
+                    SalesOrderDetails = dto.Items.Select(i => new SalesOrderDetail
+                    {
+                        ProductId = i.ProductId,
+                        OrderedQuantity = i.OrderedQuantity,
+                        ReservedQuantity = 0,
+                        FulfilledQuantity = 0,
+                        Notes = i.Notes
+                    }).ToList()
+                };
+
+                var created = await _salesOrderRepository.CreateAsync(order);
+                foreach (var detail in created.SalesOrderDetails)
+                {
+                    var product = productsById[detail.ProductId];
+                    var reserved = await _invenRepository.ReserveStockForOrderAsync(
+                        detail.ProductId, detail.OrderedQuantity, detail.SalesOrderDetailId,
+                        dto.CurrentUserId, product.RotationMethod);
+                    if (!reserved)
+                        throw new InvalidOperationException($"Tồn khả dụng của {product.ProductCode} không đủ để giữ cho đơn nháp.");
+                    detail.ReservedQuantity = detail.OrderedQuantity;
+                }
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return (await GetByIdAsync(created.SalesOrderId))!;
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
         }
 
         public async Task<bool> UpdateDraftAsync(CreateUpdateSalesOrderDto dto)
         {
-            if (!dto.SalesOrderId.HasValue) return false;
+            if (!dto.SalesOrderId.HasValue || dto.Items == null || dto.Items.Count == 0) return false;
+            if (dto.Items.GroupBy(i => i.ProductId).Any(g => g.Count() > 1))
+                throw new ArgumentException("Mỗi sản phẩm chỉ được xuất hiện một lần trong đơn bán hàng.");
 
-            var existing = await _salesOrderRepository.GetByIdAsync(dto.SalesOrderId.Value);
-            if (existing == null || existing.Status != "DRAFT")
+            var productIds = dto.Items.Select(i => i.ProductId).ToList();
+            var activeProducts = await _salesOrderRepository.GetActiveProductsAsync(productIds);
+            if (activeProducts.Count != productIds.Distinct().Count())
+                throw new ArgumentException("Một hoặc nhiều sản phẩm không tồn tại hoặc đã ngừng hoạt động.");
+            var productsById = activeProducts.ToDictionary(p => p.ProductId);
+            foreach (var item in dto.Items)
+                QuantityRules.EnsureValid(productsById[item.ProductId], item.OrderedQuantity, "Số lượng đặt");
+
+            await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+            try
             {
-                return false; // Chỉ cho sửa đơn đang ở trạng thái Nháp
+                var existing = await _context.SalesOrders
+                    .Include(s => s.SalesOrderDetails)
+                    .FirstOrDefaultAsync(s => s.SalesOrderId == dto.SalesOrderId.Value);
+                if (existing == null || existing.Status != "DRAFT") return false;
+
+                var existingProductIds = existing.SalesOrderDetails.Select(d => d.ProductId).OrderBy(x => x).ToList();
+                var requestedProductIds = dto.Items.Select(d => d.ProductId).OrderBy(x => x).ToList();
+                if (!existingProductIds.SequenceEqual(requestedProductIds))
+                    throw new InvalidOperationException("SO nháp đã giữ tồn nên không thể thêm hoặc xóa dòng vật tư. Hãy hủy đơn và tạo SO mới để giữ đúng lịch sử.");
+
+                await ReleaseReservationsAsync(existing.SalesOrderId, dto.CurrentUserId);
+
+                existing.CustomerId = dto.CustomerId;
+                existing.OrderDate = dto.OrderDate;
+                existing.ExpectedIssueDate = dto.ExpectedIssueDate;
+                existing.Notes = dto.Notes;
+                existing.AllocationStrategy = dto.AllocationStrategy ?? "FIFO";
+                existing.UpdatedAt = DateTime.UtcNow;
+
+                foreach (var detail in existing.SalesOrderDetails)
+                {
+                    var requested = dto.Items.Single(i => i.ProductId == detail.ProductId);
+                    detail.OrderedQuantity = requested.OrderedQuantity;
+                    detail.ReservedQuantity = 0;
+                    detail.Notes = requested.Notes;
+                }
+                await _context.SaveChangesAsync();
+
+                foreach (var detail in existing.SalesOrderDetails)
+                {
+                    var product = productsById[detail.ProductId];
+                    if (!await _invenRepository.ReserveStockForOrderAsync(
+                            detail.ProductId, detail.OrderedQuantity, detail.SalesOrderDetailId,
+                            dto.CurrentUserId, product.RotationMethod))
+                        throw new InvalidOperationException($"Tồn khả dụng của {product.ProductCode} không đủ để cập nhật đơn nháp.");
+                    detail.ReservedQuantity = detail.OrderedQuantity;
+                }
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return true;
             }
-
-            existing.CustomerId = dto.CustomerId;
-            existing.OrderDate = dto.OrderDate;
-            existing.ExpectedIssueDate = dto.ExpectedIssueDate;
-            existing.Notes = dto.Notes;
-            existing.SalesOrderDetails = dto.Items.Select(i => new SalesOrderDetail
+            catch
             {
-                SalesOrderId = existing.SalesOrderId,
-                ProductId = i.ProductId,
-                OrderedQuantity = i.OrderedQuantity,
-                ReservedQuantity = 0,
-                FulfilledQuantity = 0,
-                UnitPrice = i.UnitPrice,
-                Notes = i.Notes
-            }).ToList();
-
-            return await _salesOrderRepository.UpdateAsync(existing);
+                await transaction.RollbackAsync();
+                throw;
+            }
         }
 
         public async Task<(bool IsSuccess, string Message)> ConfirmAndReserveStockAsync(
           long salesOrderId,
           long confirmedByUserId)
         {
+            await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
             var order = await _salesOrderRepository.GetByIdAsync(salesOrderId);
 
             if (order == null)
@@ -269,81 +398,87 @@ namespace BMWMS.Business.Services.Inventory
             if (order.Status != "DRAFT")
                 return (false, "Đơn hàng phải ở trạng thái Nháp mới có thể xác nhận!");
 
-            // 1. Kiểm tra tồn kho khả dụng cho TẤT CẢ sản phẩm trước
             foreach (var detail in order.SalesOrderDetails)
             {
-                decimal available =
-                    await _invenRepository.GetAvailableQuantityAsync(
-                        detail.ProductId);
-
-                if (available < detail.OrderedQuantity)
+                var activeReserved = await _context.InventoryReservations
+                    .Where(r => r.SalesOrderDetailId == detail.SalesOrderDetailId &&
+                                (r.Status == "ACTIVE" || r.Status == "PARTIALLY_CONSUMED"))
+                    .SumAsync(r => (decimal?)(r.ReservedQuantity - r.ConsumedQuantity)) ?? 0;
+                var need = detail.OrderedQuantity - activeReserved;
+                if (need > 0 && !await _invenRepository.ReserveStockForOrderAsync(
+                        detail.ProductId, need, detail.SalesOrderDetailId, confirmedByUserId,
+                        detail.Product?.RotationMethod ?? "FIFO"))
                 {
-                    return (
-                        false,
-                        $"Sản phẩm {detail.Product?.ProductName ?? $"ID {detail.ProductId}"} " +
-                        $"không đủ tồn kho khả dụng! " +
-                        $"(Cần: {detail.OrderedQuantity}, Có: {available})"
-                    );
+                    await transaction.RollbackAsync();
+                    return (false, $"Tồn khả dụng của {detail.Product?.ProductCode ?? detail.ProductId.ToString()} không đủ để hoàn tất giữ tồn.");
                 }
-            }
-
-            // 2. Sau khi tất cả sản phẩm đều đủ tồn
-            // mới tiến hành giữ tồn
-            foreach (var detail in order.SalesOrderDetails)
-            {
-                bool reserved =
-                    await _invenRepository.ReserveStockAsync(
-                        detail.ProductId,
-                        detail.OrderedQuantity);
-
-                if (!reserved)
-                {
-                    return (
-                        false,
-                        $"Không thể giữ tồn cho sản phẩm " +
-                        $"{detail.Product?.ProductName ?? $"ID {detail.ProductId}"}!"
-                    );
-                }
-
                 detail.ReservedQuantity = detail.OrderedQuantity;
             }
 
-            // 3. Cập nhật trạng thái đơn hàng
-            bool updateSuccess =
-                await _salesOrderRepository.UpdateStatusAsync(
-                    salesOrderId,
-                    "ALLOCATED",
-                    confirmedByUserId);
-
-            if (!updateSuccess)
-                return (false, "Cập nhật trạng thái thất bại!");
+            order.Status = "CONFIRMED";
+            order.ConfirmedByUserId = confirmedByUserId;
+            order.ConfirmedAt = DateTime.UtcNow;
+            order.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
 
             return (
                 true,
-                "Đã kiểm tra tồn kho và xác nhận giữ tồn thành công!"
+                "Đã xác nhận đơn bán hàng; phần giữ tồn từ bản nháp tiếp tục có hiệu lực."
             );
         }
 
 
         public async Task<(bool IsSuccess, string Message)> CancelOrderAsync(long salesOrderId, long userId, string reason)
         {
+            await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
             var order = await _salesOrderRepository.GetByIdAsync(salesOrderId);
             if (order == null) return (false, "Không tìm thấy đơn bán hàng!");
 
-            if (order.Status == "FULFILLED")
-                return (false, "Không thể hủy đơn bán hàng đã hoàn tất!");
+            if (order.Status is not ("DRAFT" or "CONFIRMED" or "ALLOCATED"))
+                return (false, "Chỉ có thể hủy đơn bán hàng ở trạng thái Nháp hoặc Đã xác nhận!");
 
-            // Nếu đơn đã giữ tồn kho thì giải phóng lượng ReservedQuantity
-            if (order.Status == "ALLOCATED")
+            await ReleaseReservationsAsync(salesOrderId, userId);
+            order.Status = "CANCELLED";
+            order.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+            return (true, "Hủy đơn bán hàng và giải phóng giữ tồn thành công!");
+        }
+
+        private async Task ReleaseReservationsAsync(long salesOrderId, long userId)
+        {
+            var reservations = await _context.InventoryReservations
+                .Include(r => r.SalesOrderDetail)
+                .Where(r => r.SalesOrderDetail.SalesOrderId == salesOrderId &&
+                            (r.Status == "ACTIVE" || r.Status == "PARTIALLY_CONSUMED"))
+                .ToListAsync();
+
+            foreach (var reservation in reservations)
             {
-                foreach (var detail in order.SalesOrderDetails)
+                var releasable = reservation.ReservedQuantity - reservation.ConsumedQuantity;
+                if (releasable > 0)
                 {
-                    detail.ReservedQuantity = 0;
+                    _context.InventoryTransactions.Add(new InventoryTransaction
+                    {
+                        TransactionType = "RELEASE_RESERVATION",
+                        ProductId = reservation.ProductId,
+                        StorageLocationId = reservation.StorageLocationId,
+                        ProductLotId = reservation.ProductLotId,
+                        OnHandDelta = 0,
+                        ReservedDelta = -releasable,
+                        InventoryReservationId = reservation.InventoryReservationId,
+                        PerformedByUserId = userId,
+                        TransactionAt = DateTime.UtcNow,
+                        Notes = "Giải phóng giữ tồn của Sales Order nháp."
+                    });
                 }
+                reservation.Status = "RELEASED";
+                reservation.ReleasedAt = DateTime.UtcNow;
+                reservation.SalesOrderDetail.ReservedQuantity = 0;
             }
 
-            bool result = await _salesOrderRepository.UpdateStatusAsync(salesOrderId, "CANCELLED");
-            return result ? (true, "Hủy đơn bán hàng thành công!") : (false, "Thao tác thất bại!");
+            await _context.SaveChangesAsync();
         }
     }
 }

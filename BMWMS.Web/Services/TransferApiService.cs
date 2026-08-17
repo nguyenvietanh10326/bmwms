@@ -50,6 +50,10 @@ namespace BMWMS.Web.Services
             public decimal TotalRequestedQuantity { get; set; }
             public decimal TotalMovedQuantity { get; set; }
             public bool InventoryPosted { get; set; }
+            public bool IsWorkflowLinked { get; set; }
+            public string? ParentDocumentType { get; set; }
+            public long? ParentDocumentId { get; set; }
+            public string? ParentDocumentNumber { get; set; }
             public string? Notes { get; set; }
         }
 
@@ -92,6 +96,10 @@ namespace BMWMS.Web.Services
             public DateTime? ConfirmedAt { get; set; }
             public bool InventoryPosted { get; set; }
             public bool CanEdit { get; set; }
+            public bool IsWorkflowLinked { get; set; }
+            public string? ParentDocumentType { get; set; }
+            public long? ParentDocumentId { get; set; }
+            public string? ParentDocumentNumber { get; set; }
             public bool CanApprove { get; set; }
             public bool CanReject { get; set; }
             public bool CanIssue { get; set; }

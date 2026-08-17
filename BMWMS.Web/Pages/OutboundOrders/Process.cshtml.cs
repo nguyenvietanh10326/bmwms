@@ -54,7 +54,7 @@ namespace BMWMS.Web.Pages.OutboundOrders
             var client = _httpClientFactory.CreateClient("ApiClient");
             var content = new StringContent(JsonSerializer.Serialize(request), Encoding.UTF8, "application/json");
 
-            var response = await client.PostAsync($"api/OutboundOrders/{request.OutboundOrderId}/process", content);
+            var response = await client.PostAsync("api/OutboundOrders/execute-pick", content);
 
             if (response.IsSuccessStatusCode)
             {
@@ -73,6 +73,11 @@ namespace BMWMS.Web.Pages.OutboundOrders
         public string OutboundOrderNumber { get; set; } = string.Empty;
         public string SourceType { get; set; } = string.Empty;
         public string SalesOrderNumber { get; set; } = string.Empty;
+        public string PurchaseOrderNumber { get; set; } = string.Empty;
+        public string SourceReference { get; set; } = string.Empty;
+        public string PartnerName { get; set; } = string.Empty;
+        public long? TransferOrderId { get; set; }
+        public string TransferOrderNumber { get; set; } = string.Empty;
         public string CustomerName { get; set; } = string.Empty;
         public int WarehouseId { get; set; }
         public string WarehouseName { get; set; } = string.Empty;
@@ -88,6 +93,8 @@ namespace BMWMS.Web.Pages.OutboundOrders
         public string ProductCode { get; set; } = string.Empty;
         public string ProductName { get; set; } = string.Empty;
         public string UnitName { get; set; } = string.Empty;
+        public byte QuantityScale { get; set; }
+        public bool TrackLot { get; set; }
         public decimal RequestedQuantity { get; set; }
         public decimal IssuedQuantity { get; set; }
         public decimal RemainingQuantity { get; set; }
@@ -101,7 +108,7 @@ namespace BMWMS.Web.Pages.OutboundOrders
         public string LocationCode { get; set; } = string.Empty;
         public int ProductLotId { get; set; }
         public string LotNumber { get; set; } = string.Empty;
-        public decimal Quantity { get; set; }
+        public decimal IssuedQuantity { get; set; }
     }
 
     public class AvailableLocationDto
@@ -110,7 +117,7 @@ namespace BMWMS.Web.Pages.OutboundOrders
         public string LocationCode { get; set; } = string.Empty;
         public int ProductLotId { get; set; }
         public string LotNumber { get; set; } = string.Empty;
-        public int InventoryReservationId { get; set; }
+        public int? InventoryReservationId { get; set; }
         public decimal AvailableQuantity { get; set; }
     }
 
@@ -120,7 +127,7 @@ namespace BMWMS.Web.Pages.OutboundOrders
         public int OutboundOrderItemId { get; set; }
         public int StorageLocationId { get; set; }
         public int ProductLotId { get; set; }
-        public int InventoryReservationId { get; set; }
+        public int? InventoryReservationId { get; set; }
         public decimal PickQuantity { get; set; }
         public string Notes { get; set; } = string.Empty;
     }

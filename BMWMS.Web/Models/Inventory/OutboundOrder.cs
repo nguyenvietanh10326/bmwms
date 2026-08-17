@@ -14,7 +14,11 @@ namespace BMWMS.Web.Models.Inventory
         public string OutboundOrderNumber { get; set; } = null!;
         public string SourceType { get; set; } = null!;
         public long? SalesOrderId { get; set; }
+        public long? PurchaseOrderId { get; set; }
         public string? SalesOrderNumber { get; set; }
+        public string? PurchaseOrderNumber { get; set; }
+        public string SourceReference { get; set; } = string.Empty;
+        public string PartnerName { get; set; } = string.Empty;
         public string? CustomerName { get; set; }
         public long WarehouseId { get; set; }
         public string WarehouseName { get; set; } = null!;
@@ -90,8 +94,6 @@ namespace BMWMS.Web.Models.Inventory
     {
         public string? Search { get; set; }
         public string? Status { get; set; }
-        public long? WarehouseId { get; set; }
-
         // Cấu hình phân trang
         public int PageIndex { get; set; } = 1;
         public int PageSize { get; set; } = 10;

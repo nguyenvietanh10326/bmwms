@@ -57,4 +57,34 @@ public class DetailModel : PageModel
         }
         return RedirectToPage(new { id = Id });
     }
+
+    public string GetPurchaseOrderStatusLabel(string? status) => (status ?? string.Empty).ToUpperInvariant() switch
+    {
+        "DRAFT" => "Nháp",
+        "CONFIRMED" => "Đã xác nhận",
+        "PARTIALLY_RECEIVED" => "Đã nhận một phần",
+        "RECEIVED" => "Đã nhận đủ",
+        "CANCELLED" => "Đã hủy",
+        _ => "Không xác định"
+    };
+
+    public string GetInboundStatusLabel(string? status) => (status ?? string.Empty).ToUpperInvariant() switch
+    {
+        "DRAFT" => "Nháp",
+        "READY" => "Sẵn sàng nhận",
+        "RECEIVING" => "Đang nhận hàng",
+        "RECEIVED" => "Đã nhận hàng",
+        "PUTAWAY_COMPLETED" => "Đã xếp vị trí",
+        "CANCELLED" => "Đã hủy",
+        _ => "Không xác định"
+    };
+
+    public string GetStatusClass(string? status) => (status ?? string.Empty).ToUpperInvariant() switch
+    {
+        "CONFIRMED" or "READY" => "bg-primary-subtle text-primary",
+        "PARTIALLY_RECEIVED" or "RECEIVING" => "bg-warning-subtle text-warning-emphasis",
+        "RECEIVED" or "PUTAWAY_COMPLETED" => "bg-success-subtle text-success",
+        "CANCELLED" => "bg-danger-subtle text-danger",
+        _ => "bg-secondary-subtle text-secondary"
+    };
 }

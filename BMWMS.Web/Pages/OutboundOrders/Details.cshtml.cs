@@ -88,7 +88,14 @@ namespace BMWMS.Web.Pages.OutboundOrders
         public long OutboundOrderId { get; set; }
         public string OutboundOrderNumber { get; set; } = string.Empty;
         public long? SalesOrderId { get; set; }
+        public long? PurchaseOrderId { get; set; }
         public string? SalesOrderNumber { get; set; }
+        public string? PurchaseOrderNumber { get; set; }
+        public string SourceType { get; set; } = string.Empty;
+        public string SourceReference { get; set; } = string.Empty;
+        public string PartnerName { get; set; } = string.Empty;
+        public long? TransferOrderId { get; set; }
+        public string? TransferOrderNumber { get; set; }
         public string? CustomerName { get; set; }
         public long WarehouseId { get; set; }
         public string? WarehouseName { get; set; }
@@ -109,9 +116,11 @@ namespace BMWMS.Web.Pages.OutboundOrders
         public long ProductId { get; set; }
         public string ProductCode { get; set; } = string.Empty;
         public string ProductName { get; set; } = string.Empty;
-        public string UnitName { get; set; } = "Cái";
+        public string UnitOfMeasure { get; set; } = string.Empty;
+        public byte QuantityScale { get; set; }
+        public bool TrackLot { get; set; }
         public decimal RequestedQuantity { get; set; }
-        public decimal PickedQuantity { get; set; }
+        public decimal IssuedQuantity { get; set; }
         public string? LotBin { get; set; }
         public string? Notes { get; set; }
     }

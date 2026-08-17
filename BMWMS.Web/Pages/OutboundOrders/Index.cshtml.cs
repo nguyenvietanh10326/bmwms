@@ -21,15 +21,14 @@ namespace BMWMS.Web.Pages.OutboundOrders
 
         // Kết quả phân trang từ API Backend
         public PagedResultDto<OutboundOrderListDto> PagedResult { get; set; } = new();
-        public List<SelectListItem> WarehouseOptions { get; set; } = new();
         // Dropdown trạng thái
         public List<SelectListItem> StatusOptions { get; set; } = new()
         {
             new SelectListItem { Text = "-- Tất cả trạng thái --", Value = "" },
             new SelectListItem { Text = "Nháp (DRAFT)", Value = "DRAFT" },
-            new SelectListItem { Text = "Đã phân công (ASSIGNED)", Value = "ASSIGNED" },
-            new SelectListItem { Text = "Đang xử lý (IN_PROGRESS)", Value = "IN_PROGRESS" },
-            new SelectListItem { Text = "Hoàn thành (COMPLETED)", Value = "COMPLETED" },
+            new SelectListItem { Text = "Sẵn sàng xuất", Value = "READY" },
+            new SelectListItem { Text = "Đang xuất hàng", Value = "ISSUING" },
+            new SelectListItem { Text = "Đã xuất", Value = "ISSUED" },
             new SelectListItem { Text = "Đã hủy (CANCELLED)", Value = "CANCELLED" }
         };
 
@@ -49,46 +48,9 @@ namespace BMWMS.Web.Pages.OutboundOrders
 
             try
             {
-                // ==========================================
-                // 1. Lấy danh sách kho
-                // ==========================================
-                var warehouseResponse = await client.GetAsync("AllWarehouse");
-
-                WarehouseOptions = new List<SelectListItem>
-        {
-            new SelectListItem
-            {
-                Text = "Tất cả kho",
-                Value = ""
-            }
-        };
-
-                if (warehouseResponse.IsSuccessStatusCode)
-                {
-                    var warehouses =
-                        await warehouseResponse.Content
-                            .ReadFromJsonAsync<List<WarehouseDto>>();
-
-                    if (warehouses != null)
-                    {
-                        WarehouseOptions.AddRange(
-                            warehouses.Select(w => new SelectListItem
-                            {
-                                Text = $"{w.WarehouseCode} - {w.WarehouseName}",
-                                Value = w.WarehouseId.ToString(),
-                                Selected = Filter.WarehouseId == w.WarehouseId
-                            })
-                        );
-                    }
-                }
-
-                // ==========================================
-                // 2. Lấy danh sách phiếu xuất
-                // ==========================================
                 string queryString =
                     $"?Search={Uri.EscapeDataString(Filter.Search ?? "")}" +
                     $"&Status={Uri.EscapeDataString(Filter.Status ?? "")}" +
-                    $"&WarehouseId={Filter.WarehouseId}" +
                     $"&PageIndex={Filter.PageIndex}" +
                     $"&PageSize={Filter.PageSize}";
 
@@ -146,7 +108,6 @@ namespace BMWMS.Web.Pages.OutboundOrders
             {
                 Search = Filter.Search,
                 Status = Filter.Status,
-                WarehouseId = Filter.WarehouseId,
                 PageIndex = pageIndex
             });
         }

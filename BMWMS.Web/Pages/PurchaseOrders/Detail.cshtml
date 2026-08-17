@@ -3,212 +3,295 @@
 @using BMWMS.Web.Helpers
 @{
     Layout = "~/Pages/Shared/_AdminLayout.cshtml";
-    ViewData["Title"] = $"Chi tiết Đơn mua hàng #{Model.Order?.PurchaseOrderNumber}";
+    ViewData["Title"] = Model.Order == null
+        ? "Chi tiết đơn mua hàng"
+        : $"Chi tiết đơn mua hàng {Model.Order.PurchaseOrderNumber}";
     ViewData["ActivePage"] = "PurchaseOrders";
+
+    var totalOrdered = Model.Order?.Items.Sum(item => item.OrderedQuantity) ?? 0;
+    var totalPlanned = Model.Order?.Items.Sum(item => item.PlannedInboundQuantity) ?? 0;
+    var totalReceived = Model.Order?.Items.Sum(item => item.ReceivedQuantity) ?? 0;
+    var totalRemaining = Model.Order?.Items.Sum(item => item.RemainingQuantity) ?? 0;
 }
 
 <style>
-  :root {
-    --font-ui:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-    --navy-950:#233a6b; --navy-900:#1b2d56;
-    --bg:#f2f3f7; --card:#ffffff; --line:#e7e9f0;
-    --ink:#161b2e; --ink-2:#525a72;
-    --accent:#3e5cf6; --accent-600:#3149d4;
-    
-    --g-bg:#e2f8ea; --g-tx:#0f7a3e; --g-dot:#1fa855;
-    --y-bg:#fef3d6; --y-tx:#93650a; --y-dot:#e2a336;
-    --r-bg:#fce3e4; --r-tx:#c1222f; --r-dot:#e2454f;
-    --b-bg:#e3eaff; --b-tx:#2c48d8; --b-dot:#5876f2;
-    --gy-bg:#eceef3; --gy-tx:#565f78; --gy-dot:#9aa1b5;
-
-    --sh-sm:0 1px 2px rgba(16,23,42,.04),0 4px 10px -4px rgba(16,23,42,.07);
-    --r-md:12px;
-  }
-  
-  .inbound-page { font-family: var(--font-ui); background: var(--bg); min-height: 100vh; padding: 24px; color: var(--ink); }
-  .ib-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
-  .ib-title { font-size: 20px; font-weight: 600; color: var(--navy-950); margin: 0; }
-  
-  .ib-actions { display: flex; gap: 12px; }
-  .btn-primary { background: var(--accent); color: #fff; border: none; cursor: pointer; padding: 8px 16px; border-radius: 6px; font-weight: 500; font-size: 14px; box-shadow: var(--sh-sm); transition: 0.2s; text-decoration:none; }
-  .btn-primary:hover { background: var(--accent-600); }
-  .btn-outline { background: #fff; color: var(--ink-2); border: 1px solid var(--line); cursor: pointer; padding: 8px 16px; border-radius: 6px; font-weight: 500; font-size: 14px; transition: 0.2s; text-decoration:none; }
-  .btn-outline:hover { background: #f9fafb; color: var(--ink); }
-
-  .details-card { background: var(--card); border-radius: var(--r-md); box-shadow: var(--sh-sm); padding: 24px; margin-bottom: 24px; }
-  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
-  
-  .field { display: flex; flex-direction: column; gap: 4px; }
-  .field-label { font-size: 13px; font-weight: 500; color: var(--ink-2); }
-  .field-value { font-size: 15px; font-weight: 600; color: var(--ink); }
-  
-  .table-card { background: var(--card); border-radius: var(--r-md); box-shadow: var(--sh-sm); overflow: hidden; }
-  .items-table { width: 100%; border-collapse: collapse; text-align: left; }
-  .items-table th { background: #fafbfc; padding: 12px 16px; font-size: 13px; font-weight: 600; color: var(--ink-2); border-bottom: 1px solid var(--line); }
-  .items-table td { padding: 12px 16px; font-size: 14px; border-bottom: 1px solid var(--line); vertical-align: middle; }
-  .items-table tr:hover { background: #fdfdfe; }
-
-  .status-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 100px; font-size: 13px; font-weight: 500; }
-  .status-badge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; }
-  .status-draft { background: var(--gy-bg); color: var(--gy-tx); } .status-draft::before { background: var(--gy-dot); }
-  .status-confirmed { background: var(--b-bg); color: var(--b-tx); } .status-confirmed::before { background: var(--b-dot); }
-  .status-partially_received { background: var(--y-bg); color: var(--y-tx); } .status-partially_received::before { background: var(--y-dot); }
-  .status-received { background: var(--g-bg); color: var(--g-tx); } .status-received::before { background: var(--g-dot); }
-  .status-cancelled { background: var(--r-bg); color: var(--r-tx); } .status-cancelled::before { background: var(--r-dot); }
-  
-  .alert { padding: 12px 16px; border-radius: 8px; margin-bottom: 24px; font-size: 14px; font-weight: 500; }
-  .alert-success { background: var(--g-bg); color: var(--g-tx); }
-  .alert-danger { background: var(--r-bg); color: var(--r-tx); }
-
-  @@media print {
-      body * { visibility: hidden; }
-      .inbound-page, .inbound-page * { visibility: visible; }
-      .inbound-page { position: absolute; left: 0; top: 0; padding: 0; background: #fff; width: 100%; }
-      .ib-actions, .alert, .sidebar, .navbar { display: none !important; }
-      .details-card, .table-card { box-shadow: none; border: 1px solid #000; padding: 10px; margin-bottom: 10px; }
-      .items-table th, .items-table td { border-bottom: 1px solid #000; color: #000; }
-  }
+    .po-detail-page { background: #f5f6fa; min-height: 100vh; padding: 24px; }
+    .po-card { border: 0; border-radius: 12px; box-shadow: 0 2px 12px rgba(16, 24, 40, .06); }
+    .po-label { color: #667085; font-size: .82rem; margin-bottom: .2rem; }
+    .po-value { color: #172b4d; font-weight: 600; }
+    .po-summary { border-left: 4px solid #4361ee; }
+    .po-summary.success { border-left-color: #198754; }
+    .po-summary.warning { border-left-color: #f0ad4e; }
+    .po-summary.secondary { border-left-color: #98a2b3; }
+    .po-table th { color: #667085; font-size: .78rem; font-weight: 600; white-space: nowrap; }
+    .po-table td { vertical-align: middle; }
+    .quantity-number { font-variant-numeric: tabular-nums; white-space: nowrap; }
+    @@media print {
+        .no-print, .sidebar, .navbar { display: none !important; }
+        .po-detail-page { padding: 0; background: #fff; }
+        .po-card { box-shadow: none; border: 1px solid #d0d5dd; }
+    }
 </style>
 
-<div class="inbound-page">
+<div class="po-detail-page">
     @if (TempData["SuccessMessage"] != null)
     {
-        <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+        <div class="alert alert-success no-print">@TempData["SuccessMessage"]</div>
     }
     @if (TempData["ErrorMessage"] != null)
     {
-        <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+        <div class="alert alert-danger no-print">@TempData["ErrorMessage"]</div>
     }
 
     @if (Model.Order == null)
     {
-        <div class="alert alert-danger">Không tìm thấy Đơn mua hàng.</div>
-        <a href="/PurchaseOrders/Index" class="btn-outline">Quay lại danh sách</a>
+        <div class="alert alert-danger">Không tìm thấy đơn mua hàng.</div>
+        <a href="/PurchaseOrders" class="btn btn-outline-secondary">Quay lại danh sách</a>
     }
     else
     {
-        <div class="ib-header">
-            <h1 class="ib-title">Chi tiết Đơn mua hàng #@Model.Order.PurchaseOrderNumber</h1>
-            <div class="ib-actions">
-                <a href="/PurchaseOrders/Index" class="btn-outline">Quay lại</a>
-                <button type="button" class="btn-outline" onclick="window.print()">In PO</button>
-                @if (Model.Order.Status.Equals("DRAFT", System.StringComparison.OrdinalIgnoreCase))
-                {
-                    <form method="post" asp-page-handler="Confirm" asp-route-id="@Model.Id" style="display:inline;" onsubmit="return confirm('Bạn có chắc chắn muốn xác nhận đơn mua hàng này? Hệ thống sẽ gửi email thông báo trực tiếp đến nhà cung cấp.');">
-                        <button type="submit" class="btn-primary">Xác nhận PO</button>
-                    </form>
-                }
-                @if (Model.Order.Status.Equals("DRAFT", System.StringComparison.OrdinalIgnoreCase))
-                {
-                    <form method="post" asp-page-handler="Cancel" asp-route-id="@Model.Id" style="display:inline;" onsubmit="var reason = prompt('Nhập lý do hủy đơn hàng:'); if(!reason) return false; this.querySelector('input[name=reason]').value = reason; return true;">
-                        <input type="hidden" name="reason" value="" />
-                        <button type="submit" class="btn-primary" style="background:#c1222f;">Hủy PO</button>
-                    </form>
-                }
-            </div>
-        </div>
-
-        <div class="details-card">
-            <div class="grid-2">
-                <div class="field">
-                    <span class="field-label">Trạng thái</span>
-                    <span class="field-value">
-                        <span class="status-badge status-@Model.Order.Status.ToLower()">@Model.Order.Status</span>
+        <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-start gap-3 mb-4">
+            <div>
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                    <h1 class="h3 mb-0">@Model.Order.PurchaseOrderNumber</h1>
+                    <span class="badge rounded-pill @Model.GetStatusClass(Model.Order.Status)">
+                        @Model.GetPurchaseOrderStatusLabel(Model.Order.Status)
                     </span>
                 </div>
-                <div class="field">
-                    <span class="field-label">Nhà cung cấp</span>
-                    <span class="field-value">@Model.Order.SupplierName</span>
-                </div>
-                <div class="field">
-                    <span class="field-label">Ngày đặt</span>
-                    <span class="field-value">@Model.Order.OrderDate.ToString("dd/MM/yyyy")</span>
-                </div>
-                <div class="field">
-                    <span class="field-label">Ngày giao dự kiến</span>
-                    <span class="field-value">@(Model.Order.ExpectedDeliveryDate?.ToString("dd/MM/yyyy") ?? "-")</span>
-                </div>
-                <div class="field" style="grid-column: span 2;">
-                    <span class="field-label">Ghi chú</span>
-                    <span class="field-value" style="font-weight:400;">@(string.IsNullOrEmpty(Model.Order.Notes) ? "-" : Model.Order.Notes)</span>
+                <p class="text-muted mb-0">Theo dõi đơn mua và tiến độ nhận vật tư vào kho.</p>
+            </div>
+
+            <div class="d-flex flex-wrap gap-2 no-print">
+                <a href="/PurchaseOrders" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-1"></i>Quay lại
+                </a>
+                <button type="button" class="btn btn-outline-secondary" onclick="window.print()">
+                    <i class="bi bi-printer me-1"></i>In phiếu
+                </button>
+                @if (Model.Order.CanCreateInbound)
+                {
+                    <a href="/Admin/Inbound/Create?purchaseOrderId=@Model.Order.PurchaseOrderId" class="btn btn-success">
+                        <i class="bi bi-box-arrow-in-down me-1"></i>Tạo phiếu nhập kho
+                    </a>
+                }
+                @if (Model.Order.CanConfirm)
+                {
+                    <form method="post" asp-page-handler="Confirm" asp-route-id="@Model.Id"
+                          onsubmit="return confirm('Xác nhận PO này để có thể lập phiếu nhập kho?');">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check2-circle me-1"></i>Xác nhận PO
+                        </button>
+                    </form>
+                }
+                @if (Model.Order.CanCancel)
+                {
+                    <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#cancelPoModal">
+                        <i class="bi bi-x-circle me-1"></i>Hủy PO
+                    </button>
+                }
+            </div>
+        </div>
+
+        @if ((Model.Order.Status == "CONFIRMED" || Model.Order.Status == "PARTIALLY_RECEIVED") && !Model.Order.CanCreateInbound)
+        {
+            <div class="alert alert-info d-flex gap-2 align-items-start">
+                <i class="bi bi-info-circle mt-1"></i>
+                <div>Toàn bộ số lượng còn lại đã được phân bổ vào các phiếu nhập kho đang hoạt động.</div>
+            </div>
+        }
+
+        <div class="row g-3 mb-4">
+            <div class="col-sm-6 col-xl-3">
+                <div class="card po-card po-summary h-100"><div class="card-body">
+                    <div class="po-label">Số lượng đặt</div>
+                    <div class="h4 mb-0 quantity-number">@FormatHelper.FormatQuantity(totalOrdered, "")</div>
+                </div></div>
+            </div>
+            <div class="col-sm-6 col-xl-3">
+                <div class="card po-card po-summary secondary h-100"><div class="card-body">
+                    <div class="po-label">Đã lập phiếu nhập</div>
+                    <div class="h4 mb-0 quantity-number">@FormatHelper.FormatQuantity(totalPlanned, "")</div>
+                </div></div>
+            </div>
+            <div class="col-sm-6 col-xl-3">
+                <div class="card po-card po-summary success h-100"><div class="card-body">
+                    <div class="po-label">Đã nhận thực tế</div>
+                    <div class="h4 mb-0 quantity-number text-success">@FormatHelper.FormatQuantity(totalReceived, "")</div>
+                </div></div>
+            </div>
+            <div class="col-sm-6 col-xl-3">
+                <div class="card po-card po-summary warning h-100"><div class="card-body">
+                    <div class="po-label">Còn phải nhận</div>
+                    <div class="h4 mb-0 quantity-number text-warning-emphasis">@FormatHelper.FormatQuantity(totalRemaining, "")</div>
+                </div></div>
+            </div>
+        </div>
+
+        <div class="card po-card mb-4">
+            <div class="card-body p-4">
+                <h2 class="h5 text-primary mb-3"><i class="bi bi-file-earmark-text me-2"></i>Thông tin đơn mua hàng</h2>
+                <div class="row g-4">
+                    <div class="col-md-6 col-xl-3">
+                        <div class="po-label">Nhà cung cấp</div>
+                        <div class="po-value">@Model.Order.SupplierName</div>
+                        <div class="text-muted small">@Model.Order.SupplierCode</div>
+                    </div>
+                    <div class="col-md-6 col-xl-3">
+                        <div class="po-label">Ngày đặt hàng</div>
+                        <div class="po-value">@Model.Order.OrderDate.ToString("dd/MM/yyyy")</div>
+                    </div>
+                    <div class="col-md-6 col-xl-3">
+                        <div class="po-label">Ngày giao dự kiến</div>
+                        <div class="po-value">@(Model.Order.ExpectedDeliveryDate?.ToString("dd/MM/yyyy") ?? "Chưa xác định")</div>
+                    </div>
+                    <div class="col-md-6 col-xl-3">
+                        <div class="po-label">Trạng thái</div>
+                        <div class="po-value">@Model.GetPurchaseOrderStatusLabel(Model.Order.Status)</div>
+                    </div>
+                    <div class="col-12">
+                        <div class="po-label">Ghi chú nghiệp vụ</div>
+                        <div class="po-value fw-normal" style="white-space: pre-line;">@(string.IsNullOrWhiteSpace(Model.Order.Notes) ? "Không có ghi chú" : Model.Order.Notes)</div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <h3 style="font-size:16px; font-weight:600; color:var(--navy-950); margin-bottom:12px;">Danh sách vật tư đặt mua</h3>
-        <div class="table-card">
-            <table class="items-table">
-                <thead>
-                    <tr>
-                        <th style="width:60px;">STT</th>
-                        <th>Vật tư</th>
-                        <th>ĐVT</th>
-                        <th style="text-align:right;">Số lượng đặt</th>
-                        <th style="text-align:right;">Đã nhận</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @if (Model.Order.Items != null && Model.Order.Items.Any())
-                    {
-                        int index = 1;
-                        foreach (var detail in Model.Order.Items)
-                        {
+        <div class="card po-card mb-4">
+            <div class="card-body p-4">
+                <h2 class="h5 text-primary mb-3"><i class="bi bi-box-seam me-2"></i>Vật tư đặt mua</h2>
+                <div class="table-responsive">
+                    <table class="table table-hover po-table mb-0">
+                        <thead class="table-light">
                             <tr>
-                                <td>@index</td>
-                                <td>
-                                    <div style="font-weight:500; color:var(--ink);">@detail.ProductName</div>
-                                    <div style="font-size:12px; color:var(--ink-3);">@detail.ProductCode</div>
-                                </td>
-                                <td>@detail.Unit</td>
-                                <td style="text-align:right; font-weight:600;">@FormatHelper.FormatQuantity(detail.OrderedQuantity, detail.Unit)</td>
-                                <td style="text-align:right; font-weight:600; color:var(--g-tx);">@FormatHelper.FormatQuantity(detail.ReceivedQuantity, detail.Unit)</td>
-                            </tr>
-                            index++;
-                        }
-                    }
-                    else
-                    {
-                        <tr>
-                            <td colspan="5" style="text-align:center; padding:24px; color:var(--ink-3);">Không có vật tư nào</td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
-
-        @if (Model.Order.Inbounds != null && Model.Order.Inbounds.Any())
-        {
-            <div class="po-section" style="margin-top: 24px;">
-                <div class="po-section-title">Các Phiếu Nhập Kho (Inbound) Liên Quan</div>
-                <div class="table-card" style="box-shadow:none; border:1px solid var(--line);">
-                    <table class="items-table">
-                        <thead style="background:var(--bg);">
-                            <tr>
-                                <th style="width: 25%">Mã Inbound</th>
-                                <th style="width: 25%">Ngày dự kiến nhập</th>
-                                <th style="width: 25%">Trạng thái</th>
-                                <th style="width: 25%">Ghi chú</th>
+                                <th>Vật tư</th>
+                                <th>Đơn vị</th>
+                                <th class="text-end">Số lượng đặt</th>
+                                <th class="text-end">Đã lập phiếu nhập</th>
+                                <th class="text-end">Đã nhận thực tế</th>
+                                <th class="text-end">Còn phải nhận</th>
+                                <th>Ghi chú dòng</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var ib in Model.Order.Inbounds)
+                            @foreach (var item in Model.Order.Items)
                             {
                                 <tr>
                                     <td>
-                                        <a href="/Admin/Inbound/Detail?id=@ib.InboundOrderId" style="color:var(--accent); font-weight:500;">
-                                            @ib.InboundOrderNumber
-                                        </a>
+                                        <div class="fw-semibold">@item.ProductName</div>
+                                        <div class="text-muted small">@item.ProductCode</div>
                                     </td>
-                                    <td>@ib.ExpectedReceiptDate.ToString("dd/MM/yyyy")</td>
-                                    <td>
-                                        <span class="status-badge status-@ib.Status.ToLower()">@ib.Status</span>
-                                    </td>
-                                    <td style="color:var(--ink-2);">@(ib.Notes ?? "-")</td>
+                                    <td>@item.Unit</td>
+                                    <td class="text-end quantity-number">@FormatHelper.FormatQuantity(item.OrderedQuantity, item.Unit)</td>
+                                    <td class="text-end quantity-number">@FormatHelper.FormatQuantity(item.PlannedInboundQuantity, item.Unit)</td>
+                                    <td class="text-end quantity-number text-success fw-semibold">@FormatHelper.FormatQuantity(item.ReceivedQuantity, item.Unit)</td>
+                                    <td class="text-end quantity-number @(item.RemainingQuantity > 0 ? "text-warning-emphasis fw-semibold" : "text-muted")">@FormatHelper.FormatQuantity(item.RemainingQuantity, item.Unit)</td>
+                                    <td>@(string.IsNullOrWhiteSpace(item.Notes) ? "—" : item.Notes)</td>
                                 </tr>
+                            }
+                            @if (!Model.Order.Items.Any())
+                            {
+                                <tr><td colspan="7" class="text-center text-muted py-4">Không có vật tư trong đơn mua hàng.</td></tr>
                             }
                         </tbody>
                     </table>
                 </div>
             </div>
+        </div>
+
+        <div class="card po-card mb-4">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h2 class="h5 text-primary mb-0"><i class="bi bi-box-arrow-in-down me-2"></i>Phiếu nhập kho tham chiếu PO</h2>
+                    <span class="badge bg-light text-dark border">@Model.Order.Inbounds.Count phiếu</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover po-table mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Mã phiếu nhập</th>
+                                <th>Ngày dự kiến</th>
+                                <th class="text-end">Dự kiến nhận</th>
+                                <th class="text-end">Đã nhận</th>
+                                <th>Trạng thái</th>
+                                <th>Ghi chú</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var inbound in Model.Order.Inbounds)
+                            {
+                                <tr>
+                                    <td>
+                                        <a href="/Admin/Inbound/Details/@inbound.InboundOrderId" class="fw-semibold text-decoration-none">@inbound.InboundOrderNumber</a>
+                                        @if (inbound.IsSupplemental)
+                                        {
+                                            <span class="badge bg-warning-subtle text-warning-emphasis ms-1">Bổ sung</span>
+                                        }
+                                    </td>
+                                    <td>@inbound.ExpectedReceiptDate.ToString("dd/MM/yyyy")</td>
+                                    <td class="text-end quantity-number">@FormatHelper.FormatQuantity(inbound.ExpectedQuantity, "")</td>
+                                    <td class="text-end quantity-number">@FormatHelper.FormatQuantity(inbound.ReceivedQuantity, "")</td>
+                                    <td><span class="badge rounded-pill @Model.GetStatusClass(inbound.Status)">@Model.GetInboundStatusLabel(inbound.Status)</span></td>
+                                    <td>@(string.IsNullOrWhiteSpace(inbound.Notes) ? "—" : inbound.Notes)</td>
+                                </tr>
+                            }
+                            @if (!Model.Order.Inbounds.Any())
+                            {
+                                <tr><td colspan="6" class="text-center text-muted py-4">PO chưa có phiếu nhập kho liên quan.</td></tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="card po-card">
+            <div class="card-body p-4">
+                <h2 class="h5 text-primary mb-3"><i class="bi bi-clock-history me-2"></i>Thông tin ghi nhận</h2>
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <div class="po-label">Người tạo</div>
+                        <div class="po-value">@(string.IsNullOrWhiteSpace(Model.Order.CreatedByUserName) ? $"Người dùng #{Model.Order.CreatedByUserId}" : Model.Order.CreatedByUserName)</div>
+                        <div class="text-muted small">@Model.Order.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="po-label">Người xác nhận</div>
+                        @if (Model.Order.ConfirmedAt.HasValue)
+                        {
+                            <div class="po-value">@(string.IsNullOrWhiteSpace(Model.Order.ConfirmedByUserName) ? $"Người dùng #{Model.Order.ConfirmedByUserId}" : Model.Order.ConfirmedByUserName)</div>
+                            <div class="text-muted small">@Model.Order.ConfirmedAt.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</div>
+                        }
+                        else
+                        {
+                            <div class="text-muted">Chưa xác nhận</div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @if (Model.Order.CanCancel)
+        {
+            <div class="modal fade no-print" id="cancelPoModal" tabindex="-1" aria-labelledby="cancelPoModalLabel" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <form method="post" asp-page-handler="Cancel" asp-route-id="@Model.Id">
+                            <div class="modal-header">
+                                <h2 class="modal-title h5" id="cancelPoModalLabel">Hủy đơn mua hàng</h2>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                            </div>
+                            <div class="modal-body">
+                                <label for="cancelReason" class="form-label fw-semibold">Lý do hủy <span class="text-danger">*</span></label>
+                                <textarea id="cancelReason" name="reason" class="form-control" rows="3" minlength="5" maxlength="500" required></textarea>
+                                <div class="form-text">Nhập từ 5 đến 500 ký tự. Lý do được lưu trong lịch sử PO.</div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Đóng</button>
+                                <button type="submit" class="btn btn-danger">Xác nhận hủy</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
         }
     }
+</div>

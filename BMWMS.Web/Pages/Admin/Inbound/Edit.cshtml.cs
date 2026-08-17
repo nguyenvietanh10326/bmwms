@@ -14,14 +14,10 @@ namespace BMWMS.Web.Pages.Admin.Inbound
     public class EditModel : PageModel
     {
         private readonly InboundApiService _apiService;
-        private readonly UserApiService _userApiService;
 
-        public EditModel(
-            InboundApiService apiService, 
-            UserApiService userApiService)
+        public EditModel(InboundApiService apiService)
         {
             _apiService = apiService;
-            _userApiService = userApiService;
         }
 
         [BindProperty]
@@ -49,7 +45,7 @@ namespace BMWMS.Web.Pages.Admin.Inbound
                 {
                     ExpectedReceiptDate = order.ExpectedReceiptDate,
                     Notes = "",
-                    AssignedToUserId = 1, // Tạm thời
+                    AssignedToUserId = order.AssignedToUserId,
                     Items = order.Items.Select(i => new UpdateInboundOrderItemDto
                     {
                         ProductId = i.ProductId,
@@ -111,12 +107,7 @@ namespace BMWMS.Web.Pages.Admin.Inbound
 
         private async Task LoadDropdowns()
         {
-            var usersResult = await _userApiService.GetUsersAsync(new UserFilterModel { PageSize = 1000 });
-            var allUsers = usersResult?.Items ?? new System.Collections.Generic.List<UserListItem>();
-            var warehouseUsers = allUsers.Where(u => 
-            (u.RoleName.Contains("Kho", StringComparison.OrdinalIgnoreCase) || 
-             u.RoleName.Contains("Warehouse", StringComparison.OrdinalIgnoreCase)) &&
-            u.Status == "ACTIVE").ToList();
+            var warehouseUsers = await _apiService.GetAvailableWarehouseStaffAsync();
             Users = new SelectList(warehouseUsers, "UserId", "FullName", EditOrder.AssignedToUserId);
         }
     }

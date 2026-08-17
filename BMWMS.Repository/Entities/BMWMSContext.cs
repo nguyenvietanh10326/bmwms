@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 
@@ -1060,6 +1060,7 @@ public partial class BMWMSContext : DbContext
             entity.Property(e => e.CreatedByUserId).HasColumnName("CreatedByUserID");
             entity.Property(e => e.CustomerId).HasColumnName("CustomerID");
             entity.Property(e => e.Notes).HasMaxLength(2000);
+            entity.Property(e => e.AllocationStrategy).HasMaxLength(20).HasDefaultValue("FIFO");
             entity.Property(e => e.SalesOrderNumber)
                 .HasMaxLength(50)
                 .IsUnicode(false);
@@ -1515,6 +1516,7 @@ public partial class BMWMSContext : DbContext
                 .HasMaxLength(30)
                 .IsUnicode(false);
             entity.Property(e => e.UnitName).HasMaxLength(100);
+            entity.Property(e => e.QuantityScale).HasDefaultValue((byte)0);
         });
 
         modelBuilder.Entity<User>(entity =>

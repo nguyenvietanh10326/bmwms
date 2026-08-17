@@ -24,6 +24,9 @@ namespace BMWMS.Repository.Repositories.Inventory
                 .Include(o => o.AssignedToUser)
                 .Include(o => o.SalesOrder)
                     .ThenInclude(s => s!.Customer)
+                .Include(o => o.PurchaseOrder)
+                    .ThenInclude(p => p!.Supplier)
+                .Include(o => o.TransferOrder)
                 .Include(o => o.OutboundOrderItems)
                     .ThenInclude(i => i.Product)
                         .ThenInclude(p => p!.UnitOfMeasure)
@@ -34,12 +37,20 @@ namespace BMWMS.Repository.Repositories.Inventory
             {
                 search = search.Trim().ToLower();
                 query = query.Where(o => o.OutboundOrderNumber.ToLower().Contains(search)
-                                      || (o.SalesOrder != null && o.SalesOrder.SalesOrderNumber.ToLower().Contains(search)));
+                                      || (o.SalesOrder != null && o.SalesOrder.SalesOrderNumber.ToLower().Contains(search))
+                                      || (o.PurchaseOrder != null && o.PurchaseOrder.PurchaseOrderNumber.ToLower().Contains(search)));
             }
 
             if (!string.IsNullOrWhiteSpace(status))
             {
-                query = query.Where(o => o.Status == status);
+                var dbStatus = status.Trim().ToUpperInvariant() switch
+                {
+                    "READY" => "ASSIGNED",
+                    "ISSUING" => "IN_PROGRESS",
+                    "ISSUED" => "COMPLETED",
+                    var value => value
+                };
+                query = query.Where(o => o.Status == dbStatus);
             }
 
             if (warehouseId.HasValue && warehouseId > 0)
@@ -57,9 +68,25 @@ namespace BMWMS.Repository.Repositories.Inventory
                 .Include(o => o.AssignedToUser)
                 .Include(o => o.SalesOrder)
                     .ThenInclude(s => s!.Customer)
+                .Include(o => o.PurchaseOrder)
+                    .ThenInclude(p => p!.Supplier)
+                .Include(o => o.TransferOrder)
+                    .ThenInclude(t => t!.TransferOrderDetails)
                 .Include(o => o.OutboundOrderItems)
                     .ThenInclude(i => i.Product)
                         .ThenInclude(p => p!.UnitOfMeasure)
+                .Include(o => o.OutboundOrderItems)
+                    .ThenInclude(i => i.OutboundOrderDetails)
+                        .ThenInclude(d => d.StorageLocation)
+                .Include(o => o.OutboundOrderItems)
+                    .ThenInclude(i => i.OutboundOrderDetails)
+                        .ThenInclude(d => d.ProductLot)
+                .Include(o => o.OutboundOrderItems)
+                    .ThenInclude(i => i.OutboundOrderDetails)
+                        .ThenInclude(d => d.RecordedByUser)
+                .Include(o => o.OutboundOrderItems)
+                    .ThenInclude(i => i.OutboundOrderDetails)
+                        .ThenInclude(d => d.InventoryTransaction)
                 .FirstOrDefaultAsync(o => o.OutboundOrderId == id);
         }
 
@@ -134,7 +161,7 @@ namespace BMWMS.Repository.Repositories.Inventory
             var availableItems = await _context.InventoryReservations
                 .Where(r => r.StorageLocation.WarehouseId == warehouseId
                          && r.ProductId == productId
-                         && r.Status == "RESERVED")
+                         && (r.Status == "ACTIVE" || r.Status == "PARTIALLY_CONSUMED"))
                 .Select(r => new AvailableLocationModel
                 {
                     StorageLocationId = r.StorageLocationId,
@@ -142,7 +169,7 @@ namespace BMWMS.Repository.Repositories.Inventory
                     ProductLotId = r.ProductLotId,
                     LotNumber = r.ProductLot.LotNumber,
                     InventoryReservationId = r.InventoryReservationId,
-                    AvailableQuantity = r.ReservedQuantity
+                    AvailableQuantity = r.ReservedQuantity - r.ConsumedQuantity
                 })
                 .ToListAsync();
 
