@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -30,5 +30,6 @@ namespace BMWMS.Repository.Interfaces.Inventory
         Task<decimal> GetAvailableQuantityAsync(long productId);
 
         Task<bool> ReserveStockAsync(long productId, decimal quantity);
+        Task<bool> ReserveStockForOrderAsync(long productId, decimal quantity, long salesOrderDetailId, long userId, string allocationStrategy = "FIFO");
     }
 }

@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace BMWMS.Repository.Models;
+namespace BMWMS.Repository.Entities;
 
 public partial class SalesOrder
 {

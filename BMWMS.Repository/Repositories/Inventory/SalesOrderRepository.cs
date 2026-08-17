@@ -47,7 +47,43 @@ namespace BMWMS.Repository.Repositories.Inventory
         {
             return await _context.SalesOrders
                 .AsNoTracking()
-                .Where(so => so.Status == "CONFIRMED" || so.Status == "APPROVED")
+                .Where(so => (so.Status == "CONFIRMED" || so.Status == "APPROVED" ||
+                              so.Status == "ALLOCATED" || so.Status == "PARTIALLY_FULFILLED") &&
+                             !so.OutboundOrders.Any(o => o.Status != "CANCELLED") &&
+                             so.SalesOrderDetails.Any(d => d.OrderedQuantity > d.FulfilledQuantity))
+                .OrderByDescending(so => so.SalesOrderId)
+                .ToListAsync();
+        }
+
+        public async Task<Customer?> GetActiveCustomerAsync(long customerId)
+        {
+            return await _context.Customers
+                .AsNoTracking()
+                .FirstOrDefaultAsync(c => c.CustomerId == customerId && c.Status == "ACTIVE");
+        }
+
+        public async Task<List<Product>> GetActiveProductsAsync(IEnumerable<long> productIds)
+        {
+            var ids = productIds.Distinct().ToList();
+            return await _context.Products
+                .AsNoTracking()
+                .Include(p => p.ProductGroup)
+                .Include(p => p.UnitOfMeasure)
+                .Where(p => ids.Contains(p.ProductId) &&
+                            p.Status == "ACTIVE" &&
+                            p.ProductGroup.Status == "ACTIVE")
+                .ToListAsync();
+        }
+
+        public async Task<List<Product>> GetActiveProductsForLookupAsync()
+        {
+            return await _context.Products
+                .AsNoTracking()
+                .Include(p => p.UnitOfMeasure)
+                .Include(p => p.ProductGroup)
+                .Include(p => p.Inventories)
+                .Where(p => p.Status == "ACTIVE" && p.ProductGroup.Status == "ACTIVE")
+                .OrderBy(p => p.ProductCode)
                 .ToListAsync();
         }
 
@@ -57,8 +93,8 @@ namespace BMWMS.Repository.Repositories.Inventory
             return await _context.InventoryReservations
                 .Where(r =>
                     r.SalesOrderDetailId == salesOrderDetailId &&
-                    r.Status == "RESERVED")
-                .SumAsync(r => (decimal?)r.ReservedQuantity) ?? 0;
+                    (r.Status == "ACTIVE" || r.Status == "PARTIALLY_CONSUMED"))
+                .SumAsync(r => (decimal?)(r.ReservedQuantity - r.ConsumedQuantity)) ?? 0;
         }
         public async Task<List<string>> GetReservedLotBinInfoAsync(
             long salesOrderDetailId)
@@ -66,14 +102,16 @@ namespace BMWMS.Repository.Repositories.Inventory
             return await _context.InventoryReservations
                 .Where(r =>
                     r.SalesOrderDetailId == salesOrderDetailId &&
-                    r.Status == "RESERVED")
+                    (r.Status == "ACTIVE" || r.Status == "PARTIALLY_CONSUMED"))
                 .Select(r =>
-                    $"{r.ProductLot.LotNumber} · {r.StorageLocation.LocationCode}")
+                    $"{r.ProductLot.LotNumber} - {r.StorageLocation.LocationCode}")
                 .ToListAsync();
         }
         public async Task<(IEnumerable<SalesOrder> Items, int TotalCount)> GetPagedAsync(
             string? keyword,
             string? status,
+            DateOnly? fromDate,
+            DateOnly? toDate,
             int pageIndex,
             int pageSize)
         {
@@ -99,13 +137,31 @@ namespace BMWMS.Repository.Repositories.Inventory
             // Lọc theo Trạng thái
             if (!string.IsNullOrWhiteSpace(status))
             {
-                query = query.Where(x => x.Status == status);
+                query = status switch
+                {
+                    // Hỗ trợ đọc dữ liệu cũ trong giai đoạn chuyển sang state machine Report 3.1.
+                    "CONFIRMED" => query.Where(x => x.Status == "CONFIRMED" || x.Status == "ALLOCATED"),
+                    "PARTIALLY_ISSUED" => query.Where(x => x.Status == "PARTIALLY_ISSUED" || x.Status == "PARTIALLY_FULFILLED"),
+                    "ISSUED" => query.Where(x => x.Status == "ISSUED" || x.Status == "FULFILLED" || x.Status == "CLOSED"),
+                    _ => query.Where(x => x.Status == status)
+                };
+            }
+
+            if (fromDate.HasValue)
+            {
+                query = query.Where(x => x.OrderDate >= fromDate.Value);
+            }
+
+            if (toDate.HasValue)
+            {
+                query = query.Where(x => x.OrderDate <= toDate.Value);
             }
 
             int totalCount = await query.CountAsync();
 
             var items = await query
-                .OrderByDescending(x => x.CreatedAt)
+                .OrderByDescending(x => x.OrderDate)
+                .ThenByDescending(x => x.SalesOrderNumber)
                 .Skip((pageIndex - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
@@ -210,5 +266,73 @@ namespace BMWMS.Repository.Repositories.Inventory
             return $"{prefix}{Guid.NewGuid().ToString().Substring(0, 4).ToUpper()}";
         }
 
+        public async Task<(IEnumerable<SalesOrder> Items, int TotalCount)> GetPagedListAsync(
+            string? searchTerm, string? status, long? warehouseId, int pageIndex, int pageSize)
+        {
+            var query = _context.SalesOrders
+                .Include(so => so.Customer)
+                .Include(so => so.SalesOrderDetails)
+                    .ThenInclude(d => d.Product)
+                        .ThenInclude(p => p.UnitOfMeasure)
+                .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                query = query.Where(so => so.SalesOrderNumber.Contains(searchTerm) || 
+                                          (so.Customer != null && so.Customer.CustomerName.Contains(searchTerm)));
+            }
+
+            if (!string.IsNullOrWhiteSpace(status))
+            {
+                query = query.Where(so => so.Status == status);
+            }
+
+            if (warehouseId.HasValue && warehouseId.Value > 0)
+            {
+                // SO list filtering by warehouse via OutboundOrders
+                query = query.Where(so => so.OutboundOrders.Any(o => o.WarehouseId == warehouseId.Value));
+            }
+
+            int totalCount = await query.CountAsync();
+
+            var items = await query
+                .OrderByDescending(so => so.CreatedAt)
+                .Skip((pageIndex - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return (items, totalCount);
+        }
+
+        public async Task<SalesOrder?> GetByIdWithDetailsAsync(long salesOrderId)
+        {
+            return await _context.SalesOrders
+                .Include(so => so.Customer)
+                .Include(so => so.CreatedByUser)
+                .Include(so => so.ConfirmedByUser)
+                .Include(so => so.OutboundOrders)
+                    .ThenInclude(o => o.Warehouse)
+                .Include(so => so.SalesOrderDetails)
+                    .ThenInclude(d => d.Product)
+                        .ThenInclude(p => p.UnitOfMeasure)
+                .FirstOrDefaultAsync(so => so.SalesOrderId == salesOrderId);
+        }
+        public async Task AddAsync(SalesOrder entity)
+        {
+            await _context.SalesOrders.AddAsync(entity);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task<Customer?> GetCustomerByPhoneAsync(string phone)
+        {
+            return await _context.Customers.FirstOrDefaultAsync(c => c.PhoneNumber == phone);
+        }
+
+        public async Task<Customer> AddCustomerAsync(Customer customer)
+        {
+            await _context.Customers.AddAsync(customer);
+            await _context.SaveChangesAsync();
+            return customer;
+        }
     }
 }

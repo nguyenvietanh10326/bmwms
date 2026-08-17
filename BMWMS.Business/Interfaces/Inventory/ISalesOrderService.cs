@@ -21,6 +21,8 @@ namespace BMWMS.Business.Interfaces.Inventory
         // Lấy thông tin chi tiết một SO
         Task<SalesOrderDetailDto?> GetByIdAsync(long salesOrderId);
 
+        Task<List<SalesOrderProductLookupDto>> GetActiveProductLookupsAsync();
+
         // Tạo đơn hàng mới ở trạng thái Nháp
         Task<SalesOrderDetailDto> CreateDraftAsync(CreateUpdateSalesOrderDto dto);
 
