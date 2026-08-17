@@ -3,10 +3,9 @@ version: '3.8'
 services:
   db:
     image: mcr.microsoft.com/mssql/server:2022-latest
-    env_file:
-      - .env
     environment:
       - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=${MSSQL_SA_PASSWORD}
     ports:
       - "1433:1433"
     volumes:
@@ -16,8 +15,8 @@ services:
     image: mcr.microsoft.com/mssql/server:2022-latest
     depends_on:
       - db
-    env_file:
-      - .env
+    environment:
+      - MSSQL_SA_PASSWORD=${MSSQL_SA_PASSWORD}
     volumes:
       - ./BMWMS_Data_Final.sql:/scripts/BMWMS_Data_Final.sql
     command: >
@@ -40,8 +39,18 @@ services:
       - db
     ports:
       - "5076:8080"
-    env_file:
-      - .env
+    environment:
+      - ConnectionStrings__DefaultConnection=${ConnectionStrings__DefaultConnection}
+      - SmtpSettings__Host=${SmtpSettings__Host}
+      - SmtpSettings__Port=${SmtpSettings__Port}
+      - SmtpSettings__Username=${SmtpSettings__Username}
+      - SmtpSettings__Password=${SmtpSettings__Password}
+      - SmtpSettings__EnableSsl=${SmtpSettings__EnableSsl}
+      - SmtpSettings__FromEmail=${SmtpSettings__FromEmail}
+      - Jwt__Key=${Jwt__Key}
+      - Jwt__Issuer=${Jwt__Issuer}
+      - Jwt__Audience=${Jwt__Audience}
+      - Jwt__ExpireMinutes=${Jwt__ExpireMinutes}
 
   web:
     build:
@@ -51,8 +60,8 @@ services:
       - api
     ports:
       - "5100:8080"
-    env_file:
-      - .env
+    environment:
+      - ApiSettings__BaseUrl=${ApiSettings__BaseUrl}
 
 volumes:
   sql_data:
