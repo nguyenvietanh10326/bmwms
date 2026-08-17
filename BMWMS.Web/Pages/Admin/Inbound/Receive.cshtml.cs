@@ -46,7 +46,7 @@ public class ReceiveModel : PageModel
         Data = await _inboundApi.GetInboundOrdersPageAsync(Filter);
 
         // Filter the data to only include ASSIGNED and IN_PROGRESS
-        Data.Items = Data.Items.Where(x => x.Status == "ASSIGNED" || x.Status == "IN_PROGRESS").ToList();
+        Data.Items = Data.Items.Where(x => x.Status == "READY" || x.Status == "RECEIVING").ToList();
 
         if (id.HasValue)
         {
@@ -74,7 +74,9 @@ public class ReceiveModel : PageModel
             
             // Fetch order again to find items needing putaway
             var order = await _inboundApi.GetInboundOrderByIdAsync(id);
-            var itemNeedingPutaway = order?.Items.FirstOrDefault(i => i.Receipts.Any(r => r.ReceivedQuantity > r.PutawayQuantity));
+            var itemNeedingPutaway = order?.Status == "RECEIVED"
+                ? order.Items.FirstOrDefault(i => i.Receipts.Any(r => r.ConditionStatus == "GOOD" && r.ReceivedQuantity > r.PutawayQuantity))
+                : null;
             
             if (itemNeedingPutaway != null)
             {
