@@ -11,7 +11,7 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace BMWMS.Web.Pages.Admin.Inbound;
 
-[Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
+[Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF")]
 public class CreateModel : PageModel
 {
     private readonly InboundApiService _inboundApiService;
@@ -32,24 +32,45 @@ public class CreateModel : PageModel
     public SelectList Users { get; set; } = new(Array.Empty<object>());
     public SelectList PurchaseOrders { get; set; } = new(Array.Empty<object>());
     public SelectList SalesOrders { get; set; } = new(Array.Empty<object>());
+    public InboundOrderDetailDto? ParentInbound { get; set; }
 
-    public async Task OnGetAsync(long? purchaseOrderId, long? salesOrderId)
+    public async Task<IActionResult> OnGetAsync(long? purchaseOrderId, long? salesOrderId, long? parentInboundOrderId)
     {
+        if (parentInboundOrderId.HasValue)
+        {
+            ParentInbound = await _inboundApiService.GetInboundOrderByIdAsync(parentInboundOrderId.Value);
+            if (ParentInbound == null || ParentInbound.SourceType != "PURCHASE_ORDER" ||
+                !ParentInbound.PurchaseOrderId.HasValue || ParentInbound.Items.All(item => item.SupplementalRemainingQuantity <= 0))
+            {
+                TempData["ErrorMessage"] = "Phiếu nhập gốc không còn số lượng thiếu/hỏng đủ điều kiện để tạo phiếu bổ sung.";
+                return RedirectToPage("./Index");
+            }
+            purchaseOrderId = ParentInbound.PurchaseOrderId;
+            salesOrderId = null;
+        }
+
         InboundOrder = new CreateInboundOrderDto
         {
             ExpectedReceiptDate = DateOnly.FromDateTime(DateTime.Today.AddDays(1)),
             SourceType = salesOrderId.HasValue ? "SALES_RETURN" : "PURCHASE_ORDER",
             PurchaseOrderId = purchaseOrderId,
-            SalesOrderId = salesOrderId
+            SalesOrderId = salesOrderId,
+            ParentInboundOrderId = parentInboundOrderId
         };
 
         await LoadDropdowns();
+        return Page();
     }
 
-    public async Task<IActionResult> OnPostAsync()
+    public async Task<IActionResult> OnPostAsync(string actionType)
     {
+        InboundOrder.IsSubmit = string.Equals(actionType, "submit", StringComparison.OrdinalIgnoreCase);
+        if (InboundOrder.IsSubmit && !InboundOrder.AssignedToUserId.HasValue)
+            ModelState.AddModelError("InboundOrder.AssignedToUserId", "Vui lòng chọn nhân viên kho phụ trách trước khi gửi phiếu.");
+
         if (!ModelState.IsValid)
         {
+            await LoadParentInboundAsync();
             await LoadDropdowns();
             return Page();
         }
@@ -57,12 +78,15 @@ public class CreateModel : PageModel
         try
         {
             var newOrderId = await _inboundApiService.CreateInboundOrderAsync(InboundOrder);
-            TempData["SuccessMessage"] = "Lệnh nhập kho đã được tạo thành công.";
+            TempData["SuccessMessage"] = InboundOrder.IsSubmit
+                ? "Đã tạo và chuyển phiếu nhập sang trạng thái Sẵn sàng."
+                : "Đã lưu nháp phiếu nhập kho.";
             return RedirectToPage("./Details", new { id = newOrderId });
         }
         catch (Exception ex)
         {
             ModelState.AddModelError(string.Empty, "Đã xảy ra lỗi khi tạo lệnh nhập: " + ex.Message);
+            await LoadParentInboundAsync();
             await LoadDropdowns();
             return Page();
         }
@@ -111,5 +135,38 @@ public class CreateModel : PageModel
         var result = await _inboundApiService.GetSalesOrderForInboundAsync(soId);
         if (result == null) return NotFound();
         return new JsonResult(result);
+    }
+
+    public async Task<IActionResult> OnGetSupplementalDetailsAsync(long parentId)
+    {
+        var parent = await _inboundApiService.GetInboundOrderByIdAsync(parentId);
+        if (parent == null || parent.SourceType != "PURCHASE_ORDER" || !parent.PurchaseOrderId.HasValue)
+            return NotFound();
+
+        return new JsonResult(new PurchaseOrderForInboundDto
+        {
+            PurchaseOrderId = parent.PurchaseOrderId.Value,
+            PurchaseOrderNumber = parent.PurchaseOrderNumber ?? string.Empty,
+            SupplierName = parent.PartnerName,
+            Items = parent.Items.Where(item => item.SupplementalRemainingQuantity > 0).Select(item => new PurchaseOrderItemForInboundDto
+            {
+                ProductId = item.ProductId,
+                ProductCode = item.ProductCode,
+                ProductName = item.ProductName,
+                UnitName = item.UnitName,
+                QuantityScale = item.QuantityScale,
+                TrackLot = item.TrackLot,
+                TrackExpiry = item.TrackExpiry,
+                OrderedQuantity = item.ExpectedQuantity,
+                InboundQuantity = item.ExpectedQuantity - item.SupplementalRemainingQuantity,
+                RemainingQuantity = item.SupplementalRemainingQuantity
+            }).ToList()
+        });
+    }
+
+    private async Task LoadParentInboundAsync()
+    {
+        if (InboundOrder.ParentInboundOrderId.HasValue)
+            ParentInbound = await _inboundApiService.GetInboundOrderByIdAsync(InboundOrder.ParentInboundOrderId.Value);
     }
 }

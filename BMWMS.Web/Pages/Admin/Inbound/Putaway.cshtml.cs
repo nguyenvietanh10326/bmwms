@@ -13,7 +13,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace BMWMS.Web.Pages.Admin.Inbound;
 
-[Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF")]
+[Authorize(Roles = "WAREHOUSE_STAFF")]
 public class PutawayModel : PageModel
 {
     private readonly InboundApiService _inboundApiService;
@@ -32,7 +32,7 @@ public class PutawayModel : PageModel
     [BindProperty]
     public List<PutawayInboundItemDto> PutawayDtos { get; set; } = new();
 
-    public SelectList Locations { get; set; } = default!;
+    public List<PutawayLocationOption> Locations { get; set; } = new();
 
     public async Task<IActionResult> OnGetAsync(long id, long itemId, long lotId)
     {
@@ -41,6 +41,12 @@ public class PutawayModel : PageModel
             return NotFound();
 
         Order = data;
+
+        if (Order.Status != "RECEIVED")
+        {
+            TempData["ErrorMessage"] = "Chỉ được xác nhận vị trí sau khi phiếu đã hoàn tất kiểm nhận và còn hàng đạt chưa cất.";
+            return RedirectToPage("Details", new { id });
+        }
 
         var userIdClaimForCheck = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         if (User.IsInRole("WAREHOUSE_STAFF") && long.TryParse(userIdClaimForCheck, out var userId) && Order.AssignedToUserId != userId)
@@ -51,15 +57,19 @@ public class PutawayModel : PageModel
         Item = Order.Items.FirstOrDefault(x => x.InboundOrderItemId == itemId)!;
         if (Item == null) return NotFound();
 
-        Receipt = Item.Receipts.FirstOrDefault(r => r.ProductLotId == lotId)!;
+        Receipt = Item.Receipts.FirstOrDefault(r =>
+            r.ProductLotId == lotId && r.ConditionStatus == "GOOD" && r.ReceivedQuantity > r.PutawayQuantity)!;
         if (Receipt == null) return NotFound();
 
-        PutawayDtos.Add(new PutawayInboundItemDto 
+        if (PutawayDtos.Count == 0)
         {
-            InboundOrderItemId = itemId,
-            ProductLotId = lotId,
-            PutawayQuantity = Receipt.ReceivedQuantity - Receipt.PutawayQuantity
-        });
+            PutawayDtos.Add(new PutawayInboundItemDto
+            {
+                InboundOrderItemId = itemId,
+                ProductLotId = lotId,
+                PutawayQuantity = Receipt.ReceivedQuantity - Receipt.PutawayQuantity
+            });
+        }
 
         await LoadLocations(Order.WarehouseId, Item.ProductId);
         
@@ -107,14 +117,11 @@ public class PutawayModel : PageModel
             var result = await response.Content.ReadFromJsonAsync<List<PutawayLocationOption>>();
             if (result != null)
             {
-                Locations = new SelectList(result, "StorageLocationId", "DisplayName");
+                Locations = result;
             }
         }
         
-        if (Locations == null)
-        {
-            Locations = new SelectList(new List<PutawayLocationOption>(), "StorageLocationId", "DisplayName");
-        }
+        Locations ??= new List<PutawayLocationOption>();
     }
 }
 
@@ -123,7 +130,18 @@ public class PutawayLocationOption
     public long StorageLocationId { get; set; }
     public string LocationCode { get; set; } = string.Empty;
     public string LocationName { get; set; } = string.Empty;
+    public long? ZoneId { get; set; }
+    public string ZoneCode { get; set; } = string.Empty;
+    public string ZoneName { get; set; } = string.Empty;
+    public long? RackId { get; set; }
+    public string RackCode { get; set; } = string.Empty;
+    public string RackName { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public decimal CurrentOnHandQuantity { get; set; }
+    public int StoredProductCount { get; set; }
+    public bool IsRecommended { get; set; }
     public int Priority { get; set; }
     public bool IsDefault { get; set; }
-    public string DisplayName => $"{LocationCode} — {LocationName}{(IsDefault ? " (mặc định)" : string.Empty)}";
+    public string HierarchyPath => $"{(string.IsNullOrWhiteSpace(ZoneCode) ? "Chưa phân khu" : ZoneCode)} / {(string.IsNullOrWhiteSpace(RackCode) ? "Chưa phân kệ" : RackCode)} / {LocationCode}";
+    public string DisplayName => $"{(IsDefault ? "★ " : IsRecommended ? "• " : string.Empty)}{HierarchyPath} — {LocationName} · Tồn {CurrentOnHandQuantity:0.####}";
 }

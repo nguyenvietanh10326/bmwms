@@ -1,9 +1,6 @@
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
-using System.Net.Http;
-using System.Net.Http.Json;
-using System.Threading.Tasks;
 using BMWMS.Web.Models;
 
 namespace BMWMS.Web.Services;
@@ -20,10 +17,11 @@ public class InboundApiService
     public async Task<InboundOrderPageModel> GetInboundOrdersPageAsync(InboundOrderFilterModel filter)
     {
         var queryString = $"?pageIndex={filter.PageIndex}&pageSize={filter.PageSize}";
-        if (!string.IsNullOrEmpty(filter.Keyword)) queryString += $"&keyword={filter.Keyword}";
-        if (!string.IsNullOrEmpty(filter.Status)) queryString += $"&status={filter.Status}";
+        if (!string.IsNullOrEmpty(filter.Keyword)) queryString += $"&keyword={Uri.EscapeDataString(filter.Keyword)}";
+        if (!string.IsNullOrEmpty(filter.Status)) queryString += $"&status={Uri.EscapeDataString(filter.Status)}";
         if (filter.FromDate.HasValue) queryString += $"&fromDate={filter.FromDate.Value:yyyy-MM-dd}";
         if (filter.ToDate.HasValue) queryString += $"&toDate={filter.ToDate.Value:yyyy-MM-dd}";
+        if (filter.AssignedToUserId.HasValue) queryString += $"&assignedToUserId={filter.AssignedToUserId.Value}";
 
         var response = await _httpClient.GetFromJsonAsync<InboundOrderPageModel>($"api/inbounds{queryString}");
         return response ?? new InboundOrderPageModel();
@@ -115,10 +113,25 @@ public class InboundApiService
         var response = await _httpClient.PostAsJsonAsync($"/api/inbounds/{id}/receive", dto);
         if (response.IsSuccessStatusCode)
         {
-            return await response.Content.ReadFromJsonAsync<long>();
+            var result = await response.Content.ReadFromJsonAsync<ReceiveItemResponse>();
+            return result?.ProductLotId ?? throw new Exception("API không trả về mã lô vừa nhận.");
         }
         var error = await response.Content.ReadAsStringAsync();
         throw new Exception(error);
+    }
+
+    public async Task CompleteReceiptAsync(long id, List<long> confirmedShortageItemIds, string? notes = null)
+    {
+        var response = await _httpClient.PostAsJsonAsync($"/api/inbounds/{id}/complete-receipt", new CompleteInboundReceiptDto
+        {
+            Notes = notes,
+            ConfirmedShortageItemIds = confirmedShortageItemIds
+        });
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.Content.ReadAsStringAsync();
+            throw new Exception($"Hoàn tất kiểm nhận thất bại: {error}");
+        }
     }
 
     public async Task ReceiveBatchAsync(long inboundOrderId, ReceiveBatchInboundDto dto)
@@ -140,4 +153,9 @@ public class InboundApiService
             throw new Exception($"Xếp vị trí thất bại: {error}");
         }
     }
+}
+
+public class ReceiveItemResponse
+{
+    public long ProductLotId { get; set; }
 }
