@@ -257,7 +257,7 @@
                                             @if (Model.IsStaff && loc.CanCount && isInProgress)
                                             {
                                                 <a href="/Stocktake/Count?id=@s.StocktakeSessionId&locationId=@loc.StorageLocationId" class="btn btn-primary" style="padding:4px 10px; font-size:12px;">
-                                                    <i class="ri-calculator-line"></i> Count
+                                                    <i class="ri-calculator-line"></i> Đếm
                                                 </a>
                                             }
                                             else if (loc.CountStatus == "COUNTED" || loc.CountStatus == "SUBMITTED")
