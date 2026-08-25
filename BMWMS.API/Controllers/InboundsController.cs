@@ -8,7 +8,7 @@ namespace BMWMS.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF,PURCHASING_STAFF")]
+[Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF,PURCHASING_STAFF,SALES_STAFF")]
 public class InboundsController : ControllerBase
 {
     private readonly IInboundService _inboundService;
@@ -53,7 +53,7 @@ public class InboundsController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
+    [Authorize(Roles = "PURCHASING_STAFF")]
     public async Task<ActionResult<long>> CreateInboundOrder([FromBody] CreateInboundOrderDto dto)
     {
         var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
@@ -103,7 +103,7 @@ public class InboundsController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
+    [Authorize(Roles = "PURCHASING_STAFF")]
     public async Task<IActionResult> Update(long id, [FromBody] UpdateInboundOrderDto dto)
     {
         try
@@ -119,7 +119,7 @@ public class InboundsController : ControllerBase
     }
 
     [HttpPut("{id}/cancel")]
-    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
+    [Authorize(Roles = "PURCHASING_STAFF")]
     public async Task<IActionResult> Cancel(long id, [FromBody] CancelInboundOrderDto dto)
     {
         try
@@ -151,6 +151,7 @@ public class InboundsController : ControllerBase
     }
 
     [HttpPost("{id}/receive")]
+    [Authorize(Roles = "WAREHOUSE_STAFF")]
     public async Task<ActionResult<long>> ReceiveItem(long id, [FromBody] ReceiveInboundItemDto dto)
     {
         var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
@@ -186,6 +187,7 @@ public class InboundsController : ControllerBase
     }
 
     [HttpPost("{id}/putaway")]
+    [Authorize(Roles = "WAREHOUSE_STAFF")]
     public async Task<IActionResult> PutawayBatch(long id, [FromBody] List<PutawayInboundItemDto> dtos)
     {
         var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;

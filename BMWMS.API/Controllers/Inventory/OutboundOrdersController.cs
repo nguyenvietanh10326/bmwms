@@ -1,6 +1,7 @@
-﻿using BMWMS.Business.DTOs.Inventory;
+using BMWMS.Business.DTOs.Inventory;
 using BMWMS.Business.Interfaces.Inventory;
 using BMWMS.Business.Services.Inventory;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -10,6 +11,7 @@ namespace BMWMS.API.Controllers.Inventory
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class OutboundOrdersController : ControllerBase
     {
         private readonly IOutboundOrderService _outboundOrderService;
@@ -54,6 +56,7 @@ namespace BMWMS.API.Controllers.Inventory
         /// POST: api/OutboundOrders
         /// </summary>
         [HttpPost]
+        [Authorize(Roles = "SALES_STAFF")]
         public async Task<IActionResult> Create([FromBody] CreateOutboundOrderRequest request)
         {
             if (!ModelState.IsValid)
@@ -94,6 +97,7 @@ namespace BMWMS.API.Controllers.Inventory
         /// PATCH: api/OutboundOrders/5/status
         /// </summary>
         [HttpPatch("{id:long}/status")]
+        [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF,SALES_STAFF")]
         public async Task<IActionResult> UpdateStatus(long id, [FromBody] UpdateStatusRequest request)
         {
             if (string.IsNullOrWhiteSpace(request.Status))
@@ -115,6 +119,7 @@ namespace BMWMS.API.Controllers.Inventory
         /// POST: api/OutboundOrders/5/cancel
         /// </summary>
         [HttpPost("{id:long}/cancel")]
+        [Authorize(Roles = "SALES_STAFF")]
         public async Task<IActionResult> Cancel(long id)
         {
             try

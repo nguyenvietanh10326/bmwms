@@ -101,7 +101,8 @@ namespace BMWMS.Business.Services.StockOperations
                 UserId = u.UserId,
                 FullName = u.FullName ?? u.Username,
                 Username = u.Username,
-                RoleCode = u.Role?.RoleCode ?? ""
+                RoleCode = u.Role?.RoleCode ?? "",
+                RoleName = u.Role?.RoleName ?? ""
             }).ToList();
         }
 

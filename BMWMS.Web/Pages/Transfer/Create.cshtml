@@ -98,7 +98,7 @@
                         <option value="">-- Chọn nhân viên --</option>
                         @foreach (var staff in Model.StaffUsers)
                         {
-                            <option value="@staff.UserId" selected="@(Model.SelectedAssignedToUserId == staff.UserId ? "selected" : null)">@staff.FullName (@staff.RoleCode)</option>
+                            <option value="@staff.UserId" selected="@(Model.SelectedAssignedToUserId == staff.UserId ? "selected" : null)">@staff.FullName (@staff.RoleName)</option>
                         }
                     </select>
                 </div>

@@ -1,11 +1,13 @@
 using BMWMS.Business.DTOs.Inventory;
 using BMWMS.Business.Interfaces.Inventory;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BMWMS.API.Controllers.Inventory
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class SalesOrdersController : ControllerBase
     {
         private readonly ISalesOrderService _soService;

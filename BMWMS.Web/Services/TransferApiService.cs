@@ -224,6 +224,7 @@ namespace BMWMS.Web.Services
             public string FullName { get; set; } = "";
             public string Username { get; set; } = "";
             public string RoleCode { get; set; } = "";
+            public string RoleName { get; set; } = "";
         }
 
         public class TransferResultDto

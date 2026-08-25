@@ -1,7 +1,9 @@
-﻿using BMWMS.Business.DTOs.Inventory;
+using BMWMS.Business.DTOs.Inventory;
 using BMWMS.Business.Interfaces.Inventory;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using System;
 
@@ -9,6 +11,7 @@ namespace BMWMS.API.Controllers.Inventory
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class PurchaseOrdersController : ControllerBase
     {
         private readonly IPurchaseOrderService _poService;
@@ -63,17 +66,15 @@ namespace BMWMS.API.Controllers.Inventory
         }
     
         [HttpPost]
+        [Authorize(Roles = "PURCHASING_STAFF")]
         public async Task<IActionResult> Create([FromBody] BMWMS.Business.DTOs.Inventory.PurchaseOrderCreateDto request)
         {
             try
             {
-                // In a real app, we would get the UserId from claims.
-                // For now, we hardcode 1 or get from headers if provided.
-                long userId = 4;
-                if (Request.Headers.TryGetValue("X-User-Id", out var userIdStr) && long.TryParse(userIdStr, out var uid))
-                {
-                    userId = uid;
-                }
+                // Get userId from JWT claims
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (!long.TryParse(userIdClaim, out long userId))
+                    return Unauthorized(new { message = "Token không hợp lệ." });
 
                 var result = await _poService.CreatePurchaseOrderAsync(request, userId);
                 if (result.Success)
@@ -100,11 +101,14 @@ namespace BMWMS.API.Controllers.Inventory
         }
 
         [HttpPost("{id}/confirm")]
+        [Authorize(Roles = "PURCHASING_STAFF")]
         public async Task<IActionResult> Confirm(long id)
         {
             try
             {
-                long userId = 4; // Demo
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (!long.TryParse(userIdClaim, out long userId))
+                    return Unauthorized(new { message = "Token không hợp lệ." });
                 var result = await _poService.ConfirmOrderAsync(id, userId);
                 if (result.Success) return Ok(new { message = result.Message });
                 return BadRequest(new { message = result.Message });
@@ -116,11 +120,14 @@ namespace BMWMS.API.Controllers.Inventory
         }
 
         [HttpPost("{id}/cancel")]
+        [Authorize(Roles = "PURCHASING_STAFF")]
         public async Task<IActionResult> Cancel(long id, [FromQuery] string? reason)
         {
             try
             {
-                long userId = 4; // Demo
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (!long.TryParse(userIdClaim, out long userId))
+                    return Unauthorized(new { message = "Token không hợp lệ." });
                 var result = await _poService.CancelOrderAsync(id, userId, reason);
                 if (result.Success) return Ok(new { message = result.Message });
                 return BadRequest(new { message = result.Message });
