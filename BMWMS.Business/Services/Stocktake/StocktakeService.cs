@@ -50,7 +50,8 @@ namespace BMWMS.Business.Services.Stocktake
                 UserId = u.UserId,
                 FullName = u.FullName ?? u.Username,
                 Username = u.Username,
-                RoleCode = u.Role?.RoleCode ?? string.Empty
+                RoleCode = u.Role?.RoleCode ?? string.Empty,
+                RoleName = u.Role?.RoleName ?? string.Empty
             }).ToList();
         }
 

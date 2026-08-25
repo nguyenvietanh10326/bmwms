@@ -101,7 +101,7 @@ public class UserController : ControllerBase
         }
     }
 
-    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF")]
+    [Authorize(Roles = "SYSTEM_ADMIN")]
     [HttpGet]
     public async Task<IActionResult> GetUsers([FromQuery] UserFilterDto filter)
     {
