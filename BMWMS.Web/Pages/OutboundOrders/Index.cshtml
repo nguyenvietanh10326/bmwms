@@ -11,7 +11,10 @@
     @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage)) { <div class="alert alert-danger">@Model.ErrorMessage</div> }
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div><h3 class="mb-1">Phiếu xuất kho</h3><div class="text-muted">Theo dõi luồng bán hàng theo SO và trả hàng nhà cung cấp theo PO.</div></div>
-        <a asp-page="./Create" class="btn btn-primary">Tạo phiếu xuất</a>
+        @if (!User.IsInRole("WAREHOUSE_STAFF"))
+        {
+            <a asp-page="./Create" class="btn btn-primary">Tạo phiếu xuất</a>
+        }
     </div>
 
     <form method="get" class="card border-0 shadow-sm mb-3"><div class="card-body row g-3 align-items-end">
@@ -34,7 +37,7 @@
                 <td><span class="badge @StatusClass(item.Status)">@StatusLabel(item.Status)</span></td>
                 <td class="text-end">@item.TotalIssuedQuantity.ToString("N2") / @item.TotalRequestedQuantity.ToString("N2")</td>
                 <td class="text-end"><a asp-page="./Details" asp-route-id="@item.OutboundOrderId" class="btn btn-sm btn-outline-primary">Chi tiết</a>
-                    @if (item.Status is "READY" or "ISSUING") { <a asp-page="./Process" asp-route-id="@item.OutboundOrderId" class="btn btn-sm btn-primary">Xuất hàng</a> }
+                    @if (User.IsInRole("WAREHOUSE_STAFF") && (item.Status is "READY" or "ISSUING")) { <a asp-page="./Process" asp-route-id="@item.OutboundOrderId" class="btn btn-sm btn-primary">Xuất hàng</a> }
                 </td>
             </tr>
         }

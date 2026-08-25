@@ -1,8 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.Authorization;
 
 namespace BMWMS.Web.Pages.OutboundOrders
 {
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF,SALES_STAFF,PURCHASING_STAFF")]
     public class DetailsModel : PageModel
     {
         private readonly IHttpClientFactory _httpClientFactory;
@@ -40,6 +42,10 @@ namespace BMWMS.Web.Pages.OutboundOrders
                     if (result != null)
                     {
                         Order = result;
+                        if (User.IsInRole("WAREHOUSE_STAFF") &&
+                            (!long.TryParse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var userId) ||
+                             Order.AssignedToUserId != userId))
+                            return Forbid();
                         return Page();
                     }
                 }
@@ -94,8 +100,6 @@ namespace BMWMS.Web.Pages.OutboundOrders
         public string SourceType { get; set; } = string.Empty;
         public string SourceReference { get; set; } = string.Empty;
         public string PartnerName { get; set; } = string.Empty;
-        public long? TransferOrderId { get; set; }
-        public string? TransferOrderNumber { get; set; }
         public string? CustomerName { get; set; }
         public long WarehouseId { get; set; }
         public string? WarehouseName { get; set; }

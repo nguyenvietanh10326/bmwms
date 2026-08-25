@@ -1,10 +1,12 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.Authorization;
 using System.Text;
 using System.Text.Json;
 
 namespace BMWMS.Web.Pages.OutboundOrders
 {
+    [Authorize(Roles = "WAREHOUSE_STAFF")]
     public class ProcessModel : PageModel
     {
         private readonly IHttpClientFactory _httpClientFactory;
@@ -76,11 +78,10 @@ namespace BMWMS.Web.Pages.OutboundOrders
         public string PurchaseOrderNumber { get; set; } = string.Empty;
         public string SourceReference { get; set; } = string.Empty;
         public string PartnerName { get; set; } = string.Empty;
-        public long? TransferOrderId { get; set; }
-        public string TransferOrderNumber { get; set; } = string.Empty;
         public string CustomerName { get; set; } = string.Empty;
         public int WarehouseId { get; set; }
         public string WarehouseName { get; set; } = string.Empty;
+        public long? AssignedToUserId { get; set; }
         public string Status { get; set; } = string.Empty;
         public string Notes { get; set; } = string.Empty;
         public List<OutboundOrderItemProcessDto> Items { get; set; } = new();

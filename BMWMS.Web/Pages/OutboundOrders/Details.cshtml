@@ -3,8 +3,12 @@
 @{
     Layout = "_AdminLayout";
     ViewData["Title"] = $"Chi tiết phiếu xuất {Model.Order.OutboundOrderNumber}";
-    var canCancel = Model.Order.Status is "DRAFT" or "READY";
-    var canProcess = Model.Order.Status is "READY" or "ISSUING";
+    var isManager = User.IsInRole("SYSTEM_ADMIN") || User.IsInRole("WAREHOUSE_MANAGER");
+    var isAssignedStaff = User.IsInRole("WAREHOUSE_STAFF") &&
+        long.TryParse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var currentUserId) &&
+        Model.Order.AssignedToUserId == currentUserId;
+    var canCancel = isManager && (Model.Order.Status is "DRAFT" or "READY");
+    var canProcess = isAssignedStaff && (Model.Order.Status is "READY" or "ISSUING");
     var sourceLabel = Model.Order.SourceType == "PURCHASE_RETURN" ? "Trả nhà cung cấp theo PO" : "Bán hàng theo SO";
 }
 
@@ -29,12 +33,12 @@
             <div class="col-md-3"><div class="text-muted small">Kho xuất</div><span>@Model.Order.WarehouseName</span></div>
             <div class="col-md-3"><div class="text-muted small">Ngày dự kiến</div><span>@Model.Order.ExpectedIssueDate?.ToString("dd/MM/yyyy")</span></div>
             <div class="col-md-3"><div class="text-muted small">Nhân viên phụ trách</div><span>@(Model.Order.AssignedToUserName ?? "Chưa phân công")</span></div>
-            <div class="col-md-3"><div class="text-muted small">Phiếu điều chuyển tác nghiệp</div><a asp-page="/Transfer/Details" asp-route-id="@Model.Order.TransferOrderId">@Model.Order.TransferOrderNumber</a></div>
+            <div class="col-md-3"><div class="text-muted small">Tác nghiệp kho</div><strong>Lấy hàng và xác nhận xuất</strong></div>
             <div class="col-12"><div class="text-muted small">Ghi chú</div><span>@(string.IsNullOrWhiteSpace(Model.Order.Notes) ? "Không có" : Model.Order.Notes)</span></div>
         </div>
     </div></div>
 
-    <div class="card shadow-sm border-0"><div class="card-header bg-white fw-semibold">Mặt hàng xuất kho</div>
+    <div class="card shadow-sm border-0"><div class="card-header bg-white"><div class="fw-semibold">Tác nghiệp lấy và xuất hàng</div><div class="text-muted small">Theo dõi số lượng yêu cầu, thực xuất và phần còn phải xử lý ngay trên phiếu xuất.</div></div>
         <div class="table-responsive"><table class="table align-middle mb-0">
             <thead class="table-light"><tr><th>Mã hàng</th><th>Tên sản phẩm</th><th>ĐVT</th><th class="text-end">Yêu cầu</th><th class="text-end">Đã xuất</th><th class="text-end">Còn lại</th><th>Ghi chú</th></tr></thead>
             <tbody>
