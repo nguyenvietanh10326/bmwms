@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -6,6 +7,7 @@ using System.Text.Json;
 
 namespace BMWMS.Web.Pages.OutboundOrders;
 
+[Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,SALES_STAFF,PURCHASING_STAFF")]
 public class CreateModel : PageModel
 {
     private readonly IHttpClientFactory _httpClientFactory;
@@ -73,7 +75,7 @@ public class CreateModel : PageModel
             if (response.IsSuccessStatusCode)
             {
                 TempData["SuccessMessage"] = actionType == "submit"
-                    ? "Đã tạo phiếu xuất và phiếu điều chuyển tác nghiệp liên kết."
+                    ? "Đã tạo phiếu xuất và giao tác nghiệp lấy, xuất hàng cho nhân viên kho."
                     : "Đã lưu nháp phiếu xuất kho.";
                 return RedirectToPage("./Index");
             }

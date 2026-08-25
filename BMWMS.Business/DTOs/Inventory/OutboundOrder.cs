@@ -39,8 +39,6 @@ namespace BMWMS.Business.DTOs.Inventory
         public string? PurchaseOrderNumber { get; set; }
         public string SourceReference { get; set; } = string.Empty;
         public string PartnerName { get; set; } = string.Empty;
-        public long? TransferOrderId { get; set; }
-        public string? TransferOrderNumber { get; set; }
         public string? CustomerName { get; set; }
         public long WarehouseId { get; set; }
         public string WarehouseName { get; set; } = null!;
@@ -102,6 +100,7 @@ namespace BMWMS.Business.DTOs.Inventory
         public string? Search { get; set; }
         public string? Status { get; set; }
         public long? WarehouseId { get; set; }
+        public long? AssignedToUserId { get; set; }
 
         // Cấu hình phân trang
         public int PageIndex { get; set; } = 1;
@@ -180,11 +179,10 @@ namespace BMWMS.Business.DTOs.Inventory
             public string? PurchaseOrderNumber { get; set; }
             public string SourceReference { get; set; } = string.Empty;
             public string PartnerName { get; set; } = string.Empty;
-            public long? TransferOrderId { get; set; }
-            public string? TransferOrderNumber { get; set; }
             public string? CustomerName { get; set; }
             public long WarehouseId { get; set; }
             public string WarehouseName { get; set; } = null!;
+            public long? AssignedToUserId { get; set; }
             public string Status { get; set; } = null!;
             public string? Notes { get; set; }
 
