@@ -1,3 +1,4 @@
+﻿using Microsoft.AspNetCore.Authorization;
 using BMWMS.Web.Models;
 using BMWMS.Web.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -7,10 +8,11 @@ using System.Globalization;
 namespace BMWMS.Web.Pages.Stocktake
 {
     /// <summary>
-    /// BP-05 — Warehouse Staff lane:
-    ///   "Physically count each bin" → "Enter actual quantity"
+    /// BP-05 â€” Warehouse Staff lane:
+    ///   "Physically count each bin" â†’ "Enter actual quantity"
     /// Manager can also view; Submit locks the bin count.
     /// </summary>
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF")]
     public class CountModel : PageModel
     {
         private readonly IStocktakeApiService _stocktakeService;
@@ -170,7 +172,7 @@ namespace BMWMS.Web.Pages.Stocktake
 
             CheckRole();
             if (!IsStaff)
-                return Deny(id, locationId, "Bạn không có quyền nhập số liệu kiểm kho.");
+                return Deny(id, locationId, "Báº¡n khÃ´ng cÃ³ quyá»n nháº­p sá»‘ liá»‡u kiá»ƒm kho.");
 
             // Try model binding first, fallback to manual parsing
             if (Lines == null || Lines.Count == 0)
@@ -200,7 +202,7 @@ namespace BMWMS.Web.Pages.Stocktake
 
             CheckRole();
             if (!IsStaff)
-                return Deny(id, locationId, "Bạn không có quyền submit bin kiểm kho.");
+                return Deny(id, locationId, "Báº¡n khÃ´ng cÃ³ quyá»n submit bin kiá»ƒm kho.");
 
             // Try model binding first, fallback to manual parsing
             if (Lines == null || Lines.Count == 0)
@@ -221,7 +223,7 @@ namespace BMWMS.Web.Pages.Stocktake
             // Validate that we have lines to submit
             if (Lines == null || Lines.Count == 0)
             {
-                TempData["ErrorMessage"] = "Không có dòng nào để submit. Vui lòng nhập số lượng đếm trước.";
+                TempData["ErrorMessage"] = "KhÃ´ng cÃ³ dÃ²ng nÃ o Ä‘á»ƒ submit. Vui lÃ²ng nháº­p sá»‘ lÆ°á»£ng Ä‘áº¿m trÆ°á»›c.";
                 return RedirectToPage("/Stocktake/Count", new { id, locationId });
             }
 
@@ -240,7 +242,7 @@ namespace BMWMS.Web.Pages.Stocktake
             // Always show message and redirect based on result
             if (submitResult.Success)
             {
-                TempData["SuccessMessage"] = $"Đã submit bin thành công. Đang chuyển về trang chi tiết...";
+                TempData["SuccessMessage"] = $"ÄÃ£ submit bin thÃ nh cÃ´ng. Äang chuyá»ƒn vá» trang chi tiáº¿t...";
                 return RedirectToPage("/Stocktake/Details", new { id });
             }
             else
@@ -255,11 +257,11 @@ namespace BMWMS.Web.Pages.Stocktake
         {
             CheckRole();
             if (!IsStaff)
-                return Deny(id, locationId, "Bạn không có quyền thêm hàng không mong đợi.");
+                return Deny(id, locationId, "Báº¡n khÃ´ng cÃ³ quyá»n thÃªm hÃ ng khÃ´ng mong Ä‘á»£i.");
 
             if (ProductId <= 0 || ProductLotId <= 0 || UnexpectedQty <= 0)
             {
-                TempData["ErrorMessage"] = "Chọn sản phẩm/lô và nhập số lượng > 0.";
+                TempData["ErrorMessage"] = "Chá»n sáº£n pháº©m/lÃ´ vÃ  nháº­p sá»‘ lÆ°á»£ng > 0.";
                 return RedirectToPage("/Stocktake/Count", new { id, locationId });
             }
 
@@ -290,3 +292,4 @@ namespace BMWMS.Web.Pages.Stocktake
         }
     }
 }
+

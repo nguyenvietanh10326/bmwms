@@ -1,3 +1,4 @@
+﻿using Microsoft.AspNetCore.Authorization;
 using BMWMS.Web.Models;
 using BMWMS.Web.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -8,6 +9,7 @@ using System.Threading.Tasks;
 
 namespace BMWMS.Web.Pages.Categories
 {
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF,PURCHASING_STAFF,SALES_STAFF")]
     public class IndexModel : PageModel
     {
         private readonly ProductGroupApiService _productGroupService;
@@ -98,7 +100,7 @@ namespace BMWMS.Web.Pages.Categories
         {
             if (!ModelState.IsValid)
             {
-                TempData["ErrorMessage"] = "Dữ liệu nhập vào chưa hợp lệ. Vui lòng kiểm tra lại.";
+                TempData["ErrorMessage"] = "Dá»¯ liá»‡u nháº­p vÃ o chÆ°a há»£p lá»‡. Vui lÃ²ng kiá»ƒm tra láº¡i.";
                 return RedirectToPage(new { Keyword, Status, PageIndex, PageSize });
             }
 
@@ -119,7 +121,7 @@ namespace BMWMS.Web.Pages.Categories
         {
             if (!ModelState.IsValid)
             {
-                TempData["ErrorMessage"] = "Dữ liệu nhập vào chưa hợp lệ. Vui lòng kiểm tra lại.";
+                TempData["ErrorMessage"] = "Dá»¯ liá»‡u nháº­p vÃ o chÆ°a há»£p lá»‡. Vui lÃ²ng kiá»ƒm tra láº¡i.";
                 return RedirectToPage(new { Keyword, Status, PageIndex, PageSize });
             }
 
@@ -158,3 +160,4 @@ namespace BMWMS.Web.Pages.Categories
         }
     }
 }
+

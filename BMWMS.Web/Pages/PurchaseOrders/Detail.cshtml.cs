@@ -1,3 +1,4 @@
+﻿using Microsoft.AspNetCore.Authorization;
 using BMWMS.Web.Models.Inventory;
 using BMWMS.Web.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -6,7 +7,8 @@ using System.Threading.Tasks;
 
 namespace BMWMS.Web.Pages.PurchaseOrders;
 
-public class DetailModel : PageModel
+[Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF")]
+    public class DetailModel : PageModel
 {
     private readonly PurchaseOrderApiService _apiService;
 
@@ -58,3 +60,4 @@ public class DetailModel : PageModel
         return RedirectToPage(new { id = Id });
     }
 }
+

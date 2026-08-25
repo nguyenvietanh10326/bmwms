@@ -1,3 +1,4 @@
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using BMWMS.Web.Services;
@@ -5,6 +6,7 @@ using static BMWMS.Web.Services.TransferApiService;
 
 namespace BMWMS.Web.Pages.Transfer
 {
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF")]
     public class IndexModel : PageModel
     {
         private readonly TransferApiService _transferSvc;
@@ -67,3 +69,4 @@ namespace BMWMS.Web.Pages.Transfer
         }
     }
 }
+

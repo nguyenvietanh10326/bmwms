@@ -24,11 +24,14 @@
             </p>
         </div>
 
-        <div style="display: flex; gap: 10px;">
-            <a href="/Transfer/Create" style="display: inline-flex; align-items: center; gap: 6px; background: #2563eb; color: #ffffff; padding: 8px 18px; border-radius: 8px; font-weight: 600; font-size: 13px; text-decoration: none; box-shadow: 0 1px 3px rgba(37, 99, 235, 0.2);">
-                <i class="ri-add-line" style="font-size: 16px;"></i> Tạo Phiếu Chuyển Vị Trí
-            </a>
-        </div>
+        @if (Model.IsManager)
+        {
+            <div style="display: flex; gap: 10px;">
+                <a href="/Transfer/Create" style="display: inline-flex; align-items: center; gap: 6px; background: #2563eb; color: #ffffff; padding: 8px 18px; border-radius: 8px; font-weight: 600; font-size: 13px; text-decoration: none; box-shadow: 0 1px 3px rgba(37, 99, 235, 0.2);">
+                    <i class="ri-add-line" style="font-size: 16px;"></i> Tạo Phiếu Chuyển Vị Trí
+                </a>
+            </div>
+        }
     </div>
 
 

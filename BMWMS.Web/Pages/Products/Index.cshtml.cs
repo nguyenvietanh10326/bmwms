@@ -1,3 +1,4 @@
+﻿using Microsoft.AspNetCore.Authorization;
 using BMWMS.Web.Models;
 using BMWMS.Web.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -8,6 +9,7 @@ using System.Threading.Tasks;
 
 namespace BMWMS.Web.Pages.Products
 {
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF,PURCHASING_STAFF,SALES_STAFF")]
     public class IndexModel : PageModel
     {
         private readonly ProductApiService _productApiService;
@@ -44,7 +46,7 @@ namespace BMWMS.Web.Pages.Products
             var (success, msg) = await _productApiService.ToggleStatusAsync(id);
             if (success)
             {
-                SuccessMessage = "Thay đổi trạng thái sản phẩm thành công!";
+                SuccessMessage = "Thay Ä‘á»•i tráº¡ng thÃ¡i sáº£n pháº©m thÃ nh cÃ´ng!";
             }
             else
             {
@@ -66,14 +68,14 @@ namespace BMWMS.Web.Pages.Products
         private async Task LoadDropdownsAsync()
         {
             var groups = await _productApiService.GetProductGroupsAsync();
-            GroupOptions = new List<SelectListItem> { new("--- Tất cả nhóm hàng ---", "") };
+            GroupOptions = new List<SelectListItem> { new("--- Táº¥t cáº£ nhÃ³m hÃ ng ---", "") };
             foreach (var g in groups)
             {
                 GroupOptions.Add(new SelectListItem(g.GroupName, g.ProductGroupId.ToString()));
             }
 
             var uoms = await _productApiService.GetUnitsOfMeasureAsync();
-            UomOptions = new List<SelectListItem> { new("--- Tất cả ĐVT ---", "") };
+            UomOptions = new List<SelectListItem> { new("--- Táº¥t cáº£ ÄVT ---", "") };
             foreach (var u in uoms)
             {
                 UomOptions.Add(new SelectListItem($"{u.UnitName} ({u.UnitCode})", u.UnitOfMeasureId.ToString()));
@@ -81,3 +83,4 @@ namespace BMWMS.Web.Pages.Products
         }
     }
 }
+

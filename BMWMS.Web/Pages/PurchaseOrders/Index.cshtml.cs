@@ -1,3 +1,4 @@
+﻿using Microsoft.AspNetCore.Authorization;
 using BMWMS.Web.Models.Inventory;
 using BMWMS.Web.Models.Warehouse;
 using BMWMS.Web.Services;
@@ -8,7 +9,8 @@ using System.Threading.Tasks;
 
 namespace BMWMS.Web.Pages.PurchaseOrders;
 
-public class IndexModel : PageModel
+[Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF")]
+    public class IndexModel : PageModel
 {
     private readonly PurchaseOrderApiService _apiService;
 
@@ -49,3 +51,4 @@ public class IndexModel : PageModel
         }
     }
 }
+

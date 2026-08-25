@@ -1,3 +1,4 @@
+﻿using Microsoft.AspNetCore.Authorization;
 using BMWMS.Web.Models;
 using BMWMS.Web.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -6,6 +7,7 @@ using System.Threading.Tasks;
 
 namespace BMWMS.Web.Pages.Products
 {
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF,PURCHASING_STAFF,SALES_STAFF")]
     public class DetailsModel : PageModel
     {
         private readonly ProductApiService _productApiService;
@@ -22,7 +24,7 @@ namespace BMWMS.Web.Pages.Products
             var detail = await _productApiService.GetByIdAsync(id);
             if (detail == null)
             {
-                TempData["ErrorMessage"] = $"Không tìm thấy sản phẩm có ID = {id}.";
+                TempData["ErrorMessage"] = $"KhÃ´ng tÃ¬m tháº¥y sáº£n pháº©m cÃ³ ID = {id}.";
                 return RedirectToPage("./Index");
             }
 
@@ -31,3 +33,4 @@ namespace BMWMS.Web.Pages.Products
         }
     }
 }
+

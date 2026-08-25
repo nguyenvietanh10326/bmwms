@@ -1,4 +1,5 @@
-﻿using BMWMS.Web.Models.Inventory;
+﻿using Microsoft.AspNetCore.Authorization;
+using BMWMS.Web.Models.Inventory;
 using BMWMS.Web.Models.Warehouse;
 using BMWMS.Web.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -6,6 +7,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace BMWMS.Web.Pages.SalesOrders
 {
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,SALES_STAFF")]
     public class IndexModel : PageModel
     {
         private readonly SalesOrderApiService _apiService;
@@ -27,3 +29,4 @@ namespace BMWMS.Web.Pages.SalesOrders
         }
     }
 }
+

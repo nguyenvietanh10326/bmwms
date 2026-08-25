@@ -1,4 +1,5 @@
-﻿using BMWMS.Web.Models.Inventory;
+﻿using Microsoft.AspNetCore.Authorization;
+using BMWMS.Web.Models.Inventory;
 using BMWMS.Web.Models.Warehouse;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -6,6 +7,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace BMWMS.Web.Pages.OutboundOrders
 {
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,SALES_STAFF")]
     public class IndexModel : PageModel
     {
         private readonly IHttpClientFactory _httpClientFactory;
@@ -157,3 +159,4 @@ namespace BMWMS.Web.Pages.OutboundOrders
         public string? Message { get; set; }
     }
 }
+

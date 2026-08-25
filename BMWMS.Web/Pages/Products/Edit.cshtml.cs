@@ -1,3 +1,4 @@
+﻿using Microsoft.AspNetCore.Authorization;
 using BMWMS.Web.Models;
 using BMWMS.Web.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -9,6 +10,7 @@ using System.Threading.Tasks;
 
 namespace BMWMS.Web.Pages.Products
 {
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
     public class EditModel : PageModel
     {
         private readonly ProductApiService _productApiService;
@@ -37,7 +39,7 @@ namespace BMWMS.Web.Pages.Products
             var detail = await _productApiService.GetByIdAsync(id);
             if (detail == null)
             {
-                TempData["ErrorMessage"] = $"Không tìm thấy sản phẩm có ID = {id}.";
+                TempData["ErrorMessage"] = $"KhÃ´ng tÃ¬m tháº¥y sáº£n pháº©m cÃ³ ID = {id}.";
                 return RedirectToPage("./Index");
             }
 
@@ -81,7 +83,7 @@ namespace BMWMS.Web.Pages.Products
             var (success, message) = await _productApiService.UpdateAsync(Id, Product);
             if (success)
             {
-                TempData["SuccessMessage"] = "Cập nhật thông tin hàng hóa thành công!";
+                TempData["SuccessMessage"] = "Cáº­p nháº­t thÃ´ng tin hÃ ng hÃ³a thÃ nh cÃ´ng!";
                 return RedirectToPage("./Index");
             }
 
@@ -93,14 +95,14 @@ namespace BMWMS.Web.Pages.Products
         private async Task LoadDropdownsAsync()
         {
             var groups = await _productApiService.GetProductGroupsAsync();
-            GroupOptions = new List<SelectListItem> { new("--- Chọn nhóm danh mục ---", "") };
+            GroupOptions = new List<SelectListItem> { new("--- Chá»n nhÃ³m danh má»¥c ---", "") };
             foreach (var g in groups)
             {
                 GroupOptions.Add(new SelectListItem(g.GroupName, g.ProductGroupId.ToString(), g.ProductGroupId == Product.ProductGroupId));
             }
 
             var uoms = await _productApiService.GetUnitsOfMeasureAsync();
-            UomOptions = new List<SelectListItem> { new("--- Chọn đơn vị tính cơ sở ---", "") };
+            UomOptions = new List<SelectListItem> { new("--- Chá»n Ä‘Æ¡n vá»‹ tÃ­nh cÆ¡ sá»Ÿ ---", "") };
             foreach (var u in uoms)
             {
                 UomOptions.Add(new SelectListItem($"{u.UnitName} ({u.UnitCode})", u.UnitOfMeasureId.ToString(), u.UnitOfMeasureId == Product.UnitOfMeasureId));
@@ -120,3 +122,4 @@ namespace BMWMS.Web.Pages.Products
         }
     }
 }
+

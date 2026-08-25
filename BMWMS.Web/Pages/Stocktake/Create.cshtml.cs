@@ -1,3 +1,4 @@
+﻿using Microsoft.AspNetCore.Authorization;
 using BMWMS.Web.Models;
 using BMWMS.Web.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -5,6 +6,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace BMWMS.Web.Pages.Stocktake
 {
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
     public class CreateModel : PageModel
     {
         private readonly IStocktakeApiService _stocktakeService;
@@ -124,3 +126,4 @@ namespace BMWMS.Web.Pages.Stocktake
         }
     }
 }
+

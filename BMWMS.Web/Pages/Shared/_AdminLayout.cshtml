@@ -116,16 +116,22 @@
                 </div>
                 <div class="nav-submenu @(isPurchaseOrderActive ? "expanded" : "")">
                     <a href="/PurchaseOrders/Index" class="nav-sub-item @(Context.Request.Path == "/PurchaseOrders" || Context.Request.Path == "/PurchaseOrders/Index" ? "active" : "")">Danh sách PO</a>
-                    <a href="/PurchaseOrders/Create" class="nav-sub-item @(Context.Request.Path == "/PurchaseOrders/Create" ? "active" : "")">Tạo PO mới</a>
+                    @if (isSysAdmin || isPurchasing || isWhManager)
+                    {
+                        <a href="/PurchaseOrders/Create" class="nav-sub-item @(Context.Request.Path == "/PurchaseOrders/Create" ? "active" : "")">Tạo PO mới</a>
+                    }
                 </div>
 
                 @{
                     var isSalesOrderActive = Context.Request.Path.StartsWithSegments("/SalesOrders");
                 }
-                <a href="/SalesOrders/Index" class="nav-item @(isSalesOrderActive ? "active" : "")" style="opacity: 0.6;" title="Iteration 2">
-                    <i class="ri-file-list-3-line nav-item-icon"></i>
-                    Đơn bán hàng
-                </a>
+                @if (isSysAdmin || isWhManager || currentRole == "SALES_STAFF")
+                {
+                    <a href="/SalesOrders/Index" class="nav-item @(isSalesOrderActive ? "active" : "")" style="opacity: 0.6;" title="Iteration 2">
+                        <i class="ri-file-list-3-line nav-item-icon"></i>
+                        Đơn bán hàng
+                    </a>
+                }
             </div>
 
             <!-- 4. NGHIỆP VỤ KHO -->
@@ -160,15 +166,21 @@
                 </div>
                 <div class="nav-submenu @(isInboundActive ? "expanded" : "")">
                     <a href="/Admin/Inbound" class="nav-sub-item @(Context.Request.Path == "/Admin/Inbound" || Context.Request.Path == "/Admin/Inbound/Index" ? "active" : "")">Danh sách lệnh nhập</a>
-                    <a href="/Admin/Inbound/Create" class="nav-sub-item @(Context.Request.Path == "/Admin/Inbound/Create" ? "active" : "")">Tạo lệnh nhập</a>
+                    @if (isSysAdmin || isWhManager)
+                    {
+                        <a href="/Admin/Inbound/Create" class="nav-sub-item @(Context.Request.Path == "/Admin/Inbound/Create" ? "active" : "")">Tạo lệnh nhập</a>
+                    }
                 </div>
                 @{
                     var isOutboundActive = Context.Request.Path.StartsWithSegments("/OutboundOrders");
                 }
-                <a href="/OutboundOrders/Index" class="nav-item @(isOutboundActive ? "active" : "")">
-                    <i class="ri-upload-2-line nav-item-icon"></i>
-                    Xuất kho (Outbound)
-                </a>
+                @if (isSysAdmin || isWhManager || currentRole == "SALES_STAFF")
+                {
+                    <a href="/OutboundOrders/Index" class="nav-item @(isOutboundActive ? "active" : "")">
+                        <i class="ri-upload-2-line nav-item-icon"></i>
+                        Xuất kho (Outbound)
+                    </a>
+                }
                 <!-- Chuyển vị trí nội bộ -->
                 @{
                     var isTransferActive = Context.Request.Path.StartsWithSegments("/Transfer");
@@ -182,7 +194,10 @@
                 </div>
                 <div class="nav-submenu @(isTransferActive ? "expanded" : "")">
                     <a href="/Transfer/Index" class="nav-sub-item @(Context.Request.Path == "/Transfer/Index" || Context.Request.Path == "/Transfer" ? "active" : "")">Danh sách phiếu chuyển kho</a>
-                    <a href="/Transfer/Create" class="nav-sub-item @(Context.Request.Path == "/Transfer/Create" ? "active" : "")">Tạo phiếu chuyển vị trí</a>
+                    @if (isSysAdmin || isWhManager)
+                    {
+                        <a href="/Transfer/Create" class="nav-sub-item @(Context.Request.Path == "/Transfer/Create" ? "active" : "")">Tạo phiếu chuyển vị trí</a>
+                    }
                 </div>
 
                 <!-- Kiểm kê -->
@@ -198,7 +213,10 @@
                 </div>
                 <div class="nav-submenu @(isStocktakeActive ? "expanded" : "")">
                     <a href="/Stocktake/Index" class="nav-sub-item @(Context.Request.Path == "/Stocktake/Index" || Context.Request.Path == "/Stocktake" ? "active" : "")">Danh sách đợt kiểm kê</a>
-                    <a href="/Stocktake/Create" class="nav-sub-item @(Context.Request.Path == "/Stocktake/Create" ? "active" : "")">Tạo đợt kiểm kê mới</a>
+                    @if (isSysAdmin || isWhManager)
+                    {
+                        <a href="/Stocktake/Create" class="nav-sub-item @(Context.Request.Path == "/Stocktake/Create" ? "active" : "")">Tạo đợt kiểm kê mới</a>
+                    }
                 </div>
             </div>
 

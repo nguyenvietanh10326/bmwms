@@ -1,3 +1,4 @@
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using BMWMS.Web.Services;
@@ -6,6 +7,7 @@ using static BMWMS.Web.Services.TransferApiService;
 
 namespace BMWMS.Web.Pages.Transfer
 {
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
     public class CreateModel : PageModel
     {
         private readonly TransferApiService _transferSvc;
@@ -15,7 +17,7 @@ namespace BMWMS.Web.Pages.Transfer
             _transferSvc = transferSvc;
         }
 
-        // ── Data for dropdowns ──────────────────────────────────────────────
+        // â”€â”€ Data for dropdowns â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         public List<ZoneOptionDto> Zones { get; set; } = new();
         public List<StaffOptionDto> StaffUsers { get; set; } = new();
 
@@ -29,11 +31,11 @@ namespace BMWMS.Web.Pages.Transfer
         public string? SelectedDueDate { get; set; }
         public string? ExistingNotes { get; set; }
 
-        // ── Role check ──────────────────────────────────────────────────────
+        // â”€â”€ Role check â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         public bool IsManager { get; set; } = false;
         public string CurrentUserName { get; set; } = "";
 
-        // ── Result ──────────────────────────────────────────────────────────
+        // â”€â”€ Result â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         public bool? TransferSuccess { get; set; }
         public string TransferMessage { get; set; } = string.Empty;
 
@@ -63,42 +65,42 @@ namespace BMWMS.Web.Pages.Transfer
             return Page();
         }
 
-        // ── AJAX: Lấy Rack theo Zone ─────────────────────────────────────────
+        // â”€â”€ AJAX: Láº¥y Rack theo Zone â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         public async Task<IActionResult> OnGetRacksByZoneAsync(long zoneId)
         {
             var racks = await _transferSvc.GetRacksAsync(1, zoneId > 0 ? zoneId : null);
             return new JsonResult(racks);
         }
 
-        // ── AJAX: Lấy Location theo Rack ──────────────────────────────────────
+        // â”€â”€ AJAX: Láº¥y Location theo Rack â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         public async Task<IActionResult> OnGetLocationsByRackAsync(long rackId, long? zoneId = null)
         {
             var locs = await _transferSvc.GetLocationsAsync(1, zoneId, rackId > 0 ? rackId : null);
             return new JsonResult(locs);
         }
 
-        // ── AJAX: Lấy Location theo Zone (không có Rack) ──────────────────────
+        // â”€â”€ AJAX: Láº¥y Location theo Zone (khÃ´ng cÃ³ Rack) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         public async Task<IActionResult> OnGetLocationsByZoneAsync(long? zoneId)
         {
             var locs = await _transferSvc.GetLocationsAsync(1, zoneId, null);
             return new JsonResult(locs);
         }
 
-        // ── AJAX: Lấy tồn kho trong ô nguồn ──────────────────────────────────
+        // â”€â”€ AJAX: Láº¥y tá»“n kho trong Ã´ nguá»“n â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         public async Task<IActionResult> OnGetLocationInventoryAsync(long locationId)
         {
             var items = await _transferSvc.GetLocationInventoryAsync(locationId);
             return new JsonResult(items);
         }
 
-        // ── AJAX: Validate ô đích ────────────────────────────────────────────
+        // â”€â”€ AJAX: Validate Ã´ Ä‘Ã­ch â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         public async Task<IActionResult> OnGetValidateDestAsync(long destLocationId, long sourceLocationId, long productId)
         {
             var result = await _transferSvc.ValidateDestinationAsync(destLocationId, sourceLocationId, productId);
             return new JsonResult(result);
         }
 
-        // ── POST: Tạo lệnh chuyển kho ─────────────────────────────────────────
+        // â”€â”€ POST: Táº¡o lá»‡nh chuyá»ƒn kho â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         public async Task<IActionResult> OnPostAsync(
             string itemsJson,
             string? action,
@@ -116,7 +118,7 @@ namespace BMWMS.Web.Pages.Transfer
             if (string.IsNullOrWhiteSpace(itemsJson))
             {
                 TransferSuccess = false;
-                TransferMessage = "Danh sách hàng hóa điều chuyển không được để trống.";
+                TransferMessage = "Danh sÃ¡ch hÃ ng hÃ³a Ä‘iá»u chuyá»ƒn khÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng.";
                 TempData["ErrorMessage"] = TransferMessage;
                 return await ReloadPageAsync();
             }
@@ -134,7 +136,7 @@ namespace BMWMS.Web.Pages.Transfer
             catch (Exception ex)
             {
                 TransferSuccess = false;
-                TransferMessage = $"Dữ liệu không hợp lệ: {ex.Message}";
+                TransferMessage = $"Dá»¯ liá»‡u khÃ´ng há»£p lá»‡: {ex.Message}";
                 TempData["ErrorMessage"] = TransferMessage;
                 return await ReloadPageAsync();
             }
@@ -142,7 +144,7 @@ namespace BMWMS.Web.Pages.Transfer
             if (items == null || !items.Any())
             {
                 TransferSuccess = false;
-                TransferMessage = "Vui lòng thêm ít nhất 1 mặt hàng cần điều chuyển.";
+                TransferMessage = "Vui lÃ²ng thÃªm Ã­t nháº¥t 1 máº·t hÃ ng cáº§n Ä‘iá»u chuyá»ƒn.";
                 TempData["ErrorMessage"] = TransferMessage;
                 return await ReloadPageAsync();
             }
@@ -172,11 +174,11 @@ namespace BMWMS.Web.Pages.Transfer
             {
                 if (action == "assign" && result.TransferOrderId.HasValue)
                 {
-                    var assignResult = await _transferSvc.ApproveOrderAsync(result.TransferOrderId.Value, request.AssignedToUserId, "Tạo và giao luôn");
+                    var assignResult = await _transferSvc.ApproveOrderAsync(result.TransferOrderId.Value, request.AssignedToUserId, "Táº¡o vÃ  giao luÃ´n");
                     if (!assignResult.Success)
                     {
                         TransferSuccess = false;
-                        TransferMessage = result.Message + " Nhưng không thể duyệt và giao: " + assignResult.Message;
+                        TransferMessage = result.Message + " NhÆ°ng khÃ´ng thá»ƒ duyá»‡t vÃ  giao: " + assignResult.Message;
                         TempData["ErrorMessage"] = TransferMessage;
                         return await ReloadPageAsync();
                     }
@@ -225,8 +227,9 @@ namespace BMWMS.Web.Pages.Transfer
         private void LoadUserInfo()
         {
             var roleCode = HttpContext.Session.GetString("RoleCode")?.ToUpper() ?? "";
-            CurrentUserName = HttpContext.Session.GetString("FullName") ?? HttpContext.Session.GetString("Username") ?? "Người dùng";
+            CurrentUserName = HttpContext.Session.GetString("FullName") ?? HttpContext.Session.GetString("Username") ?? "NgÆ°á»i dÃ¹ng";
             IsManager = roleCode.Contains("ADMIN") || roleCode.Contains("MANAGER") || roleCode == "WAREHOUSE_MANAGER";
         }
     }
 }
+

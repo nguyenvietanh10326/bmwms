@@ -1,3 +1,4 @@
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using BMWMS.Web.Services;
@@ -5,6 +6,7 @@ using static BMWMS.Web.Services.TransferApiService;
 
 namespace BMWMS.Web.Pages.Transfer
 {
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF")]
     public class DetailsModel : PageModel
     {
         private readonly TransferApiService _transferSvc;
@@ -37,13 +39,13 @@ namespace BMWMS.Web.Pages.Transfer
             return Page();
         }
 
-        // ── Manager Approve ──────────────────────────────────────────────────
+        // â”€â”€ Manager Approve â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         public async Task<IActionResult> OnPostApproveAsync(long id, long? assignedToUserId, string? notes)
         {
             CheckUserRole();
             if (!IsManager)
             {
-                TempData["ErrorMessage"] = "Bạn không có quyền phê duyệt phiếu này.";
+                TempData["ErrorMessage"] = "Báº¡n khÃ´ng cÃ³ quyá»n phÃª duyá»‡t phiáº¿u nÃ y.";
                 return RedirectToPage("/Transfer/Details", new { id });
             }
             var result = await _transferSvc.ApproveOrderAsync(id, assignedToUserId, notes);
@@ -51,13 +53,13 @@ namespace BMWMS.Web.Pages.Transfer
             return RedirectToPage("/Transfer/Details", new { id });
         }
 
-        // ── Manager Reject ───────────────────────────────────────────────────
+        // â”€â”€ Manager Reject â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         public async Task<IActionResult> OnPostRejectAsync(long id, string? notes)
         {
             CheckUserRole();
             if (!IsManager)
             {
-                TempData["ErrorMessage"] = "Bạn không có quyền từ chối phiếu này.";
+                TempData["ErrorMessage"] = "Báº¡n khÃ´ng cÃ³ quyá»n tá»« chá»‘i phiáº¿u nÃ y.";
                 return RedirectToPage("/Transfer/Details", new { id });
             }
             var result = await _transferSvc.RejectOrderAsync(id, notes);
@@ -65,7 +67,7 @@ namespace BMWMS.Web.Pages.Transfer
             return RedirectToPage("/Transfer/Details", new { id });
         }
 
-        // ── Staff Confirm Transfer ────────────────────────────────────────────
+        // â”€â”€ Staff Confirm Transfer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         public async Task<IActionResult> OnPostConfirmAsync(long id, string? notes)
         {
             CheckUserRole();
@@ -116,3 +118,4 @@ namespace BMWMS.Web.Pages.Transfer
         }
     }
 }
+
