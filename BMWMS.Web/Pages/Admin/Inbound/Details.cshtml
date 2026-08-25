@@ -4,7 +4,15 @@
     Layout = "_AdminLayout";
     ViewData["Title"] = $"Chi tiết phiếu nhập {Model.Order.InboundOrderNumber}";
     var isReturn = Model.Order.SourceType == "SALES_RETURN";
-    var canReceive = Model.Order.Status is "READY" or "RECEIVING";
+    var canPlan = User.IsInRole("SYSTEM_ADMIN") || User.IsInRole("WAREHOUSE_MANAGER") || User.IsInRole("PURCHASING_STAFF");
+    var isAssignedStaff = User.IsInRole("WAREHOUSE_STAFF") &&
+        long.TryParse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var currentUserId) &&
+        Model.Order.AssignedToUserId == currentUserId;
+    var canReceive = isAssignedStaff && (Model.Order.Status is "READY" or "RECEIVING");
+    var firstWaitingItem = Model.Order.Items.FirstOrDefault(item => item.Receipts.Any(receipt =>
+        receipt.ConditionStatus == "GOOD" && receipt.PutawayQuantity < receipt.ReceivedQuantity));
+    var firstWaitingReceipt = firstWaitingItem?.Receipts.FirstOrDefault(receipt =>
+        receipt.ConditionStatus == "GOOD" && receipt.PutawayQuantity < receipt.ReceivedQuantity);
 }
 
 <div class="container-fluid py-4">
@@ -13,13 +21,19 @@
     <div class="d-flex justify-content-between align-items-start mb-3">
         <div><div class="text-muted">Chi tiết phiếu nhập kho</div><h3>@Model.Order.InboundOrderNumber</h3></div>
         <div class="d-flex gap-2">
-            @if (Model.Order.Status == "DRAFT")
+            @if (canPlan && (Model.Order.Status is "DRAFT" or "READY"))
             {
                 <a asp-page="./Edit" asp-route-id="@Model.Order.InboundOrderId" class="btn btn-outline-primary">Chỉnh sửa</a>
-                <form method="post"><button asp-page-handler="Confirm" asp-route-id="@Model.Order.InboundOrderId" class="btn btn-primary">Xác nhận phiếu</button></form>
+                @if (Model.Order.Status == "DRAFT") { <form method="post"><button asp-page-handler="Confirm" asp-route-id="@Model.Order.InboundOrderId" class="btn btn-primary">Chuyển Sẵn sàng</button></form> }
                 <button class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#cancelModal">Hủy phiếu</button>
             }
-            <a asp-page="./Index" class="btn btn-outline-secondary">Quay lại</a>
+            @if (canPlan && Model.Order.SourceType == "PURCHASE_ORDER" &&
+                (Model.Order.Status is "RECEIVED" or "PUTAWAY_COMPLETED") &&
+                Model.Order.Items.Any(item => item.SupplementalRemainingQuantity > 0))
+            {
+                <a asp-page="./Create" asp-route-parentInboundOrderId="@Model.Order.InboundOrderId" class="btn btn-warning">Tạo phiếu nhập bổ sung</a>
+            }
+            <a asp-page="@(isAssignedStaff ? "./Receive" : "./Index")" class="btn btn-outline-secondary">Quay lại</a>
         </div>
     </div>
 
@@ -33,9 +47,82 @@
         <div class="col-md-3"><div class="text-muted small">Kho nhận</div><strong>@Model.Order.WarehouseName</strong></div>
         <div class="col-md-3"><div class="text-muted small">Ngày dự kiến</div><span>@Model.Order.ExpectedReceiptDate.ToString("dd/MM/yyyy")</span></div>
         <div class="col-md-3"><div class="text-muted small">Nhân viên phụ trách</div><span>@(string.IsNullOrWhiteSpace(Model.Order.AssignedToUserName) ? "Chưa phân công" : Model.Order.AssignedToUserName)</span></div>
-        <div class="col-md-3"><div class="text-muted small">Phiếu điều chuyển tác nghiệp</div><a asp-page="/Transfer/Details" asp-route-id="@Model.Order.TransferOrderId">@Model.Order.TransferOrderNumber</a></div>
-        <div class="col-md-3"><div class="text-muted small">Phiếu bổ sung cho</div><span>@(Model.Order.ParentInboundOrderNumber ?? "—")</span></div>
+        <div class="col-md-3"><div class="text-muted small">Tác nghiệp kho</div><strong>Nhận hàng và xếp vị trí</strong></div>
+        <div class="col-12"><div class="text-muted small">Ghi chú phiếu</div><span>@(string.IsNullOrWhiteSpace(Model.Order.Notes) ? "Không có" : Model.Order.Notes)</span></div>
+        @if (!string.IsNullOrWhiteSpace(Model.Order.CancellationReason)) { <div class="col-12"><div class="text-muted small">Lý do hủy</div><strong class="text-danger">@Model.Order.CancellationReason</strong></div> }
     </div></div>
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div><h4 class="h6 mb-1">Tác nghiệp nhận và di chuyển hàng</h4><div class="text-muted small">Số lượng dự kiến, thực nhận và đã xếp vị trí được quản lý trực tiếp trên phiếu nhập này.</div></div>
+    </div>
+
+    @if (isAssignedStaff)
+    {
+        var receiptCompleted = Model.Order.Status is "RECEIVED" or "PUTAWAY_COMPLETED";
+        var putawayCompleted = Model.Order.Status == "PUTAWAY_COMPLETED";
+        var incompleteItems = Model.Order.Items
+            .Where(item => item.ReceivedQuantity < item.ExpectedQuantity)
+            .ToList();
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header bg-white"><strong>Tiến trình tác nghiệp của phiếu được giao</strong></div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-lg-6">
+                        <div class="border rounded h-100 p-3 @(receiptCompleted ? "border-success bg-success bg-opacity-10" : "border-warning bg-warning bg-opacity-10")">
+                            <div class="d-flex justify-content-between align-items-start gap-3 mb-2">
+                                <div class="d-flex gap-2"><span class="badge rounded-pill @(receiptCompleted ? "bg-success" : "bg-warning text-dark")">1</span><strong>Kiểm nhận số lượng và chất lượng</strong></div>
+                                <span class="badge @(receiptCompleted ? "bg-success" : "bg-warning text-dark")">@(receiptCompleted ? "Đã hoàn tất" : "Đang thực hiện")</span>
+                            </div>
+                            <div class="text-muted small mb-3">Ghi số lượng thực giao, đạt, hỏng/cách ly, số lô và hạn dùng. Hàng đạt vẫn ở khu nhận và chưa tăng tồn tại bin.</div>
+                            @if (!receiptCompleted && Model.Order.Status is "READY" or "RECEIVING")
+                            {
+                                <form method="post" onsubmit="return confirm('Hoàn tất kiểm nhận sẽ chốt số lượng thiếu/hỏng và không cho ghi thêm lần nhận. Tiếp tục?');">
+                                    @if (incompleteItems.Count > 0)
+                                    {
+                                        <div class="alert alert-warning py-2 px-3 mb-3">
+                                            <div class="fw-semibold small mb-2">Các mặt hàng dưới đây chưa nhận đủ. Phải xác nhận từng dòng trước khi hoàn tất:</div>
+                                            @foreach (var incompleteItem in incompleteItems)
+                                            {
+                                                var remainingQuantity = incompleteItem.ExpectedQuantity - incompleteItem.ReceivedQuantity;
+                                                <div class="form-check mb-1">
+                                                    <input class="form-check-input" type="checkbox" name="confirmedShortageItemIds" value="@incompleteItem.InboundOrderItemId" id="shortage-@incompleteItem.InboundOrderItemId" required />
+                                                    <label class="form-check-label small" for="shortage-@incompleteItem.InboundOrderItemId">
+                                                        Xác nhận <strong>@incompleteItem.ProductName (@incompleteItem.ProductCode)</strong> còn thiếu/chưa giao
+                                                        @FormatQuantity(remainingQuantity, incompleteItem.QuantityScale) @incompleteItem.UnitName.
+                                                    </label>
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+                                    <label class="form-label small" for="receiptNotes">Ghi chú kiểm nhận</label>
+                                    <textarea id="receiptNotes" name="receiptNotes" class="form-control form-control-sm mb-3" rows="2" placeholder="Ghi nguyên nhân thiếu, hỏng hoặc tình trạng giao hàng (nếu có)"></textarea>
+                                    <button asp-page-handler="CompleteReceipt" asp-route-id="@Model.Order.InboundOrderId" class="btn btn-warning">Hoàn tất kiểm nhận</button>
+                                </form>
+                            }
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="border rounded h-100 p-3 @(putawayCompleted ? "border-success bg-success bg-opacity-10" : receiptCompleted ? "border-primary bg-primary bg-opacity-10" : "bg-light")">
+                            <div class="d-flex justify-content-between align-items-start gap-3 mb-2">
+                                <div class="d-flex gap-2"><span class="badge rounded-pill @(putawayCompleted ? "bg-success" : receiptCompleted ? "bg-primary" : "bg-secondary")">2</span><strong>Cất hàng và xác nhận vị trí</strong></div>
+                                <span class="badge @(putawayCompleted ? "bg-success" : receiptCompleted ? "bg-primary" : "bg-secondary")">@(putawayCompleted ? "Đã hoàn tất" : receiptCompleted ? "Sẵn sàng" : "Chưa mở")</span>
+                            </div>
+                            <div class="text-muted small mb-3">Sau khi cất hàng thực tế, tìm/chọn theo Khu → Kệ → Bin và phân bổ số lượng. Tồn kho chỉ tăng tại đúng bin sau khi xác nhận.</div>
+                            @if (!receiptCompleted)
+                            {
+                                <button type="button" class="btn btn-outline-secondary" disabled title="Hãy hoàn tất bước kiểm nhận trước">Chọn vị trí cất hàng</button>
+                                <div class="small text-muted mt-2">Bước này mở sau khi bấm “Hoàn tất kiểm nhận”.</div>
+                            }
+                            else if (!putawayCompleted && firstWaitingItem != null && firstWaitingReceipt != null)
+                            {
+                                <a asp-page="./Putaway" asp-route-id="@Model.Order.InboundOrderId" asp-route-itemId="@firstWaitingItem.InboundOrderItemId" asp-route-lotId="@firstWaitingReceipt.ProductLotId" class="btn btn-primary">Chọn vị trí cất hàng</a>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
 
     @foreach (var item in Model.Order.Items)
     {
@@ -43,18 +130,19 @@
         <div class="card-body">
             <div class="row g-3 mb-3">
                 <div class="col"><div class="text-muted small">Đã giao</div><strong>@FormatQuantity(item.ReceivedQuantity, item.QuantityScale)</strong></div>
+                <div class="col"><div class="text-muted small">Hàng đạt</div><strong class="text-success">@FormatQuantity(item.Receipts.Where(r => r.ConditionStatus == "GOOD").Sum(r => r.ReceivedQuantity), item.QuantityScale)</strong></div>
                 <div class="col"><div class="text-muted small">Hàng hỏng</div><strong class="text-danger">@FormatQuantity(item.DamagedQuantity, item.QuantityScale)</strong></div>
                 <div class="col"><div class="text-muted small">Đã xếp vị trí</div><strong class="text-success">@FormatQuantity(item.PutawayQuantity, item.QuantityScale)</strong></div>
-                <div class="col"><div class="text-muted small">Còn thiếu</div><strong>@FormatQuantity(Math.Max(0, item.ExpectedQuantity-item.ReceivedQuantity), item.QuantityScale)</strong></div>
+                <div class="col"><div class="text-muted small">Cần bổ sung</div><strong>@FormatQuantity(item.ShortageQuantity, item.QuantityScale)</strong></div>
             </div>
 
             @if (item.Receipts.Count > 0)
             {
-                <div class="table-responsive mb-3"><table class="table table-sm align-middle"><thead><tr><th>Lô</th><th>Hạn dùng</th><th>Chất lượng</th><th>Vị trí hiện tại</th><th class="text-end">Đã nhận</th><th class="text-end">Đã putaway</th><th></th></tr></thead><tbody>
+                <div class="table-responsive mb-3"><table class="table table-sm align-middle"><thead><tr><th>Lô</th><th>Ngày sản xuất / Hạn dùng</th><th>Chất lượng</th><th>Vị trí chi tiết</th><th>Người ghi nhận</th><th class="text-end">Đã nhận</th><th class="text-end">Đã xếp</th><th></th></tr></thead><tbody>
                 @foreach (var receipt in item.Receipts)
                 {
                     var waiting = receipt.ConditionStatus == "GOOD" && receipt.PutawayQuantity < receipt.ReceivedQuantity;
-                    <tr><td>@(item.TrackLot ? receipt.LotNumber : "Hàng lẻ")</td><td>@(item.TrackExpiry ? receipt.ExpiryDate?.ToString("dd/MM/yyyy") : "Không theo dõi")</td><td>@ConditionLabel(receipt.ConditionStatus)</td><td>@receipt.LocationCode</td><td class="text-end">@FormatQuantity(receipt.ReceivedQuantity, item.QuantityScale)</td><td class="text-end">@FormatQuantity(receipt.PutawayQuantity, item.QuantityScale)</td><td class="text-end">@if (waiting && Model.Order.Status == "RECEIVED") { <a asp-page="./Putaway" asp-route-id="@Model.Order.InboundOrderId" asp-route-itemId="@item.InboundOrderItemId" asp-route-lotId="@receipt.ProductLotId" class="btn btn-sm btn-primary">Xếp vào vị trí</a> }</td></tr>
+                    <tr><td>@(item.TrackLot ? receipt.LotNumber : "Hàng lẻ")</td><td><div>@(receipt.ManufactureDate?.ToString("dd/MM/yyyy") ?? "—")</div><div class="text-muted small">HSD: @(receipt.ExpiryDate?.ToString("dd/MM/yyyy") ?? "—")</div></td><td>@ConditionLabel(receipt.ConditionStatus)@if (!string.IsNullOrWhiteSpace(receipt.Notes)) { <div class="text-muted small">@receipt.Notes</div> }</td><td><strong>@LocationPath(receipt)</strong><div class="text-muted small">@(receipt.PutawayAt.HasValue ? $"Xếp bởi {receipt.PutawayByUserName} lúc {receipt.PutawayAt:dd/MM/yyyy HH:mm}" : "Khu nhận/cách ly")</div></td><td>@receipt.RecordedByUserName<div class="text-muted small">@receipt.RecordedAt.ToString("dd/MM/yyyy HH:mm")</div></td><td class="text-end">@FormatQuantity(receipt.ReceivedQuantity, item.QuantityScale)</td><td class="text-end">@FormatQuantity(receipt.PutawayQuantity, item.QuantityScale)</td><td class="text-end">@if (isAssignedStaff && waiting && Model.Order.Status == "RECEIVED") { <a asp-page="./Putaway" asp-route-id="@Model.Order.InboundOrderId" asp-route-itemId="@item.InboundOrderItemId" asp-route-lotId="@receipt.ProductLotId" class="btn btn-sm btn-primary">Xếp vào vị trí</a> }</td></tr>
                 }
                 </tbody></table></div>
             }
@@ -64,21 +152,39 @@
                 <form method="post" class="row g-2 align-items-end border-top pt-3">
                     <input type="hidden" name="ReceiveDto.InboundOrderItemId" value="@item.InboundOrderItemId" />
                     <div class="col-md-2"><label class="form-label">Thực giao</label><input name="ReceiveDto.DeliveredQuantity" type="number" min="@QuantityStep(item.QuantityScale)" max="@(item.ExpectedQuantity-item.ReceivedQuantity)" step="@QuantityStep(item.QuantityScale)" class="form-control" required /></div>
+                    <div class="col-md-2"><label class="form-label">Số lượng đạt</label><input name="ReceiveDto.AcceptedQuantity" type="number" min="0" step="@QuantityStep(item.QuantityScale)" class="form-control" required /></div>
                     <div class="col-md-2"><label class="form-label">Hàng hỏng</label><input name="ReceiveDto.DamagedQuantity" type="number" min="0" step="@QuantityStep(item.QuantityScale)" value="0" class="form-control" /></div>
-                    @if (item.TrackLot) { <div class="col-md-3"><label class="form-label">Số lô</label><input name="ReceiveDto.LotNumber" class="form-control" required /></div> } else { <input type="hidden" name="ReceiveDto.LotNumber" value="" /> }
-                    @if (item.TrackExpiry) { <div class="col-md-3"><label class="form-label">Hạn dùng</label><input name="ReceiveDto.ExpiryDate" type="date" class="form-control" required /></div> }
-                    <div class="col-md-2"><button asp-page-handler="Receive" asp-route-id="@Model.Order.InboundOrderId" class="btn btn-primary w-100">Lưu nhận hàng</button></div>
+                    @if (item.TrackLot) { <div class="col-md-2"><label class="form-label">Số lô</label><input name="ReceiveDto.LotNumber" class="form-control" required /></div> } else { <input type="hidden" name="ReceiveDto.LotNumber" value="" /> }
+                    @if (item.TrackLot || item.TrackExpiry) { <div class="col-md-2"><label class="form-label">Ngày sản xuất</label><input name="ReceiveDto.ManufactureDate" type="date" class="form-control" /></div> }
+                    @if (item.TrackExpiry) { <div class="col-md-2"><label class="form-label">Hạn dùng</label><input name="ReceiveDto.ExpiryDate" type="date" class="form-control" required /></div> }
+                    <div class="col-md-8"><label class="form-label">Ghi chú tình trạng</label><input name="ReceiveDto.ConditionNotes" class="form-control" placeholder="Mô tả tình trạng thiếu, hỏng hoặc cần cách ly" /></div>
+                    <div class="col-md-2"><button asp-page-handler="Receive" asp-route-id="@Model.Order.InboundOrderId" class="btn btn-primary w-100">Lưu lần kiểm nhận</button></div>
                 </form>
             }
         </div></div>
+    }
+
+    @if (Model.Order.Timeline.Count > 0)
+    {
+        <div class="card border-0 shadow-sm mt-3">
+            <div class="card-header bg-white"><strong>Lịch sử trạng thái</strong></div>
+            <div class="table-responsive"><table class="table table-sm align-middle mb-0"><thead><tr><th>Thời gian</th><th>Sự kiện</th><th>Trạng thái sau sự kiện</th><th>Người thực hiện</th></tr></thead><tbody>
+            @foreach (var entry in Model.Order.Timeline)
+            {
+                <tr><td>@entry.EventTime.ToString("dd/MM/yyyy HH:mm")</td><td>@entry.EventName</td><td>@StatusLabel(entry.StatusBadge)</td><td>@entry.PerformedBy</td></tr>
+            }
+            </tbody></table></div>
+        </div>
     }
 </div>
 
 <div class="modal fade" id="cancelModal" tabindex="-1"><div class="modal-dialog"><form method="post" class="modal-content"><div class="modal-header"><h5 class="modal-title">Hủy phiếu nhập</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><label class="form-label">Lý do hủy</label><textarea name="reason" class="form-control" required></textarea></div><div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Đóng</button><button asp-page-handler="Cancel" asp-route-id="@Model.Order.InboundOrderId" class="btn btn-danger">Xác nhận hủy</button></div></form></div></div>
 
 @functions {
-    string StatusLabel(string status) => status switch { "DRAFT" => "Nháp", "READY" => "Sẵn sàng nhận", "RECEIVING" => "Đang nhận hàng", "RECEIVED" => "Đã nhận, chờ putaway", "PUTAWAY_COMPLETED" => "Đã hoàn tất putaway", "CANCELLED" => "Đã hủy", _ => status };
+    string StatusLabel(string status) => status switch { "DRAFT" => "Nháp", "READY" => "Sẵn sàng nhận", "RECEIVING" => "Đang kiểm nhận", "RECEIVED" => "Đã kiểm nhận, chờ xếp vị trí", "PUTAWAY_COMPLETED" => "Đã xếp hàng vào kho", "CANCELLED" => "Đã hủy", _ => status };
     string ConditionLabel(string condition) => condition switch { "GOOD" => "Đạt", "DAMAGED" => "Hỏng - cách ly", "QUARANTINED" => "Cách ly", _ => condition };
     string QuantityStep(byte scale) => scale == 0 ? "1" : "0." + new string('0', scale - 1) + "1";
     string FormatQuantity(decimal value, byte scale) => value.ToString(scale == 0 ? "N0" : $"N{scale}");
+    string LocationPath(BMWMS.Web.Models.InboundReceiptDto receipt) => string.Join(" / ",
+        new[] { receipt.ZoneCode, receipt.RackCode, receipt.LocationCode }.Where(value => !string.IsNullOrWhiteSpace(value)));
 }

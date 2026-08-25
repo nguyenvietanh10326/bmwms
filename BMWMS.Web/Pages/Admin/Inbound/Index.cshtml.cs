@@ -1,11 +1,13 @@
 using System.Threading.Tasks;
 using BMWMS.Web.Models;
 using BMWMS.Web.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace BMWMS.Web.Pages.Admin.Inbound;
 
+[Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF,PURCHASING_STAFF")]
 public class IndexModel : PageModel
 {
     private readonly InboundApiService _inboundApiService;

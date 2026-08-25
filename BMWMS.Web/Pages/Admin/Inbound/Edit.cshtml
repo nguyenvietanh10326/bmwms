@@ -87,7 +87,7 @@
         </div>
         <div class="field">
             <label>Người phụ trách *</label>
-            <select asp-for="EditOrder.AssignedToUserId" asp-items="Model.Users" required>
+            <select asp-for="EditOrder.AssignedToUserId" asp-items="Model.Users">
                 <option value="">-- Chọn người --</option>
             </select>
             <span asp-validation-for="EditOrder.AssignedToUserId" style="color:red; font-size:12px;"></span>
@@ -130,7 +130,11 @@
       
       <div class="actions-end">
         <a asp-page="/Admin/Inbound/Details" asp-route-id="@Model.Order.InboundOrderId" class="btn btn-light">Hủy bỏ</a>
-        <button type="submit" class="btn btn-dark">Lưu thay đổi</button>
+        <button type="submit" name="actionType" value="draft" class="btn btn-light">Lưu thay đổi</button>
+        @if (Model.Order.Status == "DRAFT")
+        {
+            <button type="submit" name="actionType" value="submit" class="btn btn-dark">Lưu và chuyển Sẵn sàng</button>
+        }
       </div>
     </div>
   </form>

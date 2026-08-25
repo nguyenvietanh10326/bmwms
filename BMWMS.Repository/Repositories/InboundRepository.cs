@@ -47,6 +47,7 @@ public class InboundRepository : IInboundRepository
             var lowerKeyword = keyword.ToLower();
             query = query.Where(x => 
                 x.InboundOrderNumber.ToLower().Contains(lowerKeyword) ||
+                (x.PurchaseOrder != null && x.PurchaseOrder.PurchaseOrderNumber.ToLower().Contains(lowerKeyword)) ||
                 (x.PurchaseOrder != null && x.PurchaseOrder.Supplier != null && x.PurchaseOrder.Supplier.SupplierName.ToLower().Contains(lowerKeyword)) ||
                 (x.SalesOrder != null && x.SalesOrder.Customer.CustomerName.ToLower().Contains(lowerKeyword)) ||
                 (x.SalesOrder != null && x.SalesOrder.SalesOrderNumber.ToLower().Contains(lowerKeyword))
@@ -55,8 +56,19 @@ public class InboundRepository : IInboundRepository
 
         if (!string.IsNullOrWhiteSpace(status) && status != "All")
         {
-            var statuses = status.Split(',').Select(s => s.Trim()).ToList();
-            query = query.Where(x => statuses.Contains(x.Status));
+            status = status.Trim().ToUpperInvariant();
+            query = status switch
+            {
+                "READY" => query.Where(x => x.Status == "ASSIGNED"),
+                "RECEIVING" => query.Where(x => x.Status == "IN_PROGRESS"),
+                "RECEIVED" => query.Where(x => x.Status == "COMPLETED" &&
+                    x.InboundOrderItems.SelectMany(i => i.InboundOrderDetails)
+                        .Any(d => d.ConditionStatus == "GOOD" && d.InventoryTransaction == null)),
+                "PUTAWAY_COMPLETED" => query.Where(x => x.Status == "COMPLETED" &&
+                    !x.InboundOrderItems.SelectMany(i => i.InboundOrderDetails)
+                        .Any(d => d.ConditionStatus == "GOOD" && d.InventoryTransaction == null)),
+                _ => query.Where(x => x.Status == status)
+            };
         }
 
         if (fromDate.HasValue)
@@ -74,7 +86,8 @@ public class InboundRepository : IInboundRepository
         var totalCount = await query.CountAsync();
 
         var items = await query
-            .OrderBy(x => x.CreatedAt)
+            .OrderByDescending(x => x.ExpectedReceiptDate)
+            .ThenByDescending(x => x.InboundOrderNumber)
             .Skip((pageIndex - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();
@@ -92,8 +105,11 @@ public class InboundRepository : IInboundRepository
             .Include(i => i.Warehouse)
             .Include(i => i.AssignedToUser)
             .Include(i => i.CreatedByUser)
+            .Include(i => i.ConfirmedByUser)
+            .Include(i => i.CancelledByUser)
             .Include(i => i.ParentInboundOrder)
-            .Include(i => i.TransferOrder)
+            .Include(i => i.InverseParentInboundOrder)
+                .ThenInclude(child => child.InboundOrderItems)
             .Include(i => i.InboundOrderItems)
                 .ThenInclude(item => item.Product)
                     .ThenInclude(product => product.UnitOfMeasure)
@@ -103,9 +119,15 @@ public class InboundRepository : IInboundRepository
             .Include(i => i.InboundOrderItems)
                 .ThenInclude(item => item.InboundOrderDetails)
                     .ThenInclude(detail => detail.StorageLocation)
+                        .ThenInclude(location => location.StorageRack)
+                            .ThenInclude(rack => rack!.WarehouseZone)
+            .Include(i => i.InboundOrderItems)
+                .ThenInclude(item => item.InboundOrderDetails)
+                    .ThenInclude(detail => detail.RecordedByUser)
             .Include(i => i.InboundOrderItems)
                 .ThenInclude(item => item.InboundOrderDetails)
                     .ThenInclude(detail => detail.InventoryTransaction)
+                        .ThenInclude(transaction => transaction!.PerformedByUser)
             .FirstOrDefaultAsync(i => i.InboundOrderId == id);
     }
 

@@ -19,5 +19,6 @@ public interface IInboundService
     Task<long> ReceiveItemAsync(long inboundOrderId, ReceiveInboundItemDto dto, long currentUserId);
     Task PutawayBatchAsync(long inboundOrderId, List<PutawayInboundItemDto> dtos, long currentUserId);
     Task ReceiveBatchAsync(long inboundOrderId, ReceiveBatchInboundDto dto, long currentUserId);
+    Task CompleteReceiptAsync(long inboundOrderId, CompleteInboundReceiptDto dto, long currentUserId);
     Task<List<PutawayLocationDto>> GetPutawayLocationsAsync(long warehouseId, long productId);
 }

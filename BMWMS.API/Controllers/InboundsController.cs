@@ -53,7 +53,7 @@ public class InboundsController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF")]
     public async Task<ActionResult<long>> CreateInboundOrder([FromBody] CreateInboundOrderDto dto)
     {
         var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
@@ -103,7 +103,7 @@ public class InboundsController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF")]
     public async Task<IActionResult> Update(long id, [FromBody] UpdateInboundOrderDto dto)
     {
         try
@@ -119,7 +119,7 @@ public class InboundsController : ControllerBase
     }
 
     [HttpPut("{id}/cancel")]
-    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF")]
     public async Task<IActionResult> Cancel(long id, [FromBody] CancelInboundOrderDto dto)
     {
         try
@@ -135,7 +135,7 @@ public class InboundsController : ControllerBase
     }
 
     [HttpPut("{id}/confirm")]
-    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF")]
     public async Task<IActionResult> Confirm(long id)
     {
         try
@@ -151,6 +151,7 @@ public class InboundsController : ControllerBase
     }
 
     [HttpPost("{id}/receive")]
+    [Authorize(Roles = "WAREHOUSE_STAFF")]
     public async Task<ActionResult<long>> ReceiveItem(long id, [FromBody] ReceiveInboundItemDto dto)
     {
         var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
@@ -168,6 +169,7 @@ public class InboundsController : ControllerBase
     }
 
     [HttpPost("{id}/receive-batch")]
+    [Authorize(Roles = "WAREHOUSE_STAFF")]
     public async Task<IActionResult> ReceiveBatch(long id, [FromBody] ReceiveBatchInboundDto dto)
     {
         long currentUserId;
@@ -185,7 +187,26 @@ public class InboundsController : ControllerBase
         }
     }
 
+    [HttpPost("{id}/complete-receipt")]
+    [Authorize(Roles = "WAREHOUSE_STAFF")]
+    public async Task<IActionResult> CompleteReceipt(long id, [FromBody] CompleteInboundReceiptDto dto)
+    {
+        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (!long.TryParse(userIdClaim, out var currentUserId)) return Unauthorized();
+
+        try
+        {
+            await _inboundService.CompleteReceiptAsync(id, dto, currentUserId);
+            return Ok(new { Message = "Đã hoàn tất kiểm nhận; phiếu sẵn sàng xếp hàng vào vị trí kho." });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
     [HttpPost("{id}/putaway")]
+    [Authorize(Roles = "WAREHOUSE_STAFF")]
     public async Task<IActionResult> PutawayBatch(long id, [FromBody] List<PutawayInboundItemDto> dtos)
     {
         var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
