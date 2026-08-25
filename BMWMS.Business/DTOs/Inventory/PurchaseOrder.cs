@@ -86,43 +86,6 @@ namespace BMWMS.Business.DTOs.Inventory
     }
     #endregion
 
-    #region 3. DTO Cho Màn Hình Tạo Mới / Sửa (Create/Update Request)
-    public class CreatePurchaseOrderDto
-    {
-        [Required(ErrorMessage = "Vui lòng chọn Nhà cung cấp")]
-        public long SupplierId { get; set; }
-
-        [Required(ErrorMessage = "Vui lòng chọn Ngày đặt hàng")]
-        public DateOnly OrderDate { get; set; } = DateOnly.FromDateTime(DateTime.Now);
-
-        public DateOnly? ExpectedDeliveryDate { get; set; }
-
-        public long? WarehouseId { get; set; } // Kho dự kiến nhận hàng
-
-        public string? Notes { get; set; }
-
-        // Bỏ trống hoặc "Draft" nếu bấm "Lưu nháp", "Confirmed" nếu bấm "Xác nhận đơn mua"
-        public bool IsSubmitForConfirmation { get; set; } = false;
-
-        [MinLength(1, ErrorMessage = "Đơn mua hàng phải có ít nhất 1 sản phẩm")]
-        public List<CreatePurchaseOrderItemDto> Items { get; set; } = new();
-    }
-
-    public class CreatePurchaseOrderItemDto
-    {
-        [Required(ErrorMessage = "Vui lòng chọn sản phẩm")]
-        public long ProductId { get; set; }
-
-        [Range(0.0001, double.MaxValue, ErrorMessage = "Số lượng phải lớn hơn 0")]
-        public decimal OrderedQuantity { get; set; }
-
-        [Range(0, double.MaxValue, ErrorMessage = "Đơn giá không hợp lệ")]
-        public decimal UnitPrice { get; set; }
-
-        public string? Notes { get; set; }
-    }
-    #endregion
-
     #region 4. DTO Bộ Lọc & Phân Trang (Filter Query)
     public class PurchaseOrderFilterDto
     {

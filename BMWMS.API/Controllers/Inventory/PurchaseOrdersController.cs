@@ -1,154 +1,129 @@
 using BMWMS.Business.DTOs.Inventory;
 using BMWMS.Business.Interfaces.Inventory;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
-using System.Threading.Tasks;
-using System;
 
-namespace BMWMS.API.Controllers.Inventory
+namespace BMWMS.API.Controllers.Inventory;
+
+[Route("api/[controller]")]
+[ApiController]
+public class PurchaseOrdersController : ControllerBase
 {
-    [Route("api/[controller]")]
-    [ApiController]
-    [Authorize]
-    public class PurchaseOrdersController : ControllerBase
+    private readonly IPurchaseOrderService _poService;
+
+    public PurchaseOrdersController(IPurchaseOrderService poService)
     {
-        private readonly IPurchaseOrderService _poService;
+        _poService = poService;
+    }
 
-        public PurchaseOrdersController(IPurchaseOrderService poService)
+    [HttpGet("{id:long}")]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF")]
+    public async Task<IActionResult> GetById(long id)
+    {
+        try
         {
-            _poService = poService;
+            var po = await _poService.GetOrderDetailAsync(id);
+            if (po == null)
+                return NotFound(new { message = $"Không tìm thấy đơn mua hàng với ID = {id}." });
+
+            return Ok(po);
         }
-
-        /// <summary>
-        /// 2. Láº¥y chi tiáº¿t 1 Purchase Order theo ID
-        /// GET: api/PurchaseOrders/13
-        /// </summary>
-        [HttpGet("{id:long}")]
-        public async Task<IActionResult> GetById(long id)
+        catch (Exception ex)
         {
-            try
-            {
-                var po = await _poService.GetOrderDetailAsync(id);
-                if (po == null)
-                {
-                    return NotFound(new { message = $"KhÃ´ng tÃ¬m tháº¥y Ä‘Æ¡n mua hÃ ng vá»›i ID = {id}" });
-                }
-
-                return Ok(po);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Lá»—i há»‡ thá»‘ng khi láº¥y chi tiáº¿t Ä‘Æ¡n mua hÃ ng.", detail = ex.Message });
-            }
-        }
-
-        [HttpGet("AllSupplier")]
-        public async Task<IActionResult> GetAllSupplier()
-        {
-            var users = await _poService.GetLookupListAsync();
-            return Ok(users);
-        }
-
-        [HttpGet("AllWarehouse")]
-        public async Task<IActionResult> GetAllWarehouse()
-        {
-            var wh = await _poService.GetLookListAsync();
-            return Ok(wh);
-        }
-
-        [HttpGet("AllProduct")]
-        public async Task<IActionResult> GetAllProduct()
-        {
-            var p = await _poService.GetUpListAsync();
-            return Ok(p);
-        }
-    
-        [HttpPost]
-        [Authorize(Roles = "PURCHASING_STAFF")]
-        public async Task<IActionResult> Create([FromBody] BMWMS.Business.DTOs.Inventory.PurchaseOrderCreateDto request)
-        {
-            try
-            {
-                // Get userId from JWT claims
-                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (!long.TryParse(userIdClaim, out long userId))
-                    return Unauthorized(new { message = "Token không hợp lệ." });
-
-                var result = await _poService.CreatePurchaseOrderAsync(request, userId);
-                if (result.Success)
-                {
-                    return Ok(new { message = "Táº¡o lá»‡nh mua hÃ ng thÃ nh cÃ´ng.", data = result.Message });
-                }
-                else
-                {
-                    return BadRequest(new { message = result.Message });
-                }
-            }
-            catch (Exception ex)
-            {
-                var innerMsg = ex.ToString();
-                return StatusCode(500, new { message = "Lá»—i há»‡ thá»‘ng khi táº¡o Lá»‡nh mua hÃ ng.", detail = innerMsg });
-            }
-        }
-
-        [HttpGet]
-        public async Task<IActionResult> GetPaged([FromQuery] BMWMS.Business.DTOs.Inventory.PurchaseOrderFilterDto filter)
-        {
-            var result = await _poService.GetPagedOrdersAsync(filter);
-            return Ok(result);
-        }
-
-        [HttpPost("{id}/confirm")]
-        [Authorize(Roles = "PURCHASING_STAFF")]
-        public async Task<IActionResult> Confirm(long id)
-        {
-            try
-            {
-                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (!long.TryParse(userIdClaim, out long userId))
-                    return Unauthorized(new { message = "Token không hợp lệ." });
-                var result = await _poService.ConfirmOrderAsync(id, userId);
-                if (result.Success) return Ok(new { message = result.Message });
-                return BadRequest(new { message = result.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Lá»—i há»‡ thá»‘ng.", detail = ex.Message });
-            }
-        }
-
-        [HttpPost("{id}/cancel")]
-        [Authorize(Roles = "PURCHASING_STAFF")]
-        public async Task<IActionResult> Cancel(long id, [FromQuery] string? reason)
-        {
-            try
-            {
-                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (!long.TryParse(userIdClaim, out long userId))
-                    return Unauthorized(new { message = "Token không hợp lệ." });
-                var result = await _poService.CancelOrderAsync(id, userId, reason);
-                if (result.Success) return Ok(new { message = result.Message });
-                return BadRequest(new { message = result.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Lá»—i há»‡ thá»‘ng.", detail = ex.Message });
-            }
-        }
-        [HttpGet("/AllCustomers")]
-        public async Task<IActionResult> GetAllCustomer()
-        {
-            try
-            {
-                var result = await _poService.GetCustomersAsync();
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Lỗi khi lấy danh sách khách hàng.", detail = ex.Message });
-            }
+            return StatusCode(500, new { message = "Lỗi hệ thống khi lấy chi tiết đơn mua hàng.", detail = ex.Message });
         }
     }
+
+    [HttpGet("AllSupplier")]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF")]
+    public async Task<IActionResult> GetAllSupplier() => Ok(await _poService.GetLookupListAsync());
+
+    [HttpGet("AllWarehouse")]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF")]
+    public async Task<IActionResult> GetAllWarehouse() => Ok(await _poService.GetLookListAsync());
+
+    [HttpGet("AllProduct")]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF")]
+    public async Task<IActionResult> GetAllProduct() => Ok(await _poService.GetUpListAsync());
+
+    [HttpPost]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF")]
+    public async Task<IActionResult> Create([FromBody] PurchaseOrderCreateDto request)
+    {
+        try
+        {
+            if (!TryGetCurrentUserId(out var userId)) return Unauthorized();
+
+            var result = await _poService.CreatePurchaseOrderAsync(request, userId);
+            if (result.Success)
+                return Ok(new { message = "Tạo đơn mua hàng ở trạng thái nháp thành công.", data = result.Message });
+
+            return BadRequest(new { message = result.Message });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Lỗi hệ thống khi tạo đơn mua hàng.", detail = ex.Message });
+        }
+    }
+
+    [HttpGet]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF")]
+    public async Task<IActionResult> GetPaged([FromQuery] PurchaseOrderFilterDto filter) =>
+        Ok(await _poService.GetPagedOrdersAsync(filter));
+
+    [HttpPost("{id}/confirm")]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
+    public async Task<IActionResult> Confirm(long id)
+    {
+        try
+        {
+            if (!TryGetCurrentUserId(out var userId)) return Unauthorized();
+
+            var result = await _poService.ConfirmOrderAsync(id, userId);
+            return result.Success
+                ? Ok(new { message = result.Message })
+                : BadRequest(new { message = result.Message });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Lỗi hệ thống khi xác nhận đơn mua hàng.", detail = ex.Message });
+        }
+    }
+
+    [HttpPost("{id}/cancel")]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF")]
+    public async Task<IActionResult> Cancel(long id, [FromQuery] string? reason)
+    {
+        try
+        {
+            if (!TryGetCurrentUserId(out var userId)) return Unauthorized();
+
+            var result = await _poService.CancelOrderAsync(id, userId, reason);
+            return result.Success
+                ? Ok(new { message = result.Message })
+                : BadRequest(new { message = result.Message });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Lỗi hệ thống khi hủy đơn mua hàng.", detail = ex.Message });
+        }
+    }
+
+    [HttpGet("/AllCustomers")]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF,SALES_STAFF")]
+    public async Task<IActionResult> GetAllCustomer()
+    {
+        try
+        {
+            return Ok(await _poService.GetCustomersAsync());
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Lỗi khi lấy danh sách khách hàng.", detail = ex.Message });
+        }
+    }
+
+    private bool TryGetCurrentUserId(out long userId) =>
+        long.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out userId);
 }

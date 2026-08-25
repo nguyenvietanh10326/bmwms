@@ -1,6 +1,6 @@
-﻿using Microsoft.AspNetCore.Authorization;
 using BMWMS.Web.Models.Inventory;
 using BMWMS.Web.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.Threading.Tasks;
@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 namespace BMWMS.Web.Pages.PurchaseOrders;
 
 [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF")]
-    public class DetailModel : PageModel
+public class DetailModel : PageModel
 {
     private readonly PurchaseOrderApiService _apiService;
 
@@ -34,6 +34,9 @@ namespace BMWMS.Web.Pages.PurchaseOrders;
 
     public async Task<IActionResult> OnPostConfirmAsync()
     {
+        if (!User.IsInRole("SYSTEM_ADMIN") && !User.IsInRole("WAREHOUSE_MANAGER"))
+            return Forbid();
+
         var (isSuccess, message) = await _apiService.ConfirmPurchaseOrderAsync(Id);
         if (isSuccess)
         {
@@ -90,4 +93,3 @@ namespace BMWMS.Web.Pages.PurchaseOrders;
         _ => "bg-secondary-subtle text-secondary"
     };
 }
-
