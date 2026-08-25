@@ -422,7 +422,10 @@ namespace BMWMS.Repository.Repositories.StockOperations
                     .ThenInclude(d => d.DestinationLocation)
                 .Include(o => o.TransferOrderDetails)
                     .ThenInclude(d => d.InventoryTransactions)
-                .Where(o => o.TransferType == "INTERNAL_LOCATION" || o.TransferType == "BIN_TRANSFER");
+                .Where(o => (o.TransferType == "INTERNAL_LOCATION" || o.TransferType == "BIN_TRANSFER") &&
+                            !o.TransferOrderNumber.StartsWith("TR-WF-") &&
+                            (o.Notes == null || (!o.Notes.StartsWith("[AUTO_INBOUND]") &&
+                                                 !o.Notes.StartsWith("[AUTO_OUTBOUND]"))));
         }
 
         private IQueryable<TransferOrder> BuildDetailQuery()
@@ -450,7 +453,10 @@ namespace BMWMS.Repository.Repositories.StockOperations
                 .Include(o => o.TransferOrderDetails)
                     .ThenInclude(d => d.DestinationLocation)
                         .ThenInclude(l => l!.StorageRack)
-                            .ThenInclude(r => r!.WarehouseZone);
+                            .ThenInclude(r => r!.WarehouseZone)
+                .Where(o => !o.TransferOrderNumber.StartsWith("TR-WF-") &&
+                            (o.Notes == null || (!o.Notes.StartsWith("[AUTO_INBOUND]") &&
+                                                 !o.Notes.StartsWith("[AUTO_OUTBOUND]"))));
         }
 
         private async Task<TransferOrder> GetTrackedOrderAsync(long transferOrderId, bool includeTransactions)

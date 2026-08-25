@@ -44,6 +44,7 @@ builder.Services.AddRazorPages(options =>
 
     // Role-specific pages
     options.Conventions.AuthorizeFolder("/Admin/Users", "AdminOnly");
+    options.Conventions.AuthorizeFolder("/Admin/AuditLogs", "AdminOnly");
     options.Conventions.AuthorizePage("/Admin/Suppliers/Create", "WriteSupplier");
     options.Conventions.AuthorizePage("/Admin/Suppliers/Edit", "WriteSupplier");
     options.Conventions.AuthorizePage("/Warehouse/Create", "WriteWarehouse");
@@ -75,6 +76,7 @@ builder.Services.AddScoped<IDashboardApiService, DashboardApiService>();
 builder.Services.AddScoped<WarehouseApiService>();
 builder.Services.AddScoped<SupplierApiService>();
 builder.Services.AddScoped<UserApiService>();
+builder.Services.AddScoped<AuditLogApiService>();
 builder.Services.AddScoped<RoleApiService>();
 builder.Services.AddScoped<InboundApiService>();
 builder.Services.AddScoped<IReportApiService, ReportApiService>();
