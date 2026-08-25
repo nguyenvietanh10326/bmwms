@@ -32,5 +32,6 @@ namespace BMWMS.Repository.Interfaces.Inventory
         Task<IEnumerable<Supplier>> GetAllAsync();
         Task<IEnumerable<Warehouse>> GetAllWareAsync();
         Task<IEnumerable<Product>> GetAllProductAsync();
+        Task<IEnumerable<Customer>> GetCustomersAsync();
     }
 }

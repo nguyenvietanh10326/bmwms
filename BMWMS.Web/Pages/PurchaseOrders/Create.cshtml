@@ -218,7 +218,8 @@
                 const pCode = p.productCode || p.ProductCode || 'Unknown';
                 const pId = p.productId || p.ProductId;
                 const pUnit = p.unit || p.Unit || '-';
-                optionsHtml += `<option value="${pId}" data-unit="${pUnit}">${pName} (${pCode})</option>`;
+                const pScale = p.quantityScale ?? p.QuantityScale ?? 0;
+                optionsHtml += `<option value="${pId}" data-unit="${pUnit}" data-scale="${pScale}">${pName} (${pCode})</option>`;
             });
 
             tr.innerHTML = `
@@ -235,7 +236,7 @@
                     N/A
                 </td>
                 <td class="num">
-                    <input type="number" name="PurchaseOrder.OrderDetails[${rowCount}].OrderedQuantity" class="cell-input" min="0.01" step="0.01" value="1" required />
+                    <input type="number" name="PurchaseOrder.OrderDetails[${rowCount}].OrderedQuantity" class="cell-input" min="1" step="1" value="1" required />
                 </td>
                 <td>
                     <input type="text" name="PurchaseOrder.OrderDetails[${rowCount}].Notes" class="cell-input-w" placeholder="Ghi chú dòng" />
@@ -259,18 +260,17 @@
             
             if(selectedOption && selectedOption.value !== "") {
                 const unit = selectedOption.getAttribute('data-unit') || '-';
+                const scale = Number(selectedOption.getAttribute('data-scale') || 0);
                 unitCell.textContent = unit;
-                
-                // Adjust step based on unit
-                const intUnits = ['cái', 'chiếc', 'hộp', 'bao', 'thùng', 'cuộn', 'bộ', 'cây', 'lọ', 'chai', 'tờ'];
-                const isInt = intUnits.some(u => unit.toLowerCase().includes(u));
-                if(isInt) {
+
+                if(scale === 0) {
                     qtyInput.setAttribute('step', '1');
                     qtyInput.setAttribute('min', '1');
                     qtyInput.value = Math.max(1, Math.round(qtyInput.value));
                 } else {
-                    qtyInput.setAttribute('step', '0.01');
-                    qtyInput.setAttribute('min', '0.01');
+                    const step = `0.${'0'.repeat(scale - 1)}1`;
+                    qtyInput.setAttribute('step', step);
+                    qtyInput.setAttribute('min', step);
                 }
             } else {
                 unitCell.textContent = '-';

@@ -19,6 +19,8 @@ public class InboundOrderListDto
     public long InboundOrderId { get; set; }
     public string InboundOrderNumber { get; set; } = string.Empty;
     public string SupplierName { get; set; } = string.Empty;
+    public string SourceType { get; set; } = string.Empty;
+    public string SourceReference { get; set; } = string.Empty;
     public DateOnly ExpectedReceiptDate { get; set; }
     public string Status { get; set; } = string.Empty;
     public decimal TotalExpectedQuantity { get; set; }
@@ -37,6 +39,10 @@ public class InboundOrderDetailDto
     public long InboundOrderId { get; set; }
     public string InboundOrderNumber { get; set; } = string.Empty;
     public string? PurchaseOrderNumber { get; set; }
+    public string? SalesOrderNumber { get; set; }
+    public string SourceType { get; set; } = string.Empty;
+    public string SourceReference { get; set; } = string.Empty;
+    public string PartnerName { get; set; } = string.Empty;
     public string SupplierName { get; set; } = string.Empty;
     public string WarehouseName { get; set; } = string.Empty;
     public long WarehouseId { get; set; }
@@ -45,6 +51,8 @@ public class InboundOrderDetailDto
     public long? AssignedToUserId { get; set; }
     public string AssignedToUserName { get; set; } = string.Empty;
     public string CreatedByUserName { get; set; } = string.Empty;
+    public long? TransferOrderId { get; set; }
+    public string? TransferOrderNumber { get; set; }
     
     // Parent info for additional logic
     public string? ParentInboundOrderNumber { get; set; }
@@ -59,9 +67,15 @@ public class InboundOrderItemDto
     public long ProductId { get; set; }
     public string ProductCode { get; set; } = string.Empty;
     public string ProductName { get; set; } = string.Empty;
+    public string UnitName { get; set; } = string.Empty;
+    public byte QuantityScale { get; set; }
+    public bool TrackLot { get; set; }
+    public bool TrackExpiry { get; set; }
     public decimal ExpectedQuantity { get; set; }
     public decimal ReceivedQuantity { get; set; }
     public decimal PutawayQuantity { get; set; }
+    public decimal DamagedQuantity { get; set; }
+    public decimal ShortageQuantity { get; set; }
     public string? LotNumber { get; set; }
     public DateOnly? ExpiryDate { get; set; }
     public List<InboundReceiptDto> Receipts { get; set; } = new();
@@ -69,11 +83,20 @@ public class InboundOrderItemDto
 
 public class InboundReceiptDto
 {
+    public long InboundOrderDetailId { get; set; }
     public long ProductLotId { get; set; }
     public string LotNumber { get; set; } = string.Empty;
     public DateOnly? ExpiryDate { get; set; }
     public decimal ReceivedQuantity { get; set; }
     public decimal PutawayQuantity { get; set; }
+    public string ConditionStatus { get; set; } = string.Empty;
+    public string LocationCode { get; set; } = string.Empty;
+}
+
+public class AvailableWarehouseStaffDto
+{
+    public long UserId { get; set; }
+    public string FullName { get; set; } = string.Empty;
 }
 
 public class InboundOrderTimelineDto
@@ -93,19 +116,9 @@ public class CreateInboundOrderDto
     public long WarehouseId { get; set; }
     public DateOnly ExpectedReceiptDate { get; set; }
     public string? Notes { get; set; }
-    public long? ParentInboundOrderId { get; set; }
     [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Vui lòng chọn người phụ trách")]
     public long? AssignedToUserId { get; set; }
     public List<CreateInboundOrderItemDto> Items { get; set; } = new();
-}
-
-public class ShortageInboundOrderDto
-{
-    public long InboundOrderId { get; set; }
-    public string InboundOrderNumber { get; set; } = string.Empty;
-    public string PurchaseOrderNumber { get; set; } = string.Empty;
-    public string SupplierName { get; set; } = string.Empty;
-    public DateOnly OriginalExpectedDate { get; set; }
 }
 
 public class CreateInboundOrderItemDto
@@ -129,6 +142,9 @@ public class PurchaseOrderItemForInboundDto
     public string ProductCode { get; set; } = string.Empty;
     public string ProductName { get; set; } = string.Empty;
     public string UnitName { get; set; } = string.Empty;
+    public byte QuantityScale { get; set; }
+    public bool TrackLot { get; set; }
+    public bool TrackExpiry { get; set; }
     public decimal OrderedQuantity { get; set; }
     public decimal InboundQuantity { get; set; }
     public decimal RemainingQuantity { get; set; }
@@ -161,7 +177,6 @@ public class ReceiveInboundItemDto
     [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Vui lòng nhập số lượng thực giao")]
     public decimal DeliveredQuantity { get; set; }
     public decimal DamagedQuantity { get; set; }
-    [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Vui lòng nhập số Lot")]
     public string LotNumber { get; set; } = string.Empty;
     public DateOnly? ExpiryDate { get; set; }
 }
@@ -179,4 +194,13 @@ public class PutawayInboundItemDto
     public long StorageLocationId { get; set; }
     [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Vui lòng nhập số lượng xếp vị trí")]
     public decimal PutawayQuantity { get; set; }
+}
+
+public class PutawayLocationDto
+{
+    public long StorageLocationId { get; set; }
+    public string LocationCode { get; set; } = string.Empty;
+    public string LocationName { get; set; } = string.Empty;
+    public int Priority { get; set; }
+    public bool IsDefault { get; set; }
 }

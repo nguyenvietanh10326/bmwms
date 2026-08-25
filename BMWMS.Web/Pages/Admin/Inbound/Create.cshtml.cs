@@ -15,37 +15,32 @@ namespace BMWMS.Web.Pages.Admin.Inbound;
 public class CreateModel : PageModel
 {
     private readonly InboundApiService _inboundApiService;
-    private readonly WarehouseApiService _warehouseApiService;
     private readonly ProductApiService _productApiService;
-    private readonly UserApiService _userApiService;
 
     public CreateModel(
         InboundApiService inboundApiService,
-        WarehouseApiService warehouseApiService,
-        ProductApiService productApiService,
-        UserApiService userApiService)
+        ProductApiService productApiService)
     {
         _inboundApiService = inboundApiService;
-        _warehouseApiService = warehouseApiService;
         _productApiService = productApiService;
-        _userApiService = userApiService;
     }
 
     [BindProperty]
     public CreateInboundOrderDto InboundOrder { get; set; } = new();
 
-    public SelectList Warehouses { get; set; } = default!;
-    public SelectList Products { get; set; } = default!;
-    public SelectList Users { get; set; } = default!;
-    public SelectList ShortageOrders { get; set; } = default!;
-    public SelectList PurchaseOrders { get; set; } = default!;
-    public SelectList SalesOrders { get; set; } = default!;
+    public SelectList Products { get; set; } = new(Array.Empty<object>());
+    public SelectList Users { get; set; } = new(Array.Empty<object>());
+    public SelectList PurchaseOrders { get; set; } = new(Array.Empty<object>());
+    public SelectList SalesOrders { get; set; } = new(Array.Empty<object>());
 
-    public async Task OnGetAsync()
+    public async Task OnGetAsync(long? purchaseOrderId, long? salesOrderId)
     {
         InboundOrder = new CreateInboundOrderDto
         {
-            ExpectedReceiptDate = DateOnly.FromDateTime(DateTime.Today.AddDays(1))
+            ExpectedReceiptDate = DateOnly.FromDateTime(DateTime.Today.AddDays(1)),
+            SourceType = salesOrderId.HasValue ? "SALES_RETURN" : "PURCHASE_ORDER",
+            PurchaseOrderId = purchaseOrderId,
+            SalesOrderId = salesOrderId
         };
 
         await LoadDropdowns();
@@ -75,45 +70,38 @@ public class CreateModel : PageModel
 
     private async Task LoadDropdowns()
     {
-        var warehouses = await _warehouseApiService.GetWarehousesAsync();
-        Warehouses = new SelectList(warehouses, "WarehouseId", "WarehouseName");
+        try
+        {
+            var productResult = await _productApiService.GetPagedListAsync(new ProductFilterModel { PageSize = 1000 });
+            Products = new SelectList(productResult.Items, "ProductId", "ProductName");
+        }
+        catch { }
 
-        var productResult = await _productApiService.GetPagedListAsync(new ProductFilterModel { PageSize = 1000 });
-        Products = new SelectList(productResult.Items, "ProductId", "ProductName");
+        try
+        {
+            var warehouseUsers = await _inboundApiService.GetAvailableWarehouseStaffAsync();
+            Users = new SelectList(warehouseUsers, "UserId", "FullName");
+        }
+        catch { }
 
-        var usersResult = await _userApiService.GetUsersAsync(new UserFilterModel { PageSize = 1000 });
-        
-        var allUsers = usersResult?.Items ?? new List<UserListItem>();
-        var warehouseUsers = allUsers.Where(u => 
-            (u.RoleName.Contains("Kho", StringComparison.OrdinalIgnoreCase) || 
-             u.RoleName.Contains("Warehouse", StringComparison.OrdinalIgnoreCase)) &&
-            u.Status == "ACTIVE").ToList();
+        try
+        {
+            var pendingPos = await _inboundApiService.GetPendingPurchaseOrdersAsync();
+            PurchaseOrders = new SelectList(pendingPos, "Id", "Name");
+        }
+        catch { }
 
-        Users = new SelectList(warehouseUsers, "UserId", "FullName");
-
-        var shortages = await _inboundApiService.GetShortageInboundOrdersAsync();
-        ShortageOrders = new SelectList(shortages.Select(s => new {
-            Id = s.InboundOrderId,
-            Name = $"{s.PurchaseOrderNumber} (từ lệnh thiếu {s.InboundOrderNumber}) - {s.SupplierName}"
-        }), "Id", "Name");
-
-        var pendingPos = await _inboundApiService.GetPendingPurchaseOrdersAsync();
-        PurchaseOrders = new SelectList(pendingPos, "Id", "Name");
-
-        var returnableSos = await _inboundApiService.GetReturnableSalesOrdersAsync();
-        SalesOrders = new SelectList(returnableSos, "Id", "Name");
+        try
+        {
+            var returnableSos = await _inboundApiService.GetReturnableSalesOrdersAsync();
+            SalesOrders = new SelectList(returnableSos, "Id", "Name");
+        }
+        catch { }
     }
 
     public async Task<IActionResult> OnGetPoDetailsAsync(long poId)
     {
         var result = await _inboundApiService.GetPurchaseOrderForInboundAsync(poId);
-        if (result == null) return NotFound();
-        return new JsonResult(result);
-    }
-
-    public async Task<IActionResult> OnGetSupplementDetailsAsync(long parentId)
-    {
-        var result = await _inboundApiService.GetInboundOrderForSupplementAsync(parentId);
         if (result == null) return NotFound();
         return new JsonResult(result);
     }
