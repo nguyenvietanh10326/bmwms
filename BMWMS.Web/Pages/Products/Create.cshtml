@@ -40,169 +40,173 @@
     </div>
 
     <form method="post" id="createProductForm">
-        <div style="display: grid; grid-template-columns: 1.3fr 1fr; gap: 24px;">
-            
-            <!-- LEFT COLUMN: THÔNG TIN CƠ BẢN & THUỘC TÍNH ĐẶC TRƯNG -->
-            <div style="display: flex; flex-direction: column; gap: 20px;">
-                
-                <!-- CARD 1: THÔNG TIN CƠ BẢN -->
-                <div style="background: #ffffff; border-radius: 10px; border: 1px solid #e2e8f0; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
-                    <div style="font-size: 16px; font-weight: 600; color: #0f172a; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px; margin-bottom: 20px; display: flex; align-items: center; gap: 8px;">
-                        <i class="ri-file-list-3-line" style="color: #2563b8;"></i> Thông Tin Cơ Bản & Phân Loại
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+
+            <!-- CARD 1: THÔNG TIN CƠ BẢN -->
+            <div style="background: #ffffff; border-radius: 10px; border: 1px solid #e2e8f0; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+                <div style="font-size: 16px; font-weight: 600; color: #0f172a; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px; margin-bottom: 20px; display: flex; align-items: center; gap: 8px;">
+                    <i class="ri-file-list-3-line" style="color: #2563b8;"></i> Thông Tin Cơ Bản & Phân Loại
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                    <div>
+                        <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">
+                            Mã Sản Phẩm / SKU <span style="color: #dc2626;">*</span>
+                        </label>
+                        <input type="text" asp-for="Product.ProductCode" placeholder="Ví dụ: XM-HT-PC30" style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; font-weight: 600; text-transform: uppercase; font-family: monospace;" required />
+                        <span asp-validation-for="Product.ProductCode" style="color: #dc2626; font-size: 12px;"></span>
+                        <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">Mã duy nhất, chữ in hoa không dấu.</div>
                     </div>
 
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
-                        <div>
-                            <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">
-                                Mã Sản Phẩm / SKU <span style="color: #dc2626;">*</span>
-                            </label>
-                            <input type="text" asp-for="Product.ProductCode" placeholder="Ví dụ: XM-HT-PC30" style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; font-weight: 600; text-transform: uppercase; font-family: monospace;" required />
-                            <span asp-validation-for="Product.ProductCode" style="color: #dc2626; font-size: 12px;"></span>
-                            <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">Mã duy nhất, chữ in hoa không dấu.</div>
-                        </div>
-
-                        <div>
-                            <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">
-                                Mã Vạch / Barcode
-                            </label>
-                            <input type="text" asp-for="Product.Barcode" placeholder="Ví dụ: 893500123456" style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px;" />
-                            <span asp-validation-for="Product.Barcode" style="color: #dc2626; font-size: 12px;"></span>
-                        </div>
+                    <div>
+                        <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">
+                            Mã Vạch / Barcode
+                        </label>
+                        <input type="text" asp-for="Product.Barcode" placeholder="Ví dụ: 893500123456" style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px;" />
+                        <span asp-validation-for="Product.Barcode" style="color: #dc2626; font-size: 12px;"></span>
                     </div>
 
-                    <div style="margin-bottom: 16px;">
+                    <div>
+                        <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">
+                            Đơn Vị Tính Cơ Sở (UOM) <span style="color: #dc2626;">*</span>
+                        </label>
+                        <select asp-for="Product.UnitOfMeasureId" asp-items="Model.UomOptions" style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; background: #fff;" required></select>
+                        <span asp-validation-for="Product.UnitOfMeasureId" style="color: #dc2626; font-size: 12px;"></span>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 16px; margin-bottom: 16px;">
+                    <div>
+                        <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">
+                            Nhóm Danh Mục VLXD <span style="color: #dc2626;">*</span>
+                        </label>
+                        <select id="ddlProductGroup" asp-for="Product.ProductGroupId" asp-items="Model.GroupOptions" style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; background: #fff;" required onchange="onGroupChanged(this.value)">
+                        </select>
+                        <span asp-validation-for="Product.ProductGroupId" style="color: #dc2626; font-size: 12px;"></span>
+                    </div>
+
+                    <div>
                         <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">
                             Tên Hàng Hóa / Vật Tư <span style="color: #dc2626;">*</span>
                         </label>
                         <input type="text" asp-for="Product.ProductName" placeholder="Ví dụ: Xi măng Hà Tiên PCB40 đóng bao 50kg" style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px;" required />
                         <span asp-validation-for="Product.ProductName" style="color: #dc2626; font-size: 12px;"></span>
                     </div>
-
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
-                        <div>
-                            <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">
-                                Nhóm Danh Mục VLXD <span style="color: #dc2626;">*</span>
-                            </label>
-                            <select id="ddlProductGroup" asp-for="Product.ProductGroupId" asp-items="Model.GroupOptions" style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; background: #fff;" required onchange="onGroupChanged(this.value)">
-                            </select>
-                            <span asp-validation-for="Product.ProductGroupId" style="color: #dc2626; font-size: 12px;"></span>
-                        </div>
-
-                        <div>
-                            <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">
-                                Đơn Vị Tính Cơ Sở (UOM) <span style="color: #dc2626;">*</span>
-                            </label>
-                            <select asp-for="Product.UnitOfMeasureId" asp-items="Model.UomOptions" style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; background: #fff;" required></select>
-                            <span asp-validation-for="Product.UnitOfMeasureId" style="color: #dc2626; font-size: 12px;"></span>
-                        </div>
-                    </div>
-
-                    <div style="margin-bottom: 8px;">
-                        <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">
-                            Mô Tả & Quy Cách Đóng Gói
-                        </label>
-                        <textarea asp-for="Product.Description" rows="3" placeholder="Quy cách kích thước, tiêu chuẩn chất lượng TCVN, nhà sản xuất..." style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px;"></textarea>
-                        <span asp-validation-for="Product.Description" style="color: #dc2626; font-size: 12px;"></span>
-                    </div>
                 </div>
 
-                <!-- CARD 2: THUỘC TÍNH KỸ THUẬT ĐẶC TRƯNG (EAV DYNAMIC ATTRIBUTES) -->
-                <div style="background: #ffffff; border-radius: 10px; border: 1px solid #e2e8f0; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
-                    <div style="font-size: 16px; font-weight: 600; color: #0f172a; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between;">
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <i class="bi bi-sliders text-primary"></i> Thông Số Kỹ Thuật Đặc Trưng (EAV)
-                        </div>
-                        <span id="attrCountBadge" class="badge bg-light text-muted border">Chưa chọn nhóm</span>
-                    </div>
-
-                    <div id="attrLoading" style="display: none; text-align: center; padding: 20px; color: #64748b;">
-                        <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
-                        <span style="font-size: 13px;">Đang tải danh sách thuộc tính kỹ thuật của nhóm...</span>
-                    </div>
-
-                    <div id="noGroupSelected" style="text-align: center; padding: 24px 0; color: #94a3b8; font-size: 13px;">
-                        <i class="bi bi-arrow-up-circle" style="font-size: 24px; display: block; margin-bottom: 6px; color: #cbd5e1;"></i>
-                        Vui lòng chọn <strong>Nhóm Danh Mục VLXD</strong> ở trên để hiển thị các trường thuộc tính kỹ thuật tương ứng.
-                    </div>
-
-                    <div id="noAttributesFound" style="display: none; text-align: center; padding: 20px 0; color: #94a3b8; font-size: 13px;">
-                        Nhóm này hiện chưa có thuộc tính kỹ thuật động nào được cấu hình.
-                    </div>
-
-                    <!-- Dynamic Attributes Container -->
-                    <div id="dynamicAttributesContainer" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-                    </div>
+                <div>
+                    <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">
+                        Mô Tả & Quy Cách Đóng Gói
+                    </label>
+                    <textarea asp-for="Product.Description" rows="3" placeholder="Quy cách kích thước, tiêu chuẩn chất lượng TCVN, nhà sản xuất..." style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px;"></textarea>
+                    <span asp-validation-for="Product.Description" style="color: #dc2626; font-size: 12px;"></span>
                 </div>
-
             </div>
 
-            <!-- RIGHT COLUMN: QUY TẮC KHO & THEO DÕI -->
-            <div style="display: flex; flex-direction: column; gap: 20px;">
-                
-                <div style="background: #ffffff; border-radius: 10px; border: 1px solid #e2e8f0; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
-                    <div style="font-size: 16px; font-weight: 600; color: #0f172a; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px; margin-bottom: 20px; display: flex; align-items: center; gap: 8px;">
-                        <i class="ri-settings-4-line" style="color: #2563b8;"></i> Luân Chuyển & Quản Lý Kho
-                    </div>
+            <!-- CARD 2: LUÂN CHUYỂN & QUẢN LÝ KHO -->
+            <div style="background: #ffffff; border-radius: 10px; border: 1px solid #e2e8f0; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+                <div style="font-size: 16px; font-weight: 600; color: #0f172a; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px; margin-bottom: 20px; display: flex; align-items: center; gap: 8px;">
+                    <i class="ri-settings-4-line" style="color: #2563b8;"></i> Luân Chuyển & Quản Lý Kho
+                </div>
 
-                    <div style="margin-bottom: 18px;">
-                        <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">
-                            Phương Pháp Luân Chuyển Xuất Kho <span style="color: #dc2626;">*</span>
-                        </label>
-                        <select id="ddlRotationMethod" asp-for="Product.RotationMethod" style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; background: #fff;" required>
-                            <option value="FIFO">FIFO - Nhập trước Xuất trước (First In First Out)</option>
-                            <option value="FEFO">FEFO - Hết hạn trước Xuất trước (First Expired First Out)</option>
-                            <option value="LIFO">LIFO - Nhập sau Xuất trước (Last In First Out)</option>
-                        </select>
-                        <div style="font-size: 11px; color: #64748b; margin-top: 4px;">Khuyến nghị: FIFO cho sắt thép/gạch, FEFO cho xi măng/sơn/hóa chất.</div>
-                    </div>
-
-                    <div style="background: #f8fafc; border-radius: 8px; padding: 16px; border: 1px solid #e2e8f0; margin-bottom: 18px;">
-                        <div style="font-size: 13px; font-weight: 600; color: #1e293b; margin-bottom: 12px;">Tùy Chọn Theo Dõi Nguồn Gốc</div>
-
-                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
-                            <input type="checkbox" id="chkLot" asp-for="Product.TrackLot" style="width: 18px; height: 18px; cursor: pointer; accent-color: #2563b8;" />
-                            <label for="chkLot" style="font-size: 13px; font-weight: 500; color: #334155; cursor: pointer;">
-                                Quản lý theo Số Lô (Lot Tracking)
-                            </label>
-                        </div>
-
-                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
-                            <input type="checkbox" id="chkExpiry" asp-for="Product.TrackExpiry" style="width: 18px; height: 18px; cursor: pointer; accent-color: #2563b8;" onchange="toggleShelfLife(this.checked)" />
-                            <label for="chkExpiry" style="font-size: 13px; font-weight: 500; color: #334155; cursor: pointer;">
-                                Theo dõi Hạn sử dụng (Expiry Date)
-                            </label>
-                        </div>
-
-                        <div id="shelfLifeContainer" style="margin-top: 10px;">
-                            <label style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 4px;">
-                                Hạn sử dụng mặc định (Số ngày)
-                            </label>
-                            <input type="number" id="txtShelfLife" asp-for="Product.DefaultShelfLifeDays" placeholder="Ví dụ: 180 (6 tháng)" style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px;" />
-                            <span asp-validation-for="Product.DefaultShelfLifeDays" style="color: #dc2626; font-size: 12px;"></span>
-                        </div>
-                    </div>
-
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; align-items: start;">
+                    <!-- Phương pháp luân chuyển -->
                     <div>
                         <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">
-                            Trạng Thái Hoạt Động
+                            Phương Pháp Luân Chuyển <span style="color: #dc2626;">*</span>
                         </label>
-                        <select asp-for="Product.Status" style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; background: #fff;">
-                            <option value="ACTIVE">Hoạt động (ACTIVE) - Sẵn sàng xuất nhập</option>
-                            <option value="INACTIVE">Tạm khóa (INACTIVE) - Chưa kinh doanh</option>
+                        <select id="ddlRotationMethod" asp-for="Product.RotationMethod" style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; background: #fff;" required onchange="onRotationMethodChanged(this.value)">
+                            <option value="FIFO">FIFO - Nhập trước Xuất trước</option>
+                            <option value="FEFO">FEFO - Hết hạn trước Xuất trước</option>
+                            <option value="LIFO">LIFO - Nhập sau Xuất trước</option>
                         </select>
+                        <div style="font-size: 11px; color: #64748b; margin-top: 4px;">Khuyến nghị: FIFO cho sắt thép/gạch, FEFO cho sơn/hóa chất.</div>
+
+                        <!-- FEFO Required Notice -->
+                        <div id="fefoRequiredNotice" style="display: none; background: #fffbeb; border: 1px solid #fde68a; color: #92400e; padding: 8px 12px; border-radius: 6px; margin-top: 10px; font-size: 12px;">
+                            <i class="ri-error-warning-line" style="color: #d97706; margin-right: 4px;"></i>
+                            <strong>FEFO:</strong> Bắt buộc bật HSD & nhập số ngày.
+                        </div>
+                    </div>
+
+                    <!-- Tùy chọn theo dõi -->
+                    <div>
+                        <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 10px;">Theo Dõi Nguồn Gốc</label>
+                        <div style="background: #f8fafc; border-radius: 8px; padding: 14px; border: 1px solid #e2e8f0;">
+                            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                                <input type="checkbox" id="chkLot" asp-for="Product.TrackLot" style="width: 18px; height: 18px; cursor: pointer; accent-color: #2563b8;" />
+                                <label for="chkLot" style="font-size: 13px; font-weight: 500; color: #334155; cursor: pointer; margin: 0;">
+                                    Quản lý theo Số Lô (Lot Tracking)
+                                </label>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <input type="checkbox" id="chkExpiry" asp-for="Product.TrackExpiry" style="width: 18px; height: 18px; cursor: pointer; accent-color: #2563b8;" onchange="toggleShelfLife(this.checked)" />
+                                <label for="chkExpiry" style="font-size: 13px; font-weight: 500; color: #334155; cursor: pointer; margin: 0;">
+                                    Theo dõi Hạn sử dụng (Expiry Date)
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- HSD mặc định + Trạng thái -->
+                    <div style="display: flex; flex-direction: column; gap: 16px;">
+                        <div id="shelfLifeContainer">
+                            <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">
+                                Hạn sử dụng mặc định (Số ngày) <span id="shelfLifeRequiredStar" style="color: #dc2626; display: none;">*</span>
+                            </label>
+                            <input type="number" id="txtShelfLife" asp-for="Product.DefaultShelfLifeDays" placeholder="Ví dụ: 180 (6 tháng)" style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px;" />
+                            <span asp-validation-for="Product.DefaultShelfLifeDays" style="color: #dc2626; font-size: 12px;"></span>
+                        </div>
+
+                        <div>
+                            <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">
+                                Trạng Thái Hoạt Động
+                            </label>
+                            <select asp-for="Product.Status" style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; background: #fff;">
+                                <option value="ACTIVE">Hoạt động (ACTIVE)</option>
+                                <option value="INACTIVE">Tạm khóa (INACTIVE)</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
+            </div>
 
-                <!-- SUBMIT ACTIONS -->
-                <div style="display: flex; gap: 12px; justify-content: flex-end;">
-                    <a href="/Products/Index" style="padding: 10px 20px; border-radius: 8px; border: 1px solid #cbd5e1; background: #fff; color: #475569; font-weight: 600; font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
-                        <i class="ri-close-line"></i> Hủy Bỏ
-                    </a>
-                    <button type="submit" style="padding: 10px 24px; border-radius: 8px; border: none; background: #2563b8; color: #fff; font-weight: 600; font-size: 13px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 1px 3px rgba(37, 99, 235, 0.3);">
-                        <i class="ri-save-line"></i> Lưu Hàng Hóa
-                    </button>
+            <!-- CARD 3: THUỘC TÍNH KỸ THUẬT ĐẶC TRƯNG (EAV) -->
+            <div style="background: #ffffff; border-radius: 10px; border: 1px solid #e2e8f0; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+                <div style="font-size: 16px; font-weight: 600; color: #0f172a; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <i class="bi bi-sliders text-primary"></i> Thông Số Kỹ Thuật Đặc Trưng (EAV)
+                    </div>
+                    <span id="attrCountBadge" class="badge bg-light text-muted border">Chưa chọn nhóm</span>
                 </div>
 
+                <div id="attrLoading" style="display: none; text-align: center; padding: 20px; color: #64748b;">
+                    <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                    <span style="font-size: 13px;">Đang tải danh sách thuộc tính kỹ thuật của nhóm...</span>
+                </div>
+
+                <div id="noGroupSelected" style="text-align: center; padding: 24px 0; color: #94a3b8; font-size: 13px;">
+                    <i class="bi bi-arrow-up-circle" style="font-size: 24px; display: block; margin-bottom: 6px; color: #cbd5e1;"></i>
+                    Vui lòng chọn <strong>Nhóm Danh Mục VLXD</strong> ở trên để hiển thị các trường thuộc tính kỹ thuật tương ứng.
+                </div>
+
+                <div id="noAttributesFound" style="display: none; text-align: center; padding: 20px 0; color: #94a3b8; font-size: 13px;">
+                    Nhóm này hiện chưa có thuộc tính kỹ thuật động nào được cấu hình.
+                </div>
+
+                <!-- Dynamic Attributes Container -->
+                <div id="dynamicAttributesContainer" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+                </div>
+            </div>
+
+            <!-- SUBMIT ACTIONS -->
+            <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                <a href="/Products/Index" style="padding: 10px 20px; border-radius: 8px; border: 1px solid #cbd5e1; background: #fff; color: #475569; font-weight: 600; font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+                    <i class="ri-close-line"></i> Hủy Bỏ
+                </a>
+                <button type="submit" style="padding: 10px 24px; border-radius: 8px; border: none; background: #2563b8; color: #fff; font-weight: 600; font-size: 13px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 1px 3px rgba(37, 99, 235, 0.3);">
+                    <i class="ri-save-line"></i> Lưu Hàng Hóa
+                </button>
             </div>
 
         </div>
@@ -212,6 +216,33 @@
 
 @section Scripts {
     <script>
+        function onRotationMethodChanged(value) {
+            const isFEFO = value === 'FEFO';
+            const chkExpiry = document.getElementById('chkExpiry');
+            const fefoNotice = document.getElementById('fefoRequiredNotice');
+            const shelfLifeStar = document.getElementById('shelfLifeRequiredStar');
+            const txtShelfLife = document.getElementById('txtShelfLife');
+
+            if (isFEFO) {
+                chkExpiry.checked = true;
+                chkExpiry.onclick = function() { return false; };
+                chkExpiry.style.opacity = '0.7';
+                chkExpiry.style.cursor = 'not-allowed';
+                fefoNotice.style.display = 'block';
+                shelfLifeStar.style.display = 'inline';
+                txtShelfLife.setAttribute('required', 'required');
+                toggleShelfLife(true);
+            } else {
+                chkExpiry.onclick = null;
+                chkExpiry.style.opacity = '1';
+                chkExpiry.style.cursor = 'pointer';
+                fefoNotice.style.display = 'none';
+                shelfLifeStar.style.display = 'none';
+                txtShelfLife.removeAttribute('required');
+                toggleShelfLife(chkExpiry.checked);
+            }
+        }
+
         function toggleShelfLife(isChecked) {
             var container = document.getElementById('shelfLifeContainer');
             if (isChecked) {
@@ -246,23 +277,17 @@
             loading.style.display = 'block';
 
             try {
-                // Fetch group details / attributes
                 const res = await fetch(`/Products/Create?handler=GroupAttributes&id=${groupId}`);
-                if (!res.ok) {
-                    throw new Error('Không thể tải thuộc tính');
-                }
+                if (!res.ok) throw new Error('Không thể tải thuộc tính');
                 const attrs = await res.json();
 
-                // Fetch group info for FEFO rule
                 const groupRes = await fetch(`/Products/Create?handler=GroupDetail&id=${groupId}`);
                 if (groupRes.ok) {
                     const groupInfo = await groupRes.json();
                     if (groupInfo && (groupInfo.groupCode === 'PG06' || groupInfo.groupCode === 'PG07' || groupInfo.groupCode === 'PG08')) {
-                        // Enforce FEFO & Lot/Expiry
                         document.getElementById('ddlRotationMethod').value = 'FEFO';
                         document.getElementById('chkLot').checked = true;
-                        document.getElementById('chkExpiry').checked = true;
-                        toggleShelfLife(true);
+                        onRotationMethodChanged('FEFO');
                         fefoAlert.style.display = 'block';
                     } else {
                         fefoAlert.style.display = 'none';
@@ -317,13 +342,9 @@
                         </div>
                     `;
                 } else if (attr.dataType === 'DATE') {
-                    inputHtml = `
-                        <input type="date" name="Product.AttributeValues[${idx}].AttributeValue" style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px;" ${attr.isRequired ? 'required' : ''} />
-                    `;
+                    inputHtml = `<input type="date" name="Product.AttributeValues[${idx}].AttributeValue" style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px;" ${attr.isRequired ? 'required' : ''} />`;
                 } else {
-                    inputHtml = `
-                        <input type="text" name="Product.AttributeValues[${idx}].AttributeValue" value="${attr.defaultValue || ''}" placeholder="Nhập ${attr.attributeName.toLowerCase()}..." style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px;" ${attr.isRequired ? 'required' : ''} />
-                    `;
+                    inputHtml = `<input type="text" name="Product.AttributeValues[${idx}].AttributeValue" value="${attr.defaultValue || ''}" placeholder="Nhập ${attr.attributeName.toLowerCase()}..." style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px;" ${attr.isRequired ? 'required' : ''} />`;
                 }
 
                 wrapper.innerHTML = `
@@ -335,17 +356,13 @@
                     </label>
                     ${inputHtml}
                 `;
-
                 container.appendChild(wrapper);
             });
         }
 
-        // Initialize on load
         document.addEventListener('DOMContentLoaded', function() {
-            var chkExpiry = document.getElementById('chkExpiry');
-            if (chkExpiry) {
-                toggleShelfLife(chkExpiry.checked);
-            }
+            var rotationMethod = document.getElementById('ddlRotationMethod');
+            if (rotationMethod) onRotationMethodChanged(rotationMethod.value);
 
             var groupDdl = document.getElementById('ddlProductGroup');
             if (groupDdl && groupDdl.value) {

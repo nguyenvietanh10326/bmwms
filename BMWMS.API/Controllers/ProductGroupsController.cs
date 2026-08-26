@@ -1,9 +1,10 @@
-using BMWMS.Business.DTOs.ProductGroup;
+﻿using BMWMS.Business.DTOs.ProductGroup;
 using BMWMS.Business.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
+using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace BMWMS.API.Controllers
@@ -19,6 +20,13 @@ namespace BMWMS.API.Controllers
         public ProductGroupsController(IProductGroupService productGroupService)
         {
             _productGroupService = productGroupService;
+        }
+
+        private long GetCurrentUserId()
+        {
+            var claim = User.FindFirst("UserId") ?? User.FindFirst(ClaimTypes.NameIdentifier);
+            if (claim != null && long.TryParse(claim.Value, out var id)) return id;
+            return 1;
         }
 
         [HttpGet]
@@ -47,9 +55,7 @@ namespace BMWMS.API.Controllers
         {
             var result = await _productGroupService.GetByIdAsync(id);
             if (result == null)
-            {
-                return NotFound(new { message = $"Không tìm thấy nhóm sản phẩm với ID = {id}" });
-            }
+                return NotFound(new { message = $"Khong tim thay nhom san pham voi ID = {id}" });
             return Ok(result);
         }
 
@@ -64,48 +70,30 @@ namespace BMWMS.API.Controllers
         [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
         public async Task<IActionResult> Create([FromBody] CreateProductGroupDto dto)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
+            if (!ModelState.IsValid) return BadRequest(ModelState);
             try
             {
-                var id = await _productGroupService.CreateAsync(dto);
-                return CreatedAtAction(nameof(GetById), new { id }, new { id, message = "Tạo nhóm sản phẩm thành công." });
+                var userId = GetCurrentUserId();
+                var id = await _productGroupService.CreateAsync(dto, userId);
+                return CreatedAtAction(nameof(GetById), new { id }, new { id, message = "Tao nhom san pham thanh cong." });
             }
-            catch (InvalidOperationException ex)
-            {
-                return Conflict(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
+            catch (InvalidOperationException ex) { return Conflict(new { message = ex.Message }); }
+            catch (Exception ex) { return BadRequest(new { message = ex.Message }); }
         }
 
         [HttpPut("{id:long}")]
         [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
         public async Task<IActionResult> Update(long id, [FromBody] UpdateProductGroupDto dto)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
+            if (!ModelState.IsValid) return BadRequest(ModelState);
             try
             {
-                await _productGroupService.UpdateAsync(id, dto);
-                return Ok(new { message = "Cập nhật nhóm sản phẩm thành công." });
+                var userId = GetCurrentUserId();
+                await _productGroupService.UpdateAsync(id, dto, userId);
+                return Ok(new { message = "Cap nhat nhom san pham thanh cong." });
             }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
+            catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
+            catch (Exception ex) { return BadRequest(new { message = ex.Message }); }
         }
 
         [HttpPatch("{id:long}/status")]
@@ -114,17 +102,12 @@ namespace BMWMS.API.Controllers
         {
             try
             {
-                await _productGroupService.ToggleStatusAsync(id);
-                return Ok(new { message = "Đổi trạng thái nhóm sản phẩm thành công." });
+                var userId = GetCurrentUserId();
+                await _productGroupService.ToggleStatusAsync(id, userId);
+                return Ok(new { message = "Doi trang thai nhom san pham thanh cong." });
             }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
+            catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
+            catch (Exception ex) { return BadRequest(new { message = ex.Message }); }
         }
 
         [HttpDelete("{id:long}")]
@@ -133,21 +116,13 @@ namespace BMWMS.API.Controllers
         {
             try
             {
-                await _productGroupService.DeleteAsync(id);
-                return Ok(new { message = "Xóa nhóm sản phẩm thành công." });
+                var userId = GetCurrentUserId();
+                await _productGroupService.DeleteAsync(id, userId);
+                return Ok(new { message = "Xoa nhom san pham thanh cong." });
             }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
+            catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
+            catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
+            catch (Exception ex) { return BadRequest(new { message = ex.Message }); }
         }
 
         [HttpPost("{id:long}/attributes")]
@@ -156,17 +131,12 @@ namespace BMWMS.API.Controllers
         {
             try
             {
-                await _productGroupService.UpdateGroupAttributesAsync(id, attributes);
-                return Ok(new { message = "Cập nhật cấu hình thuộc tính cho nhóm thành công." });
+                var userId = GetCurrentUserId();
+                await _productGroupService.UpdateGroupAttributesAsync(id, attributes, userId);
+                return Ok(new { message = "Cap nhat cau hinh thuoc tinh cho nhom thanh cong." });
             }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
+            catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
+            catch (Exception ex) { return BadRequest(new { message = ex.Message }); }
         }
     }
 }
