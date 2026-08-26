@@ -1157,9 +1157,9 @@ BEGIN
         CONSTRAINT CK_InboundOrders_Status CHECK (Status IN ('DRAFT','ASSIGNED','IN_PROGRESS','COMPLETED','CANCELLED')),
         CONSTRAINT CK_InboundOrders_SourceReference CHECK
         (
-            (SourceType = 'PURCHASE_ORDER' AND PurchaseOrderID IS NOT NULL AND SalesOrderID IS NULL)
+            (SourceType = 'PURCHASE_ORDER' AND PurchaseOrderID IS NOT NULL AND SalesOrderID IS NULL AND TransferOrderID IS NULL)
             OR
-            (SourceType = 'SALES_RETURN' AND PurchaseOrderID IS NULL AND SalesOrderID IS NOT NULL)
+            (SourceType = 'SALES_RETURN' AND PurchaseOrderID IS NULL AND SalesOrderID IS NOT NULL AND TransferOrderID IS NULL)
             OR
             (SourceType = 'TRANSFER_ORDER' AND PurchaseOrderID IS NULL AND SalesOrderID IS NULL AND TransferOrderID IS NOT NULL)
         ),
@@ -1263,9 +1263,9 @@ BEGIN
         CONSTRAINT CK_OutboundOrders_Status CHECK (Status IN ('DRAFT','ASSIGNED','IN_PROGRESS','COMPLETED','CANCELLED')),
         CONSTRAINT CK_OutboundOrders_SourceReference CHECK
         (
-            (SourceType = 'SALES_ORDER' AND SalesOrderID IS NOT NULL AND PurchaseOrderID IS NULL)
+            (SourceType = 'SALES_ORDER' AND SalesOrderID IS NOT NULL AND PurchaseOrderID IS NULL AND TransferOrderID IS NULL)
             OR
-            (SourceType = 'PURCHASE_RETURN' AND SalesOrderID IS NULL AND PurchaseOrderID IS NOT NULL)
+            (SourceType = 'PURCHASE_RETURN' AND SalesOrderID IS NULL AND PurchaseOrderID IS NOT NULL AND TransferOrderID IS NULL)
             OR
             (SourceType = 'TRANSFER_ORDER' AND SalesOrderID IS NULL AND PurchaseOrderID IS NULL AND TransferOrderID IS NOT NULL)
         ),
@@ -1575,6 +1575,17 @@ BEGIN
         CONSTRAINT CK_AuditLogs_NewJson CHECK (NewValuesJson IS NULL OR ISJSON(NewValuesJson) = 1)
     );
 END;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_AuditLogs_CreatedAt' AND object_id = OBJECT_ID(N'dbo.AuditLogs'))
+    CREATE INDEX IX_AuditLogs_CreatedAt ON dbo.AuditLogs(CreatedAt DESC, AuditLogID DESC)
+        INCLUDE (UserID, ActionType, EntityName, EntityID, IpAddress);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_AuditLogs_UserDate' AND object_id = OBJECT_ID(N'dbo.AuditLogs'))
+    CREATE INDEX IX_AuditLogs_UserDate ON dbo.AuditLogs(UserID, CreatedAt DESC, AuditLogID DESC);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_AuditLogs_EntityDate' AND object_id = OBJECT_ID(N'dbo.AuditLogs'))
+    CREATE INDEX IX_AuditLogs_EntityDate ON dbo.AuditLogs(EntityName, EntityID, CreatedAt DESC, AuditLogID DESC);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_AuditLogs_ActionDate' AND object_id = OBJECT_ID(N'dbo.AuditLogs'))
+    CREATE INDEX IX_AuditLogs_ActionDate ON dbo.AuditLogs(ActionType, CreatedAt DESC, AuditLogID DESC);
 GO
 
 /*=============================================================================

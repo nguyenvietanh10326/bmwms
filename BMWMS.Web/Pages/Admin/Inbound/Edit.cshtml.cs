@@ -10,7 +10,7 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace BMWMS.Web.Pages.Admin.Inbound
 {
-    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF")]
     public class EditModel : PageModel
     {
         private readonly InboundApiService _apiService;
@@ -34,9 +34,9 @@ namespace BMWMS.Web.Pages.Admin.Inbound
                 var order = await _apiService.GetInboundOrderByIdAsync(id);
                 if (order == null) return NotFound();
 
-                if (order.Status != "DRAFT")
+                if (order.Status is not ("DRAFT" or "READY"))
                 {
-                    TempData["Error"] = "Chỉ có thể sửa lệnh nhập kho ở trạng thái Nháp / Chờ xử lý.";
+                    TempData["Error"] = "Chỉ có thể sửa phiếu nhập ở trạng thái Nháp hoặc Sẵn sàng, trước khi kiểm nhận.";
                     return RedirectToPage("./Details", new { id });
                 }
 
@@ -65,8 +65,11 @@ namespace BMWMS.Web.Pages.Admin.Inbound
             }
         }
 
-        public async Task<IActionResult> OnPostAsync(long id)
+        public async Task<IActionResult> OnPostAsync(long id, string actionType)
         {
+            EditOrder.IsSubmit = string.Equals(actionType, "submit", StringComparison.OrdinalIgnoreCase);
+            if (EditOrder.IsSubmit && !EditOrder.AssignedToUserId.HasValue)
+                ModelState.AddModelError("EditOrder.AssignedToUserId", "Vui lòng chọn nhân viên kho phụ trách trước khi gửi phiếu.");
             if (!ModelState.IsValid)
             {
                 return await ReloadPage(id, "Vui lòng điền đầy đủ thông tin.");
@@ -108,6 +111,16 @@ namespace BMWMS.Web.Pages.Admin.Inbound
         private async Task LoadDropdowns()
         {
             var warehouseUsers = await _apiService.GetAvailableWarehouseStaffAsync();
+            if (EditOrder.AssignedToUserId.HasValue &&
+                warehouseUsers.All(user => user.UserId != EditOrder.AssignedToUserId.Value) &&
+                Order != null && !string.IsNullOrWhiteSpace(Order.AssignedToUserName))
+            {
+                warehouseUsers.Add(new AvailableWarehouseStaffDto
+                {
+                    UserId = EditOrder.AssignedToUserId.Value,
+                    FullName = $"{Order.AssignedToUserName} (đang phụ trách phiếu này)"
+                });
+            }
             Users = new SelectList(warehouseUsers, "UserId", "FullName", EditOrder.AssignedToUserId);
         }
     }

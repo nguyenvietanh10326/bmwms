@@ -88,6 +88,7 @@ builder.Services.AddScoped<IInventoryRepository, InventoryRepository>();
 builder.Services.AddScoped<IStorageLocationRepository, StorageLocationRepository>();
 builder.Services.AddScoped<IStocktakeRepository, StocktakeRepository>();
 builder.Services.AddScoped<IInboundRepository, InboundRepository>();
+builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();
 
 // Services
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -105,6 +106,7 @@ builder.Services.AddScoped<IStorageLocationService, StorageLocationService>();
 builder.Services.AddScoped<IStocktakeService, StocktakeService>();
 builder.Services.AddScoped<IInboundService, InboundService>();
 builder.Services.AddScoped<IEmailService, SmtpEmailService>();
+builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 
 // Report
 builder.Services.AddScoped<IReportRepository, ReportRepository>();

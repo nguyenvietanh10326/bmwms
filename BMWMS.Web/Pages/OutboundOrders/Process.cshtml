@@ -26,7 +26,7 @@
         <div class="card-body row g-3">
             <div class="col-md-3"><div class="text-muted small">Trạng thái</div><strong>@StatusLabel(Model.Order.Status)</strong></div>
             <div class="col-md-3"><div class="text-muted small">Kho xuất</div><strong>@Model.Order.WarehouseName</strong></div>
-            <div class="col-md-3"><div class="text-muted small">Phiếu điều chuyển tác nghiệp</div><a asp-page="/Transfer/Details" asp-route-id="@Model.Order.TransferOrderId">@Model.Order.TransferOrderNumber</a></div>
+            <div class="col-md-3"><div class="text-muted small">Tác nghiệp</div><strong>Lấy từ vị trí và xuất kho</strong></div>
             <div class="col-md-3"><div class="text-muted small">Ghi chú</div><span>@(string.IsNullOrWhiteSpace(Model.Order.Notes) ? "Không có" : Model.Order.Notes)</span></div>
         </div>
     </div>

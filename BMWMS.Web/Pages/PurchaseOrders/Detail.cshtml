@@ -12,6 +12,8 @@
     var totalPlanned = Model.Order?.Items.Sum(item => item.PlannedInboundQuantity) ?? 0;
     var totalReceived = Model.Order?.Items.Sum(item => item.ReceivedQuantity) ?? 0;
     var totalRemaining = Model.Order?.Items.Sum(item => item.RemainingQuantity) ?? 0;
+    var canConfirm = Model.Order?.CanConfirm == true &&
+        (User.IsInRole("SYSTEM_ADMIN") || User.IsInRole("WAREHOUSE_MANAGER"));
 }
 
 <style>
@@ -74,7 +76,7 @@
                         <i class="bi bi-box-arrow-in-down me-1"></i>Tạo phiếu nhập kho
                     </a>
                 }
-                @if (Model.Order.CanConfirm)
+                @if (canConfirm)
                 {
                     <form method="post" asp-page-handler="Confirm" asp-route-id="@Model.Id"
                           onsubmit="return confirm('Xác nhận PO này để có thể lập phiếu nhập kho?');">
@@ -91,6 +93,14 @@
                 }
             </div>
         </div>
+
+        @if (Model.Order.Status == "DRAFT" && User.IsInRole("PURCHASING_STAFF"))
+        {
+            <div class="alert alert-info d-flex gap-2 align-items-start">
+                <i class="bi bi-envelope-check mt-1"></i>
+                <div>Đơn mua hàng đang chờ quản lý kho xác nhận. Hệ thống sẽ gửi email cho nhà cung cấp sau khi xác nhận thành công.</div>
+            </div>
+        }
 
         @if ((Model.Order.Status == "CONFIRMED" || Model.Order.Status == "PARTIALLY_RECEIVED") && !Model.Order.CanCreateInbound)
         {

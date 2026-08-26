@@ -42,12 +42,6 @@ public class UserRepository : IUserRepository
         await _context.SaveChangesAsync();
     }
 
-    public async Task AddAuditLogAsync(AuditLog log)
-    {
-        await _context.AuditLogs.AddAsync(log);
-        await _context.SaveChangesAsync();
-    }
-
     public async Task RevokeActiveSessionsAsync(long userId)
     {
         var activeSessions = await _context.UserSessions

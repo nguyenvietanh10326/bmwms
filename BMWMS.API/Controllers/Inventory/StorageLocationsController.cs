@@ -102,7 +102,7 @@ namespace BMWMS.API.Controllers.Inventory
         /// POST: api/storagelocations
         /// </summary>
         [HttpPost]
-        [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
+        [Authorize(Roles = "SYSTEM_ADMIN")]
         public async Task<IActionResult> Create([FromBody] CreateUpdateStorageLocationDto dto)
         {
             var (success, message) = await _locationService.CreateLocationAsync(dto);
@@ -115,7 +115,7 @@ namespace BMWMS.API.Controllers.Inventory
         /// PUT: api/storagelocations/5
         /// </summary>
         [HttpPut("{id}")]
-        [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
+        [Authorize(Roles = "SYSTEM_ADMIN")]
         public async Task<IActionResult> Update(long id, [FromBody] CreateUpdateStorageLocationDto dto)
         {
             dto.StorageLocationId = id;
@@ -129,7 +129,7 @@ namespace BMWMS.API.Controllers.Inventory
         /// POST: api/storagelocations/zones
         /// </summary>
         [HttpPost("zones")]
-        [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
+        [Authorize(Roles = "SYSTEM_ADMIN")]
         public async Task<IActionResult> CreateZone([FromBody] CreateUpdateZoneDto dto)
         {
             var (success, message) = await _locationService.CreateZoneAsync(dto);
@@ -142,7 +142,7 @@ namespace BMWMS.API.Controllers.Inventory
         /// POST: api/storagelocations/racks
         /// </summary>
         [HttpPost("racks")]
-        [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
+        [Authorize(Roles = "SYSTEM_ADMIN")]
         public async Task<IActionResult> CreateRack([FromBody] CreateUpdateRackDto dto)
         {
             var (success, message) = await _locationService.CreateRackAsync(dto);

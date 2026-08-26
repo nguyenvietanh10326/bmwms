@@ -89,7 +89,8 @@
         <div><h1>Tạo phiếu nhập kho</h1><p>Tạo phiếu nhập hàng mua theo PO hoặc nhận hàng khách trả theo SO.</p></div>
         <div>
             <a href="/Admin/Inbound" class="btn btn-light" style="margin-right:10px;">Hủy bỏ</a>
-            <button type="submit" form="createForm" class="btn btn-dark">Lưu & Tiếp tục</button>
+            <button type="submit" form="createForm" name="actionType" value="draft" class="btn btn-light" style="margin-right:10px;">Lưu nháp</button>
+            <button type="submit" form="createForm" name="actionType" value="submit" class="btn btn-dark">Tạo và chuyển Sẵn sàng</button>
         </div>
     </div>
 
@@ -101,12 +102,21 @@
     }
 
     <form method="post" id="createForm">
+        <input type="hidden" asp-for="InboundOrder.ParentInboundOrderId" id="supplementalParentId" />
         <div class="card">
             <h3>Loại lệnh nhập</h3>
-            <div class="filters" style="margin-bottom:0">
-                <label class="radio-opt"><input type="radio" asp-for="InboundOrder.SourceType" value="PURCHASE_ORDER" onchange="toggleSource(this)">Nhập từ Nhà cung cấp (PO)</label>
-                <label class="radio-opt"><input type="radio" asp-for="InboundOrder.SourceType" value="SALES_RETURN" onchange="toggleSource(this)">Nhập hàng Khách trả lại (SO)</label>
-            </div>
+            @if (Model.ParentInbound != null)
+            {
+                <input type="hidden" asp-for="InboundOrder.SourceType" value="PURCHASE_ORDER" />
+                <div class="note" style="margin-top:0"><svg><use href="#i-info" /></svg><div><strong>Phiếu nhập bổ sung theo kiểm nhận</strong><br />Nguồn được khóa theo phiếu @Model.ParentInbound.InboundOrderNumber; chỉ các mặt hàng thiếu/hỏng và số lượng còn thiếu mới được tạo.</div></div>
+            }
+            else
+            {
+                <div class="filters" style="margin-bottom:0">
+                    <label class="radio-opt"><input type="radio" asp-for="InboundOrder.SourceType" value="PURCHASE_ORDER" onchange="toggleSource(this)">Nhập từ nhà cung cấp (PO)</label>
+                    <label class="radio-opt"><input type="radio" asp-for="InboundOrder.SourceType" value="SALES_RETURN" onchange="toggleSource(this)">Nhập hàng khách trả lại (SO)</label>
+                </div>
+            }
         </div>
 
         <div class="card">
@@ -114,10 +124,19 @@
             <div class="grid2">
                 <div class="field" id="po-field">
                     <label>Chọn đơn PO *</label>
-                    <select asp-for="InboundOrder.PurchaseOrderId" asp-items="Model.PurchaseOrders" onchange="fetchSourceDetails('PURCHASE_ORDER', this.value)">
-                        <option value="">@(Model.PurchaseOrders.Any() ? "-- Chọn PO đã xác nhận --" : "-- Không có PO còn số lượng có thể nhập --")</option>
-                    </select>
-                    <small>Chỉ hiển thị PO đã xác nhận và còn số lượng chưa được phiếu nhập khác giữ chỗ.</small>
+                    @if (Model.ParentInbound != null)
+                    {
+                        <input type="hidden" asp-for="InboundOrder.PurchaseOrderId" />
+                        <input disabled value="@Model.ParentInbound.PurchaseOrderNumber — bổ sung từ @Model.ParentInbound.InboundOrderNumber" />
+                        <small>Nguồn PO và phiếu nhập gốc không được thay đổi.</small>
+                    }
+                    else
+                    {
+                        <select asp-for="InboundOrder.PurchaseOrderId" asp-items="Model.PurchaseOrders" onchange="fetchSourceDetails('PURCHASE_ORDER', this.value)">
+                            <option value="">@(Model.PurchaseOrders.Any() ? "-- Chọn PO đã xác nhận --" : "-- Không có PO còn số lượng có thể nhập --")</option>
+                        </select>
+                        <small>Chỉ hiển thị PO đã xác nhận và còn số lượng chưa được phiếu nhập khác giữ chỗ.</small>
+                    }
                 </div>
                 <div class="field" id="so-field" style="display:none;">
                     <label>Chọn đơn SO *</label>
@@ -127,7 +146,7 @@
                     <small>Chỉ hiển thị SO đã xuất hàng và còn số lượng khách có thể trả lại.</small>
                 </div>
                 <div class="field"><label>Mã lệnh nhập</label><input disabled value="Tự động sinh khi tạo"></div>
-                <div class="field"><label>Nhà cung cấp</label><input id="SupplierName" disabled value=""></div>
+                <div class="field"><label>Đối tác</label><input id="SupplierName" disabled value=""></div>
             </div>
             <div class="grid2" style="margin-top:14px">
                 <div class="field">
@@ -135,11 +154,11 @@
                     <input type="date" asp-for="InboundOrder.ExpectedReceiptDate" />
                 </div>
                 <div class="field">
-                    <label>Người phụ trách *</label>
-                    <select asp-for="InboundOrder.AssignedToUserId" asp-items="Model.Users" required>
+                    <label>Nhân viên kho phụ trách</label>
+                    <select asp-for="InboundOrder.AssignedToUserId" asp-items="Model.Users">
                         <option value="">@(Model.Users.Any() ? "-- Chọn nhân viên kho đang rảnh --" : "-- Không có nhân viên kho đang rảnh --")</option>
                     </select>
-                    <small>Mỗi nhân viên chỉ được phụ trách một phiếu nhập hoặc xuất đang hoạt động.</small>
+                    <small>Bắt buộc khi gửi phiếu sang Sẵn sàng. Mỗi nhân viên chỉ được phụ trách một phiếu nhập hoặc xuất đang hoạt động.</small>
                 </div>
                 <div class="field">
                     <label>Ghi chú</label>
@@ -251,7 +270,10 @@
             try {
                 let handler = '';
                 let paramName = '';
-                if (sourceType === 'PURCHASE_ORDER') {
+                if (sourceType === 'SUPPLEMENTAL') {
+                    handler = 'SupplementalDetails';
+                    paramName = 'parentId';
+                } else if (sourceType === 'PURCHASE_ORDER') {
                     handler = 'PoDetails';
                     paramName = 'poId';
                 } else if (sourceType === 'SALES_RETURN') {
@@ -343,6 +365,13 @@
         }
 
         document.addEventListener('DOMContentLoaded', function() {
+            const supplementalParentId = document.getElementById('supplementalParentId')?.value;
+            if (supplementalParentId) {
+                document.getElementById('so-field').style.display = 'none';
+                fetchSourceDetails('SUPPLEMENTAL', supplementalParentId);
+                return;
+            }
+
             // Trigger radio button toggle on load to sync UI state
             var checkedRadio = document.querySelector('input[type="radio"]:checked');
             if (checkedRadio) {

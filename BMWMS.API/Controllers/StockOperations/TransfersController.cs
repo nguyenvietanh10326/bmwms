@@ -69,7 +69,7 @@ namespace BMWMS.API.Controllers.StockOperations
         }
 
         [HttpGet("staff-users")]
-        [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
+        [Authorize(Roles = "WAREHOUSE_MANAGER")]
         public async Task<IActionResult> GetStaffUsers()
         {
             var result = await _transferService.GetStaffUsersAsync();
@@ -99,7 +99,7 @@ namespace BMWMS.API.Controllers.StockOperations
         }
 
         [HttpPost("create")]
-        [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
+        [Authorize(Roles = "WAREHOUSE_MANAGER")]
         public async Task<IActionResult> CreateOrder([FromBody] CreateTransferOrderDto request)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -110,7 +110,7 @@ namespace BMWMS.API.Controllers.StockOperations
         }
 
         [HttpPut("{id}")]
-        [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
+        [Authorize(Roles = "WAREHOUSE_MANAGER")]
         public async Task<IActionResult> UpdateDraftOrder(long id, [FromBody] UpdateTransferOrderDto request)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -121,7 +121,7 @@ namespace BMWMS.API.Controllers.StockOperations
         }
 
         [HttpPost("{id}/approve")]
-        [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
+        [Authorize(Roles = "WAREHOUSE_MANAGER")]
         public async Task<IActionResult> ApproveOrder(long id, [FromBody] ApproveTransferDto dto)
         {
             var userId = GetCurrentUserId();
@@ -131,7 +131,7 @@ namespace BMWMS.API.Controllers.StockOperations
         }
 
         [HttpPost("{id}/reject")]
-        [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
+        [Authorize(Roles = "WAREHOUSE_MANAGER")]
         public async Task<IActionResult> RejectOrder(long id, [FromBody] ApproveTransferDto dto)
         {
             var userId = GetCurrentUserId();
@@ -141,7 +141,7 @@ namespace BMWMS.API.Controllers.StockOperations
         }
 
         [HttpPost("{id}/issue")]
-        [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF")]
+        [Authorize(Roles = "WAREHOUSE_MANAGER,WAREHOUSE_STAFF")]
         public async Task<IActionResult> ConfirmIssue(long id, [FromBody] ConfirmTransferDto dto)
         {
             var userId = GetCurrentUserId();
@@ -151,7 +151,7 @@ namespace BMWMS.API.Controllers.StockOperations
         }
 
         [HttpPost("{id}/receive")]
-        [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF")]
+        [Authorize(Roles = "WAREHOUSE_MANAGER,WAREHOUSE_STAFF")]
         public async Task<IActionResult> ConfirmReceipt(long id, [FromBody] ConfirmTransferDto dto)
         {
             var userId = GetCurrentUserId();
@@ -162,7 +162,7 @@ namespace BMWMS.API.Controllers.StockOperations
 
         // Legacy one-shot confirm for existing clients.
         [HttpPost("{id}/confirm")]
-        [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF")]
+        [Authorize(Roles = "WAREHOUSE_MANAGER,WAREHOUSE_STAFF")]
         public async Task<IActionResult> ConfirmTransfer(long id, [FromBody] ConfirmTransferDto dto)
         {
             var userId = GetCurrentUserId();
