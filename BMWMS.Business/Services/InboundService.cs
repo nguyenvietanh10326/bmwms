@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using BMWMS.Business.DTOs.Inbound;
 using BMWMS.Business.Interfaces;
 using BMWMS.Business.Common;
+using BMWMS.Business.DTOs.Audit;
 using BMWMS.Repository.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using System.Data;
@@ -15,12 +16,18 @@ public class InboundService : IInboundService
     private readonly IInboundRepository _inboundRepository;
     private readonly BMWMS.Repository.Models.BmwmsContext _context;
     private readonly INotificationService _notificationService;
+    private readonly IAuditLogService _auditLogService;
 
-    public InboundService(IInboundRepository inboundRepository, BMWMS.Repository.Models.BmwmsContext context, INotificationService notificationService)
+    public InboundService(
+        IInboundRepository inboundRepository,
+        BMWMS.Repository.Models.BmwmsContext context,
+        INotificationService notificationService,
+        IAuditLogService auditLogService)
     {
         _inboundRepository = inboundRepository;
         _context = context;
         _notificationService = notificationService;
+        _auditLogService = auditLogService;
     }
 
     public async Task<InboundOrderPageDto> GetInboundOrdersPageAsync(InboundOrderFilterDto filter)
@@ -100,9 +107,10 @@ public class InboundService : IInboundService
                 ProductCode = i.Product.ProductCode,
                 ProductName = i.Product.ProductName,
                 UnitName = i.Product.UnitOfMeasure?.UnitName ?? string.Empty,
-                QuantityScale = 0,
+                QuantityScale = i.Product.UnitOfMeasure?.QuantityScale ?? 0,
                 TrackLot = i.Product.TrackLot,
                 TrackExpiry = i.Product.TrackExpiry,
+                RotationMethod = i.Product.RotationMethod?.Trim().ToUpperInvariant() ?? string.Empty,
                 ExpectedQuantity = i.ExpectedQuantity,
                 ReceivedQuantity = i.ReceivedQuantity,
                 PutawayQuantity = i.InboundOrderDetails
@@ -237,6 +245,9 @@ public class InboundService : IInboundService
         if (dto.Items.GroupBy(i => i.ProductId).Any(group => group.Count() > 1))
             throw new ArgumentException("Mỗi sản phẩm chỉ được xuất hiện một lần trong phiếu nhập kho.");
 
+        if (dto.ParentInboundOrderId.HasValue)
+            throw new ArgumentException("Hệ thống không còn sử dụng phiếu nhập bổ sung. Hãy tạo phiếu nhập PO thông thường cho số lượng PO thực tế còn thiếu.");
+
         var activeWarehouses = await _context.Warehouses
             .Where(w => w.Status == "ACTIVE")
             .OrderBy(w => w.WarehouseId)
@@ -251,40 +262,6 @@ public class InboundService : IInboundService
         await EnsureWarehouseStaffAssigneeAsync(dto.AssignedToUserId);
         await ValidateQuantitiesAsync(dto.Items.Select(i => (i.ProductId, i.ExpectedQuantity, "Số lượng dự kiến")));
 
-        BMWMS.Repository.Models.InboundOrder? parentInbound = null;
-        Dictionary<long, decimal>? supplementalBalances = null;
-        if (dto.ParentInboundOrderId.HasValue)
-        {
-            parentInbound = await _context.InboundOrders
-                .Include(o => o.InboundOrderItems)
-                .FirstOrDefaultAsync(o => o.InboundOrderId == dto.ParentInboundOrderId.Value)
-                ?? throw new ArgumentException("Không tìm thấy phiếu nhập gốc cần bổ sung.");
-            if (parentInbound.SourceType != "PURCHASE_ORDER" || parentInbound.Status != "COMPLETED" ||
-                !parentInbound.PurchaseOrderId.HasValue)
-                throw new ArgumentException("Chỉ được tạo phiếu bổ sung từ phiếu nhập PO đã hoàn tất kiểm nhận.");
-
-            dto.SourceType = "PURCHASE_ORDER";
-            dto.PurchaseOrderId = parentInbound.PurchaseOrderId;
-            dto.SalesOrderId = null;
-
-            var allocatedSupplemental = await _context.InboundOrderItems
-                .Where(i => i.InboundOrder.ParentInboundOrderId == parentInbound.InboundOrderId &&
-                            i.InboundOrder.Status != "CANCELLED")
-                .GroupBy(i => i.ProductId)
-                .Select(group => new { ProductId = group.Key, Quantity = group.Sum(i => i.ExpectedQuantity) })
-                .ToDictionaryAsync(x => x.ProductId, x => x.Quantity);
-
-            supplementalBalances = parentInbound.InboundOrderItems.ToDictionary(
-                item => item.ProductId,
-                item => Math.Max(0, item.ShortageQuantity -
-                    (allocatedSupplemental.TryGetValue(item.ProductId, out var allocated) ? allocated : 0)));
-            foreach (var item in dto.Items)
-            {
-                if (!supplementalBalances.TryGetValue(item.ProductId, out var balance) || item.ExpectedQuantity > balance)
-                    throw new ArgumentException("Số lượng phiếu bổ sung vượt phần thiếu/hỏng chưa được lập phiếu thay thế.");
-            }
-        }
-
         if (dto.SourceType == "PURCHASE_ORDER")
         {
             if (!dto.PurchaseOrderId.HasValue)
@@ -298,8 +275,7 @@ public class InboundService : IInboundService
             foreach (var item in dto.Items)
             {
                 var poItem = po?.Items.FirstOrDefault(i => i.ProductId == item.ProductId);
-                if (poItem == null ||
-                    (!dto.ParentInboundOrderId.HasValue && item.ExpectedQuantity > poItem.RemainingQuantity))
+                if (poItem == null || item.ExpectedQuantity > poItem.RemainingQuantity)
                     throw new ArgumentException("Số lượng dự kiến vượt quá số lượng PO còn lại.");
             }
         }
@@ -340,7 +316,7 @@ public class InboundService : IInboundService
             AssignedToUserId = dto.AssignedToUserId,
             ConfirmedAt = dto.IsSubmit ? DateTime.UtcNow : null,
             ConfirmedByUserId = dto.IsSubmit ? currentUserId : null,
-            ParentInboundOrderId = parentInbound?.InboundOrderId
+            ParentInboundOrderId = null
         };
 
         foreach (var itemDto in dto.Items)
@@ -355,6 +331,25 @@ public class InboundService : IInboundService
                 Notes = itemDto.Notes
             });
         }
+
+        await _auditLogService.StageAsync(new AuditEventDto
+        {
+            UserId = currentUserId,
+            ActionType = "CREATE_INBOUND",
+            EntityName = AuditEntities.InboundOrder,
+            EntityId = inboundOrder.InboundOrderNumber,
+            NewValues = new
+            {
+                inboundOrder.InboundOrderNumber,
+                inboundOrder.SourceType,
+                inboundOrder.PurchaseOrderId,
+                inboundOrder.SalesOrderId,
+                inboundOrder.ExpectedReceiptDate,
+                inboundOrder.Status,
+                inboundOrder.AssignedToUserId,
+                Items = dto.Items.Select(item => new { item.ProductId, item.ExpectedQuantity })
+            }
+        });
 
         await _inboundRepository.AddAsync(inboundOrder);
         await _inboundRepository.SaveChangesAsync();
@@ -401,14 +396,22 @@ public class InboundService : IInboundService
         // Find existing inbound quantities for this PO
         var inboundItems = await _context.InboundOrderItems
             .Include(i => i.InboundOrder)
+            .Include(i => i.InboundOrderDetails)
             .Where(i => i.InboundOrder.PurchaseOrderId == purchaseOrderId && i.InboundOrder.Status != "CANCELLED")
             .ToListAsync();
 
         foreach (var detail in po.PurchaseOrderDetails)
         {
-            var totalInbound = inboundItems
-                .Where(i => i.ProductId == detail.ProductId)
+            var matchingInboundItems = inboundItems.Where(i => i.ProductId == detail.ProductId).ToList();
+            var plannedQuantity = matchingInboundItems
+                .Where(i => i.InboundOrder.Status is "DRAFT" or "ASSIGNED" or "IN_PROGRESS")
                 .Sum(i => i.ExpectedQuantity);
+            var acceptedQuantity = matchingInboundItems
+                .Where(i => i.InboundOrder.Status == "COMPLETED")
+                .SelectMany(i => i.InboundOrderDetails)
+                .Where(receipt => receipt.ConditionStatus == "GOOD")
+                .Sum(receipt => receipt.ReceivedQuantity);
+            var totalInbound = plannedQuantity + acceptedQuantity;
 
             var remaining = detail.OrderedQuantity - totalInbound;
 
@@ -418,7 +421,7 @@ public class InboundService : IInboundService
                 ProductCode = detail.Product.ProductCode,
                 ProductName = detail.Product.ProductName,
                 UnitName = detail.Product.UnitOfMeasure?.UnitName ?? string.Empty,
-                QuantityScale = 0,
+                QuantityScale = detail.Product.UnitOfMeasure?.QuantityScale ?? 0,
                 TrackLot = detail.Product.TrackLot,
                 TrackExpiry = detail.Product.TrackExpiry,
                 OrderedQuantity = detail.OrderedQuantity,
@@ -437,6 +440,7 @@ public class InboundService : IInboundService
             .Include(po => po.PurchaseOrderDetails)
             .Include(po => po.InboundOrders)
                 .ThenInclude(io => io.InboundOrderItems)
+                    .ThenInclude(item => item.InboundOrderDetails)
             .Where(po => po.Status == "CONFIRMED" || po.Status == "PARTIALLY_RECEIVED" ||
                          po.Status == "PARTIALLYRECEIVED")
             .Where(po => po.Supplier != null &&
@@ -444,15 +448,23 @@ public class InboundService : IInboundService
             .ToListAsync();
 
         return pos
-            .Where(po => 
+            .Where(po => po.PurchaseOrderDetails.Any(detail =>
             {
-                var totalOrdered = po.PurchaseOrderDetails.Sum(d => d.OrderedQuantity);
-                var totalExpected = po.InboundOrders
+                var matchingItems = po.InboundOrders
                     .Where(io => io.Status != "CANCELLED")
                     .SelectMany(io => io.InboundOrderItems)
-                    .Sum(i => i.ExpectedQuantity);
-                return totalOrdered > totalExpected;
-            })
+                    .Where(item => item.ProductId == detail.ProductId)
+                    .ToList();
+                var planned = matchingItems
+                    .Where(item => item.InboundOrder.Status is "DRAFT" or "ASSIGNED" or "IN_PROGRESS")
+                    .Sum(item => item.ExpectedQuantity);
+                var accepted = matchingItems
+                    .Where(item => item.InboundOrder.Status == "COMPLETED")
+                    .SelectMany(item => item.InboundOrderDetails)
+                    .Where(receipt => receipt.ConditionStatus == "GOOD")
+                    .Sum(receipt => receipt.ReceivedQuantity);
+                return detail.OrderedQuantity > planned + accepted;
+            }))
             .Select(po => new SourceOrderDropdownDto
             {
                 Id = po.PurchaseOrderId,
@@ -554,7 +566,7 @@ public class InboundService : IInboundService
                     ProductCode = d.Product.ProductCode,
                     ProductName = d.Product.ProductName,
                     UnitName = d.Product.UnitOfMeasure?.UnitName ?? "",
-                    QuantityScale = 0,
+                    QuantityScale = d.Product.UnitOfMeasure?.QuantityScale ?? 0,
                     TrackLot = d.Product.TrackLot,
                     TrackExpiry = d.Product.TrackExpiry,
                     OrderedQuantity = d.FulfilledQuantity, // Gán tạm OrderedQuantity = FulfilledQuantity để frontend hiển thị đúng
@@ -664,6 +676,21 @@ public class InboundService : IInboundService
             });
         }
 
+        await _auditLogService.StageAsync(new AuditEventDto
+        {
+            UserId = currentUserId,
+            ActionType = submittedNow ? "CONFIRM_INBOUND" : "UPDATE_INBOUND",
+            EntityName = AuditEntities.InboundOrder,
+            EntityId = order.InboundOrderId.ToString(),
+            NewValues = new
+            {
+                order.ExpectedReceiptDate,
+                order.Status,
+                order.AssignedToUserId,
+                Items = dto.Items.Select(item => new { item.ProductId, item.ExpectedQuantity })
+            }
+        });
+
         await _context.SaveChangesAsync();
         await assignmentTransaction.CommitAsync();
 
@@ -700,6 +727,16 @@ public class InboundService : IInboundService
         order.CancelledAt = DateTime.UtcNow;
         order.CancelledByUserId = currentUserId;
 
+        await _auditLogService.StageAsync(new AuditEventDto
+        {
+            UserId = currentUserId,
+            ActionType = "CANCEL_INBOUND",
+            EntityName = AuditEntities.InboundOrder,
+            EntityId = order.InboundOrderId.ToString(),
+            OldValues = new { Status = "DRAFT_OR_READY" },
+            NewValues = new { Status = "CANCELLED", Reason = order.CancellationReason }
+        });
+
         await _context.SaveChangesAsync();
     }
 
@@ -716,6 +753,16 @@ public class InboundService : IInboundService
         order.Status = "ASSIGNED";
         order.ConfirmedAt = DateTime.UtcNow;
         order.ConfirmedByUserId = currentUserId;
+
+        await _auditLogService.StageAsync(new AuditEventDto
+        {
+            UserId = currentUserId,
+            ActionType = "CONFIRM_INBOUND",
+            EntityName = AuditEntities.InboundOrder,
+            EntityId = order.InboundOrderId.ToString(),
+            OldValues = new { Status = "DRAFT" },
+            NewValues = new { Status = "READY", order.AssignedToUserId }
+        });
 
         await _inboundRepository.UpdateAsync(order);
         await _inboundRepository.SaveChangesAsync();
@@ -751,12 +798,12 @@ public class InboundService : IInboundService
         if (item == null) throw new Exception("Không tìm thấy sản phẩm trong lệnh nhập kho.");
 
         // Calculate Accepted Quantity
-        decimal acceptedQuantity = dto.DeliveredQuantity - dto.DamagedQuantity;
+        decimal acceptedQuantity = dto.DeliveredQuantity.GetValueOrDefault() - dto.DamagedQuantity.GetValueOrDefault();
         if (acceptedQuantity <= 0) throw new Exception("Số lượng chấp nhận phải lớn hơn 0.");
 
         // Update item quantities
         item.ReceivedQuantity += acceptedQuantity;
-        item.DamagedQuantity += dto.DamagedQuantity;
+        item.DamagedQuantity += dto.DamagedQuantity.GetValueOrDefault();
 
         // Create or find ProductLot
         var legacyLotNumber = string.IsNullOrWhiteSpace(dto.LotNumber) ? $"NO-LOT-{item.ProductId}" : dto.LotNumber.Trim();
@@ -859,11 +906,11 @@ public class InboundService : IInboundService
             var item = order.InboundOrderItems.FirstOrDefault(i => i.InboundOrderItemId == reqItem.InboundOrderItemId);
             if (item == null) continue;
 
-            decimal acceptedQuantity = reqItem.DeliveredQuantity - reqItem.DamagedQuantity;
+            decimal acceptedQuantity = reqItem.DeliveredQuantity.GetValueOrDefault() - reqItem.DamagedQuantity.GetValueOrDefault();
             if (acceptedQuantity <= 0) continue;
 
             item.ReceivedQuantity += acceptedQuantity;
-            item.DamagedQuantity += reqItem.DamagedQuantity;
+            item.DamagedQuantity += reqItem.DamagedQuantity.GetValueOrDefault();
 
             var legacyLotNumber = string.IsNullOrWhiteSpace(reqItem.LotNumber) ? $"NO-LOT-{item.ProductId}" : reqItem.LotNumber.Trim();
             var lot = await _context.ProductLots
@@ -960,7 +1007,7 @@ public class InboundService : IInboundService
                     .Sum(receipt => receipt.ReceivedQuantity) >= detail.OrderedQuantity);
 
         purchaseOrder.Status = isFullyReceived
-            ? "RECEIVED"
+            ? "COMPLETED"
             : hasReceivedQuantity
                 ? "PARTIALLY_RECEIVED"
                 : "CONFIRMED";
@@ -1074,35 +1121,56 @@ public class InboundService : IInboundService
             if (order.Status is not ("ASSIGNED" or "IN_PROGRESS"))
                 throw new InvalidOperationException("Chỉ được hoàn tất kiểm nhận khi phiếu ở trạng thái Sẵn sàng hoặc Đang nhận.");
 
-            var confirmedShortageItemIds = (dto.ConfirmedShortageItemIds ?? new List<long>())
-                .Distinct()
-                .ToHashSet();
+            var decisions = (dto.Decisions ?? new List<InboundReceiptDecisionDto>())
+                .GroupBy(decision => decision.InboundOrderItemId)
+                .ToDictionary(group => group.Key, group => group.Last());
             var orderItemIds = order.InboundOrderItems.Select(item => item.InboundOrderItemId).ToHashSet();
-            if (confirmedShortageItemIds.Any(itemId => !orderItemIds.Contains(itemId)))
-                throw new ArgumentException("Danh sách xác nhận hàng thiếu chứa dòng không thuộc phiếu nhập kho.");
+            if (decisions.Keys.Any(itemId => !orderItemIds.Contains(itemId)))
+                throw new ArgumentException("Danh sách xử lý chênh lệch chứa dòng không thuộc phiếu nhập kho.");
 
             var unconfirmedItems = order.InboundOrderItems
                 .Where(item => item.ReceivedQuantity < item.ExpectedQuantity &&
-                               !confirmedShortageItemIds.Contains(item.InboundOrderItemId))
+                               (!decisions.TryGetValue(item.InboundOrderItemId, out var decision) ||
+                                !decision.CloseAsShort || string.IsNullOrWhiteSpace(decision.Reason)))
                 .ToList();
             if (unconfirmedItems.Count > 0)
             {
                 var productList = string.Join(", ", unconfirmedItems.Select(item =>
                     $"{item.Product.ProductName} ({item.Product.ProductCode})"));
                 throw new InvalidOperationException(
-                    $"Chưa kiểm nhận đủ hoặc chưa xác nhận số lượng thiếu cho: {productList}.");
+                    $"Chưa kiểm nhận đủ hoặc chưa nhập lý do chốt thiếu cho: {productList}.");
             }
+
+            if (order.InboundOrderItems.Any(item => item.ReceivedQuantity <= 0 &&
+                    (!decisions.TryGetValue(item.InboundOrderItemId, out var decision) || !decision.CloseAsShort)))
+                throw new InvalidOperationException("Mỗi mặt hàng phải có kết quả kiểm nhận hoặc quyết định chốt thiếu rõ ràng.");
 
             foreach (var item in order.InboundOrderItems)
             {
-                var acceptedQuantity = item.InboundOrderDetails
-                    .Where(d => d.ConditionStatus == "GOOD")
-                    .Sum(d => d.ReceivedQuantity);
-                item.ShortageQuantity = Math.Max(0, item.ExpectedQuantity - acceptedQuantity);
+                item.ShortageQuantity = Math.Max(0, item.ExpectedQuantity - item.ReceivedQuantity);
             }
 
             order.Status = "COMPLETED";
             await UpdatePurchaseOrderReceiptStatusAsync(order.PurchaseOrderId);
+            await _auditLogService.StageAsync(new AuditEventDto
+            {
+                UserId = currentUserId,
+                ActionType = "COMPLETE_INBOUND_RECEIPT",
+                EntityName = AuditEntities.InboundOrder,
+                EntityId = order.InboundOrderId.ToString(),
+                NewValues = new
+                {
+                    order.InboundOrderNumber,
+                    Status = "RECEIVED",
+                    Notes = dto.Notes,
+                    Decisions = decisions.Values.Select(decision => new
+                    {
+                        decision.InboundOrderItemId,
+                        decision.CloseAsShort,
+                        Reason = decision.Reason?.Trim()
+                    })
+                }
+            });
             await _context.SaveChangesAsync();
 
             var targetUsers = await _context.Users
@@ -1137,7 +1205,18 @@ public class InboundService : IInboundService
         IEnumerable<ReceiveInboundItemDto> requests,
         long currentUserId)
     {
-        var requestItems = requests.Where(x => x.DeliveredQuantity > 0).ToList();
+        var allRequests = requests?.ToList() ?? new List<ReceiveInboundItemDto>();
+        if (allRequests.GroupBy(x => x.InboundOrderItemId).Any(group => group.Count() > 1))
+            throw new ArgumentException("Mỗi dòng hàng chỉ được gửi một lần trong một lần lưu kiểm nhận.");
+
+        var incompleteRows = allRequests.Where(x => !x.DeliveredQuantity.HasValue &&
+            (x.AcceptedQuantity.HasValue || x.DamagedQuantity.HasValue || x.HoldQuantity.HasValue ||
+             !string.IsNullOrWhiteSpace(x.LotNumber) || x.ManufactureDate.HasValue || x.ExpiryDate.HasValue ||
+             !string.IsNullOrWhiteSpace(x.ConditionNotes))).ToList();
+        if (incompleteRows.Count > 0)
+            throw new ArgumentException("Dòng đã nhập thông tin phải có số lượng thực giao.");
+
+        var requestItems = allRequests.Where(x => x.DeliveredQuantity.HasValue).ToList();
         if (requestItems.Count == 0)
             throw new ArgumentException("Phải có ít nhất một dòng hàng có số lượng thực giao lớn hơn 0.");
 
@@ -1161,9 +1240,8 @@ public class InboundService : IInboundService
                     l.Status != "BLOCKED" && l.Status != "INACTIVE")
                 ?? throw new InvalidOperationException("Kho chưa cấu hình vị trí RECEIVING/STAGING đang hoạt động.");
 
-            var hasNonAccepted = requestItems.Any(x =>
-                x.DamagedQuantity > 0 ||
-                (x.AcceptedQuantity.HasValue && x.AcceptedQuantity.Value + x.DamagedQuantity < x.DeliveredQuantity));
+            var hasNonAccepted = requestItems.Any(x => x.DamagedQuantity.GetValueOrDefault() > 0 ||
+                                                       x.HoldQuantity.GetValueOrDefault() > 0);
             var quarantine = hasNonAccepted
                 ? await _context.StorageLocations.FirstOrDefaultAsync(l =>
                     l.WarehouseId == order.WarehouseId && l.LocationType == "QUARANTINE" &&
@@ -1173,64 +1251,63 @@ public class InboundService : IInboundService
                 throw new InvalidOperationException("Kho chưa cấu hình vị trí QUARANTINE để cách ly hàng hỏng hoặc hàng chưa được chấp nhận.");
 
             var lotIds = new List<long>();
+            var createdLayers = new List<BMWMS.Repository.Models.ProductLot>();
             foreach (var request in requestItems)
             {
-                var accepted = request.AcceptedQuantity ?? (request.DeliveredQuantity - request.DamagedQuantity);
-                if (accepted < 0 || request.DamagedQuantity < 0 || accepted + request.DamagedQuantity > request.DeliveredQuantity)
-                    throw new ArgumentException("Số lượng đạt và số lượng hỏng phải không âm; tổng hai loại không được vượt số lượng thực giao.");
-                var quarantined = request.DeliveredQuantity - accepted - request.DamagedQuantity;
-
                 var item = order.InboundOrderItems.SingleOrDefault(i => i.InboundOrderItemId == request.InboundOrderItemId)
                     ?? throw new ArgumentException("Dòng hàng không thuộc phiếu nhập kho.");
+                var delivered = request.DeliveredQuantity.GetValueOrDefault();
+                if (delivered <= 0)
+                    throw new ArgumentException($"Số lượng thực giao của {item.Product.ProductCode} phải lớn hơn 0.");
+                if (!request.AcceptedQuantity.HasValue || !request.DamagedQuantity.HasValue || !request.HoldQuantity.HasValue)
+                    throw new ArgumentException($"Phải nhập đủ số lượng đạt, hỏng và chờ xử lý cho {item.Product.ProductCode}.");
+                var accepted = request.AcceptedQuantity.Value;
+                var damaged = request.DamagedQuantity.Value;
+                var quarantined = request.HoldQuantity.Value;
+                if (accepted < 0 || damaged < 0 || quarantined < 0 || accepted + damaged + quarantined != delivered)
+                    throw new ArgumentException($"Tổng số lượng đạt, hỏng và chờ xử lý của {item.Product.ProductCode} phải đúng bằng số lượng thực giao.");
+                if ((damaged > 0 || quarantined > 0) && string.IsNullOrWhiteSpace(request.ConditionNotes))
+                    throw new ArgumentException($"Phải ghi tình trạng hoặc lý do cho hàng hỏng/chờ xử lý của {item.Product.ProductCode}.");
                 if (!IsActive(item.Product.Status))
                     throw new InvalidOperationException($"Sản phẩm {item.Product.ProductCode} đang ngừng hoạt động.");
-                QuantityRules.EnsureValid(item.Product, request.DeliveredQuantity, "Số lượng thực giao");
+                QuantityRules.EnsureValid(item.Product, delivered, "Số lượng thực giao");
                 if (accepted > 0) QuantityRules.EnsureValid(item.Product, accepted, "Số lượng đạt");
-                if (request.DamagedQuantity > 0) QuantityRules.EnsureValid(item.Product, request.DamagedQuantity, "Số lượng hỏng");
+                if (damaged > 0) QuantityRules.EnsureValid(item.Product, damaged, "Số lượng hỏng");
                 if (quarantined > 0) QuantityRules.EnsureValid(item.Product, quarantined, "Số lượng cách ly");
-                if (item.ReceivedQuantity + request.DeliveredQuantity > item.ExpectedQuantity)
+                if (item.ReceivedQuantity + delivered > item.ExpectedQuantity)
                     throw new ArgumentException($"Số lượng nhận của {item.Product.ProductCode} vượt số lượng dự kiến còn lại.");
-                if (item.Product.TrackLot && string.IsNullOrWhiteSpace(request.LotNumber))
-                    throw new ArgumentException($"Phải nhập số lô cho {item.Product.ProductCode}.");
-                if (item.Product.TrackExpiry &&
+                var requiresExpiry = item.Product.TrackExpiry ||
+                    string.Equals(item.Product.RotationMethod?.Trim(), "FEFO", StringComparison.OrdinalIgnoreCase);
+                if (requiresExpiry &&
                     (!request.ExpiryDate.HasValue || request.ExpiryDate.Value <= DateOnly.FromDateTime(DateTime.UtcNow)))
-                    throw new ArgumentException($"Sản phẩm {item.Product.ProductCode} phải có hạn dùng trong tương lai.");
+                    throw new ArgumentException($"Sản phẩm FEFO/có quản lý hạn dùng {item.Product.ProductCode} phải có hạn dùng trong tương lai.");
                 if (request.ManufactureDate.HasValue && request.ManufactureDate.Value > DateOnly.FromDateTime(DateTime.UtcNow))
                     throw new ArgumentException($"Ngày sản xuất của {item.Product.ProductCode} không được nằm trong tương lai.");
                 if (request.ManufactureDate.HasValue && request.ExpiryDate.HasValue && request.ManufactureDate > request.ExpiryDate)
                     throw new ArgumentException($"Ngày sản xuất của {item.Product.ProductCode} không được sau hạn dùng.");
 
-                var lotNumber = item.Product.TrackLot ? request.LotNumber!.Trim() : $"NO-LOT-{item.ProductId}";
-                var expiryDate = item.Product.TrackExpiry ? request.ExpiryDate : null;
-                var lot = await _context.ProductLots.FirstOrDefaultAsync(l =>
-                    l.ProductId == item.ProductId && l.LotNumber == lotNumber);
-                if (lot == null)
+                var layerCode = $"RCV-{order.InboundOrderId}-{item.InboundOrderItemId}-{Guid.NewGuid():N}";
+                var lot = new BMWMS.Repository.Models.ProductLot
                 {
-                    lot = new BMWMS.Repository.Models.ProductLot
-                    {
-                        ProductId = item.ProductId,
-                        LotNumber = lotNumber,
-                        ManufactureDate = request.ManufactureDate,
-                        ExpiryDate = expiryDate,
-                        FirstReceivedDate = DateOnly.FromDateTime(DateTime.UtcNow),
-                        Status = "AVAILABLE",
-                        CreatedAt = DateTime.UtcNow
-                    };
-                    _context.ProductLots.Add(lot);
-                    await _context.SaveChangesAsync();
-                }
-                else if (lot.ExpiryDate != expiryDate ||
-                         (request.ManufactureDate.HasValue && lot.ManufactureDate != request.ManufactureDate))
-                {
-                    throw new ArgumentException($"Ngày sản xuất hoặc hạn dùng của lô {lotNumber} không khớp dữ liệu đã có.");
-                }
+                    ProductId = item.ProductId,
+                    LotNumber = layerCode,
+                    ManufactureDate = request.ManufactureDate,
+                    ExpiryDate = request.ExpiryDate,
+                    FirstReceivedDate = DateOnly.FromDateTime(DateTime.UtcNow),
+                    Status = "AVAILABLE",
+                    CreatedAt = DateTime.UtcNow
+                };
+                _context.ProductLots.Add(lot);
+                createdLayers.Add(lot);
 
-                var previouslyAccepted = await _context.InboundOrderDetails
-                    .Where(d => d.InboundOrderItemId == item.InboundOrderItemId && d.ConditionStatus == "GOOD")
-                    .SumAsync(d => (decimal?)d.ReceivedQuantity) ?? 0;
-                item.ReceivedQuantity += request.DeliveredQuantity;
-                item.DamagedQuantity += request.DamagedQuantity;
-                item.ShortageQuantity = Math.Max(0, item.ExpectedQuantity - previouslyAccepted - accepted);
+                item.ReceivedQuantity += delivered;
+                item.DamagedQuantity += damaged;
+                item.ShortageQuantity = Math.Max(0, item.ExpectedQuantity - item.ReceivedQuantity);
+
+                var supplierLotNote = string.IsNullOrWhiteSpace(request.LotNumber)
+                    ? null
+                    : $"Lô tham chiếu NCC: {request.LotNumber.Trim()}. ";
+                var conditionNote = supplierLotNote + request.ConditionNotes?.Trim();
 
                 if (accepted > 0)
                 {
@@ -1240,18 +1317,18 @@ public class InboundService : IInboundService
                         InboundOrderId = order.InboundOrderId,
                         ProductId = item.ProductId,
                         StorageLocationId = receiving.StorageLocationId,
-                        ProductLotId = lot.ProductLotId,
+                        ProductLot = lot,
                         ReceivedQuantity = accepted,
                         ConditionStatus = "GOOD",
                         RecordedByUserId = currentUserId,
                         RecordedAt = DateTime.UtcNow,
-                        Notes = string.IsNullOrWhiteSpace(request.ConditionNotes)
-                            ? "Hàng đạt; chờ xếp vào vị trí cố định."
-                            : request.ConditionNotes.Trim()
+                        Notes = string.IsNullOrWhiteSpace(conditionNote)
+                            ? "Hàng đạt; chờ xếp vào bin thực tế."
+                            : conditionNote
                     });
                 }
 
-                if (request.DamagedQuantity > 0)
+                if (damaged > 0)
                 {
                     _context.InboundOrderDetails.Add(new BMWMS.Repository.Models.InboundOrderDetail
                     {
@@ -1259,14 +1336,14 @@ public class InboundService : IInboundService
                         InboundOrderId = order.InboundOrderId,
                         ProductId = item.ProductId,
                         StorageLocationId = quarantine!.StorageLocationId,
-                        ProductLotId = lot.ProductLotId,
-                        ReceivedQuantity = request.DamagedQuantity,
+                        ProductLot = lot,
+                        ReceivedQuantity = damaged,
                         ConditionStatus = "DAMAGED",
                         RecordedByUserId = currentUserId,
                         RecordedAt = DateTime.UtcNow,
-                        Notes = string.IsNullOrWhiteSpace(request.ConditionNotes)
+                        Notes = string.IsNullOrWhiteSpace(conditionNote)
                             ? "Hàng hỏng được cách ly; chưa cộng vào tồn khả dụng."
-                            : request.ConditionNotes.Trim()
+                            : conditionNote
                     });
                 }
 
@@ -1278,23 +1355,40 @@ public class InboundService : IInboundService
                         InboundOrderId = order.InboundOrderId,
                         ProductId = item.ProductId,
                         StorageLocationId = quarantine!.StorageLocationId,
-                        ProductLotId = lot.ProductLotId,
+                        ProductLot = lot,
                         ReceivedQuantity = quarantined,
                         ConditionStatus = "QUARANTINED",
                         RecordedByUserId = currentUserId,
                         RecordedAt = DateTime.UtcNow,
-                        Notes = string.IsNullOrWhiteSpace(request.ConditionNotes)
+                        Notes = string.IsNullOrWhiteSpace(conditionNote)
                             ? "Hàng chưa được chấp nhận, tạm cách ly để xử lý."
-                            : request.ConditionNotes.Trim()
+                            : conditionNote
                     });
                 }
 
-                lotIds.Add(lot.ProductLotId);
             }
 
             order.Status = "IN_PROGRESS";
 
+            await _auditLogService.StageAsync(new AuditEventDto
+            {
+                UserId = currentUserId,
+                ActionType = "SAVE_INBOUND_RECEIPT",
+                EntityName = AuditEntities.InboundOrder,
+                EntityId = order.InboundOrderId.ToString(),
+                NewValues = requestItems.Select(request => new
+                {
+                    request.InboundOrderItemId,
+                    request.DeliveredQuantity,
+                    request.AcceptedQuantity,
+                    request.DamagedQuantity,
+                    request.HoldQuantity,
+                    request.ExpiryDate
+                })
+            });
+
             await _context.SaveChangesAsync();
+            lotIds.AddRange(createdLayers.Select(layer => layer.ProductLotId));
             await dbTransaction.CommitAsync();
             return lotIds;
         }
@@ -1349,6 +1443,15 @@ public class InboundService : IInboundService
                      !IsActive(destination.StorageRack.WarehouseZone.Status)))
                     throw new InvalidOperationException($"Khu hoặc kệ chứa vị trí {destination.LocationCode} đang bị khóa/ngừng hoạt động.");
 
+                var recommendedLocationIds = await _context.ProductFixedLocations
+                    .Where(fixedLocation => fixedLocation.ProductId == item.ProductId && fixedLocation.IsActive)
+                    .Select(fixedLocation => fixedLocation.StorageLocationId)
+                    .ToListAsync();
+                if (recommendedLocationIds.Count > 0 &&
+                    !recommendedLocationIds.Contains(destination.StorageLocationId) &&
+                    string.IsNullOrWhiteSpace(allocation.OverrideReason))
+                    throw new ArgumentException($"Vị trí {destination.LocationCode} không thuộc danh sách khuyến nghị của {item.Product.ProductCode}; phải nhập lý do chọn vị trí khác.");
+
                 var remaining = allocation.PutawayQuantity;
                 var stagingDetails = item.InboundOrderDetails
                     .Where(d => d.ProductLotId == allocation.ProductLotId && d.ConditionStatus == "GOOD" &&
@@ -1365,7 +1468,7 @@ public class InboundService : IInboundService
                     if (moved == staging.ReceivedQuantity)
                     {
                         staging.StorageLocationId = destination.StorageLocationId;
-                        staging.Notes = "Đã xếp vào vị trí cố định.";
+                        staging.Notes = "Đã xếp vào bin thực tế.";
                         postedDetail = staging;
                     }
                     else
@@ -1407,6 +1510,21 @@ public class InboundService : IInboundService
                 }
             }
 
+            await _auditLogService.StageAsync(new AuditEventDto
+            {
+                UserId = currentUserId,
+                ActionType = "PUTAWAY_INBOUND",
+                EntityName = "InboundPutaway",
+                EntityId = order.InboundOrderId.ToString(),
+                NewValues = dtos.Select(allocation => new
+                {
+                    allocation.InboundOrderItemId,
+                    allocation.ProductLotId,
+                    allocation.StorageLocationId,
+                    allocation.PutawayQuantity,
+                    OverrideReason = allocation.OverrideReason?.Trim()
+                })
+            });
             await _context.SaveChangesAsync();
             await dbTransaction.CommitAsync();
         }

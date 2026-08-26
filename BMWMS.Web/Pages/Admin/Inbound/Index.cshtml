@@ -26,7 +26,7 @@
         @foreach (var item in Model.Data.Items)
         {
             <tr><td><a asp-page="./Details" asp-route-id="@item.InboundOrderId" class="fw-semibold text-decoration-none">@item.InboundOrderNumber</a><div class="text-muted small">@item.CreatedAt.ToString("dd/MM/yyyy HH:mm")</div></td>
-            <td>@(item.SourceType == "SALES_RETURN" ? "Khách trả theo SO" : "Nhập mua theo PO")@if (item.IsSupplemental) { <span class="badge bg-warning text-dark ms-1">Bổ sung</span> }<div class="text-muted small">@item.SourceReference</div></td>
+            <td>@(item.SourceType == "SALES_RETURN" ? "Khách trả theo SO" : "Nhập mua theo PO")<div class="text-muted small">@item.SourceReference</div></td>
             <td>@item.SupplierName</td><td>@item.ExpectedReceiptDate.ToString("dd/MM/yyyy")</td><td class="text-end">@item.LineCount</td><td class="text-end">@item.TotalExpectedQuantity.ToString("0.####")</td><td class="text-end">@item.TotalReceivedQuantity.ToString("0.####")</td>
             <td><span class="badge @StatusClass(item.Status)">@StatusLabel(item.Status)</span></td><td class="text-end"><a asp-page="./Details" asp-route-id="@item.InboundOrderId" class="btn btn-sm btn-outline-primary">Chi tiết</a></td></tr>
         }

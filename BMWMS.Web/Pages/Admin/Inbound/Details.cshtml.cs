@@ -12,7 +12,6 @@ public class DetailsModel : PageModel
     private readonly InboundApiService _inboundApiService;
     public DetailsModel(InboundApiService inboundApiService) => _inboundApiService = inboundApiService;
     public InboundOrderDetailDto Order { get; set; } = default!;
-    [BindProperty] public ReceiveInboundItemDto ReceiveDto { get; set; } = new();
 
     public async Task<IActionResult> OnGetAsync(long id)
     {
@@ -45,27 +44,4 @@ public class DetailsModel : PageModel
         return RedirectToPage(new { id });
     }
 
-    public async Task<IActionResult> OnPostReceiveAsync(long id)
-    {
-        if (!User.IsInRole("WAREHOUSE_STAFF")) return Forbid();
-        try
-        {
-            await _inboundApiService.ReceiveItemAsync(id, ReceiveDto);
-            TempData["SuccessMessage"] = "Đã kiểm đếm và lưu lần nhận hàng; tồn kho chưa thay đổi cho đến khi putaway.";
-        }
-        catch (Exception ex) { TempData["ErrorMessage"] = ex.Message; }
-        return RedirectToPage(new { id });
-    }
-
-    public async Task<IActionResult> OnPostCompleteReceiptAsync(long id, List<long>? confirmedShortageItemIds, string? receiptNotes)
-    {
-        if (!User.IsInRole("WAREHOUSE_STAFF")) return Forbid();
-        try
-        {
-            await _inboundApiService.CompleteReceiptAsync(id, confirmedShortageItemIds ?? new List<long>(), receiptNotes);
-            TempData["SuccessMessage"] = "Đã hoàn tất kiểm nhận. Hãy xếp toàn bộ hàng đạt vào các vị trí kho chi tiết.";
-        }
-        catch (Exception ex) { TempData["ErrorMessage"] = ex.Message; }
-        return RedirectToPage(new { id });
-    }
 }

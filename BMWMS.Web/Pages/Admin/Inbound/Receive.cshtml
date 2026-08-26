@@ -54,7 +54,7 @@
             {
                 var isPutaway = item.Status == "RECEIVED";
                 <div class="col-xl-4 col-md-6">
-                    <a asp-page="./Details" asp-route-id="@item.InboundOrderId" class="card border-0 shadow-sm h-100 text-decoration-none text-reset">
+                    <a asp-page="@(isPutaway ? "./Details" : "./Receipt")" asp-route-id="@item.InboundOrderId" class="card border-0 shadow-sm h-100 text-decoration-none text-reset">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-start gap-2 mb-3">
                                 <div><strong class="text-primary">@item.InboundOrderNumber</strong><div class="small text-muted">@SourceLabel(item.SourceType) · @item.SourceReference</div></div>

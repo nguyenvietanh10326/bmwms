@@ -1,0 +1,156 @@
+@page "{id:long}"
+@model BMWMS.Web.Pages.Admin.Inbound.ReceiptModel
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = $"Kiểm nhận {Model.Order.InboundOrderNumber}";
+    var incompleteItems = Model.Order.Items.Where(item => item.ReceivedQuantity < item.ExpectedQuantity).ToList();
+}
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+        <div>
+            <div class="text-muted">Tác nghiệp của nhân viên kho · Bước 1/2</div>
+            <h3 class="mb-1">Kiểm nhận số lượng và chất lượng</h3>
+            <div class="text-muted">@Model.Order.InboundOrderNumber · @Model.Order.SourceReference · @Model.Order.PartnerName</div>
+        </div>
+        <a asp-page="./Details" asp-route-id="@Model.Order.InboundOrderId" class="btn btn-outline-secondary">Quay lại phiếu nhập</a>
+    </div>
+
+    @if (TempData["SuccessMessage"] is string success) { <div class="alert alert-success">@success</div> }
+    <div asp-validation-summary="All" class="alert alert-danger" style="@(!ViewData.ModelState.IsValid ? null : "display:none")"></div>
+
+    <div class="alert alert-info">
+        Có thể lưu từng phần. Mỗi dòng đã nhập phải thỏa mãn <strong>Thực giao = Đạt + Hỏng + Chờ xử lý</strong>.
+        Hàng hỏng/chờ xử lý cần ghi rõ tình trạng. Hạn dùng bắt buộc với sản phẩm FEFO hoặc đang quản lý hạn dùng.
+    </div>
+
+    <form method="post" asp-page-handler="SaveProgress" id="receiptForm">
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="min-width:230px">Mặt hàng</th>
+                            <th class="text-end">Theo phiếu</th>
+                            <th class="text-end">Đã ghi nhận</th>
+                            <th style="min-width:120px">Thực giao</th>
+                            <th style="min-width:120px">Đạt</th>
+                            <th style="min-width:120px">Hỏng</th>
+                            <th style="min-width:120px">Chờ xử lý</th>
+                            <th style="min-width:150px">Hạn dùng</th>
+                            <th style="min-width:220px">Tình trạng / lý do</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @for (var index = 0; index < Model.Order.Items.Count; index++)
+                    {
+                        var item = Model.Order.Items[index];
+                        var remaining = item.ExpectedQuantity - item.ReceivedQuantity;
+                        var requiresExpiry = item.TrackExpiry || item.RotationMethod == "FEFO";
+                        <tr class="receipt-row" data-code="@item.ProductCode" data-scale="@item.QuantityScale" data-remaining="@remaining.ToString(System.Globalization.CultureInfo.InvariantCulture)">
+                            <td>
+                                <input type="hidden" name="Batch.Items[@index].InboundOrderItemId" value="@item.InboundOrderItemId" />
+                                <strong>@item.ProductName</strong>
+                                <div class="text-muted small">@item.ProductCode · @item.UnitName · @item.RotationMethod</div>
+                            </td>
+                            <td class="text-end">@FormatQuantity(item.ExpectedQuantity, item.QuantityScale)</td>
+                            <td class="text-end">@FormatQuantity(item.ReceivedQuantity, item.QuantityScale)<div class="text-muted small">Còn @FormatQuantity(remaining, item.QuantityScale)</div></td>
+                            @if (remaining > 0)
+                            {
+                                <td><input name="Batch.Items[@index].DeliveredQuantity" type="number" min="@QuantityStep(item.QuantityScale)" max="@remaining" step="@QuantityStep(item.QuantityScale)" class="form-control form-control-sm delivered" /></td>
+                                <td><input name="Batch.Items[@index].AcceptedQuantity" type="number" min="0" max="@remaining" step="@QuantityStep(item.QuantityScale)" class="form-control form-control-sm accepted" /></td>
+                                <td><input name="Batch.Items[@index].DamagedQuantity" type="number" min="0" max="@remaining" step="@QuantityStep(item.QuantityScale)" class="form-control form-control-sm damaged" /></td>
+                                <td><input name="Batch.Items[@index].HoldQuantity" type="number" min="0" max="@remaining" step="@QuantityStep(item.QuantityScale)" class="form-control form-control-sm hold" /></td>
+                                <td><input name="Batch.Items[@index].ExpiryDate" type="date" class="form-control form-control-sm expiry" data-required="@requiresExpiry.ToString().ToLowerInvariant()" /><div class="small text-muted">@(requiresExpiry ? "Bắt buộc" : "Không bắt buộc")</div></td>
+                                <td><input name="Batch.Items[@index].ConditionNotes" class="form-control form-control-sm notes" placeholder="Bắt buộc nếu hỏng/chờ xử lý" /><div class="row-error text-danger small mt-1"></div></td>
+                            }
+                            else
+                            {
+                                <td colspan="6"><span class="badge bg-success">Đã ghi nhận đủ số thực giao</span></td>
+                            }
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+            <div class="card-footer bg-white d-flex justify-content-between align-items-center gap-3">
+                <div class="text-muted small">Lưu tiến độ không chốt phiếu và chưa cộng tồn vào bin.</div>
+                <button class="btn btn-primary" id="saveProgress">Lưu tiến độ kiểm nhận</button>
+            </div>
+        </div>
+    </form>
+
+    <form method="post" asp-page-handler="Complete" id="completeForm" onsubmit="return confirm('Hoàn tất kiểm nhận sẽ khóa bước ghi nhận và chuyển sang cất hàng. Tiếp tục?');">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white"><strong>Chốt kết quả kiểm nhận</strong></div>
+            <div class="card-body">
+                @if (incompleteItems.Count > 0)
+                {
+                    <div class="alert alert-warning">Các dòng dưới đây chưa đủ số thực giao. Muốn chốt phiếu, phải xác nhận từng dòng và nhập lý do cụ thể.</div>
+                    @for (var index = 0; index < incompleteItems.Count; index++)
+                    {
+                        var item = incompleteItems[index];
+                        var shortage = item.ExpectedQuantity - item.ReceivedQuantity;
+                        <div class="row g-2 align-items-center border-bottom py-2">
+                            <input type="hidden" name="CompleteDto.Decisions[@index].InboundOrderItemId" value="@item.InboundOrderItemId" />
+                            <div class="col-lg-5"><strong>@item.ProductName (@item.ProductCode)</strong><div class="text-muted small">Thiếu @FormatQuantity(shortage, item.QuantityScale) @item.UnitName so với phiếu</div></div>
+                            <div class="col-lg-2 form-check"><input class="form-check-input" type="checkbox" name="CompleteDto.Decisions[@index].CloseAsShort" value="true" id="close-@item.InboundOrderItemId" required /><label class="form-check-label" for="close-@item.InboundOrderItemId">Chốt thiếu</label></div>
+                            <div class="col-lg-5"><input name="CompleteDto.Decisions[@index].Reason" class="form-control form-control-sm" required placeholder="Ví dụ: NCC giao thiếu, từ chối nhận do sai quy cách..." /></div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="alert alert-success">Tất cả dòng hàng đã có số thực giao bằng số dự kiến.</div>
+                }
+                <label class="form-label mt-3">Ghi chú chung khi chốt</label>
+                <textarea name="CompleteDto.Notes" class="form-control" rows="2" placeholder="Không bắt buộc"></textarea>
+            </div>
+            <div class="card-footer bg-white text-end"><button class="btn btn-warning">Hoàn tất kiểm nhận</button></div>
+        </div>
+    </form>
+</div>
+
+<script>
+document.getElementById('receiptForm').addEventListener('submit', event => {
+    let hasEnteredRow = false;
+    let valid = true;
+    document.querySelectorAll('.receipt-row').forEach(row => {
+        const deliveredInput = row.querySelector('.delivered');
+        if (!deliveredInput) return;
+        const fields = ['delivered', 'accepted', 'damaged', 'hold'].map(name => row.querySelector('.' + name));
+        const values = fields.map(input => input?.value === '' ? null : Number(input?.value));
+        const note = row.querySelector('.notes')?.value.trim() || '';
+        const expiry = row.querySelector('.expiry');
+        const error = row.querySelector('.row-error');
+        error.textContent = '';
+        if (values.every(value => value === null) && !note && !expiry?.value) return;
+        hasEnteredRow = true;
+        let message = '';
+        if (values[0] === null || values[0] <= 0) message = 'Phải nhập số thực giao lớn hơn 0.';
+        else if (values.slice(1).some(value => value === null || value < 0)) message = 'Phải nhập đủ số đạt, hỏng và chờ xử lý.';
+        else if (Math.abs(values[0] - values.slice(1).reduce((sum, value) => sum + value, 0)) > 0.0000001) message = 'Tổng phân loại phải bằng số thực giao.';
+        else if (values[0] > Number(row.dataset.remaining)) message = 'Số thực giao vượt phần còn lại của phiếu.';
+        else if ((values[2] > 0 || values[3] > 0) && !note) message = 'Phải ghi lý do cho hàng hỏng/chờ xử lý.';
+        else if (expiry?.dataset.required === 'true' && !expiry.value) message = 'Sản phẩm này bắt buộc có hạn dùng.';
+        if (message) { error.textContent = message; valid = false; }
+    });
+    if (!hasEnteredRow) { alert('Hãy nhập ít nhất một dòng hàng trước khi lưu.'); valid = false; }
+    if (!valid) event.preventDefault();
+});
+
+document.querySelectorAll('.delivered').forEach(input => input.addEventListener('input', () => {
+    const row = input.closest('.receipt-row');
+    const accepted = row.querySelector('.accepted');
+    const damaged = row.querySelector('.damaged');
+    const hold = row.querySelector('.hold');
+    if (accepted.value === '') accepted.value = input.value;
+    if (damaged.value === '') damaged.value = '0';
+    if (hold.value === '') hold.value = '0';
+}));
+</script>
+
+@functions {
+    string QuantityStep(byte scale) => scale == 0 ? "1" : "0." + new string('0', scale - 1) + "1";
+    string FormatQuantity(decimal value, byte scale) => value.ToString(scale == 0 ? "N0" : $"N{scale}");
+}

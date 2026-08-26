@@ -2,6 +2,7 @@ using System.Net.Http;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
 using BMWMS.Web.Models;
+using Microsoft.AspNetCore.Mvc;
 
 namespace BMWMS.Web.Services;
 
@@ -116,21 +117,19 @@ public class InboundApiService
             var result = await response.Content.ReadFromJsonAsync<ReceiveItemResponse>();
             return result?.ProductLotId ?? throw new Exception("API không trả về mã lô vừa nhận.");
         }
-        var error = await response.Content.ReadAsStringAsync();
-        throw new Exception(error);
+        throw new Exception(await ReadErrorAsync(response));
     }
 
-    public async Task CompleteReceiptAsync(long id, List<long> confirmedShortageItemIds, string? notes = null)
+    public async Task CompleteReceiptAsync(long id, List<InboundReceiptDecisionDto> decisions, string? notes = null)
     {
         var response = await _httpClient.PostAsJsonAsync($"/api/inbounds/{id}/complete-receipt", new CompleteInboundReceiptDto
         {
             Notes = notes,
-            ConfirmedShortageItemIds = confirmedShortageItemIds
+            Decisions = decisions
         });
         if (!response.IsSuccessStatusCode)
         {
-            var error = await response.Content.ReadAsStringAsync();
-            throw new Exception($"Hoàn tất kiểm nhận thất bại: {error}");
+            throw new Exception($"Hoàn tất kiểm nhận thất bại: {await ReadErrorAsync(response)}");
         }
     }
 
@@ -139,8 +138,7 @@ public class InboundApiService
         var response = await _httpClient.PostAsJsonAsync($"/api/inbounds/{inboundOrderId}/receive-batch", dto);
         if (!response.IsSuccessStatusCode)
         {
-            var error = await response.Content.ReadAsStringAsync();
-            throw new Exception($"Lỗi khi nhận hàng hàng loạt: {error}");
+            throw new Exception($"Lưu kiểm nhận thất bại: {await ReadErrorAsync(response)}");
         }
     }
 
@@ -149,9 +147,25 @@ public class InboundApiService
         var response = await _httpClient.PostAsJsonAsync($"/api/inbounds/{id}/putaway", dtos);
         if (!response.IsSuccessStatusCode)
         {
-            var error = await response.Content.ReadAsStringAsync();
-            throw new Exception($"Xếp vị trí thất bại: {error}");
+            throw new Exception($"Xếp vị trí thất bại: {await ReadErrorAsync(response)}");
         }
+    }
+
+    private static async Task<string> ReadErrorAsync(HttpResponseMessage response)
+    {
+        try
+        {
+            var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+            if (!string.IsNullOrWhiteSpace(problem?.Detail)) return problem.Detail;
+            if (!string.IsNullOrWhiteSpace(problem?.Title)) return problem.Title;
+        }
+        catch
+        {
+            // API cũ có thể vẫn trả chuỗi thuần; đọc lại ở nhánh bên dưới nếu còn nội dung.
+        }
+
+        var raw = await response.Content.ReadAsStringAsync();
+        return string.IsNullOrWhiteSpace(raw) ? $"API trả về mã {response.StatusCode}." : raw.Trim('"');
     }
 }
 

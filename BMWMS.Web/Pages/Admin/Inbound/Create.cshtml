@@ -102,21 +102,12 @@
     }
 
     <form method="post" id="createForm">
-        <input type="hidden" asp-for="InboundOrder.ParentInboundOrderId" id="supplementalParentId" />
         <div class="card">
             <h3>Loại lệnh nhập</h3>
-            @if (Model.ParentInbound != null)
-            {
-                <input type="hidden" asp-for="InboundOrder.SourceType" value="PURCHASE_ORDER" />
-                <div class="note" style="margin-top:0"><svg><use href="#i-info" /></svg><div><strong>Phiếu nhập bổ sung theo kiểm nhận</strong><br />Nguồn được khóa theo phiếu @Model.ParentInbound.InboundOrderNumber; chỉ các mặt hàng thiếu/hỏng và số lượng còn thiếu mới được tạo.</div></div>
-            }
-            else
-            {
-                <div class="filters" style="margin-bottom:0">
-                    <label class="radio-opt"><input type="radio" asp-for="InboundOrder.SourceType" value="PURCHASE_ORDER" onchange="toggleSource(this)">Nhập từ nhà cung cấp (PO)</label>
-                    <label class="radio-opt"><input type="radio" asp-for="InboundOrder.SourceType" value="SALES_RETURN" onchange="toggleSource(this)">Nhập hàng khách trả lại (SO)</label>
-                </div>
-            }
+            <div class="filters" style="margin-bottom:0">
+                <label class="radio-opt"><input type="radio" asp-for="InboundOrder.SourceType" value="PURCHASE_ORDER" onchange="toggleSource(this)">Nhập từ nhà cung cấp (PO)</label>
+                <label class="radio-opt"><input type="radio" asp-for="InboundOrder.SourceType" value="SALES_RETURN" onchange="toggleSource(this)">Nhập hàng khách trả lại (SO)</label>
+            </div>
         </div>
 
         <div class="card">
@@ -124,19 +115,10 @@
             <div class="grid2">
                 <div class="field" id="po-field">
                     <label>Chọn đơn PO *</label>
-                    @if (Model.ParentInbound != null)
-                    {
-                        <input type="hidden" asp-for="InboundOrder.PurchaseOrderId" />
-                        <input disabled value="@Model.ParentInbound.PurchaseOrderNumber — bổ sung từ @Model.ParentInbound.InboundOrderNumber" />
-                        <small>Nguồn PO và phiếu nhập gốc không được thay đổi.</small>
-                    }
-                    else
-                    {
-                        <select asp-for="InboundOrder.PurchaseOrderId" asp-items="Model.PurchaseOrders" onchange="fetchSourceDetails('PURCHASE_ORDER', this.value)">
-                            <option value="">@(Model.PurchaseOrders.Any() ? "-- Chọn PO đã xác nhận --" : "-- Không có PO còn số lượng có thể nhập --")</option>
-                        </select>
-                        <small>Chỉ hiển thị PO đã xác nhận và còn số lượng chưa được phiếu nhập khác giữ chỗ.</small>
-                    }
+                    <select asp-for="InboundOrder.PurchaseOrderId" asp-items="Model.PurchaseOrders" onchange="fetchSourceDetails('PURCHASE_ORDER', this.value)">
+                        <option value="">@(Model.PurchaseOrders.Any() ? "-- Chọn PO đã xác nhận --" : "-- Không có PO còn số lượng có thể nhập --")</option>
+                    </select>
+                    <small>Phiếu đang xử lý giữ chỗ theo số dự kiến; phiếu đã chốt chỉ trừ số hàng đạt thực tế.</small>
                 </div>
                 <div class="field" id="so-field" style="display:none;">
                     <label>Chọn đơn SO *</label>
@@ -270,10 +252,7 @@
             try {
                 let handler = '';
                 let paramName = '';
-                if (sourceType === 'SUPPLEMENTAL') {
-                    handler = 'SupplementalDetails';
-                    paramName = 'parentId';
-                } else if (sourceType === 'PURCHASE_ORDER') {
+                if (sourceType === 'PURCHASE_ORDER') {
                     handler = 'PoDetails';
                     paramName = 'poId';
                 } else if (sourceType === 'SALES_RETURN') {
@@ -365,13 +344,6 @@
         }
 
         document.addEventListener('DOMContentLoaded', function() {
-            const supplementalParentId = document.getElementById('supplementalParentId')?.value;
-            if (supplementalParentId) {
-                document.getElementById('so-field').style.display = 'none';
-                fetchSourceDetails('SUPPLEMENTAL', supplementalParentId);
-                return;
-            }
-
             // Trigger radio button toggle on load to sync UI state
             var checkedRadio = document.querySelector('input[type="radio"]:checked');
             if (checkedRadio) {

@@ -75,6 +75,7 @@ public class InboundOrderItemDto
     public byte QuantityScale { get; set; }
     public bool TrackLot { get; set; }
     public bool TrackExpiry { get; set; }
+    public string RotationMethod { get; set; } = string.Empty;
     public decimal ExpectedQuantity { get; set; }
     public decimal ReceivedQuantity { get; set; }
     public decimal PutawayQuantity { get; set; }
@@ -188,10 +189,10 @@ public class CancelInboundOrderDto
 public class ReceiveInboundItemDto
 {
     public long InboundOrderItemId { get; set; }
-    [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Vui lòng nhập số lượng thực giao")]
-    public decimal DeliveredQuantity { get; set; }
+    public decimal? DeliveredQuantity { get; set; }
     public decimal? AcceptedQuantity { get; set; }
-    public decimal DamagedQuantity { get; set; }
+    public decimal? DamagedQuantity { get; set; }
+    public decimal? HoldQuantity { get; set; }
     public string? LotNumber { get; set; }
     public DateOnly? ManufactureDate { get; set; }
     public DateOnly? ExpiryDate { get; set; }
@@ -206,7 +207,14 @@ public class ReceiveBatchInboundDto
 public class CompleteInboundReceiptDto
 {
     public string? Notes { get; set; }
-    public List<long> ConfirmedShortageItemIds { get; set; } = new();
+    public List<InboundReceiptDecisionDto> Decisions { get; set; } = new();
+}
+
+public class InboundReceiptDecisionDto
+{
+    public long InboundOrderItemId { get; set; }
+    public bool CloseAsShort { get; set; }
+    public string? Reason { get; set; }
 }
 
 public class PutawayInboundItemDto
@@ -217,6 +225,7 @@ public class PutawayInboundItemDto
     public long StorageLocationId { get; set; }
     [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Vui lòng nhập số lượng xếp vị trí")]
     public decimal PutawayQuantity { get; set; }
+    public string? OverrideReason { get; set; }
 }
 
 public class PutawayLocationDto
