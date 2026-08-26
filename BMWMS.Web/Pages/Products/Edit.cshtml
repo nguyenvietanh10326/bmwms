@@ -228,13 +228,17 @@
 
             if (isFEFO) {
                 chkExpiry.checked = true;
-                chkExpiry.disabled = true;
+                chkExpiry.onclick = function() { return false; };
+                chkExpiry.style.opacity = '0.7';
+                chkExpiry.style.cursor = 'not-allowed';
                 fefoNotice.style.display = 'block';
                 shelfLifeStar.style.display = 'inline';
                 txtShelfLife.setAttribute('required', 'required');
                 toggleShelfLife(true);
             } else {
-                chkExpiry.disabled = false;
+                chkExpiry.onclick = null;
+                chkExpiry.style.opacity = '1';
+                chkExpiry.style.cursor = 'pointer';
                 fefoNotice.style.display = 'none';
                 shelfLifeStar.style.display = 'none';
                 txtShelfLife.removeAttribute('required');
