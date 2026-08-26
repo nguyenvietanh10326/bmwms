@@ -12,10 +12,10 @@ namespace BMWMS.Business.Interfaces
         Task<ProductGroupDetailDto?> GetByIdAsync(long productGroupId);
         Task<List<GroupAttributeConfigDto>> GetAttributesByGroupIdAsync(long productGroupId);
         Task<List<ProductAttributeDto>> GetAllAttributesAsync();
-        Task<long> CreateAsync(CreateProductGroupDto dto);
-        Task UpdateAsync(long productGroupId, UpdateProductGroupDto dto);
-        Task ToggleStatusAsync(long productGroupId);
-        Task DeleteAsync(long productGroupId);
-        Task UpdateGroupAttributesAsync(long productGroupId, List<GroupAttributeAssignmentDto> attributes);
+        Task<long> CreateAsync(CreateProductGroupDto dto, long userId);
+        Task UpdateAsync(long productGroupId, UpdateProductGroupDto dto, long userId);
+        Task ToggleStatusAsync(long productGroupId, long userId);
+        Task DeleteAsync(long productGroupId, long userId);
+        Task UpdateGroupAttributesAsync(long productGroupId, List<GroupAttributeAssignmentDto> attributes, long userId);
     }
 }
