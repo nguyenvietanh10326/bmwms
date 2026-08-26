@@ -34,7 +34,7 @@ public class DetailModel : PageModel
 
     public async Task<IActionResult> OnPostConfirmAsync()
     {
-        if (!User.IsInRole("SYSTEM_ADMIN") && !User.IsInRole("WAREHOUSE_MANAGER"))
+        if (!User.IsInRole("SYSTEM_ADMIN") && !User.IsInRole("PURCHASING_STAFF"))
             return Forbid();
 
         var (isSuccess, message) = await _apiService.ConfirmPurchaseOrderAsync(Id);
@@ -46,6 +46,20 @@ public class DetailModel : PageModel
         {
             TempData["ErrorMessage"] = message;
         }
+        return RedirectToPage(new { id = Id });
+    }
+
+    public async Task<IActionResult> OnPostSendToSupplierAsync()
+    {
+        if (!User.IsInRole("SYSTEM_ADMIN") && !User.IsInRole("PURCHASING_STAFF"))
+            return Forbid();
+
+        var (isSuccess, message) = await _apiService.SendPurchaseOrderToSupplierAsync(Id);
+        if (isSuccess)
+            TempData["SuccessMessage"] = message;
+        else
+            TempData["ErrorMessage"] = message;
+
         return RedirectToPage(new { id = Id });
     }
 

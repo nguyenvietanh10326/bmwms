@@ -73,7 +73,7 @@ public class PurchaseOrdersController : ControllerBase
         Ok(await _poService.GetPagedOrdersAsync(filter));
 
     [HttpPost("{id}/confirm")]
-    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
+    [Authorize(Roles = "SYSTEM_ADMIN,PURCHASING_STAFF")]
     public async Task<IActionResult> Confirm(long id)
     {
         try
@@ -88,6 +88,25 @@ public class PurchaseOrdersController : ControllerBase
         catch (Exception ex)
         {
             return StatusCode(500, new { message = "Lỗi hệ thống khi xác nhận đơn mua hàng.", detail = ex.Message });
+        }
+    }
+
+    [HttpPost("{id}/send-to-supplier")]
+    [Authorize(Roles = "SYSTEM_ADMIN,PURCHASING_STAFF")]
+    public async Task<IActionResult> SendToSupplier(long id)
+    {
+        try
+        {
+            if (!TryGetCurrentUserId(out var userId)) return Unauthorized();
+
+            var result = await _poService.SendOrderToSupplierAsync(id, userId);
+            return result.Success
+                ? Ok(new { message = result.Message })
+                : BadRequest(new { message = result.Message });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Lỗi hệ thống khi gửi PO cho nhà cung cấp.", detail = ex.Message });
         }
     }
 

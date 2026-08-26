@@ -34,6 +34,7 @@ namespace BMWMS.Web.Models.Inventory
         public long SupplierId { get; set; }
         public string SupplierCode { get; set; } = string.Empty;
         public string SupplierName { get; set; } = null!;
+        public string? SupplierEmail { get; set; }
         public DateTime OrderDate { get; set; }
         public DateTime? ExpectedDeliveryDate { get; set; }
         public string Status { get; set; } = null!;
@@ -44,6 +45,11 @@ namespace BMWMS.Web.Models.Inventory
         public long? ConfirmedByUserId { get; set; }
         public string? ConfirmedByUserName { get; set; }
         public DateTime? ConfirmedAt { get; set; }
+        public long? SupplierEmailSentByUserId { get; set; }
+        public DateTime? SupplierEmailSentAt { get; set; }
+        public string? SupplierEmailSentTo { get; set; }
+        public bool HasSentSupplierEmail { get; set; }
+        public bool CanSendToSupplier { get; set; }
         public bool CanConfirm { get; set; }
         public bool CanCancel { get; set; }
         public bool CanCreateInbound { get; set; }

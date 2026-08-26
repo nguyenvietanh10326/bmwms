@@ -29,6 +29,12 @@ public partial class PurchaseOrder
 
     public DateTime? UpdatedAt { get; set; }
 
+    public long? SupplierEmailSentByUserId { get; set; }
+
+    public DateTime? SupplierEmailSentAt { get; set; }
+
+    public string? SupplierEmailSentTo { get; set; }
+
     public virtual User? ConfirmedByUser { get; set; }
 
     public virtual User CreatedByUser { get; set; } = null!;

@@ -456,6 +456,9 @@ BEGIN
         CreatedAt           DATETIME2(0) NOT NULL CONSTRAINT DF_PurchaseOrders_CreatedAt DEFAULT (SYSUTCDATETIME()),
         ConfirmedByUserID   BIGINT NULL,
         ConfirmedAt         DATETIME2(0) NULL,
+        SupplierEmailSentByUserID BIGINT NULL,
+        SupplierEmailSentAt DATETIME2(0) NULL,
+        SupplierEmailSentTo NVARCHAR(320) NULL,
         UpdatedAt           DATETIME2(0) NULL,
         CONSTRAINT PK_PurchaseOrders PRIMARY KEY (PurchaseOrderID),
         CONSTRAINT UQ_PurchaseOrders_Number UNIQUE (PurchaseOrderNumber),
@@ -464,6 +467,14 @@ BEGIN
         CONSTRAINT CK_PurchaseOrders_Dates CHECK (ExpectedDeliveryDate IS NULL OR ExpectedDeliveryDate >= OrderDate)
     );
 END;
+GO
+
+IF COL_LENGTH(N'dbo.PurchaseOrders', N'SupplierEmailSentByUserID') IS NULL
+    ALTER TABLE dbo.PurchaseOrders ADD SupplierEmailSentByUserID BIGINT NULL;
+IF COL_LENGTH(N'dbo.PurchaseOrders', N'SupplierEmailSentAt') IS NULL
+    ALTER TABLE dbo.PurchaseOrders ADD SupplierEmailSentAt DATETIME2(0) NULL;
+IF COL_LENGTH(N'dbo.PurchaseOrders', N'SupplierEmailSentTo') IS NULL
+    ALTER TABLE dbo.PurchaseOrders ADD SupplierEmailSentTo NVARCHAR(320) NULL;
 GO
 
 IF OBJECT_ID(N'dbo.PurchaseOrderDetails', N'U') IS NULL
@@ -1076,6 +1087,8 @@ IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_PurchaseOrders_C
     ALTER TABLE dbo.PurchaseOrders ADD CONSTRAINT FK_PurchaseOrders_CreatedBy FOREIGN KEY (CreatedByUserID) REFERENCES dbo.Users(UserID);
 IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_PurchaseOrders_ConfirmedBy')
     ALTER TABLE dbo.PurchaseOrders ADD CONSTRAINT FK_PurchaseOrders_ConfirmedBy FOREIGN KEY (ConfirmedByUserID) REFERENCES dbo.Users(UserID);
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_PurchaseOrders_SupplierEmailSentBy')
+    ALTER TABLE dbo.PurchaseOrders ADD CONSTRAINT FK_PurchaseOrders_SupplierEmailSentBy FOREIGN KEY (SupplierEmailSentByUserID) REFERENCES dbo.Users(UserID);
 IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_PurchaseOrderDetails_Product')
     ALTER TABLE dbo.PurchaseOrderDetails ADD CONSTRAINT FK_PurchaseOrderDetails_Product FOREIGN KEY (ProductID) REFERENCES dbo.Products(ProductID);
 IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_SalesOrders_CreatedBy')
@@ -1771,15 +1784,9 @@ BEGIN
         JOIN dbo.StorageLocations sl ON sl.StorageLocationID = i.StorageLocationID
         WHERE i.ConditionStatus = 'GOOD'
           AND sl.LocationType = 'BIN'
-          AND NOT EXISTS
-          (
-              SELECT 1 FROM dbo.ProductFixedLocations pfl
-              WHERE pfl.ProductID = i.ProductID
-                AND pfl.StorageLocationID = i.StorageLocationID
-                AND pfl.IsActive = 1
-          )
+          AND (sl.IsPutawayAllowed = 0 OR sl.Status IN ('BLOCKED','INACTIVE'))
     )
-        THROW 51002, N'San pham tot phai duoc cat vao vi tri co dinh da cau hinh.', 1;
+        THROW 51002, N'Hang tot chi duoc cat vao bin dang hoat dong va cho phep putaway.', 1;
 
     IF EXISTS
     (

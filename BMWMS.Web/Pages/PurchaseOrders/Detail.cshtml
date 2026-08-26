@@ -12,8 +12,9 @@
     var totalPlanned = Model.Order?.Items.Sum(item => item.PlannedInboundQuantity) ?? 0;
     var totalReceived = Model.Order?.Items.Sum(item => item.ReceivedQuantity) ?? 0;
     var totalRemaining = Model.Order?.Items.Sum(item => item.RemainingQuantity) ?? 0;
-    var canConfirm = Model.Order?.CanConfirm == true &&
-        (User.IsInRole("SYSTEM_ADMIN") || User.IsInRole("WAREHOUSE_MANAGER"));
+    var canProcessSupplierEmail = User.IsInRole("SYSTEM_ADMIN") || User.IsInRole("PURCHASING_STAFF");
+    var canSendToSupplier = Model.Order?.CanSendToSupplier == true && canProcessSupplierEmail;
+    var canConfirm = Model.Order?.CanConfirm == true && canProcessSupplierEmail;
 }
 
 <style>
@@ -79,9 +80,18 @@
                 @if (canConfirm)
                 {
                     <form method="post" asp-page-handler="Confirm" asp-route-id="@Model.Id"
-                          onsubmit="return confirm('Xác nhận PO này để có thể lập phiếu nhập kho?');">
+                          onsubmit="return confirm('Xác nhận rằng PO đã được gửi cho NCC và chuyển PO sang Đã xác nhận? Sau bước này PO không thể bị hủy.');">
                         <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-check2-circle me-1"></i>Xác nhận PO
+                            <i class="bi bi-check2-circle me-1"></i>Đã gửi mail cho NCC
+                        </button>
+                    </form>
+                }
+                @if (canSendToSupplier)
+                {
+                    <form method="post" asp-page-handler="SendToSupplier" asp-route-id="@Model.Id"
+                          onsubmit="return confirm('Gửi nội dung PO tới email của nhà cung cấp? PO vẫn giữ trạng thái Nháp sau khi gửi.');">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-envelope-arrow-up me-1"></i>Gửi mail cho NCC
                         </button>
                     </form>
                 }
@@ -94,11 +104,31 @@
             </div>
         </div>
 
-        @if (Model.Order.Status == "DRAFT" && User.IsInRole("PURCHASING_STAFF"))
+        @if (Model.Order.Status == "DRAFT" && !Model.Order.HasSentSupplierEmail)
         {
             <div class="alert alert-info d-flex gap-2 align-items-start">
+                <i class="bi bi-envelope mt-1"></i>
+                <div>PO đang ở trạng thái Nháp. Purchasing Staff cần gửi email cho NCC trước; gửi thành công không tự động xác nhận PO và PO vẫn có thể bị hủy.</div>
+            </div>
+        }
+
+        @if (Model.Order.Status == "DRAFT" && Model.Order.HasSentSupplierEmail)
+        {
+            <div class="alert alert-success d-flex gap-2 align-items-start">
                 <i class="bi bi-envelope-check mt-1"></i>
-                <div>Đơn mua hàng đang chờ quản lý kho xác nhận. Hệ thống sẽ gửi email cho nhà cung cấp sau khi xác nhận thành công.</div>
+                <div>
+                    Email đã gửi tới <strong>@Model.Order.SupplierEmailSentTo</strong>
+                    lúc <strong>@Model.Order.SupplierEmailSentAt?.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</strong>.
+                    PO vẫn là Nháp và vẫn có thể hủy. Bấm <strong>“Đã gửi mail cho NCC”</strong> để chuyển sang Đã xác nhận.
+                </div>
+            </div>
+        }
+
+        @if (Model.Order.Status == "CONFIRMED")
+        {
+            <div class="alert alert-primary d-flex gap-2 align-items-start">
+                <i class="bi bi-lock mt-1"></i>
+                <div>PO đã được xác nhận và không còn được phép hủy. Có thể tiếp tục lập phiếu nhập kho tham chiếu PO.</div>
             </div>
         }
 
@@ -144,7 +174,7 @@
                     <div class="col-md-6 col-xl-3">
                         <div class="po-label">Nhà cung cấp</div>
                         <div class="po-value">@Model.Order.SupplierName</div>
-                        <div class="text-muted small">@Model.Order.SupplierCode</div>
+                        <div class="text-muted small">@Model.Order.SupplierCode · @(string.IsNullOrWhiteSpace(Model.Order.SupplierEmail) ? "Chưa có email" : Model.Order.SupplierEmail)</div>
                     </div>
                     <div class="col-md-6 col-xl-3">
                         <div class="po-label">Ngày đặt hàng</div>
@@ -161,6 +191,18 @@
                     <div class="col-12">
                         <div class="po-label">Ghi chú nghiệp vụ</div>
                         <div class="po-value fw-normal" style="white-space: pre-line;">@(string.IsNullOrWhiteSpace(Model.Order.Notes) ? "Không có ghi chú" : Model.Order.Notes)</div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="po-label">Trạng thái gửi NCC</div>
+                        @if (Model.Order.HasSentSupplierEmail)
+                        {
+                            <div class="po-value text-success">Đã gửi email</div>
+                            <div class="text-muted small">@Model.Order.SupplierEmailSentTo · @Model.Order.SupplierEmailSentAt?.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</div>
+                        }
+                        else
+                        {
+                            <div class="text-muted">Chưa gửi email</div>
+                        }
                     </div>
                 </div>
             </div>
@@ -232,10 +274,6 @@
                                 <tr>
                                     <td>
                                         <a href="/Admin/Inbound/Details/@inbound.InboundOrderId" class="fw-semibold text-decoration-none">@inbound.InboundOrderNumber</a>
-                                        @if (inbound.IsSupplemental)
-                                        {
-                                            <span class="badge bg-warning-subtle text-warning-emphasis ms-1">Bổ sung</span>
-                                        }
                                     </td>
                                     <td>@inbound.ExpectedReceiptDate.ToString("dd/MM/yyyy")</td>
                                     <td class="text-end quantity-number">@FormatHelper.FormatQuantity(inbound.ExpectedQuantity, "")</td>

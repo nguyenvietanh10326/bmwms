@@ -22,6 +22,9 @@ namespace BMWMS.Business.Interfaces.Inventory
         // Xác nhận PO
         Task<(bool Success, string Message)> ConfirmOrderAsync(long purchaseOrderId, long currentUserId);
 
+        // Gửi nội dung PO cho nhà cung cấp nhưng vẫn giữ trạng thái DRAFT
+        Task<(bool Success, string Message)> SendOrderToSupplierAsync(long purchaseOrderId, long currentUserId);
+
         // Hủy PO
         Task<(bool Success, string Message)> CancelOrderAsync(long purchaseOrderId, long currentUserId, string? reason);
 

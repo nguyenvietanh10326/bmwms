@@ -968,7 +968,15 @@ public partial class BMWMSContext : DbContext
                 .IsUnicode(false)
                 .HasDefaultValue("DRAFT");
             entity.Property(e => e.SupplierId).HasColumnName("SupplierID");
+            entity.Property(e => e.SupplierEmailSentAt).HasPrecision(0);
+            entity.Property(e => e.SupplierEmailSentByUserId).HasColumnName("SupplierEmailSentByUserID");
+            entity.Property(e => e.SupplierEmailSentTo).HasMaxLength(320);
             entity.Property(e => e.UpdatedAt).HasPrecision(0);
+
+            entity.HasOne<User>()
+                .WithMany()
+                .HasForeignKey(e => e.SupplierEmailSentByUserId)
+                .HasConstraintName("FK_PurchaseOrders_SupplierEmailSentBy");
 
             entity.HasOne(d => d.ConfirmedByUser).WithMany(p => p.PurchaseOrderConfirmedByUsers)
                 .HasForeignKey(d => d.ConfirmedByUserId)

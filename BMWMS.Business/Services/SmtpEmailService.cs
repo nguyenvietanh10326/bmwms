@@ -30,7 +30,7 @@ public class SmtpEmailService : IEmailService
         if (string.IsNullOrEmpty(host) || string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
         {
             _logger.LogWarning("SMTP Settings are not fully configured. Email was not sent.");
-            return;
+            throw new InvalidOperationException("Cấu hình SMTP chưa đầy đủ nên email chưa được gửi.");
         }
 
         using var client = new SmtpClient(host, port)
@@ -58,7 +58,7 @@ public class SmtpEmailService : IEmailService
         catch (System.Exception ex)
         {
             _logger.LogError(ex, "Failed to send email to {to}", to);
-            // In a real application, you might want to rethrow or handle this differently
+            throw;
         }
     }
 }

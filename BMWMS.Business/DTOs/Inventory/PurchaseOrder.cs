@@ -36,6 +36,7 @@ namespace BMWMS.Business.DTOs.Inventory
         public long SupplierId { get; set; }
         public string SupplierCode { get; set; } = string.Empty;
         public string SupplierName { get; set; } = string.Empty;
+        public string? SupplierEmail { get; set; }
 
         public DateOnly OrderDate { get; set; }
         public DateOnly? ExpectedDeliveryDate { get; set; }
@@ -51,6 +52,12 @@ namespace BMWMS.Business.DTOs.Inventory
         public string? ConfirmedByUserName { get; set; }
         public DateTime? ConfirmedAt { get; set; }
 
+        public long? SupplierEmailSentByUserId { get; set; }
+        public DateTime? SupplierEmailSentAt { get; set; }
+        public string? SupplierEmailSentTo { get; set; }
+        public bool HasSentSupplierEmail => SupplierEmailSentAt.HasValue;
+
+        public bool CanSendToSupplier { get; set; }
         public bool CanConfirm { get; set; }
         public bool CanCancel { get; set; }
         public bool CanCreateInbound { get; set; }
