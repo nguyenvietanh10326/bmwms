@@ -1,4 +1,5 @@
 using BMWMS.Business.Common;
+using BMWMS.Business.DTOs.Audit;
 using BMWMS.Business.DTOs.Product;
 using BMWMS.Business.Interfaces;
 using BMWMS.Repository.Interfaces;
@@ -14,11 +15,13 @@ namespace BMWMS.Business.Services
     {
         private readonly IProductRepository _productRepository;
         private readonly IProductGroupRepository _productGroupRepository;
+        private readonly IAuditLogService _auditLogService;
 
-        public ProductService(IProductRepository productRepository, IProductGroupRepository productGroupRepository)
+        public ProductService(IProductRepository productRepository, IProductGroupRepository productGroupRepository, IAuditLogService auditLogService)
         {
             _productRepository = productRepository;
             _productGroupRepository = productGroupRepository;
+            _auditLogService = auditLogService;
         }
 
         public async Task<PagedResultDto<ProductResponseDto>> GetPagedListAsync(ProductFilterDto filter)
@@ -181,6 +184,12 @@ namespace BMWMS.Business.Services
                 }
             }
 
+            // Ràng buộc: FEFO bắt buộc TrackExpiry
+            if (dto.RotationMethod == "FEFO" && !dto.TrackExpiry)
+            {
+                throw new InvalidOperationException("Phương pháp xuất kho FEFO bắt buộc phải bật 'Theo dõi Hạn sử dụng (Expiry Date)'.");
+            }
+
             var product = new Product
             {
                 ProductCode = cleanCode,
@@ -206,7 +215,18 @@ namespace BMWMS.Business.Services
                     AttributeValue = av.AttributeValue.Trim()
                 }).ToList();
 
-            return await _productRepository.AddAsync(product, attributeValues);
+            var id = await _productRepository.AddAsync(product, attributeValues);
+
+            await _auditLogService.RecordAsync(new AuditEventDto
+            {
+                UserId = currentUserId > 0 ? currentUserId : null,
+                ActionType = AuditActions.Create,
+                EntityName = AuditEntities.Product,
+                EntityId = id.ToString(),
+                NewValues = new { product.ProductCode, product.ProductName, product.RotationMethod, product.Status }
+            });
+
+            return id;
         }
 
         public async Task UpdateAsync(long productId, UpdateProductDto dto, long currentUserId)
@@ -216,6 +236,8 @@ namespace BMWMS.Business.Services
             {
                 throw new KeyNotFoundException($"Không tìm thấy sản phẩm với ID = {productId}.");
             }
+
+            var oldValues = new { product.ProductCode, product.ProductName, product.RotationMethod, product.Status };
 
             string cleanCode = dto.ProductCode.Trim().ToUpper();
             if (await _productRepository.IsCodeExistsAsync(cleanCode, productId))
@@ -250,6 +272,12 @@ namespace BMWMS.Business.Services
                 }
             }
 
+            // Ràng buộc: FEFO bắt buộc TrackExpiry
+            if (dto.RotationMethod == "FEFO" && !dto.TrackExpiry)
+            {
+                throw new InvalidOperationException("Phương pháp xuất kho FEFO bắt buộc phải bật 'Theo dõi Hạn sử dụng (Expiry Date)'.");
+            }
+
             product.ProductCode = cleanCode;
             product.ProductName = dto.ProductName.Trim();
             product.ProductGroupId = dto.ProductGroupId;
@@ -274,6 +302,16 @@ namespace BMWMS.Business.Services
                 }).ToList();
 
             await _productRepository.UpdateAsync(product, attributeValues);
+
+            await _auditLogService.RecordAsync(new AuditEventDto
+            {
+                UserId = currentUserId > 0 ? currentUserId : null,
+                ActionType = AuditActions.Update,
+                EntityName = AuditEntities.Product,
+                EntityId = productId.ToString(),
+                OldValues = oldValues,
+                NewValues = new { product.ProductCode, product.ProductName, product.RotationMethod, product.Status }
+            });
         }
 
         public async Task ToggleStatusAsync(long productId, long currentUserId)
@@ -284,11 +322,22 @@ namespace BMWMS.Business.Services
                 throw new KeyNotFoundException($"Không tìm thấy sản phẩm với ID = {productId}.");
             }
 
+            var oldStatus = product.Status;
             product.Status = product.Status == "ACTIVE" ? "INACTIVE" : "ACTIVE";
             product.UpdatedByUserId = currentUserId > 0 ? currentUserId : 1;
             product.UpdatedAt = DateTime.UtcNow;
 
             await _productRepository.UpdateAsync(product);
+
+            await _auditLogService.RecordAsync(new AuditEventDto
+            {
+                UserId = currentUserId > 0 ? currentUserId : null,
+                ActionType = AuditActions.ChangeStatus,
+                EntityName = AuditEntities.Product,
+                EntityId = productId.ToString(),
+                OldValues = new { Status = oldStatus },
+                NewValues = new { Status = product.Status }
+            });
         }
 
         public async Task DeleteAsync(long productId)
@@ -305,7 +354,17 @@ namespace BMWMS.Business.Services
                 throw new InvalidOperationException("Không thể xóa sản phẩm đã phát sinh tồn kho hoặc giao dịch nhập xuất. Hãy chuyển sang trạng thái INACTIVE.");
             }
 
+            var snapshot = new { product.ProductCode, product.ProductName, product.Status };
+
             await _productRepository.DeleteAsync(productId);
+
+            await _auditLogService.RecordAsync(new AuditEventDto
+            {
+                ActionType = AuditActions.Delete,
+                EntityName = AuditEntities.Product,
+                EntityId = productId.ToString(),
+                OldValues = snapshot
+            });
         }
     }
 }
