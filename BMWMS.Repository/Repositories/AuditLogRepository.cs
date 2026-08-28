@@ -102,10 +102,16 @@ public class AuditLogRepository : IAuditLogRepository
             .FirstOrDefaultAsync(x => x.AuditLogId == auditLogId);
     }
 
-    public Task<List<string>> GetActionTypesAsync()
+    public Task<List<string>> GetActionTypesAsync(string? entityName = null)
     {
-        return _context.AuditLogs
-            .AsNoTracking()
+        var query = _context.AuditLogs.AsNoTracking();
+        
+        if (!string.IsNullOrWhiteSpace(entityName))
+        {
+            query = query.Where(x => x.EntityName == entityName);
+        }
+
+        return query
             .Select(x => x.ActionType)
             .Distinct()
             .OrderBy(x => x)
