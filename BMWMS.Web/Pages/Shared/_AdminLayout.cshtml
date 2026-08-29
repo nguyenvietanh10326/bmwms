@@ -54,10 +54,10 @@
                 <div class="nav-submenu @(isWhActive ? "expanded" : "")">
 @*                     <a href="/Warehouse/Index" class="nav-sub-item @(Context.Request.Path == "/Warehouse/Index" || Context.Request.Path == "/Warehouse" ? "active" : "")">Danh sách kho hàng</a>
  *@                    <a href="/StorageLocations/Index" class="nav-sub-item @(Context.Request.Path.StartsWithSegments("/StorageLocations") ? "active" : "")">Vị trí lưu trữ</a>
-                    @if (isSysAdmin || isWhManager)
+                  @*   @if (isSysAdmin || isWhManager)
                     {
                         <a href="/Warehouse/Create" class="nav-sub-item @(Context.Request.Path == "/Warehouse/Create" ? "active" : "")">Thêm kho mới</a>
-                    }
+                    } *@
                 </div>
 
                 <!-- Sản phẩm & Danh mục -->
