@@ -81,6 +81,10 @@ namespace BMWMS.Repository.Repositories.Inventory
                     .ThenInclude(io => io.Warehouse)
                 .Include(po => po.InboundOrders)
                     .ThenInclude(io => io.InboundOrderItems)
+                        .ThenInclude(item => item.InboundOrderDetails)
+                            .ThenInclude(detail => detail.InventoryTransaction)
+                .Include(po => po.InboundOrders)
+                    .ThenInclude(io => io.AssignedToUser)
                 .FirstOrDefaultAsync(po => po.PurchaseOrderId == purchaseOrderId);
         }
 

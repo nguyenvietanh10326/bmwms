@@ -52,13 +52,7 @@ namespace BMWMS.Business.DTOs.Inventory
         public string? ConfirmedByUserName { get; set; }
         public DateTime? ConfirmedAt { get; set; }
 
-        public long? SupplierEmailSentByUserId { get; set; }
-        public DateTime? SupplierEmailSentAt { get; set; }
-        public string? SupplierEmailSentTo { get; set; }
-        public bool HasSentSupplierEmail => SupplierEmailSentAt.HasValue;
-
         public bool CanSendToSupplier { get; set; }
-        public bool CanConfirm { get; set; }
         public bool CanCancel { get; set; }
         public bool CanCreateInbound { get; set; }
 
@@ -73,9 +67,10 @@ namespace BMWMS.Business.DTOs.Inventory
         public DateOnly ExpectedReceiptDate { get; set; }
         public string Status { get; set; } = string.Empty;
         public string? Notes { get; set; }
+        public int LineCount { get; set; }
         public decimal ExpectedQuantity { get; set; }
         public decimal ReceivedQuantity { get; set; }
-        public bool IsSupplemental { get; set; }
+        public decimal RejectedQuantity { get; set; }
     }
 
     public class PurchaseOrderItemDto
@@ -85,9 +80,11 @@ namespace BMWMS.Business.DTOs.Inventory
         public string ProductCode { get; set; } = string.Empty;
         public string ProductName { get; set; } = string.Empty;
         public string Unit { get; set; } = string.Empty;
+        public byte QuantityScale { get; set; }
         public decimal OrderedQuantity { get; set; }
         public decimal PlannedInboundQuantity { get; set; }
         public decimal ReceivedQuantity { get; set; }
+        public decimal RejectedQuantity { get; set; }
         public decimal RemainingQuantity { get; set; }
         public string? Notes { get; set; }
     }

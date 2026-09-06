@@ -134,5 +134,27 @@ namespace BMWMS.Web.Services
                 return (false, $"Lỗi kết nối hoặc timeout: {ex.Message}");
             }
         }
+
+        public async Task<(bool IsSuccess, string? Message)> ClosePartiallyReceivedOrderAsync(long id, string reason)
+        {
+            try
+            {
+                var response = await _httpClient.PostAsync(
+                    $"api/PurchaseOrders/{id}/close-partial?reason={Uri.EscapeDataString(reason ?? string.Empty)}", null);
+                var content = await response.Content.ReadAsStringAsync();
+                var message = response.IsSuccessStatusCode ? "Đã kết thúc PO." : "Không thể kết thúc PO.";
+                try
+                {
+                    var json = JsonNode.Parse(content);
+                    message = json?["message"]?.ToString() ?? message;
+                }
+                catch { }
+                return (response.IsSuccessStatusCode, message);
+            }
+            catch (Exception ex)
+            {
+                return (false, $"Lỗi kết nối hoặc timeout: {ex.Message}");
+            }
+        }
     }
 }

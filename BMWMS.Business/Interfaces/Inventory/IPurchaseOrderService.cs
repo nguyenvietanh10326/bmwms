@@ -27,6 +27,7 @@ namespace BMWMS.Business.Interfaces.Inventory
 
         // Hủy PO
         Task<(bool Success, string Message)> CancelOrderAsync(long purchaseOrderId, long currentUserId, string? reason);
+        Task<(bool Success, string Message)> ClosePartiallyReceivedOrderAsync(long purchaseOrderId, long currentUserId, string reason);
 
         Task<IEnumerable<SupplierLookupDto>> GetLookupListAsync();
         Task<IEnumerable<WarehouseLookupDto>> GetLookListAsync();
