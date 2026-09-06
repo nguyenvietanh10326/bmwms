@@ -48,5 +48,4 @@ INSERT INTO StorageLocations (WarehouseID, RackID, LocationCode, LocationName, L
 -- Thêm khu nhận hàng và staging
 (1, NULL, 'RCV-02', N'Khu vực nhận hàng 02', 'RECEIVING', 20.0, NULL, 0, 0, 'AVAILABLE', GETDATE()),
 (1, NULL, 'STG-02', N'Khu vực tạm chứa 02', 'STAGING', 15.0, NULL, 1, 0, 'AVAILABLE', GETDATE()),
-(1, NULL, 'DSP-02', N'Khu vực xuất hàng 02', 'DISPATCH', 18.0, NULL, 0, 1, 'AVAILABLE', GETDATE()),
-(1, NULL, 'QUA-02', N'Khu vực cách ly 02', 'QUARANTINE', 8.0, NULL, 0, 0, 'AVAILABLE', GETDATE());
+(1, NULL, 'DSP-02', N'Khu vực xuất hàng 02', 'DISPATCH', 18.0, NULL, 0, 1, 'AVAILABLE', GETDATE());
