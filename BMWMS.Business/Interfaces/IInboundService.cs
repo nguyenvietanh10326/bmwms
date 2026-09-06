@@ -10,6 +10,7 @@ public interface IInboundService
     Task<long> CreateInboundOrderAsync(CreateInboundOrderDto dto, long currentUserId);
     Task<PurchaseOrderForInboundDto?> GetPurchaseOrderForInboundAsync(long purchaseOrderId);
     Task<List<SourceOrderDropdownDto>> GetPendingPurchaseOrdersAsync();
+    Task<List<PurchaseOrderInboundSourceDto>> GetPurchaseOrderInboundSourcesAsync();
     Task<List<AvailableWarehouseStaffDto>> GetAvailableWarehouseStaffAsync();
     Task<List<SourceOrderDropdownDto>> GetReturnableSalesOrdersAsync();
     Task<PurchaseOrderForInboundDto?> GetSalesOrderForInboundAsync(long salesOrderId);

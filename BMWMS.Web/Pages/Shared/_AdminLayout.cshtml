@@ -26,6 +26,7 @@
                 var isSysAdmin = currentRole == "SYSTEM_ADMIN";
                 var isPurchasing = currentRole == "PURCHASING_STAFF";
                 var isWhManager = currentRole == "WAREHOUSE_MANAGER";
+                var isWhStaff = currentRole == "WAREHOUSE_STAFF";
             }
             <!-- 1. TỔNG QUAN -->
             <div class="nav-section">
@@ -166,8 +167,11 @@
                     <i class="ri-arrow-right-s-line nav-item-arrow"></i>
                 </div>
                 <div class="nav-submenu @(isInboundActive ? "expanded" : "")">
-                    <a href="/Admin/Inbound" class="nav-sub-item @(Context.Request.Path == "/Admin/Inbound" || Context.Request.Path == "/Admin/Inbound/Index" ? "active" : "")">Danh sách lệnh nhập</a>
-                    <a href="/Admin/Inbound/Create" class="nav-sub-item @(Context.Request.Path == "/Admin/Inbound/Create" ? "active" : "")">Tạo lệnh nhập</a>
+                    <a href="/Admin/Inbound" class="nav-sub-item @(Context.Request.Path == "/Admin/Inbound" || Context.Request.Path == "/Admin/Inbound/Index" ? "active" : "")">Danh sách phiếu nhập</a>
+                    @if (isWhStaff)
+                    {
+                        <a href="/Admin/Inbound/Create" class="nav-sub-item @(Context.Request.Path == "/Admin/Inbound/Create" ? "active" : "")">Ghi nhận đợt nhập</a>
+                    }
                 </div>
                 @{
                     var isOutboundActive = Context.Request.Path.StartsWithSegments("/OutboundOrders");
