@@ -129,6 +129,17 @@ public class PurchaseOrdersController : ControllerBase
         }
     }
 
+    [HttpPost("{id}/close-partial")]
+    [Authorize(Roles = "SYSTEM_ADMIN,PURCHASING_STAFF")]
+    public async Task<IActionResult> ClosePartial(long id, [FromQuery] string reason)
+    {
+        if (!TryGetCurrentUserId(out var userId)) return Unauthorized();
+        var result = await _poService.ClosePartiallyReceivedOrderAsync(id, userId, reason);
+        return result.Success
+            ? Ok(new { message = result.Message })
+            : BadRequest(new { message = result.Message });
+    }
+
     [HttpGet("/AllCustomers")]
     [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF,SALES_STAFF")]
     public async Task<IActionResult> GetAllCustomer()

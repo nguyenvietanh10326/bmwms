@@ -48,6 +48,7 @@
   .status-confirmed { background: var(--b-bg); color: var(--b-tx); } .status-confirmed::before { background: var(--b-dot); }
   .status-partially_received { background: var(--y-bg); color: var(--y-tx); } .status-partially_received::before { background: var(--y-dot); }
   .status-received { background: var(--g-bg); color: var(--g-tx); } .status-received::before { background: var(--g-dot); }
+  .status-closed { background: var(--g-bg); color: var(--g-tx); } .status-closed::before { background: var(--g-dot); }
   .status-cancelled { background: var(--r-bg); color: var(--r-tx); } .status-cancelled::before { background: var(--r-dot); }
 </style>
 
@@ -68,11 +69,12 @@
             <label style="font-size: 13px; font-weight: 500; color: var(--ink-2); display:block; margin-bottom:6px;">Trạng thái</label>
             <select name="status" style="padding:9px 12px; border:1px solid var(--line); border-radius:6px; font-size:13px; background:#fff; min-width:180px;">
                 <option value="">Tất cả</option>
-                <option value="DRAFT" selected="@(Model.Status == "DRAFT")">Draft</option>
-                <option value="CONFIRMED" selected="@(Model.Status == "CONFIRMED")">Confirmed</option>
-                <option value="PARTIALLY_RECEIVED" selected="@(Model.Status == "PARTIALLY_RECEIVED")">Partially Received</option>
-                <option value="RECEIVED" selected="@(Model.Status == "RECEIVED")">Received</option>
-                <option value="CANCELLED" selected="@(Model.Status == "CANCELLED")">Cancelled</option>
+                <option value="DRAFT" selected="@(Model.Status == "DRAFT")">Nháp</option>
+                <option value="CONFIRMED" selected="@(Model.Status == "CONFIRMED")">Đã xác nhận</option>
+                <option value="PARTIALLY_RECEIVED" selected="@(Model.Status == "PARTIALLY_RECEIVED")">Đã nhận một phần</option>
+                <option value="RECEIVED" selected="@(Model.Status == "RECEIVED")">Đã nhận đủ</option>
+                <option value="CLOSED" selected="@(Model.Status == "CLOSED")">Đã kết thúc nhận</option>
+                <option value="CANCELLED" selected="@(Model.Status == "CANCELLED")">Đã hủy</option>
             </select>
         </div>
         <div class="filter-group" style="display:flex; gap:8px;">
@@ -108,7 +110,7 @@
                             <td>@(po.ExpectedDeliveryDate?.ToString("dd/MM/yyyy") ?? "-")</td>
                             <td>@po.ItemCount mặt hàng</td>
                             <td>
-                                <span class="status-badge status-@po.Status.ToLower()">@po.Status</span>
+                                <span class="status-badge status-@po.Status.ToLower()">@StatusLabel(po.Status)</span>
                             </td>
                             <td>
                                 <a href="/PurchaseOrders/Detail?id=@po.PurchaseOrderId" style="color:var(--ink-2); text-decoration:underline;">Chi tiết</a>
@@ -140,3 +142,16 @@
         }
     </div>
 </div>
+
+@functions {
+    string StatusLabel(string status) => status switch
+    {
+        "DRAFT" => "Nháp",
+        "CONFIRMED" => "Đã xác nhận",
+        "PARTIALLY_RECEIVED" => "Đã nhận một phần",
+        "RECEIVED" => "Đã nhận đủ",
+        "CLOSED" => "Đã kết thúc nhận",
+        "CANCELLED" => "Đã hủy",
+        _ => status
+    };
+}
