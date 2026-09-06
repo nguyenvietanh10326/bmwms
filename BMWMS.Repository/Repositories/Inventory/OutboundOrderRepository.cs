@@ -75,6 +75,8 @@ namespace BMWMS.Repository.Repositories.Inventory
                 .Include(o => o.OutboundOrderItems)
                     .ThenInclude(i => i.OutboundOrderDetails)
                         .ThenInclude(d => d.StorageLocation)
+                            .ThenInclude(location => location.StorageRack)
+                                .ThenInclude(rack => rack!.WarehouseZone)
                 .Include(o => o.OutboundOrderItems)
                     .ThenInclude(i => i.OutboundOrderDetails)
                         .ThenInclude(d => d.ProductLot)

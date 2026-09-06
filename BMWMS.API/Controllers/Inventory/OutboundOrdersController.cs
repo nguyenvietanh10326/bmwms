@@ -60,7 +60,7 @@ namespace BMWMS.API.Controllers.Inventory
         }
 
         /// <summary>
-        /// Tạo mới phiếu xuất kho (Lưu nháp hoặc Gửi duyệt)
+        /// Tạo phiếu xuất kho và giao trực tiếp cho nhân viên kho xử lý
         /// POST: api/OutboundOrders
         /// </summary>
         [HttpPost]
@@ -247,6 +247,26 @@ namespace BMWMS.API.Controllers.Inventory
             {
                 return StatusCode(500, new { message = "Lỗi khi xử lý Pick hàng!", detail = ex.Message });
             }
+        }
+
+        [HttpPost("execute-pick-batch")]
+        [Authorize(Roles = "WAREHOUSE_STAFF")]
+        public async Task<IActionResult> ExecutePickBatch([FromBody] List<ExecutePickItemRequest> requests)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            if (!TryGetCurrentUserId(out var currentUserId)) return Unauthorized();
+
+            var (success, message) = await _outboundOrderService.ExecutePickBatchAsync(requests, currentUserId);
+            return success ? Ok(new { success = true, message }) : BadRequest(new { message });
+        }
+
+        [HttpPost("{id:long}/complete-early")]
+        [Authorize(Roles = "WAREHOUSE_STAFF")]
+        public async Task<IActionResult> CompleteSalesDeliveryEarly(long id, [FromQuery] string reason)
+        {
+            if (!TryGetCurrentUserId(out var currentUserId)) return Unauthorized();
+            var (success, message) = await _outboundOrderService.CompleteSalesDeliveryEarlyAsync(id, currentUserId, reason);
+            return success ? Ok(new { success = true, message }) : BadRequest(new { message });
         }
         /// <summary>
         /// 6. Cập nhật trạng thái thủ công (ASSIGNED, IN_PROGRESS, COMPLETED, CANCELLED)

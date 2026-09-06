@@ -66,6 +66,39 @@ namespace BMWMS.Web.Pages.OutboundOrders
             var errorContent = await response.Content.ReadAsStringAsync();
             return new JsonResult(new { success = false, message = $"Lỗi từ server: {errorContent}" });
         }
+
+        public async Task<IActionResult> OnPostPickBatchAsync([FromBody] List<PickItemRequestDto> requests)
+        {
+            if (requests == null || requests.Count == 0 || requests.Any(request =>
+                    request.OutboundOrderId <= 0 || request.OutboundOrderItemId <= 0 || request.PickQuantity <= 0))
+                return new JsonResult(new { success = false, message = "Phải chọn ít nhất một dòng lấy hàng hợp lệ." });
+
+            var client = _httpClientFactory.CreateClient("ApiClient");
+            var response = await client.PostAsJsonAsync("api/OutboundOrders/execute-pick-batch", requests);
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<ApiMessageDto>();
+                return new JsonResult(new { success = true, message = result?.Message ?? "Đã ghi nhận đợt xuất hàng." });
+            }
+
+            var error = await response.Content.ReadFromJsonAsync<ApiMessageDto>();
+            return new JsonResult(new { success = false, message = error?.Message ?? "Không thể ghi nhận đợt xuất hàng." });
+        }
+
+        public async Task<IActionResult> OnPostCompleteEarlyAsync(int id, string reason)
+        {
+            var response = await _httpClientFactory.CreateClient("ApiClient")
+                .PostAsync($"api/OutboundOrders/{id}/complete-early?reason={Uri.EscapeDataString(reason ?? string.Empty)}", null);
+            var result = await response.Content.ReadFromJsonAsync<ApiMessageDto>();
+            if (response.IsSuccessStatusCode)
+            {
+                SuccessMessage = result?.Message ?? "Đã kết thúc đợt giao hàng.";
+                return RedirectToPage("./Details", new { id });
+            }
+
+            ErrorMessage = result?.Message ?? "Không thể kết thúc đợt giao hàng.";
+            return RedirectToPage(new { id });
+        }
     }
 
     #region DTOs matching API
@@ -84,6 +117,7 @@ namespace BMWMS.Web.Pages.OutboundOrders
         public long? AssignedToUserId { get; set; }
         public string Status { get; set; } = string.Empty;
         public string Notes { get; set; } = string.Empty;
+        public DateTime? ExpectedIssueDate { get; set; }
         public List<OutboundOrderItemProcessDto> Items { get; set; } = new();
     }
 
@@ -109,6 +143,8 @@ namespace BMWMS.Web.Pages.OutboundOrders
         public string LocationCode { get; set; } = string.Empty;
         public int ProductLotId { get; set; }
         public string LotNumber { get; set; } = string.Empty;
+        public DateTime? FirstReceivedDate { get; set; }
+        public DateTime? ExpiryDate { get; set; }
         public decimal IssuedQuantity { get; set; }
     }
 
@@ -116,8 +152,11 @@ namespace BMWMS.Web.Pages.OutboundOrders
     {
         public int StorageLocationId { get; set; }
         public string LocationCode { get; set; } = string.Empty;
+        public string LocationPath { get; set; } = string.Empty;
         public int ProductLotId { get; set; }
         public string LotNumber { get; set; } = string.Empty;
+        public DateTime? FirstReceivedDate { get; set; }
+        public DateTime? ExpiryDate { get; set; }
         public int? InventoryReservationId { get; set; }
         public decimal AvailableQuantity { get; set; }
     }
@@ -132,5 +171,6 @@ namespace BMWMS.Web.Pages.OutboundOrders
         public decimal PickQuantity { get; set; }
         public string Notes { get; set; } = string.Empty;
     }
+    public class ApiMessageDto { public string Message { get; set; } = string.Empty; }
     #endregion
 }

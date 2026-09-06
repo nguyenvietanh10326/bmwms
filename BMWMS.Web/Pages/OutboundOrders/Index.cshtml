@@ -11,7 +11,7 @@
     @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage)) { <div class="alert alert-danger">@Model.ErrorMessage</div> }
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div><h3 class="mb-1">Phiếu xuất kho</h3><div class="text-muted">Theo dõi luồng bán hàng theo SO và trả hàng nhà cung cấp theo PO.</div></div>
-        @if (!User.IsInRole("WAREHOUSE_STAFF"))
+        @if (User.IsInRole("SALES_STAFF") || User.IsInRole("PURCHASING_STAFF"))
         {
             <a asp-page="./Create" class="btn btn-primary">Tạo phiếu xuất</a>
         }
@@ -24,7 +24,7 @@
     </div></form>
 
     <div class="card border-0 shadow-sm"><div class="table-responsive"><table class="table align-middle mb-0">
-        <thead class="table-light"><tr><th>Mã phiếu</th><th>Luồng nghiệp vụ</th><th>Đơn tham chiếu</th><th>Đối tác</th><th>Kho</th><th>Trạng thái</th><th class="text-end">Tiến độ</th><th class="text-end">Thao tác</th></tr></thead>
+        <thead class="table-light"><tr><th>Mã phiếu</th><th>Nguồn xuất</th><th>Đơn tham chiếu</th><th>Đối tác</th><th>Ngày xuất dự kiến</th><th>Trạng thái</th><th class="text-end">Số mặt hàng</th><th class="text-end">Thao tác</th></tr></thead>
         <tbody>
         @if (Model.PagedResult.Items.Count == 0)
         { <tr><td colspan="8" class="text-center text-muted py-5">Không có phiếu xuất phù hợp.</td></tr> }
@@ -33,9 +33,9 @@
             <tr>
                 <td><a asp-page="./Details" asp-route-id="@item.OutboundOrderId" class="fw-semibold text-decoration-none">@item.OutboundOrderNumber</a><div class="text-muted small">@item.CreatedAt.ToString("dd/MM/yyyy HH:mm")</div></td>
                 <td>@(item.SourceType == "PURCHASE_RETURN" ? "Trả nhà cung cấp" : "Bán hàng")</td>
-                <td>@item.SourceReference</td><td>@item.PartnerName</td><td>@item.WarehouseName</td>
+                <td>@item.SourceReference</td><td>@item.PartnerName</td><td>@item.ExpectedIssueDate.ToString("dd/MM/yyyy")</td>
                 <td><span class="badge @StatusClass(item.Status)">@StatusLabel(item.Status)</span></td>
-                <td class="text-end">@item.TotalIssuedQuantity.ToString("N2") / @item.TotalRequestedQuantity.ToString("N2")</td>
+                <td class="text-end">@item.LineCount dòng</td>
                 <td class="text-end"><a asp-page="./Details" asp-route-id="@item.OutboundOrderId" class="btn btn-sm btn-outline-primary">Chi tiết</a>
                     @if (User.IsInRole("WAREHOUSE_STAFF") && (item.Status is "READY" or "ISSUING")) { <a asp-page="./Process" asp-route-id="@item.OutboundOrderId" class="btn btn-sm btn-primary">Xuất hàng</a> }
                 </td>
