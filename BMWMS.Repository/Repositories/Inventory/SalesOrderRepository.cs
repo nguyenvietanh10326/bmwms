@@ -49,8 +49,13 @@ namespace BMWMS.Repository.Repositories.Inventory
                 .AsNoTracking()
                 .Where(so => (so.Status == "CONFIRMED" || so.Status == "APPROVED" ||
                               so.Status == "ALLOCATED" || so.Status == "PARTIALLY_FULFILLED") &&
-                             !so.OutboundOrders.Any(o => o.Status != "CANCELLED") &&
-                             so.SalesOrderDetails.Any(d => d.OrderedQuantity > d.FulfilledQuantity))
+                             so.SalesOrderDetails.Any(d =>
+                                 d.OrderedQuantity > d.FulfilledQuantity +
+                                 so.OutboundOrders
+                                     .Where(o => o.Status == "DRAFT" || o.Status == "ASSIGNED" || o.Status == "IN_PROGRESS")
+                                     .SelectMany(o => o.OutboundOrderItems)
+                                     .Where(i => i.ProductId == d.ProductId)
+                                     .Sum(i => i.RequestedQuantity - i.IssuedQuantity)))
                 .OrderByDescending(so => so.SalesOrderId)
                 .ToListAsync();
         }

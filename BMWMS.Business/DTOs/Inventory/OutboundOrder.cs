@@ -21,6 +21,7 @@ namespace BMWMS.Business.DTOs.Inventory
         public long WarehouseId { get; set; }
         public string WarehouseName { get; set; } = null!;
         public string Status { get; set; } = null!;
+        public int LineCount { get; set; }
         public decimal TotalRequestedQuantity { get; set; }
         public decimal TotalIssuedQuantity { get; set; }
         public DateOnly ExpectedIssueDate { get; set; }
@@ -64,6 +65,7 @@ namespace BMWMS.Business.DTOs.Inventory
         public decimal RequestedQuantity { get; set; }
         public decimal IssuedQuantity { get; set; }
         public string? Notes { get; set; }
+        public List<OutboundPickedDetailDto> PickedDetails { get; set; } = new();
     }
 
     // Request Request tạo mới lệnh xuất kho 
@@ -185,6 +187,7 @@ namespace BMWMS.Business.DTOs.Inventory
             public long? AssignedToUserId { get; set; }
             public string Status { get; set; } = null!;
             public string? Notes { get; set; }
+            public DateOnly ExpectedIssueDate { get; set; }
 
             public List<OutboundProcessItemDto> Items { get; set; } = new();
         }
@@ -216,6 +219,8 @@ namespace BMWMS.Business.DTOs.Inventory
             public long OutboundOrderDetailId { get; set; }
             public string LocationCode { get; set; } = null!;
             public string LotNumber { get; set; } = null!;
+            public DateOnly FirstReceivedDate { get; set; }
+            public DateOnly? ExpiryDate { get; set; }
             public decimal IssuedQuantity { get; set; }
             public string RecordedByUserName { get; set; } = null!;
             public DateTime RecordedAt { get; set; }
@@ -225,8 +230,11 @@ namespace BMWMS.Business.DTOs.Inventory
         {
             public long StorageLocationId { get; set; }
             public string LocationCode { get; set; } = null!;
+            public string LocationPath { get; set; } = null!;
             public long ProductLotId { get; set; }
             public string LotNumber { get; set; } = null!;
+            public DateOnly FirstReceivedDate { get; set; }
+            public DateOnly? ExpiryDate { get; set; }
             public long? InventoryReservationId { get; set; }
             public decimal AvailableQuantity { get; set; } // Số lượng còn trong Bin/Lot
         }

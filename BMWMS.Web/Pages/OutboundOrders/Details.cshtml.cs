@@ -127,6 +127,19 @@ namespace BMWMS.Web.Pages.OutboundOrders
         public decimal IssuedQuantity { get; set; }
         public string? LotBin { get; set; }
         public string? Notes { get; set; }
+        public List<OutboundPickedDetailViewDto> PickedDetails { get; set; } = new();
+    }
+
+    public class OutboundPickedDetailViewDto
+    {
+        public long OutboundOrderDetailId { get; set; }
+        public string LocationCode { get; set; } = string.Empty;
+        public string LotNumber { get; set; } = string.Empty;
+        public DateOnly FirstReceivedDate { get; set; }
+        public DateOnly? ExpiryDate { get; set; }
+        public decimal IssuedQuantity { get; set; }
+        public string RecordedByUserName { get; set; } = string.Empty;
+        public DateTime RecordedAt { get; set; }
     }
 
     public class ErrorResponseDetail

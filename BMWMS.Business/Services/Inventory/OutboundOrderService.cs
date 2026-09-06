@@ -1,4 +1,6 @@
 using BMWMS.Business.DTOs.Inventory;
+using BMWMS.Business.DTOs.Audit;
+using BMWMS.Business.Interfaces;
 using BMWMS.Business.Interfaces.Inventory;
 using QuantityRules = BMWMS.Business.Common.QuantityRules;
 using BMWMS.Repository.Interfaces.Inventory;
@@ -13,15 +15,18 @@ public class OutboundOrderService : IOutboundOrderService
     private readonly IOutboundOrderRepository _outboundOrderRepo;
     private readonly IInventoryRepository _inventoryRepo;
     private readonly BmwmsContext _context;
+    private readonly IAuditLogService _auditLogService;
 
     public OutboundOrderService(
         IOutboundOrderRepository outboundOrderRepo,
         IInventoryRepository inventoryRepo,
-        BmwmsContext context)
+        BmwmsContext context,
+        IAuditLogService auditLogService)
     {
         _outboundOrderRepo = outboundOrderRepo;
         _inventoryRepo = inventoryRepo;
         _context = context;
+        _auditLogService = auditLogService;
     }
 
     public async Task<PagedResultDto<OutboundOrderListDto>> GetOutboundOrdersAsync(OutboundOrderQueryFilter filter)
@@ -183,13 +188,18 @@ public class OutboundOrderService : IOutboundOrderService
                     ?? throw new ArgumentException("Không tìm thấy SO tham chiếu.");
                 if (salesOrder.Status is not ("CONFIRMED" or "APPROVED" or "ALLOCATED" or "PARTIALLY_FULFILLED"))
                     throw new InvalidOperationException("SO chưa xác nhận/giữ tồn hoặc đã kết thúc.");
-                if (salesOrder.OutboundOrders.Any(o => o.Status != "CANCELLED"))
-                    throw new InvalidOperationException("SO đã có phiếu xuất đang hoạt động; không được tạo trùng.");
 
                 maximumByProduct = new Dictionary<long, decimal>();
                 foreach (var detail in salesOrder.SalesOrderDetails)
                 {
                     var remainingToIssue = Math.Max(0, detail.OrderedQuantity - detail.FulfilledQuantity);
+                    var activePlanned = await _context.OutboundOrderItems
+                        .Where(item => item.OutboundOrder.SalesOrderId == salesOrder.SalesOrderId &&
+                                       (item.OutboundOrder.Status == "DRAFT" ||
+                                        item.OutboundOrder.Status == "ASSIGNED" ||
+                                        item.OutboundOrder.Status == "IN_PROGRESS") &&
+                                       item.ProductId == detail.ProductId)
+                        .SumAsync(item => item.RequestedQuantity - item.IssuedQuantity);
                     var activeReserved = await _context.InventoryReservations
                         .Where(r => r.SalesOrderDetailId == detail.SalesOrderDetailId &&
                                     (r.Status == "ACTIVE" || r.Status == "PARTIALLY_CONSUMED"))
@@ -211,7 +221,7 @@ public class OutboundOrderService : IOutboundOrderService
                     }
 
                     detail.ReservedQuantity = activeReserved;
-                    maximumByProduct[detail.ProductId] = activeReserved;
+                    maximumByProduct[detail.ProductId] = Math.Max(0, remainingToIssue - activePlanned);
                 }
 
                 // Cần ghi các reservation bù trước khi dựng phân bổ lot/bin cho phiếu xuất.
@@ -280,6 +290,22 @@ public class OutboundOrderService : IOutboundOrderService
             }
 
             _context.OutboundOrders.Add(outbound);
+            await _auditLogService.StageAsync(new AuditEventDto
+            {
+                UserId = createdByUserId,
+                ActionType = "CREATE_OUTBOUND",
+                EntityName = AuditEntities.OutboundOrder,
+                EntityId = outbound.OutboundOrderNumber,
+                NewValues = new
+                {
+                    outbound.SourceType,
+                    outbound.SalesOrderId,
+                    outbound.PurchaseOrderId,
+                    outbound.Status,
+                    outbound.AssignedToUserId,
+                    Items = request.Items.Select(item => new { item.ProductId, item.RequestedQuantity })
+                }
+            });
             await _context.SaveChangesAsync();
             await dbTransaction.CommitAsync();
             return (await GetOutboundOrderByIdAsync(outbound.OutboundOrderId))!;
@@ -354,7 +380,8 @@ public class OutboundOrderService : IOutboundOrderService
             WarehouseName = order.Warehouse?.WarehouseName ?? string.Empty,
             AssignedToUserId = order.AssignedToUserId,
             Status = NormalizeOutboundStatus(order.Status),
-            Notes = order.Notes
+            Notes = order.Notes,
+            ExpectedIssueDate = order.ExpectedIssueDate
         };
         foreach (var item in order.OutboundOrderItems)
         {
@@ -374,6 +401,8 @@ public class OutboundOrderService : IOutboundOrderService
                     OutboundOrderDetailId = d.OutboundOrderDetailId,
                     LocationCode = d.StorageLocation?.LocationCode ?? string.Empty,
                     LotNumber = d.ProductLot?.LotNumber ?? string.Empty,
+                    FirstReceivedDate = d.ProductLot?.FirstReceivedDate ?? default,
+                    ExpiryDate = d.ProductLot?.ExpiryDate,
                     IssuedQuantity = d.IssuedQuantity,
                     RecordedByUserName = d.RecordedByUser?.FullName ?? d.RecordedByUser?.Username ?? string.Empty,
                     RecordedAt = d.RecordedAt
@@ -385,16 +414,35 @@ public class OutboundOrderService : IOutboundOrderService
     }
 
     public async Task<(bool Success, string Message)> ExecutePickAsync(ExecutePickItemRequest request, long userId)
+        => await ExecutePickBatchAsync(new[] { request }, userId);
+
+    public async Task<(bool Success, string Message)> ExecutePickBatchAsync(
+        IReadOnlyCollection<ExecutePickItemRequest> requests,
+        long userId)
     {
-        if (request.PickQuantity <= 0) return (false, "Số lượng lấy phải lớn hơn 0.");
+        if (requests == null || requests.Count == 0)
+            return (false, "Phải chọn ít nhất một dòng hàng để xuất.");
+        if (requests.Any(request => request.PickQuantity <= 0))
+            return (false, "Mọi số lượng lấy phải lớn hơn 0.");
+        if (requests.Select(request => request.OutboundOrderId).Distinct().Count() != 1)
+            return (false, "Các dòng lấy hàng phải thuộc cùng một phiếu xuất.");
+        if (requests.GroupBy(request => new
+            {
+                request.OutboundOrderItemId,
+                request.StorageLocationId,
+                request.ProductLotId
+            }).Any(group => group.Count() > 1))
+            return (false, "Một vị trí/lớp hàng chỉ được chọn một lần cho mỗi mặt hàng.");
+
         await using var dbTransaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
         try
         {
+            var outboundOrderId = requests.First().OutboundOrderId;
             var order = await _context.OutboundOrders
                 .Include(o => o.OutboundOrderItems).ThenInclude(i => i.OutboundOrderDetails)
                 .Include(o => o.OutboundOrderItems).ThenInclude(i => i.Product).ThenInclude(p => p.UnitOfMeasure)
                 .Include(o => o.SalesOrder).ThenInclude(s => s!.SalesOrderDetails)
-                .FirstOrDefaultAsync(o => o.OutboundOrderId == request.OutboundOrderId);
+                .FirstOrDefaultAsync(o => o.OutboundOrderId == outboundOrderId);
             if (order == null) return (false, "Không tìm thấy phiếu xuất kho.");
             if (order.Status is not ("ASSIGNED" or "IN_PROGRESS"))
                 return (false, "Phiếu không ở trạng thái cho phép lấy/xuất hàng.");
@@ -404,89 +452,96 @@ public class OutboundOrderService : IOutboundOrderService
             if (order.AssignedToUserId != userId)
                 return (false, "Bạn không được phân công thực hiện phiếu xuất này.");
 
-            var item = order.OutboundOrderItems.SingleOrDefault(i => i.OutboundOrderItemId == request.OutboundOrderItemId);
-            if (item == null) return (false, "Dòng hàng không thuộc phiếu xuất.");
-            try
+            foreach (var request in requests)
             {
-                QuantityRules.EnsureValid(item.Product, request.PickQuantity, "Số lượng lấy");
-            }
-            catch (ArgumentException ex)
-            {
-                return (false, ex.Message);
-            }
-            if (request.PickQuantity > item.RequestedQuantity - item.IssuedQuantity)
-                return (false, "Số lượng lấy vượt số lượng còn phải xuất.");
-            var route = (await GetAvailableAllocationsAsync(order, item)).FirstOrDefault(d =>
-                d.ProductLotId == request.ProductLotId && d.StorageLocationId == request.StorageLocationId);
-            if (route == null || request.PickQuantity > route.AvailableQuantity)
-                return (false, "Vị trí/lô không thuộc phân bổ lấy hàng hoặc vượt số lượng được phân bổ.");
+                var item = order.OutboundOrderItems.SingleOrDefault(i => i.OutboundOrderItemId == request.OutboundOrderItemId);
+                if (item == null) return (false, "Dòng hàng không thuộc phiếu xuất.");
+                try
+                {
+                    QuantityRules.EnsureValid(item.Product, request.PickQuantity, "Số lượng lấy");
+                }
+                catch (ArgumentException ex)
+                {
+                    return (false, ex.Message);
+                }
+                if (request.PickQuantity > item.RequestedQuantity - item.IssuedQuantity)
+                    return (false, $"Số lượng lấy của {item.Product.ProductCode} vượt số lượng còn phải xuất.");
+                var route = (await GetAvailableAllocationsAsync(order, item)).FirstOrDefault(d =>
+                    d.ProductLotId == request.ProductLotId && d.StorageLocationId == request.StorageLocationId);
+                if (route == null || request.PickQuantity > route.AvailableQuantity)
+                    return (false, $"Vị trí/lớp hàng của {item.Product.ProductCode} không còn đủ số lượng được phép lấy.");
 
-            var location = await _context.StorageLocations.FindAsync(request.StorageLocationId);
-            if (location == null || location.WarehouseId != order.WarehouseId || !location.IsPickable || !IsActive(location.Status))
-                return (false, "Vị trí nguồn không hoạt động hoặc không cho phép lấy hàng.");
-            var inventory = await _context.Inventories.FirstOrDefaultAsync(i =>
-                i.ProductId == item.ProductId && i.StorageLocationId == request.StorageLocationId &&
-                i.ProductLotId == request.ProductLotId);
-            if (inventory == null || inventory.OnHandQuantity < request.PickQuantity)
-                return (false, "Tồn thực tế tại vị trí/lô không đủ.");
+                var location = await _context.StorageLocations.FindAsync(request.StorageLocationId);
+                if (location == null || location.WarehouseId != order.WarehouseId || !location.IsPickable || !IsActive(location.Status))
+                    return (false, "Vị trí nguồn không hoạt động hoặc không cho phép lấy hàng.");
+                var inventory = await _context.Inventories.FirstOrDefaultAsync(i =>
+                    i.ProductId == item.ProductId && i.StorageLocationId == request.StorageLocationId &&
+                    i.ProductLotId == request.ProductLotId);
+                if (inventory == null || inventory.OnHandQuantity < request.PickQuantity)
+                    return (false, $"Tồn thực tế của {item.Product.ProductCode} tại vị trí đã chọn không đủ.");
 
-            InventoryReservation? reservation = null;
-            var reservedDelta = 0m;
-            if (order.SourceType == "SALES_ORDER")
-            {
-                if (!request.InventoryReservationId.HasValue || request.InventoryReservationId <= 0)
-                    return (false, "Xuất bán phải tham chiếu bản ghi giữ tồn của SO.");
-                reservation = await _context.InventoryReservations.Include(r => r.SalesOrderDetail)
-                    .FirstOrDefaultAsync(r => r.InventoryReservationId == request.InventoryReservationId.Value);
-                if (reservation == null || reservation.SalesOrderDetail.SalesOrderId != order.SalesOrderId ||
-                    reservation.ProductId != item.ProductId || reservation.StorageLocationId != request.StorageLocationId ||
-                    reservation.ProductLotId != request.ProductLotId ||
-                    reservation.Status is not ("ACTIVE" or "PARTIALLY_CONSUMED") ||
-                    request.PickQuantity > reservation.ReservedQuantity - reservation.ConsumedQuantity ||
-                    inventory.ReservedQuantity < request.PickQuantity)
-                    return (false, "Giữ tồn không hợp lệ hoặc không còn đủ số lượng.");
-                reservedDelta = -request.PickQuantity;
-            }
-            else if ((inventory.AvailableQuantity ?? inventory.OnHandQuantity - inventory.ReservedQuantity) < request.PickQuantity)
-                return (false, "Số lượng khả dụng không đủ để trả nhà cung cấp.");
+                InventoryReservation? reservation = null;
+                var reservedDelta = 0m;
+                if (order.SourceType == "SALES_ORDER")
+                {
+                    if (!request.InventoryReservationId.HasValue || request.InventoryReservationId <= 0)
+                        return (false, "Xuất bán phải tham chiếu bản ghi giữ tồn của SO.");
+                    reservation = await _context.InventoryReservations.Include(r => r.SalesOrderDetail)
+                        .FirstOrDefaultAsync(r => r.InventoryReservationId == request.InventoryReservationId.Value);
+                    if (reservation == null || reservation.SalesOrderDetail.SalesOrderId != order.SalesOrderId ||
+                        reservation.ProductId != item.ProductId || reservation.StorageLocationId != request.StorageLocationId ||
+                        reservation.ProductLotId != request.ProductLotId ||
+                        reservation.Status is not ("ACTIVE" or "PARTIALLY_CONSUMED") ||
+                        request.PickQuantity > reservation.ReservedQuantity - reservation.ConsumedQuantity ||
+                        inventory.ReservedQuantity < request.PickQuantity)
+                        return (false, "Giữ tồn không hợp lệ hoặc không còn đủ số lượng.");
+                    reservedDelta = -request.PickQuantity;
+                }
+                else if ((inventory.AvailableQuantity ?? inventory.OnHandQuantity - inventory.ReservedQuantity) < request.PickQuantity)
+                    return (false, "Số lượng khả dụng không đủ để trả nhà cung cấp.");
 
-            var detail = new OutboundOrderDetail
-            {
-                OutboundOrderId = order.OutboundOrderId,
-                OutboundOrderItemId = item.OutboundOrderItemId,
-                ProductId = item.ProductId,
-                StorageLocationId = request.StorageLocationId,
-                ProductLotId = request.ProductLotId,
-                InventoryReservationId = reservation?.InventoryReservationId,
-                IssuedQuantity = request.PickQuantity,
-                RecordedByUserId = userId,
-                RecordedAt = DateTime.UtcNow,
-                Notes = request.Notes
-            };
-            var ledger = new InventoryTransaction
-            {
-                TransactionType = "OUTBOUND",
-                ProductId = item.ProductId,
-                StorageLocationId = request.StorageLocationId,
-                ProductLotId = request.ProductLotId,
-                OnHandDelta = -request.PickQuantity,
-                ReservedDelta = reservedDelta,
-                OutboundOrderDetail = detail,
-                InventoryReservationId = reservation?.InventoryReservationId,
-                PerformedByUserId = userId,
-                TransactionAt = DateTime.UtcNow,
-                Notes = $"Xuất kho theo {order.OutboundOrderNumber}."
-            };
-            detail.InventoryTransaction = ledger;
-            _context.OutboundOrderDetails.Add(detail);
-            _context.InventoryTransactions.Add(ledger);
-            item.IssuedQuantity += request.PickQuantity;
-            if (reservation != null)
-            {
-                reservation.ConsumedQuantity += request.PickQuantity;
-                reservation.Status = reservation.ConsumedQuantity >= reservation.ReservedQuantity ? "CONSUMED" : "PARTIALLY_CONSUMED";
-                var salesDetail = order.SalesOrder!.SalesOrderDetails.Single(d => d.SalesOrderDetailId == reservation.SalesOrderDetailId);
-                salesDetail.FulfilledQuantity += request.PickQuantity;
+                var detail = new OutboundOrderDetail
+                {
+                    OutboundOrderId = order.OutboundOrderId,
+                    OutboundOrderItemId = item.OutboundOrderItemId,
+                    ProductId = item.ProductId,
+                    StorageLocationId = request.StorageLocationId,
+                    ProductLotId = request.ProductLotId,
+                    InventoryReservationId = reservation?.InventoryReservationId,
+                    IssuedQuantity = request.PickQuantity,
+                    RecordedByUserId = userId,
+                    RecordedAt = DateTime.UtcNow,
+                    Notes = request.Notes
+                };
+                var ledger = new InventoryTransaction
+                {
+                    TransactionType = "OUTBOUND",
+                    ProductId = item.ProductId,
+                    StorageLocationId = request.StorageLocationId,
+                    ProductLotId = request.ProductLotId,
+                    OnHandDelta = -request.PickQuantity,
+                    ReservedDelta = reservedDelta,
+                    OutboundOrderDetail = detail,
+                    InventoryReservationId = reservation?.InventoryReservationId,
+                    PerformedByUserId = userId,
+                    TransactionAt = DateTime.UtcNow,
+                    Notes = $"Xuất kho theo {order.OutboundOrderNumber}."
+                };
+                detail.InventoryTransaction = ledger;
+                _context.OutboundOrderDetails.Add(detail);
+                _context.InventoryTransactions.Add(ledger);
+                item.IssuedQuantity += request.PickQuantity;
+                if (reservation != null)
+                {
+                    reservation.ConsumedQuantity += request.PickQuantity;
+                    reservation.Status = reservation.ConsumedQuantity >= reservation.ReservedQuantity ? "CONSUMED" : "PARTIALLY_CONSUMED";
+                    var salesDetail = order.SalesOrder!.SalesOrderDetails.Single(d => d.SalesOrderDetailId == reservation.SalesOrderDetailId);
+                    salesDetail.FulfilledQuantity += request.PickQuantity;
+                }
+
+                // Persist each route inside the same DB transaction so triggers and
+                // subsequent route checks see the latest on-hand/reserved balance.
+                await _context.SaveChangesAsync();
             }
 
             var completed = order.OutboundOrderItems.All(i => i.IssuedQuantity >= i.RequestedQuantity);
@@ -498,9 +553,127 @@ public class OutboundOrderService : IOutboundOrderService
                     ? "FULFILLED" : "PARTIALLY_FULFILLED";
                 order.SalesOrder.UpdatedAt = DateTime.UtcNow;
             }
+            await _auditLogService.StageAsync(new AuditEventDto
+            {
+                UserId = userId,
+                ActionType = "ISSUE_OUTBOUND_BATCH",
+                EntityName = AuditEntities.OutboundOrder,
+                EntityId = order.OutboundOrderId.ToString(),
+                NewValues = new
+                {
+                    order.OutboundOrderNumber,
+                    Status = completed ? "COMPLETED" : "IN_PROGRESS",
+                    Rows = requests.Select(request => new
+                    {
+                        request.OutboundOrderItemId,
+                        request.StorageLocationId,
+                        request.ProductLotId,
+                        request.PickQuantity
+                    })
+                }
+            });
             await _context.SaveChangesAsync();
             await dbTransaction.CommitAsync();
-            return (true, completed ? "Đã xuất đủ hàng và hoàn tất phiếu." : "Đã ghi nhận xuất hàng; phiếu còn số lượng phải xử lý.");
+            return (true, completed ? "Đã xuất đủ hàng và hoàn tất phiếu." : "Đã ghi nhận đợt xuất; phiếu còn số lượng phải xử lý.");
+        }
+        catch (Exception ex)
+        {
+            await dbTransaction.RollbackAsync();
+            return (false, ex.InnerException?.Message ?? ex.Message);
+        }
+    }
+
+    public async Task<(bool Success, string Message)> CompleteSalesDeliveryEarlyAsync(long outboundOrderId, long userId, string reason)
+    {
+        reason = reason?.Trim() ?? string.Empty;
+        if (reason.Length is < 10 or > 500)
+            return (false, "Lý do kết thúc sớm phải có từ 10 đến 500 ký tự.");
+        await using var dbTransaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+        try
+        {
+            var order = await _context.OutboundOrders
+                .Include(o => o.OutboundOrderItems)
+                .Include(o => o.SalesOrder).ThenInclude(s => s!.SalesOrderDetails)
+                .FirstOrDefaultAsync(o => o.OutboundOrderId == outboundOrderId);
+            if (order == null) return (false, "Không tìm thấy phiếu xuất.");
+            if (order.SourceType != "SALES_ORDER" || order.SalesOrder == null)
+                return (false, "Chỉ áp dụng kết thúc sớm cho đợt giao hàng theo SO.");
+            if (order.Status != "IN_PROGRESS" || !order.OutboundOrderItems.Any(item => item.IssuedQuantity > 0))
+                return (false, "Chỉ được kết thúc sớm sau khi đã ghi nhận ít nhất một số lượng thực giao.");
+            if (order.AssignedToUserId != userId)
+                return (false, "Bạn không phải nhân viên chịu trách nhiệm cho đợt giao này.");
+
+            var userIsWarehouseStaff = await _context.Users.AnyAsync(user => user.UserId == userId &&
+                user.Status == "ACTIVE" && user.Role.RoleCode == "WAREHOUSE_STAFF");
+            if (!userIsWarehouseStaff)
+                return (false, "Chỉ nhân viên kho đang hoạt động mới được kết thúc đợt giao.");
+
+            var reservations = await _context.InventoryReservations
+                .Where(reservation => reservation.SalesOrderDetail.SalesOrderId == order.SalesOrderId &&
+                    (reservation.Status == "ACTIVE" || reservation.Status == "PARTIALLY_CONSUMED"))
+                .ToListAsync();
+            foreach (var reservation in reservations)
+            {
+                var remaining = reservation.ReservedQuantity - reservation.ConsumedQuantity;
+                if (remaining > 0)
+                {
+                    _context.InventoryTransactions.Add(new InventoryTransaction
+                    {
+                        TransactionType = "RELEASE",
+                        ProductId = reservation.ProductId,
+                        StorageLocationId = reservation.StorageLocationId,
+                        ProductLotId = reservation.ProductLotId,
+                        OnHandDelta = 0,
+                        ReservedDelta = -remaining,
+                        InventoryReservationId = reservation.InventoryReservationId,
+                        PerformedByUserId = userId,
+                        TransactionAt = DateTime.UtcNow,
+                        Notes = $"Giải phóng tồn do kết thúc SO {order.SalesOrder.SalesOrderNumber} trước khi giao đủ."
+                    });
+                }
+                reservation.Status = "RELEASED";
+                reservation.ReleasedAt = DateTime.UtcNow;
+            }
+
+            foreach (var detail in order.SalesOrder.SalesOrderDetails)
+                detail.ReservedQuantity = 0;
+            order.Status = "COMPLETED";
+            order.ConfirmedByUserId = userId;
+            order.ConfirmedAt = DateTime.UtcNow;
+            order.Notes = string.IsNullOrWhiteSpace(order.Notes)
+                ? $"Kết thúc theo số thực giao: {reason}"
+                : $"{order.Notes}\nKết thúc theo số thực giao: {reason}";
+            order.SalesOrder.Status = "CLOSED";
+            order.SalesOrder.UpdatedAt = DateTime.UtcNow;
+            order.SalesOrder.Notes = string.IsNullOrWhiteSpace(order.SalesOrder.Notes)
+                ? $"Kết thúc khi chưa giao đủ: {reason}"
+                : $"{order.SalesOrder.Notes}\nKết thúc khi chưa giao đủ: {reason}";
+
+            await _auditLogService.StageAsync(new AuditEventDto
+            {
+                UserId = userId,
+                ActionType = "CLOSE_PARTIAL_SALES_DELIVERY",
+                EntityName = AuditEntities.OutboundOrder,
+                EntityId = order.OutboundOrderId.ToString(),
+                OldValues = new { OutboundStatus = "IN_PROGRESS", SalesOrderStatus = "PARTIALLY_FULFILLED" },
+                NewValues = new
+                {
+                    OutboundStatus = "COMPLETED",
+                    SalesOrderStatus = "CLOSED",
+                    Reason = reason,
+                    ReleasedReservationCount = reservations.Count,
+                    Items = order.OutboundOrderItems.Select(item => new
+                    {
+                        item.ProductId,
+                        item.RequestedQuantity,
+                        item.IssuedQuantity
+                    })
+                }
+            });
+
+            await _context.SaveChangesAsync();
+            await dbTransaction.CommitAsync();
+            return (true, "Đã kết thúc SO theo số lượng thực giao và giải phóng phần tồn không còn nhu cầu giao.");
         }
         catch (Exception ex)
         {
@@ -511,11 +684,21 @@ public class OutboundOrderService : IOutboundOrderService
 
     private async Task<List<Allocation>> BuildSalesAllocationsAsync(long salesOrderId, long productId, decimal quantity)
     {
-        var rows = await _context.InventoryReservations
+        var product = await _context.Products.FindAsync(productId)
+            ?? throw new ArgumentException("Không tìm thấy sản phẩm.");
+        var query = _context.InventoryReservations
             .Where(r => r.SalesOrderDetail.SalesOrderId == salesOrderId && r.ProductId == productId &&
-                        (r.Status == "ACTIVE" || r.Status == "PARTIALLY_CONSUMED"))
-            .OrderBy(r => r.StorageLocation.LocationCode)
-            .Select(r => new Allocation(r.StorageLocationId, r.ProductLotId, r.ReservedQuantity - r.ConsumedQuantity)).ToListAsync();
+                        (r.Status == "ACTIVE" || r.Status == "PARTIALLY_CONSUMED"));
+        query = string.Equals(product.RotationMethod, "FEFO", StringComparison.OrdinalIgnoreCase)
+            ? query.OrderBy(r => r.ProductLot.ExpiryDate == null)
+                .ThenBy(r => r.ProductLot.ExpiryDate)
+                .ThenBy(r => r.ProductLot.FirstReceivedDate)
+                .ThenBy(r => r.StorageLocation.LocationCode)
+            : query.OrderBy(r => r.ProductLot.FirstReceivedDate)
+                .ThenBy(r => r.StorageLocation.LocationCode);
+        var rows = await query
+            .Select(r => new Allocation(r.StorageLocationId, r.ProductLotId, r.ReservedQuantity - r.ConsumedQuantity))
+            .ToListAsync();
         return TakeAllocations(rows, quantity);
     }
 
@@ -528,11 +711,10 @@ public class OutboundOrderService : IOutboundOrderService
             (i.StorageLocation.Status == "ACTIVE" || i.StorageLocation.Status == "AVAILABLE" || i.StorageLocation.Status == "OCCUPIED") &&
             i.ProductLot.Status == "AVAILABLE" && i.OnHandQuantity - i.ReservedQuantity > 0);
         var rows = product.RotationMethod == "FEFO"
-            ? await query.OrderBy(i => i.StorageLocation.LocationCode).ThenBy(i => i.ProductLot.ExpiryDate)
-                .ThenBy(i => i.ProductLot.FirstReceivedDate)
+            ? await query.OrderBy(i => i.ProductLot.ExpiryDate == null).ThenBy(i => i.ProductLot.ExpiryDate)
+                .ThenBy(i => i.ProductLot.FirstReceivedDate).ThenBy(i => i.StorageLocation.LocationCode)
                 .Select(i => new Allocation(i.StorageLocationId, i.ProductLotId, i.OnHandQuantity - i.ReservedQuantity)).ToListAsync()
-            : await query.OrderBy(i => i.StorageLocation.LocationCode).ThenBy(i => i.ProductLot.FirstReceivedDate)
-                .ThenBy(i => i.ProductLot.ExpiryDate)
+            : await query.OrderBy(i => i.ProductLot.FirstReceivedDate).ThenBy(i => i.StorageLocation.LocationCode)
                 .Select(i => new Allocation(i.StorageLocationId, i.ProductLotId, i.OnHandQuantity - i.ReservedQuantity)).ToListAsync();
         return TakeAllocations(rows, quantity);
     }
@@ -568,12 +750,20 @@ public class OutboundOrderService : IOutboundOrderService
                 reservationId = reservation?.InventoryReservationId;
                 if (reservation != null) available = Math.Min(available, reservation.ReservedQuantity - reservation.ConsumedQuantity);
             }
+            var location = await _context.StorageLocations
+                .Include(value => value.StorageRack)
+                    .ThenInclude(rack => rack!.WarehouseZone)
+                .FirstOrDefaultAsync(value => value.StorageLocationId == route.StorageLocationId);
+            var productLot = await _context.ProductLots.FindAsync(route.ProductLotId);
             result.Add(new AvailableStockLocationDto
             {
                 StorageLocationId = route.StorageLocationId,
-                LocationCode = (await _context.StorageLocations.FindAsync(route.StorageLocationId))?.LocationCode ?? string.Empty,
+                LocationCode = location?.LocationCode ?? string.Empty,
+                LocationPath = FormatLocationPath(location),
                 ProductLotId = route.ProductLotId,
-                LotNumber = (await _context.ProductLots.FindAsync(route.ProductLotId))?.LotNumber ?? string.Empty,
+                LotNumber = productLot?.LotNumber ?? string.Empty,
+                FirstReceivedDate = productLot?.FirstReceivedDate ?? default,
+                ExpiryDate = productLot?.ExpiryDate,
                 InventoryReservationId = reservationId,
                 AvailableQuantity = available
             });
@@ -588,7 +778,7 @@ public class OutboundOrderService : IOutboundOrderService
         SalesOrderNumber = o.SalesOrder?.SalesOrderNumber, PurchaseOrderNumber = o.PurchaseOrder?.PurchaseOrderNumber,
         SourceReference = GetSourceReference(o), PartnerName = GetPartnerName(o), CustomerName = GetPartnerName(o),
         WarehouseId = o.WarehouseId, WarehouseName = o.Warehouse?.WarehouseName ?? string.Empty,
-        Status = NormalizeOutboundStatus(o.Status), TotalRequestedQuantity = o.OutboundOrderItems.Sum(i => i.RequestedQuantity),
+        Status = NormalizeOutboundStatus(o.Status), LineCount = o.OutboundOrderItems.Count, TotalRequestedQuantity = o.OutboundOrderItems.Sum(i => i.RequestedQuantity),
         TotalIssuedQuantity = o.OutboundOrderItems.Sum(i => i.IssuedQuantity), ExpectedIssueDate = o.ExpectedIssueDate, CreatedAt = o.CreatedAt
     };
 
@@ -609,9 +799,31 @@ public class OutboundOrderService : IOutboundOrderService
             UnitOfMeasure = i.Product?.UnitOfMeasure?.UnitCode ?? string.Empty,
             QuantityScale = i.Product?.UnitOfMeasure?.QuantityScale ?? 0,
             TrackLot = i.Product?.TrackLot ?? false,
-            RequestedQuantity = i.RequestedQuantity, IssuedQuantity = i.IssuedQuantity, Notes = i.Notes
+            RequestedQuantity = i.RequestedQuantity, IssuedQuantity = i.IssuedQuantity, Notes = i.Notes,
+            PickedDetails = i.OutboundOrderDetails.OrderBy(d => d.RecordedAt).Select(d => new OutboundPickedDetailDto
+            {
+                OutboundOrderDetailId = d.OutboundOrderDetailId,
+                LocationCode = FormatLocationPath(d.StorageLocation),
+                LotNumber = d.ProductLot?.LotNumber ?? string.Empty,
+                FirstReceivedDate = d.ProductLot?.FirstReceivedDate ?? default,
+                ExpiryDate = d.ProductLot?.ExpiryDate,
+                IssuedQuantity = d.IssuedQuantity,
+                RecordedByUserName = d.RecordedByUser?.FullName ?? d.RecordedByUser?.Username ?? string.Empty,
+                RecordedAt = d.RecordedAt
+            }).ToList()
         }).ToList()
     };
+
+    private static string FormatLocationPath(StorageLocation? location)
+    {
+        if (location == null) return string.Empty;
+        return string.Join(" / ", new[]
+        {
+            location.StorageRack?.WarehouseZone?.ZoneCode,
+            location.StorageRack?.RackCode,
+            location.LocationCode
+        }.Where(value => !string.IsNullOrWhiteSpace(value)));
+    }
 
     private static string GetSourceReference(OutboundOrder order) => order.SourceType == "PURCHASE_RETURN"
         ? order.PurchaseOrder?.PurchaseOrderNumber ?? string.Empty : order.SalesOrder?.SalesOrderNumber ?? string.Empty;

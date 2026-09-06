@@ -13,21 +13,20 @@
             <div class="text-muted mb-1">Thực hiện lấy hàng và xác nhận xuất kho</div>
             <h3 class="mb-0">@Model.Order.OutboundOrderNumber</h3>
         </div>
-        <a asp-page="./Details" asp-route-id="@Model.Order.OutboundOrderId" class="btn btn-outline-secondary">Xem chi tiết phiếu</a>
+        <a asp-page="./Details" asp-route-id="@Model.Order.OutboundOrderId" class="btn btn-outline-secondary">Chi tiết phiếu xuất</a>
     </div>
 
     <div class="alert alert-info">
         <strong>@(isSale ? "Xuất bán theo SO" : "Trả hàng nhà cung cấp theo PO"):</strong>
         @Model.Order.SourceReference — @Model.Order.PartnerName.
-        Lấy đúng vị trí/lô được hệ thống phân bổ; tồn kho được trừ ngay khi xác nhận.
+        Chọn một hoặc nhiều vị trí của nhiều mặt hàng trong cùng lần giao. Hệ thống chỉ ghi nhận khi toàn bộ lựa chọn hợp lệ.
     </div>
 
     <div class="card border-0 shadow-sm mb-3">
         <div class="card-body row g-3">
             <div class="col-md-3"><div class="text-muted small">Trạng thái</div><strong>@StatusLabel(Model.Order.Status)</strong></div>
-            <div class="col-md-3"><div class="text-muted small">Kho xuất</div><strong>@Model.Order.WarehouseName</strong></div>
-            <div class="col-md-3"><div class="text-muted small">Tác nghiệp</div><strong>Lấy từ vị trí và xuất kho</strong></div>
-            <div class="col-md-3"><div class="text-muted small">Ghi chú</div><span>@(string.IsNullOrWhiteSpace(Model.Order.Notes) ? "Không có" : Model.Order.Notes)</span></div>
+            <div class="col-md-3"><div class="text-muted small">Ngày xuất dự kiến</div><strong>@Model.Order.ExpectedIssueDate?.ToString("dd/MM/yyyy")</strong></div>
+            <div class="col-md-6"><div class="text-muted small">Ghi chú</div><span>@(string.IsNullOrWhiteSpace(Model.Order.Notes) ? "Không có" : Model.Order.Notes)</span></div>
         </div>
     </div>
 
@@ -46,7 +45,7 @@
                 {
                     <div class="mb-3"><div class="fw-semibold mb-2">Đã xuất</div>
                     @foreach (var picked in item.PickedDetails)
-                    { <span class="badge bg-success-subtle text-success border me-2">@picked.LocationCode · @(item.TrackLot ? $"Lô {picked.LotNumber}" : "Hàng lẻ") · @FormatQuantity(picked.IssuedQuantity, item.QuantityScale)</span> }
+                    { <span class="badge bg-success-subtle text-success border me-2">@picked.LocationCode · @FormatQuantity(picked.IssuedQuantity, item.QuantityScale) @item.UnitName</span> }
                     </div>
                 }
 
@@ -56,13 +55,27 @@
                 else
                 {
                     <div class="table-responsive"><table class="table table-sm align-middle">
-                        <thead><tr><th>Vị trí</th><th>Lô</th><th class="text-end">Được lấy</th><th class="text-end">Thao tác</th></tr></thead>
+                        <thead><tr><th style="width:55px">Chọn</th><th>Vị trí lấy</th><th>Ngày nhập / Hạn sử dụng</th><th class="text-end">Khả dụng</th><th style="width:190px">Thực xuất</th></tr></thead>
                         <tbody>
                         @foreach (var location in item.AvailableLocations)
                         {
-                            var json = JsonSerializer.Serialize(location, new JsonSerializerOptions(JsonSerializerDefaults.Web));
-                            <tr><td>@location.LocationCode</td><td>@(item.TrackLot ? location.LotNumber : "Hàng lẻ")</td><td class="text-end">@FormatQuantity(location.AvailableQuantity, item.QuantityScale)</td>
-                            <td class="text-end"><button type="button" class="btn btn-primary btn-sm" onclick='openPick(@Model.Order.OutboundOrderId,@item.OutboundOrderItemId,@item.RemainingQuantity,@item.QuantityScale,@item.TrackLot.ToString().ToLowerInvariant(),@Html.Raw(json))'>Xác nhận lấy/xuất</button></td></tr>
+                            var suggested = Math.Min(item.RemainingQuantity, location.AvailableQuantity);
+                            <tr class="pick-row" data-item-id="@item.OutboundOrderItemId" data-item-remaining="@item.RemainingQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture)">
+                                <td><input type="checkbox" class="form-check-input pick-check" aria-label="Chọn vị trí @location.LocationCode" /></td>
+                                <td>@(string.IsNullOrWhiteSpace(location.LocationPath) ? location.LocationCode : location.LocationPath)</td>
+                                <td><div>@(location.FirstReceivedDate?.ToString("dd/MM/yyyy") ?? "Không xác định")</div><div class="text-muted small">HSD: @(location.ExpiryDate?.ToString("dd/MM/yyyy") ?? "Không áp dụng")</div></td>
+                                <td class="text-end">@FormatQuantity(location.AvailableQuantity, item.QuantityScale) @item.UnitName</td>
+                                <td>
+                                    <input type="number" class="form-control form-control-sm pick-quantity"
+                                           min="@QuantityStep(item.QuantityScale)" max="@location.AvailableQuantity"
+                                           step="@QuantityStep(item.QuantityScale)"
+                                           value="@suggested.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                           data-order-id="@Model.Order.OutboundOrderId"
+                                           data-location-id="@location.StorageLocationId"
+                                           data-lot-id="@location.ProductLotId"
+                                           data-reservation-id="@location.InventoryReservationId" disabled />
+                                </td>
+                            </tr>
                         }
                         </tbody>
                     </table></div>
@@ -70,52 +83,98 @@
             </div>
         </div>
     }
-</div>
 
-<div class="modal fade" id="pickModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
-    <div class="modal-header"><h5 class="modal-title">Xác nhận lấy và xuất hàng</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-    <div class="modal-body">
-        <div class="alert alert-warning">Thao tác này ghi bút toán OUTBOUND và trừ tồn ngay; không thể sửa sổ giao dịch sau khi xác nhận.</div>
-        <div class="mb-2"><span class="text-muted">Vị trí/lô:</span> <strong id="routeText"></strong></div>
-        <label class="form-label">Số lượng thực xuất</label><input id="pickQuantity" type="number" min="0.0001" step="0.0001" class="form-control mb-3" />
-        <label class="form-label">Ghi chú</label><textarea id="pickNotes" class="form-control" rows="2"></textarea>
-    </div>
-    <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Đóng</button><button type="button" id="confirmPick" class="btn btn-primary" onclick="submitPick()">Xác nhận xuất</button></div>
-</div></div></div>
+    @if (Model.Order.Status is "READY" or "ISSUING")
+    {
+        <div class="sticky-bottom bg-body border-top py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <div>
+                <div id="batchError" class="text-danger small"></div>
+                @if (isSale && Model.Order.Status == "ISSUING")
+                {
+                    <form method="post" asp-page-handler="CompleteEarly" asp-route-id="@Model.Order.OutboundOrderId"
+                          class="mt-2 close-early-form">
+                        <input type="hidden" name="reason" />
+                        <button class="btn btn-outline-warning">Kết thúc SO theo số thực giao</button>
+                    </form>
+                }
+            </div>
+            <button type="button" id="submitBatch" class="btn btn-primary" disabled>Xác nhận các dòng đã chọn và trừ tồn</button>
+        </div>
+    }
+</div>
 
 @functions {
     string StatusLabel(string status) => status switch { "READY" => "Sẵn sàng xuất", "ISSUING" => "Đang xuất hàng", "ISSUED" => "Đã xuất", "CANCELLED" => "Đã hủy", _ => "Nháp" };
+    string QuantityStep(byte scale) => scale == 0 ? "1" : "0." + new string('0', scale - 1) + "1";
     string FormatQuantity(decimal value, byte scale) => value.ToString(scale == 0 ? "N0" : $"N{scale}");
 }
 
 @section Scripts {
 @Html.AntiForgeryToken()
 <script>
-    let currentPick = null;
-    const modal = new bootstrap.Modal(document.getElementById('pickModal'));
-    function openPick(orderId, itemId, remaining, scale, trackLot, route) {
-        currentPick = { orderId, itemId, route, scale };
-        document.getElementById('routeText').textContent = `${route.locationCode} · ${trackLot ? `Lô ${route.lotNumber}` : 'Hàng lẻ'}`;
-        document.getElementById('pickQuantity').min = scale === 0 ? '1' : `0.${'0'.repeat(scale - 1)}1`;
-        document.getElementById('pickQuantity').step = document.getElementById('pickQuantity').min;
-        document.getElementById('pickQuantity').max = route.availableQuantity;
-        document.getElementById('pickQuantity').value = Math.min(remaining, route.availableQuantity);
-        document.getElementById('pickNotes').value = '';
-        modal.show();
+    const checks = [...document.querySelectorAll('.pick-check')];
+    const submitButton = document.getElementById('submitBatch');
+    const batchError = document.getElementById('batchError');
+
+    checks.forEach(check => check.addEventListener('change', () => {
+        check.closest('.pick-row').querySelector('.pick-quantity').disabled = !check.checked;
+        validateBatch();
+    }));
+    document.querySelectorAll('.pick-quantity').forEach(input => input.addEventListener('input', validateBatch));
+    submitButton?.addEventListener('click', submitBatch);
+    document.querySelector('.close-early-form')?.addEventListener('submit', event => {
+        const reason = prompt('Nhập lý do khách không nhận phần hàng còn lại (10-500 ký tự):');
+        if (!reason || reason.trim().length < 10 || reason.trim().length > 500 ||
+            !confirm('SO sẽ đóng và phần tồn đang giữ sẽ được giải phóng. Tiếp tục?')) {
+            event.preventDefault();
+            return;
+        }
+        event.currentTarget.querySelector('input[name="reason"]').value = reason.trim();
+    });
+
+    function validateBatch() {
+        const selectedRows = checks.filter(check => check.checked).map(check => check.closest('.pick-row'));
+        let message = selectedRows.length ? '' : 'Chọn ít nhất một vị trí cần lấy.';
+        const totals = new Map();
+        selectedRows.forEach(row => {
+            const input = row.querySelector('.pick-quantity');
+            const quantity = Number(input.value);
+            const maximum = Number(input.max);
+            if (!(quantity > 0) || quantity > maximum) message = 'Số lượng thực xuất phải lớn hơn 0 và không vượt tồn khả dụng tại vị trí.';
+            totals.set(row.dataset.itemId, (totals.get(row.dataset.itemId) || 0) + quantity);
+            if (totals.get(row.dataset.itemId) > Number(row.dataset.itemRemaining))
+                message = 'Tổng số lượng chọn của một mặt hàng vượt số lượng còn phải giao trong phiếu.';
+        });
+        if (batchError) batchError.textContent = message;
+        if (submitButton) submitButton.disabled = !!message;
+        return !message;
     }
-    async function submitPick() {
-        const quantity = Number(document.getElementById('pickQuantity').value);
-        if (!currentPick || quantity <= 0 || quantity > currentPick.route.availableQuantity) { alert('Số lượng thực xuất không hợp lệ.'); return; }
-        const payload = {
-            outboundOrderId: currentPick.orderId, outboundOrderItemId: currentPick.itemId,
-            storageLocationId: currentPick.route.storageLocationId, productLotId: currentPick.route.productLotId,
-            inventoryReservationId: currentPick.route.inventoryReservationId || null,
-            pickQuantity: quantity, notes: document.getElementById('pickNotes').value
-        };
-        const button = document.getElementById('confirmPick'); button.disabled = true;
-        const response = await fetch('?handler=Pick', { method:'POST', headers:{ 'Content-Type':'application/json', 'RequestVerificationToken':document.querySelector('input[name="__RequestVerificationToken"]').value }, body:JSON.stringify(payload) });
+
+    async function submitBatch() {
+        if (!validateBatch()) return;
+        const payload = checks.filter(check => check.checked).map(check => {
+            const row = check.closest('.pick-row');
+            const input = row.querySelector('.pick-quantity');
+            return {
+                outboundOrderId: Number(input.dataset.orderId),
+                outboundOrderItemId: Number(row.dataset.itemId),
+                storageLocationId: Number(input.dataset.locationId),
+                productLotId: Number(input.dataset.lotId),
+                inventoryReservationId: input.dataset.reservationId ? Number(input.dataset.reservationId) : null,
+                pickQuantity: Number(input.value), notes: 'Ghi nhận theo đợt xuất hàng.'
+            };
+        });
+        submitButton.disabled = true;
+        const response = await fetch('?handler=PickBatch', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value },
+            body: JSON.stringify(payload)
+        });
         const result = await response.json();
-        if (result.success) location.reload(); else { alert(result.message || 'Không thể xuất hàng.'); button.disabled = false; }
+        if (result.success) location.reload();
+        else { batchError.textContent = result.message || 'Không thể ghi nhận đợt xuất hàng.'; submitButton.disabled = false; }
     }
+
+    validateBatch();
 </script>
 }

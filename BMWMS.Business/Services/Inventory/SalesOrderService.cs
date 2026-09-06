@@ -44,6 +44,19 @@ namespace BMWMS.Business.Services.Inventory
 
             foreach (var detail in salesOrder.SalesOrderDetails)
             {
+                var plannedButNotIssued = await _context.OutboundOrderItems
+                    .Where(item => item.OutboundOrder.SalesOrderId == salesOrderId &&
+                                   (item.OutboundOrder.Status == "DRAFT" ||
+                                    item.OutboundOrder.Status == "ASSIGNED" ||
+                                    item.OutboundOrder.Status == "IN_PROGRESS") &&
+                                   item.ProductId == detail.ProductId)
+                    .SumAsync(item => item.RequestedQuantity - item.IssuedQuantity);
+                var availableForNewOutbound = Math.Max(
+                    0,
+                    detail.OrderedQuantity - detail.FulfilledQuantity - plannedButNotIssued);
+                if (availableForNewOutbound <= 0)
+                    continue;
+
                 // Lấy danh sách Lot + Bin đã reserve
                 var lotBinList =
                     await _salesOrderRepository
@@ -71,7 +84,7 @@ namespace BMWMS.Business.Services.Inventory
 
                     // Số lượng có thể lập phiếu xuất. Với SO cũ chưa có reservation,
                     // CreateOutboundOrder sẽ giữ bù tồn kho trong transaction trước khi tạo phiếu.
-                    ReservedQuantity = Math.Max(0, detail.OrderedQuantity - detail.FulfilledQuantity),
+                    ReservedQuantity = availableForNewOutbound,
 
                     // Đơn vị tính
                     UnitName =

@@ -7,7 +7,7 @@ using System.Text.Json;
 
 namespace BMWMS.Web.Pages.OutboundOrders;
 
-[Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,SALES_STAFF,PURCHASING_STAFF")]
+[Authorize(Roles = "SALES_STAFF,PURCHASING_STAFF")]
 public class CreateModel : PageModel
 {
     private readonly IHttpClientFactory _httpClientFactory;
@@ -21,30 +21,36 @@ public class CreateModel : PageModel
     public async Task OnGetAsync(long? selectedSalesOrderId, long? selectedPurchaseOrderId)
     {
         Input.ExpectedIssueDate = DateTime.Today;
-        Input.SourceType = selectedPurchaseOrderId.HasValue ? "PURCHASE_RETURN" : "SALES_ORDER";
-        Input.SalesOrderId = selectedSalesOrderId;
-        Input.PurchaseOrderId = selectedPurchaseOrderId;
+        var isPurchaseReturn = User.IsInRole("PURCHASING_STAFF");
+        Input.SourceType = isPurchaseReturn ? "PURCHASE_RETURN" : "SALES_ORDER";
+        Input.SalesOrderId = isPurchaseReturn ? null : selectedSalesOrderId;
+        Input.PurchaseOrderId = isPurchaseReturn ? selectedPurchaseOrderId : null;
         await LoadDropdownsAsync();
-        if (selectedSalesOrderId.HasValue) await LoadSalesOrderDetailAsync(selectedSalesOrderId.Value);
-        if (selectedPurchaseOrderId.HasValue) await LoadPurchaseOrderDetailAsync(selectedPurchaseOrderId.Value);
+        if (Input.SalesOrderId.HasValue) await LoadSalesOrderDetailAsync(Input.SalesOrderId.Value);
+        if (Input.PurchaseOrderId.HasValue) await LoadPurchaseOrderDetailAsync(Input.PurchaseOrderId.Value);
     }
 
     public async Task<IActionResult> OnGetSalesOrderDetailAsync(long id)
-        => await ProxyJsonAsync($"api/OutboundOrders/sales-order/{id}");
+        => User.IsInRole("SALES_STAFF")
+            ? await ProxyJsonAsync($"api/OutboundOrders/sales-order/{id}")
+            : Forbid();
 
     public async Task<IActionResult> OnGetPurchaseOrderDetailAsync(long id)
-        => await ProxyJsonAsync($"api/OutboundOrders/purchase-order/{id}/return");
+        => User.IsInRole("PURCHASING_STAFF")
+            ? await ProxyJsonAsync($"api/OutboundOrders/purchase-order/{id}/return")
+            : Forbid();
 
-    public async Task<IActionResult> OnPostAsync(string actionType)
+    public async Task<IActionResult> OnPostAsync()
     {
-        Input.SourceType = (Input.SourceType ?? string.Empty).ToUpperInvariant();
+        var requiredSourceType = User.IsInRole("PURCHASING_STAFF") ? "PURCHASE_RETURN" : "SALES_ORDER";
+        Input.SourceType = requiredSourceType;
         if (Input.SourceType == "SALES_ORDER" && !Input.SalesOrderId.HasValue)
             ModelState.AddModelError(string.Empty, "Vui lòng chọn đơn bán hàng (SO).");
         if (Input.SourceType == "PURCHASE_RETURN" && !Input.PurchaseOrderId.HasValue)
             ModelState.AddModelError(string.Empty, "Vui lòng chọn đơn mua hàng (PO) cần trả nhà cung cấp.");
         if (Input.Items == null || Input.Items.Count == 0)
             ModelState.AddModelError(string.Empty, "Đơn tham chiếu không còn mặt hàng có thể xuất.");
-        if (actionType == "submit" && !Input.AssignedToUserId.HasValue)
+        if (!Input.AssignedToUserId.HasValue)
             ModelState.AddModelError(nameof(Input.AssignedToUserId), "Vui lòng chọn nhân viên kho phụ trách trước khi gửi phiếu.");
         if (!ModelState.IsValid)
         {
@@ -60,7 +66,7 @@ public class CreateModel : PageModel
             ExpectedIssueDate = Input.ExpectedIssueDate.ToString("yyyy-MM-dd"),
             AssignedToUserId = Input.AssignedToUserId,
             Notes = Input.Notes,
-            IsSubmit = actionType == "submit",
+            IsSubmit = true,
             Items = (Input.Items ?? new List<OutboundOrderItemVM>()).Select(i => new OutboundOrderItemRequest
             {
                 ProductId = i.ProductId,
@@ -74,9 +80,7 @@ public class CreateModel : PageModel
             var response = await _httpClientFactory.CreateClient("ApiClient").PostAsJsonAsync("api/OutboundOrders", payload);
             if (response.IsSuccessStatusCode)
             {
-                TempData["SuccessMessage"] = actionType == "submit"
-                    ? "Đã tạo phiếu xuất và giao tác nghiệp lấy, xuất hàng cho nhân viên kho."
-                    : "Đã lưu nháp phiếu xuất kho.";
+                TempData["SuccessMessage"] = "Đã tạo phiếu xuất và giao tác nghiệp lấy, xuất hàng cho nhân viên kho.";
                 return RedirectToPage("./Index");
             }
             var error = await response.Content.ReadFromJsonAsync<ApiErrorResponse>();
@@ -107,19 +111,25 @@ public class CreateModel : PageModel
     private async Task LoadDropdownsAsync()
     {
         var client = _httpClientFactory.CreateClient("ApiClient");
-        try
+        if (User.IsInRole("SALES_STAFF"))
         {
-            var sales = await client.GetFromJsonAsync<List<SalesOrderOptionDto>>("api/OutboundOrders/sales-orders") ?? new();
-            SalesOrderOptions = sales.Select(x => new SelectListItem(x.SalesOrderNumber, x.SalesOrderId.ToString())).ToList();
+            try
+            {
+                var sales = await client.GetFromJsonAsync<List<SalesOrderOptionDto>>("api/OutboundOrders/sales-orders") ?? new();
+                SalesOrderOptions = sales.Select(x => new SelectListItem(x.SalesOrderNumber, x.SalesOrderId.ToString())).ToList();
+            }
+            catch { SalesOrderOptions = new(); }
         }
-        catch { SalesOrderOptions = new(); }
 
-        try
+        if (User.IsInRole("PURCHASING_STAFF"))
         {
-            var purchases = await client.GetFromJsonAsync<List<PurchaseOrderOptionDto>>("api/OutboundOrders/purchase-orders/returnable") ?? new();
-            PurchaseOrderOptions = purchases.Select(x => new SelectListItem($"{x.PurchaseOrderNumber} — {x.SupplierName}", x.PurchaseOrderId.ToString())).ToList();
+            try
+            {
+                var purchases = await client.GetFromJsonAsync<List<PurchaseOrderOptionDto>>("api/OutboundOrders/purchase-orders/returnable") ?? new();
+                PurchaseOrderOptions = purchases.Select(x => new SelectListItem($"{x.PurchaseOrderNumber} — {x.SupplierName}", x.PurchaseOrderId.ToString())).ToList();
+            }
+            catch { PurchaseOrderOptions = new(); }
         }
-        catch { PurchaseOrderOptions = new(); }
 
         try
         {
