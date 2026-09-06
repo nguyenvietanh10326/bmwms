@@ -20,6 +20,7 @@ public class InboundApiService
         var queryString = $"?pageIndex={filter.PageIndex}&pageSize={filter.PageSize}";
         if (!string.IsNullOrEmpty(filter.Keyword)) queryString += $"&keyword={Uri.EscapeDataString(filter.Keyword)}";
         if (!string.IsNullOrEmpty(filter.Status)) queryString += $"&status={Uri.EscapeDataString(filter.Status)}";
+        if (!string.IsNullOrEmpty(filter.SourceType)) queryString += $"&sourceType={Uri.EscapeDataString(filter.SourceType)}";
         if (filter.FromDate.HasValue) queryString += $"&fromDate={filter.FromDate.Value:yyyy-MM-dd}";
         if (filter.ToDate.HasValue) queryString += $"&toDate={filter.ToDate.Value:yyyy-MM-dd}";
         if (filter.AssignedToUserId.HasValue) queryString += $"&assignedToUserId={filter.AssignedToUserId.Value}";
@@ -36,7 +37,8 @@ public class InboundApiService
     public async Task<long> CreateInboundOrderAsync(CreateInboundOrderDto dto)
     {
         var response = await _httpClient.PostAsJsonAsync("api/inbounds", dto);
-        response.EnsureSuccessStatusCode();
+        if (!response.IsSuccessStatusCode)
+            throw new InvalidOperationException(await ReadErrorAsync(response));
         return await response.Content.ReadFromJsonAsync<long>();
     }
 
@@ -54,6 +56,13 @@ public class InboundApiService
     {
         var response = await _httpClient.GetFromJsonAsync<List<SourceOrderDropdownDto>>("api/inbounds/purchase-orders/pending");
         return response ?? new List<SourceOrderDropdownDto>();
+    }
+
+    public async Task<List<PurchaseOrderInboundSourceDto>> GetPurchaseOrderInboundSourcesAsync()
+    {
+        return await _httpClient.GetFromJsonAsync<List<PurchaseOrderInboundSourceDto>>(
+                   "api/inbounds/purchase-orders/available")
+               ?? new List<PurchaseOrderInboundSourceDto>();
     }
 
     public async Task<List<AvailableWarehouseStaffDto>> GetAvailableWarehouseStaffAsync()
@@ -83,8 +92,7 @@ public class InboundApiService
         var response = await _httpClient.PutAsJsonAsync($"api/inbounds/{id}", dto);
         if (!response.IsSuccessStatusCode)
         {
-            var error = await response.Content.ReadAsStringAsync();
-            throw new Exception($"Cập nhật thất bại: {error}");
+            throw new Exception($"Cập nhật thất bại: {await ReadErrorAsync(response)}");
         }
     }
 
@@ -93,8 +101,7 @@ public class InboundApiService
         var response = await _httpClient.PutAsync($"api/inbounds/{id}/confirm", null);
         if (!response.IsSuccessStatusCode)
         {
-            var error = await response.Content.ReadAsStringAsync();
-            throw new Exception($"Xác nhận thất bại: {error}");
+            throw new Exception($"Xác nhận thất bại: {await ReadErrorAsync(response)}");
         }
     }
 
@@ -104,8 +111,7 @@ public class InboundApiService
         var response = await _httpClient.PutAsJsonAsync($"api/inbounds/{id}/cancel", dto);
         if (!response.IsSuccessStatusCode)
         {
-            var error = await response.Content.ReadAsStringAsync();
-            throw new Exception($"Hủy thất bại: {error}");
+            throw new Exception($"Hủy thất bại: {await ReadErrorAsync(response)}");
         }
     }
 

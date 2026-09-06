@@ -9,14 +9,16 @@ namespace BMWMS.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF,PURCHASING_STAFF")]
+[Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF,PURCHASING_STAFF,SALES_STAFF")]
 public class InboundsController : ControllerBase
 {
     private readonly IInboundService _inboundService;
+    private readonly ILogger<InboundsController> _logger;
 
-    public InboundsController(IInboundService inboundService)
+    public InboundsController(IInboundService inboundService, ILogger<InboundsController> logger)
     {
         _inboundService = inboundService;
+        _logger = logger;
     }
 
     [HttpGet]
@@ -33,6 +35,14 @@ public class InboundsController : ControllerBase
             {
                 return Unauthorized();
             }
+        }
+        else if (User.IsInRole("SALES_STAFF"))
+        {
+            filter.SourceType = "SALES_RETURN";
+        }
+        else if (User.IsInRole("PURCHASING_STAFF"))
+        {
+            filter.SourceType = "PURCHASE_ORDER";
         }
 
         var result = await _inboundService.GetInboundOrdersPageAsync(filter);
@@ -51,17 +61,26 @@ public class InboundsController : ControllerBase
             if (result.AssignedToUserId != currentUserId)
                 return Forbid();
         }
+        else if (User.IsInRole("SALES_STAFF") && result.SourceType != "SALES_RETURN")
+        {
+            return Forbid();
+        }
+        else if (User.IsInRole("PURCHASING_STAFF") && result.SourceType != "PURCHASE_ORDER")
+        {
+            return Forbid();
+        }
         return Ok(result);
     }
 
     [HttpGet("putaway-locations")]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF")]
     public async Task<ActionResult<List<PutawayLocationDto>>> GetPutawayLocations([FromQuery] long warehouseId, [FromQuery] long productId)
     {
         return Ok(await _inboundService.GetPutawayLocationsAsync(warehouseId, productId));
     }
 
     [HttpPost]
-    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF")]
+    [Authorize(Roles = "WAREHOUSE_STAFF")]
     public async Task<ActionResult<long>> CreateInboundOrder([FromBody] CreateInboundOrderDto dto)
     {
         var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
@@ -70,11 +89,19 @@ public class InboundsController : ControllerBase
             return Unauthorized();
         }
 
-        var newOrderId = await _inboundService.CreateInboundOrderAsync(dto, currentUserId);
-        return Ok(newOrderId);
+        try
+        {
+            var newOrderId = await _inboundService.CreateInboundOrderAsync(dto, currentUserId);
+            return Ok(newOrderId);
+        }
+        catch (Exception exception)
+        {
+            return HandleException(exception);
+        }
     }
 
     [HttpGet("purchase-orders/{poId}")]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF,WAREHOUSE_STAFF")]
     public async Task<ActionResult<PurchaseOrderForInboundDto>> GetPurchaseOrderForInbound(long poId)
     {
         var result = await _inboundService.GetPurchaseOrderForInboundAsync(poId);
@@ -83,19 +110,29 @@ public class InboundsController : ControllerBase
     }
 
     [HttpGet("purchase-orders/pending")]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF,WAREHOUSE_STAFF")]
     public async Task<ActionResult<List<SourceOrderDropdownDto>>> GetPendingPurchaseOrders()
     {
         var result = await _inboundService.GetPendingPurchaseOrdersAsync();
         return Ok(result);
     }
 
+    [HttpGet("purchase-orders/available")]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF,WAREHOUSE_STAFF")]
+    public async Task<ActionResult<List<PurchaseOrderInboundSourceDto>>> GetPurchaseOrderInboundSources()
+    {
+        return Ok(await _inboundService.GetPurchaseOrderInboundSourcesAsync());
+    }
+
     [HttpGet("staff/available")]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF,SALES_STAFF")]
     public async Task<ActionResult<List<AvailableWarehouseStaffDto>>> GetAvailableWarehouseStaff()
     {
         return Ok(await _inboundService.GetAvailableWarehouseStaffAsync());
     }
 
     [HttpGet("sales-orders/returnable")]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,SALES_STAFF,WAREHOUSE_STAFF")]
     public async Task<ActionResult<List<SourceOrderDropdownDto>>> GetReturnableSalesOrders()
     {
         var result = await _inboundService.GetReturnableSalesOrdersAsync();
@@ -103,6 +140,7 @@ public class InboundsController : ControllerBase
     }
 
     [HttpGet("sales-orders/{soId}")]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,SALES_STAFF,WAREHOUSE_STAFF")]
     public async Task<ActionResult<PurchaseOrderForInboundDto>> GetSalesOrderForInbound(long soId)
     {
         var result = await _inboundService.GetSalesOrderForInboundAsync(soId);
@@ -111,7 +149,7 @@ public class InboundsController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF")]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF,SALES_STAFF")]
     public async Task<IActionResult> Update(long id, [FromBody] UpdateInboundOrderDto dto)
     {
         try
@@ -122,12 +160,12 @@ public class InboundsController : ControllerBase
         }
         catch (Exception ex)
         {
-            return BadRequest(new { Message = ex.Message });
+            return HandleException(ex);
         }
     }
 
     [HttpPut("{id}/cancel")]
-    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF")]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF,SALES_STAFF")]
     public async Task<IActionResult> Cancel(long id, [FromBody] CancelInboundOrderDto dto)
     {
         try
@@ -138,12 +176,12 @@ public class InboundsController : ControllerBase
         }
         catch (Exception ex)
         {
-            return BadRequest(new { Message = ex.Message });
+            return HandleException(ex);
         }
     }
 
     [HttpPut("{id}/confirm")]
-    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF")]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF,SALES_STAFF")]
     public async Task<IActionResult> Confirm(long id)
     {
         try
@@ -154,7 +192,7 @@ public class InboundsController : ControllerBase
         }
         catch (Exception ex)
         {
-            return BadRequest(new { Message = ex.Message });
+            return HandleException(ex);
         }
     }
 
@@ -233,10 +271,16 @@ public class InboundsController : ControllerBase
 
     private ObjectResult HandleException(Exception exception)
     {
+        _logger.LogError(
+            exception,
+            "Inbound operation failed. TraceId={TraceId}, Path={Path}",
+            HttpContext.TraceIdentifier,
+            HttpContext.Request.Path);
+
         var (status, title, detail) = exception switch
         {
             UnauthorizedAccessException => (StatusCodes.Status403Forbidden, "Không có quyền thực hiện", exception.Message),
-            ArgumentException => (StatusCodes.Status422UnprocessableEntity, "Dữ liệu kiểm nhận không hợp lệ", exception.Message),
+            ArgumentException => (StatusCodes.Status422UnprocessableEntity, "Dữ liệu phiếu nhập không hợp lệ", exception.Message),
             InvalidOperationException => (StatusCodes.Status409Conflict, "Không thể thực hiện ở trạng thái hiện tại", exception.Message),
             DbUpdateConcurrencyException => (StatusCodes.Status409Conflict, "Dữ liệu đã thay đổi", "Phiếu vừa được cập nhật bởi một thao tác khác. Vui lòng tải lại trang và kiểm tra số liệu."),
             DbUpdateException => (StatusCodes.Status409Conflict, "Không thể lưu dữ liệu", "Dữ liệu vi phạm quy tắc toàn vẹn của hệ thống. Vui lòng tải lại phiếu; nếu lỗi lặp lại, quản trị viên cần kiểm tra migration và dữ liệu hiện có."),

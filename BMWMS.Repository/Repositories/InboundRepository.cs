@@ -20,6 +20,7 @@ public class InboundRepository : IInboundRepository
     public async Task<(IEnumerable<InboundOrder> Items, int TotalCount)> GetInboundOrdersPageAsync(
         string? keyword,
         string? status,
+        string? sourceType,
         DateTime? fromDate,
         DateTime? toDate,
         long? assignedToUserId,
@@ -40,6 +41,12 @@ public class InboundRepository : IInboundRepository
         if (assignedToUserId.HasValue)
         {
             query = query.Where(x => x.AssignedToUserId == assignedToUserId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(sourceType))
+        {
+            var normalizedSourceType = sourceType.Trim().ToUpperInvariant();
+            query = query.Where(x => x.SourceType == normalizedSourceType);
         }
 
         if (!string.IsNullOrWhiteSpace(keyword))

@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace BMWMS.Web.Pages.Admin.Inbound;
 
-[Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF,PURCHASING_STAFF")]
+[Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF,PURCHASING_STAFF,SALES_STAFF")]
 public class IndexModel : PageModel
 {
     private readonly InboundApiService _inboundApiService;
@@ -31,6 +31,14 @@ public class IndexModel : PageModel
             {
                 Filter.AssignedToUserId = currentUserId;
             }
+        }
+        else if (User.IsInRole("SALES_STAFF"))
+        {
+            Filter.SourceType = "SALES_RETURN";
+        }
+        else if (User.IsInRole("PURCHASING_STAFF"))
+        {
+            Filter.SourceType = "PURCHASE_ORDER";
         }
 
         Data = await _inboundApiService.GetInboundOrdersPageAsync(Filter);

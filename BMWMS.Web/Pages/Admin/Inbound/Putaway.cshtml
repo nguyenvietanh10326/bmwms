@@ -2,250 +2,211 @@
 @model BMWMS.Web.Pages.Admin.Inbound.PutawayModel
 @{
     Layout = "_AdminLayout";
-    ViewData["Title"] = "Xác nhận vị trí cất hàng";
-    var remaining = Model.Receipt.ReceivedQuantity - Model.Receipt.PutawayQuantity;
-    var hierarchyGroups = Model.Locations
-        .GroupBy(location => new { location.ZoneId, location.ZoneCode, location.ZoneName })
-        .OrderBy(group => group.Key.ZoneCode)
-        .ToList();
+    ViewData["Title"] = "Xếp hàng vào vị trí kho";
+    var allocationIndex = 0;
+    var hasMissingLocation = Model.ReceiptRows.Any(row => !row.Locations.Any());
 }
 
 <div class="container-fluid py-4">
     <div class="d-flex justify-content-between align-items-start mb-3">
         <div>
-            <div class="text-muted">Tác nghiệp của nhân viên kho</div>
-            <h3 class="mb-1">Xác nhận vị trí cất hàng</h3>
-            <div class="text-muted">@Model.Order.InboundOrderNumber · @Model.Item.ProductName (@Model.Item.ProductCode)</div>
+            <div class="text-muted">Tác nghiệp nhập kho</div>
+            <h3 class="mb-1">Xếp hàng vào vị trí kho</h3>
+            <div class="text-muted">@Model.Order.InboundOrderNumber · @Model.ReceiptRows.Count mặt hàng/lớp nhận đang chờ cất</div>
         </div>
         <a asp-page="./Details" asp-route-id="@Model.Order.InboundOrderId" class="btn btn-outline-secondary">Quay lại phiếu nhập</a>
     </div>
 
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
     <div class="alert alert-info">
-        Hãy chọn đúng vị trí đã cất hàng theo cấu trúc <strong>Khu → Kệ → Bin</strong>. Vị trí có dấu ★ là vị trí khuyến nghị của sản phẩm;
-        nhân viên vẫn có thể chọn một bin hợp lệ khác trong kho. Tồn kho chỉ tăng tại bin sau khi xác nhận.
+        Phiếu chỉ hoàn tất khi đã phân bổ <strong>đủ toàn bộ số lượng thực nhận</strong> vào vị trí chi tiết.
+        Chỉ các bin thuộc khu lưu trữ đã cấu hình cho từng sản phẩm được hiển thị. Có thể chia một mặt hàng vào nhiều bin.
     </div>
 
-    @if (!Model.Locations.Any())
-    {
-        <div class="alert alert-danger">
-            Kho chưa có bin đang hoạt động và cho phép nhập hàng. Quản lý kho cần tạo cấu trúc Khu/Kệ/Bin trước khi nhân viên có thể xác nhận vị trí cất hàng.
-        </div>
-    }
-
-    <div class="row g-3">
-        <div class="col-xl-3">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-header bg-white"><strong>Cấu trúc kho</strong></div>
-                <div class="card-body p-0">
-                    @foreach (var zone in hierarchyGroups)
-                    {
-                        <div class="border-bottom p-3">
-                            <div class="fw-semibold">@(string.IsNullOrWhiteSpace(zone.Key.ZoneCode) ? "Chưa phân khu" : $"{zone.Key.ZoneCode} — {zone.Key.ZoneName}")</div>
-                            @foreach (var rack in zone.GroupBy(location => new { location.RackId, location.RackCode, location.RackName }).OrderBy(group => group.Key.RackCode))
-                            {
-                                <div class="d-flex justify-content-between text-muted small mt-2">
-                                    <span>└ @(string.IsNullOrWhiteSpace(rack.Key.RackCode) ? "Chưa phân kệ" : $"{rack.Key.RackCode} — {rack.Key.RackName}")</span>
-                                    <span>@rack.Count() bin</span>
-                                </div>
-                            }
-                        </div>
-                    }
+    <form method="post" id="putawayForm">
+        @foreach (var receipt in Model.ReceiptRows)
+        {
+            var rowIndex = allocationIndex++;
+            <section class="card border-0 shadow-sm mb-3 receipt-card"
+                     data-remaining="@receipt.RemainingQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                     data-scale="@receipt.QuantityScale">
+                <div class="card-header bg-white d-flex flex-wrap justify-content-between gap-2">
+                    <div>
+                        <strong>@receipt.ProductName</strong> (@receipt.ProductCode)
+                        @if (receipt.ExpiryDate.HasValue)
+                        {
+                            <span class="badge text-bg-light ms-2">HSD @receipt.ExpiryDate.Value.ToString("dd/MM/yyyy")</span>
+                        }
+                    </div>
+                    <div>Cần cất: <strong>@FormatQuantity(receipt.RemainingQuantity, receipt.QuantityScale) @receipt.UnitName</strong></div>
                 </div>
-            </div>
-        </div>
-
-        <div class="col-xl-9">
-            <div class="card border-0 shadow-sm mb-3">
-                <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Tìm vị trí</label>
-                            <input id="locationSearch" class="form-control" placeholder="Nhập mã/tên khu, kệ hoặc bin..." autocomplete="off" />
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Khu</label>
-                            <select id="zoneFilter" class="form-select">
-                                <option value="">Tất cả khu</option>
-                                @foreach (var zone in hierarchyGroups)
+                <div class="card-body border-bottom">
+                    <label class="form-label">Tìm nhanh vị trí theo khu, kệ hoặc bin</label>
+                    <input type="search" class="form-control location-search" placeholder="Ví dụ: KHU-A, KỆ-02, BIN-05..." autocomplete="off" />
+                </div>
+                @if (!receipt.Locations.Any())
+                {
+                    <div class="alert alert-danger rounded-0 border-0 mb-0">
+                        Sản phẩm chưa có bin hợp lệ trong khu lưu trữ được cấu hình. Quản lý kho cần cấu hình vị trí trước khi có thể hoàn tất phiếu.
+                    </div>
+                }
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead class="table-light">
+                            <tr><th>Vị trí thực tế đã cất (Khu / Kệ / Bin)</th><th style="width:200px">Số lượng</th><th style="width:90px"></th></tr>
+                        </thead>
+                        <tbody class="allocation-group">
+                            <tr class="allocation-row">
+                                <td>
+                                    <input type="hidden" name="PutawayDtos[@rowIndex].InboundOrderItemId" value="@receipt.InboundOrderItemId" />
+                                    <input type="hidden" name="PutawayDtos[@rowIndex].ProductLotId" value="@receipt.ProductLotId" />
+                                    <select name="PutawayDtos[@rowIndex].StorageLocationId" class="form-select location-select" required>
+                                        <option value="">-- Chọn vị trí --</option>
+                                        @foreach (var group in receipt.Locations
+                                            .GroupBy(location => new { location.ZoneCode, location.RackCode })
+                                            .OrderBy(group => group.Key.ZoneCode).ThenBy(group => group.Key.RackCode))
+                                        {
+                                            <optgroup label="Khu @(string.IsNullOrWhiteSpace(group.Key.ZoneCode) ? "chưa phân" : group.Key.ZoneCode) / Kệ @(string.IsNullOrWhiteSpace(group.Key.RackCode) ? "chưa phân" : group.Key.RackCode)">
+                                                @foreach (var location in group.OrderBy(location => location.Priority).ThenBy(location => location.LocationCode))
+                                                {
+                                                    var searchText = $"{location.ZoneCode} {location.ZoneName} {location.RackCode} {location.RackName} {location.LocationCode} {location.LocationName}".ToLowerInvariant();
+                                                    <option value="@location.StorageLocationId" data-search="@searchText">@location.DisplayName</option>
+                                                }
+                                            </optgroup>
+                                        }
+                                    </select>
+                                </td>
+                                <td>
+                                    <input name="PutawayDtos[@rowIndex].PutawayQuantity" type="number"
+                                           min="@QuantityStep(receipt.QuantityScale)" max="@receipt.RemainingQuantity"
+                                           step="@QuantityStep(receipt.QuantityScale)"
+                                           value="@receipt.RemainingQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                           class="form-control allocation-quantity" required />
+                                </td>
+                                <td></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="card-footer bg-white d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <div>
+                        Đã phân bổ: <strong class="allocated-total">@FormatQuantity(receipt.RemainingQuantity, receipt.QuantityScale)</strong>
+                        / @FormatQuantity(receipt.RemainingQuantity, receipt.QuantityScale) @receipt.UnitName
+                        <div class="allocation-error text-danger small d-none"></div>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-primary add-allocation" @(!receipt.Locations.Any() ? "disabled" : null)>Chia thêm bin</button>
+                </div>
+                <template class="allocation-template">
+                    <tr class="allocation-row">
+                        <td>
+                            <input type="hidden" name="PutawayDtos[__INDEX__].InboundOrderItemId" value="@receipt.InboundOrderItemId" />
+                            <input type="hidden" name="PutawayDtos[__INDEX__].ProductLotId" value="@receipt.ProductLotId" />
+                            <select name="PutawayDtos[__INDEX__].StorageLocationId" class="form-select location-select" required>
+                                <option value="">-- Chọn vị trí --</option>
+                                @foreach (var group in receipt.Locations
+                                    .GroupBy(location => new { location.ZoneCode, location.RackCode })
+                                    .OrderBy(group => group.Key.ZoneCode).ThenBy(group => group.Key.RackCode))
                                 {
-                                    <option value="@(zone.Key.ZoneId?.ToString() ?? "none")">@(string.IsNullOrWhiteSpace(zone.Key.ZoneCode) ? "Chưa phân khu" : $"{zone.Key.ZoneCode} — {zone.Key.ZoneName}")</option>
+                                    <optgroup label="Khu @(string.IsNullOrWhiteSpace(group.Key.ZoneCode) ? "chưa phân" : group.Key.ZoneCode) / Kệ @(string.IsNullOrWhiteSpace(group.Key.RackCode) ? "chưa phân" : group.Key.RackCode)">
+                                        @foreach (var location in group.OrderBy(location => location.Priority).ThenBy(location => location.LocationCode))
+                                        {
+                                            var searchText = $"{location.ZoneCode} {location.ZoneName} {location.RackCode} {location.RackName} {location.LocationCode} {location.LocationName}".ToLowerInvariant();
+                                            <option value="@location.StorageLocationId" data-search="@searchText">@location.DisplayName</option>
+                                        }
+                                    </optgroup>
                                 }
                             </select>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Kệ</label>
-                            <select id="rackFilter" class="form-select">
-                                <option value="">Tất cả kệ</option>
-                                @foreach (var rack in Model.Locations.GroupBy(location => new { location.RackId, location.RackCode, location.RackName, location.ZoneId }).OrderBy(group => group.Key.RackCode))
-                                {
-                                    <option value="@(rack.Key.RackId?.ToString() ?? "none")" data-zone="@(rack.Key.ZoneId?.ToString() ?? "none")">@(string.IsNullOrWhiteSpace(rack.Key.RackCode) ? "Chưa phân kệ" : $"{rack.Key.RackCode} — {rack.Key.RackName}")</option>
-                                }
-                            </select>
-                        </div>
-                    </div>
-                </div>
-            </div>
+                        </td>
+                        <td>
+                            <input name="PutawayDtos[__INDEX__].PutawayQuantity" type="number"
+                                   min="@QuantityStep(receipt.QuantityScale)" max="@receipt.RemainingQuantity"
+                                   step="@QuantityStep(receipt.QuantityScale)" class="form-control allocation-quantity" required />
+                        </td>
+                        <td><button type="button" class="btn btn-sm btn-outline-danger remove-allocation">Xóa</button></td>
+                    </tr>
+                </template>
+            </section>
+        }
 
-            <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white">
-                    <strong>@Model.Item.ProductName</strong> (@Model.Item.ProductCode)
-                    · Lớp nhận #@Model.Receipt.ProductLotId
-                    · Cần cất <strong>@FormatQuantity(remaining, Model.Item.QuantityScale) @Model.Item.UnitName</strong>
-                </div>
-                <form method="post" id="putawayForm">
-                    <div class="table-responsive">
-                        <table class="table align-middle mb-0">
-                            <thead class="table-light"><tr><th>Vị trí thực tế đã cất</th><th style="width:180px">Số lượng</th><th style="min-width:230px">Lý do khác khuyến nghị</th><th style="width:90px"></th></tr></thead>
-                            <tbody id="rows">
-                                <tr>
-                                    <td>
-                                        <input type="hidden" name="PutawayDtos[0].InboundOrderItemId" value="@Model.Item.InboundOrderItemId" />
-                                        <input type="hidden" name="PutawayDtos[0].ProductLotId" value="@Model.Receipt.ProductLotId" />
-                                        <select name="PutawayDtos[0].StorageLocationId" class="form-select location" required>
-                                            <option value="">-- Chọn Khu / Kệ / Bin --</option>
-                                            @foreach (var group in Model.Locations.GroupBy(location => new { location.ZoneId, location.ZoneCode, location.ZoneName, location.RackId, location.RackCode, location.RackName }))
-                                            {
-                                                <optgroup label="@(string.IsNullOrWhiteSpace(group.Key.ZoneCode) ? "Chưa phân khu" : $"Khu {group.Key.ZoneCode}") / @(string.IsNullOrWhiteSpace(group.Key.RackCode) ? "Chưa phân kệ" : $"Kệ {group.Key.RackCode}")">
-                                                    @foreach (var location in group)
-                                                    {
-                                                        <option value="@location.StorageLocationId"
-                                                                data-zone="@(location.ZoneId?.ToString() ?? "none")"
-                                                                data-rack="@(location.RackId?.ToString() ?? "none")"
-                                                                data-search="@($"{location.ZoneCode} {location.ZoneName} {location.RackCode} {location.RackName} {location.LocationCode} {location.LocationName}".ToLowerInvariant())"
-                                                                data-path="@location.HierarchyPath"
-                                                                data-status="@location.Status"
-                                                                data-recommended="@location.IsRecommended.ToString().ToLowerInvariant()"
-                                                                data-products="@location.StoredProductCount"
-                                                                data-onhand="@location.CurrentOnHandQuantity.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture)">
-                                                            @location.DisplayName
-                                                        </option>
-                                                    }
-                                                </optgroup>
-                                            }
-                                        </select>
-                                        <div class="location-meta text-muted small mt-1">Chưa chọn vị trí.</div>
-                                    </td>
-                                    <td><input name="PutawayDtos[0].PutawayQuantity" type="number" min="@QuantityStep(Model.Item.QuantityScale)" max="@remaining" step="@QuantityStep(Model.Item.QuantityScale)" class="form-control quantity" required /></td>
-                                    <td><input name="PutawayDtos[0].OverrideReason" class="form-control override-reason" placeholder="Bắt buộc nếu chọn bin khác" /></td>
-                                    <td></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="card-footer bg-white">
-                        <div id="allocationError" class="text-danger small mb-2 d-none"></div>
-                        <div class="d-flex justify-content-between align-items-center gap-3">
-                            <div>Đã phân bổ: <strong id="assigned">0</strong> / @FormatQuantity(remaining, Model.Item.QuantityScale) @Model.Item.UnitName</div>
-                            <div class="d-flex gap-2">
-                                <button type="button" class="btn btn-outline-primary" onclick="addRow()">Chia thêm vị trí</button>
-                                <button class="btn btn-primary" id="save" @(!Model.Locations.Any() ? "disabled" : null)>Xác nhận vị trí cất hàng</button>
-                            </div>
-                        </div>
-                    </div>
-                </form>
-            </div>
+        <div class="d-flex justify-content-end gap-2 sticky-bottom bg-body py-3 border-top">
+            <a asp-page="./Details" asp-route-id="@Model.Order.InboundOrderId" class="btn btn-outline-secondary">Hủy thao tác</a>
+            <button type="submit" id="saveButton" class="btn btn-primary" @(hasMissingLocation ? "disabled" : null)>Xác nhận cất hàng và cập nhật tồn</button>
         </div>
-    </div>
+    </form>
 </div>
 
 <script>
-    const maximum = @remaining.ToString(System.Globalization.CultureInfo.InvariantCulture);
-    const quantityStep = '@QuantityStep(Model.Item.QuantityScale)';
-    const rows = document.getElementById('rows');
-    let locationOptions = '';
+    let nextAllocationIndex = @allocationIndex;
 
     document.addEventListener('DOMContentLoaded', () => {
-        locationOptions = document.querySelector('.location').innerHTML;
-        document.getElementById('locationSearch').addEventListener('input', filterLocations);
-        document.getElementById('zoneFilter').addEventListener('change', () => { updateRackFilter(); filterLocations(); });
-        document.getElementById('rackFilter').addEventListener('change', filterLocations);
-        document.querySelectorAll('.location').forEach(select => select.addEventListener('change', updateLocationMeta));
-        document.querySelectorAll('.override-reason').forEach(input => input.addEventListener('input', recalculate));
-        updateRackFilter();
-        recalculate();
+        document.querySelectorAll('.receipt-card').forEach(card => {
+            card.querySelector('.add-allocation')?.addEventListener('click', () => addAllocation(card));
+            card.querySelector('.location-search')?.addEventListener('input', event => filterLocations(card, event.target.value));
+        });
+        document.addEventListener('input', event => {
+            if (event.target.classList.contains('allocation-quantity')) validateCard(event.target.closest('.receipt-card'));
+        });
+        document.addEventListener('change', event => {
+            if (event.target.classList.contains('location-select')) validateCard(event.target.closest('.receipt-card'));
+        });
+        document.addEventListener('click', event => {
+            const button = event.target.closest('.remove-allocation');
+            if (!button) return;
+            const card = button.closest('.receipt-card');
+            button.closest('tr').remove();
+            validateCard(card);
+        });
+        document.querySelectorAll('.receipt-card').forEach(validateCard);
     });
 
-    function addRow() {
-        const index = rows.children.length;
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td><input type="hidden" name="PutawayDtos[${index}].InboundOrderItemId" value="@Model.Item.InboundOrderItemId"><input type="hidden" name="PutawayDtos[${index}].ProductLotId" value="@Model.Receipt.ProductLotId"><select name="PutawayDtos[${index}].StorageLocationId" class="form-select location" required>${locationOptions}</select><div class="location-meta text-muted small mt-1">Chưa chọn vị trí.</div></td><td><input name="PutawayDtos[${index}].PutawayQuantity" type="number" min="${quantityStep}" max="${maximum}" step="${quantityStep}" class="form-control quantity" required></td><td><input name="PutawayDtos[${index}].OverrideReason" class="form-control override-reason" placeholder="Bắt buộc nếu chọn bin khác"></td><td><button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('tr').remove(); renameRows(); recalculate();">Xóa</button></td>`;
-        rows.appendChild(tr);
-        tr.querySelector('.quantity').addEventListener('input', recalculate);
-        tr.querySelector('.location').addEventListener('change', updateLocationMeta);
-        tr.querySelector('.override-reason').addEventListener('input', recalculate);
-        filterLocations();
-        recalculate();
+    function addAllocation(card) {
+        const template = card.querySelector('.allocation-template');
+        const html = template.innerHTML.replaceAll('__INDEX__', nextAllocationIndex++);
+        card.querySelector('.allocation-group').insertAdjacentHTML('beforeend', html);
+        validateCard(card);
     }
 
-    function updateRackFilter() {
-        const zone = document.getElementById('zoneFilter').value;
-        const rackFilter = document.getElementById('rackFilter');
-        [...rackFilter.options].forEach(option => {
-            if (!option.value) return;
-            option.hidden = !!zone && option.dataset.zone !== zone;
-        });
-        if (rackFilter.selectedOptions[0]?.hidden) rackFilter.value = '';
-    }
-
-    function filterLocations() {
-        const keyword = document.getElementById('locationSearch').value.trim().toLowerCase();
-        const zone = document.getElementById('zoneFilter').value;
-        const rack = document.getElementById('rackFilter').value;
-        document.querySelectorAll('.location').forEach(select => {
-            [...select.options].forEach(option => {
-                if (!option.value) return;
-                option.hidden = (!!keyword && !option.dataset.search.includes(keyword)) ||
-                    (!!zone && option.dataset.zone !== zone) || (!!rack && option.dataset.rack !== rack);
+    function filterLocations(card, rawKeyword) {
+        const keyword = rawKeyword.trim().toLowerCase();
+        card.querySelectorAll('.location-select').forEach(select => {
+            select.querySelectorAll('option[value]').forEach(option => {
+                option.hidden = !!keyword && !option.dataset.search.includes(keyword);
             });
-            [...select.querySelectorAll('optgroup')].forEach(group => {
+            select.querySelectorAll('optgroup').forEach(group => {
                 group.hidden = ![...group.querySelectorAll('option')].some(option => !option.hidden);
             });
-            if (select.selectedOptions[0]?.hidden) {
-                select.value = '';
-                select.dispatchEvent(new Event('change'));
-            }
         });
     }
 
-    function updateLocationMeta(event) {
-        const select = event.currentTarget;
-        const option = select.selectedOptions[0];
-        const meta = select.closest('td').querySelector('.location-meta');
-        meta.textContent = option?.value
-            ? `${option.dataset.path} · Trạng thái ${option.dataset.status} · ${option.dataset.products} sản phẩm · Tổng tồn ${Number(option.dataset.onhand).toLocaleString('vi-VN')}`
-            : 'Chưa chọn vị trí.';
-        recalculate();
-    }
-
-    function renameRows() {
-        [...rows.children].forEach((row, index) => row.querySelectorAll('[name]').forEach(input => {
-            input.name = input.name.replace(/\[\d+\]/, `[${index}]`);
-        }));
-    }
-
-    function recalculate() {
-        const total = [...document.querySelectorAll('.quantity')].reduce((sum, input) => sum + (Number(input.value) || 0), 0);
-        const selectedLocations = [...document.querySelectorAll('.location')].map(select => select.value).filter(Boolean);
-        const hasDuplicate = new Set(selectedLocations).size !== selectedLocations.length;
-        const missingOverrideReason = [...document.querySelectorAll('#rows tr')].some(row => {
-            const option = row.querySelector('.location')?.selectedOptions[0];
-            return option?.value && option.dataset.recommended !== 'true' && !row.querySelector('.override-reason')?.value.trim();
-        });
-        const error = document.getElementById('allocationError');
+    function validateCard(card) {
+        if (!card) return;
+        const maximum = Number(card.dataset.remaining);
+        const scale = Number(card.dataset.scale);
+        const quantities = [...card.querySelectorAll('.allocation-quantity')];
+        const locations = [...card.querySelectorAll('.location-select')];
+        const total = quantities.reduce((sum, input) => sum + (Number(input.value) || 0), 0);
+        const selected = locations.map(select => select.value).filter(Boolean);
+        const tolerance = Math.pow(10, -Math.max(scale, 4));
         let message = '';
-        if (total > maximum) message = 'Tổng số lượng phân bổ vượt số hàng đang chờ cất.';
-        else if (hasDuplicate) message = 'Một bin chỉ nên xuất hiện một lần; hãy gộp số lượng cùng bin.';
-        else if (missingOverrideReason) message = 'Phải nhập lý do khi chọn bin không thuộc danh sách khuyến nghị.';
-        else if (total <= 0) message = 'Phải phân bổ ít nhất một số lượng lớn hơn 0.';
+        if (Math.abs(total - maximum) > tolerance) message = 'Tổng phân bổ phải đúng bằng số lượng đang chờ cất.';
+        else if (selected.length !== locations.length) message = 'Phải chọn vị trí cho từng dòng phân bổ.';
+        else if (new Set(selected).size !== selected.length) message = 'Một bin chỉ được chọn một lần cho cùng mặt hàng.';
+
+        card.dataset.valid = message ? 'false' : 'true';
+        card.querySelector('.allocated-total').textContent = total.toLocaleString('vi-VN', { maximumFractionDigits: scale });
+        const error = card.querySelector('.allocation-error');
         error.textContent = message;
         error.classList.toggle('d-none', !message);
-        document.getElementById('assigned').textContent = total.toLocaleString('vi-VN');
-        document.getElementById('save').disabled = !!message || selectedLocations.length !== document.querySelectorAll('.location').length || !document.querySelector('.location option[value]');
+        validateForm();
     }
 
-    document.addEventListener('input', event => {
-        if (event.target.classList.contains('quantity') || event.target.classList.contains('override-reason')) recalculate();
-    });
+    function validateForm() {
+        const cards = [...document.querySelectorAll('.receipt-card')];
+        const button = document.getElementById('saveButton');
+        if (!button) return;
+        const hasMissingLocations = @hasMissingLocation.ToString().ToLowerInvariant();
+        button.disabled = hasMissingLocations || !cards.length || cards.some(card => card.dataset.valid !== 'true');
+    }
 </script>
 
 @functions {

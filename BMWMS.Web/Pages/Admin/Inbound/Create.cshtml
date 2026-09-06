@@ -2,408 +2,369 @@
 @model BMWMS.Web.Pages.Admin.Inbound.CreateModel
 @{
     Layout = "_AdminLayout";
-    ViewData["Title"] = "Tạo lệnh nhập kho";
+    ViewData["Title"] = "Ghi nhận đợt nhập kho";
     ViewData["ActivePage"] = "Inbound";
+    var initialPurchaseOrders = Model.InitialPurchaseOrders.ToList();
+    var followUpPurchaseOrders = Model.FollowUpPurchaseOrders.ToList();
+    var canCreatePurchase = User.IsInRole("WAREHOUSE_STAFF");
+    var canCreateSalesReturn = User.IsInRole("WAREHOUSE_STAFF");
 }
 
 <style>
-  :root{
-    --font-ui:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-    --font-mono:"IBM Plex Mono",ui-monospace,monospace;
-
-    --navy-950:#233a6b; --navy-900:#1b2d56;
-    --accent:#3e5cf6; --accent-600:#3149d4;
-
-    --bg:#f2f3f7; --card:#ffffff; --line:#e7e9f0; --line-strong:#d7dae5;
-    --ink:#161b2e; --ink-2:#525a72; --ink-3:#8890a6; --ink-4:#aeb4c6;
-
-    --sh-xs:0 1px 2px rgba(16,23,42,.05);
-    --sh-sm:0 1px 2px rgba(16,23,42,.04),0 4px 10px -4px rgba(16,23,42,.07);
-    --r-sm:8px; --r-md:12px; --r-lg:16px;
-    --ease:cubic-bezier(.4,0,.2,1);
-  }
-  
-  .inbound-page {
-    font-family: var(--font-ui);
-    color: var(--ink);
-    font-size: 14px;
-    line-height: 1.45;
-    padding: 26px 30px 64px;
-  }
-
-  .inbound-page .pagehead{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;gap:20px;}
-  .inbound-page .pagehead h1{font-size:20px;margin:0 0 5px;font-weight:700;}
-  .inbound-page .breadcrumb{font-size:11.5px;color:var(--ink-3);margin-bottom:8px;font-weight:600;letter-spacing:.02em;text-transform:uppercase;}
-
-  .inbound-page .btn{display:inline-flex;align-items:center;gap:7px;border:none;border-radius:var(--r-sm);padding:9px 15px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;text-decoration:none;}
-  .inbound-page .btn-dark{background:var(--navy-950);color:#fff;box-shadow:var(--sh-xs);}
-  .inbound-page .btn-dark:hover{background:#1c2340;color:#fff;transform:translateY(-1px);box-shadow:var(--sh-sm);}
-  .inbound-page .btn-light{background:#fff;border:1px solid var(--line-strong);color:var(--ink);}
-  .inbound-page .btn-light:hover{border-color:var(--ink-4);background:#fafafd;}
-
-  .inbound-page .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);padding:24px;margin-bottom:16px;box-shadow:var(--sh-xs);}
-
-  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-  .form-group { margin-bottom: 15px; }
-  .form-group label { display: block; font-weight: 600; font-size: 13px; margin-bottom: 6px; color: var(--ink-2); }
-  .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 9px 12px; border: 1px solid var(--line-strong); border-radius: var(--r-sm); font-size: 13px; color: var(--ink); font-family: inherit; }
-  .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: var(--accent); }
-  .text-danger { color: #c1222f; font-size: 12px; margin-top: 4px; display: block; }
-
-  /* Table styling */
-  .items-table{width:100%;border-collapse:collapse;font-size:13px; margin: 0; margin-bottom: 15px;}
-  .items-table th{text-align:left;color:var(--ink-3);font-weight:600;font-size:11px;padding:0 10px 10px;border-bottom:1px solid var(--line);}
-  .items-table td{padding:10px;border-bottom:1px solid var(--line);vertical-align:top;}
-  .items-table input, .items-table select { width: 100%; padding: 7px 10px; border: 1px solid var(--line-strong); border-radius: 4px; font-size: 13px; }
-  .items-table .btn-remove { background: #fce3e4; color: #c1222f; padding: 6px; border-radius: 4px; border: none; cursor: pointer; }
+    :root { --ib-navy:#233a6b; --ib-accent:#3e5cf6; --ib-bg:#f5f7fb; --ib-line:#e1e5ee; --ib-ink:#172033; --ib-muted:#687086; }
+    .inbound-create { color:var(--ib-ink); padding:26px 30px 64px; }
+    .page-head { display:flex; justify-content:space-between; gap:20px; align-items:flex-start; margin-bottom:20px; }
+    .page-head h1 { font-size:22px; margin:0 0 5px; font-weight:750; }
+    .page-head p { color:var(--ib-muted); margin:0; }
+    .page-actions { display:flex; gap:9px; flex-wrap:wrap; }
+    .inbound-card { background:#fff; border:1px solid var(--ib-line); border-radius:14px; padding:22px; margin-bottom:16px; box-shadow:0 1px 3px rgba(23,32,51,.04); }
+    .inbound-card h2 { font-size:16px; margin:0 0 16px; }
+    .source-types { display:flex; gap:10px; flex-wrap:wrap; }
+    .source-type { display:flex; gap:8px; align-items:center; padding:10px 14px; border:1px solid var(--ib-line); border-radius:9px; cursor:pointer; font-weight:650; }
+    .source-type.selected { border-color:var(--ib-accent); background:#eef1ff; color:#304bd2; }
+    .po-browser { border:1px solid var(--ib-line); border-radius:12px; overflow:hidden; background:var(--ib-bg); }
+    .po-browser-toolbar { padding:14px; background:#fff; border-bottom:1px solid var(--ib-line); }
+    .po-search { position:relative; }
+    .po-search input { width:100%; padding:10px 12px 10px 38px; border:1px solid #cfd5e2; border-radius:9px; }
+    .po-search i { position:absolute; left:13px; top:11px; color:#8a92a6; }
+    .po-tabs { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
+    .po-tab { border:1px solid var(--ib-line); background:#fff; color:#4f5870; padding:8px 12px; border-radius:999px; font-weight:650; cursor:pointer; }
+    .po-tab.active { background:var(--ib-navy); color:#fff; border-color:var(--ib-navy); }
+    .po-tab .count { margin-left:5px; opacity:.78; }
+    .po-source-list { padding:12px; display:grid; grid-template-columns:repeat(auto-fill,minmax(310px,1fr)); gap:10px; max-height:390px; overflow:auto; }
+    .po-source-card { text-align:left; border:1px solid var(--ib-line); background:#fff; border-radius:11px; padding:14px; cursor:pointer; transition:.15s ease; color:inherit; }
+    .po-source-card:hover { border-color:#9eabea; box-shadow:0 5px 16px rgba(40,59,130,.08); transform:translateY(-1px); }
+    .po-source-card.selected { border:2px solid var(--ib-accent); padding:13px; background:#f7f8ff; }
+    .po-source-top { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
+    .po-number { display:block; font-weight:760; color:#263a78; }
+    .po-supplier { display:block; font-size:13px; color:var(--ib-muted); margin-top:3px; }
+    .po-badge { font-size:11px; font-weight:720; border-radius:999px; padding:4px 8px; white-space:nowrap; }
+    .po-badge.initial { background:#e7efff; color:#2456b2; }
+    .po-badge.follow-up { background:#fff0d9; color:#9a5900; }
+    .po-metrics { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin-top:13px; }
+    .po-metric { border-top:1px solid #edf0f5; padding-top:8px; }
+    .po-metric span { display:block; font-size:10px; text-transform:uppercase; color:#8a92a6; letter-spacing:.03em; }
+    .po-metric strong { display:block; margin-top:2px; font-size:13px; }
+    .po-source-foot { margin-top:10px; font-size:12px; color:var(--ib-muted); display:flex; justify-content:space-between; gap:8px; }
+    .empty-sources { padding:30px; text-align:center; color:var(--ib-muted); }
+    .selection-summary { margin-top:14px; border:1px solid #dce2f4; border-radius:11px; padding:15px; background:#f8f9ff; display:none; }
+    .selection-summary.visible { display:block; }
+    .summary-head { display:flex; justify-content:space-between; gap:15px; align-items:flex-start; }
+    .summary-title { font-weight:750; }
+    .summary-subtitle { color:var(--ib-muted); font-size:13px; margin-top:2px; }
+    .summary-stats { display:grid; grid-template-columns:repeat(3,minmax(120px,1fr)); gap:9px; margin-top:13px; }
+    .summary-stat { background:#fff; border:1px solid #e1e5f0; border-radius:8px; padding:9px; }
+    .summary-stat span { display:block; color:var(--ib-muted); font-size:11px; }
+    .summary-stat strong { display:block; margin-top:2px; }
+    .receipt-history { margin-top:13px; }
+    .receipt-history-title { font-size:12px; font-weight:700; color:#515a72; margin-bottom:6px; }
+    .history-row { display:grid; grid-template-columns:1.2fr .9fr .9fr 1fr; gap:10px; padding:8px 0; border-top:1px solid #e4e7ef; font-size:12px; }
+    .form-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-top:16px; }
+    .field { display:flex; flex-direction:column; gap:6px; }
+    .field label { font-size:12px; font-weight:680; color:#515a72; }
+    .field input,.field select { width:100%; padding:9px 11px; border:1px solid #cfd5e2; border-radius:8px; }
+    .field small { color:var(--ib-muted); }
+    .text-danger { color:#b42332; font-size:12px; }
+    .items-wrap { overflow-x:auto; }
+    .items-table { width:100%; border-collapse:collapse; font-size:12px; min-width:1160px; }
+    .items-table th { text-align:left; color:#747d92; font-size:10px; text-transform:uppercase; letter-spacing:.035em; border-bottom:1px solid var(--ib-line); padding:9px; }
+    .items-table th.num,.items-table td.num { text-align:right; }
+    .items-table td { padding:10px 9px; border-bottom:1px solid #edf0f5; vertical-align:middle; }
+    .product-code { display:inline-block; background:#e8ecf5; color:#4d5870; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:750; margin-right:5px; }
+    .quantity-input { width:100px; text-align:right; padding:7px 8px; border:1px solid #bdc6d8; border-radius:7px; }
+    .note-input { width:190px; padding:7px 8px; border:1px solid #d3d8e3; border-radius:7px; }
+    .line-toggle { width:17px; height:17px; }
+    .line-disabled { opacity:.46; background:#fafbfc; }
+    .items-empty { text-align:center; color:var(--ib-muted); padding:34px !important; }
+    .process-note { margin-top:14px; background:#eef4ff; color:#2d4c91; padding:12px 14px; border-radius:9px; font-size:13px; }
+    @@media (max-width:900px) {
+        .inbound-create { padding:18px 14px 48px; }
+        .page-head { flex-direction:column; }
+        .form-grid { grid-template-columns:1fr; }
+        .summary-stats { grid-template-columns:repeat(2,1fr); }
+        .history-row { grid-template-columns:1fr 1fr; }
+    }
 </style>
 
-<svg width="0" height="0" style="position:absolute; display:none;">
-    <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></symbol>
-    <symbol id="i-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></symbol>
-    <symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></symbol>
-</svg>
-
-<style>
-  .filters { display: flex; gap: 12px; margin-bottom: 14px; align-items: center; }
-  .btn svg { width: 15px; height: 15px; flex-shrink: 0; }
-  .btn-remove svg { width: 14px; height: 14px; }
-  .radio-opt { display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border: 1px solid var(--line-strong); border-radius: var(--r-sm); cursor: pointer; transition: all .15s; font-weight: 600; }
-  .radio-opt.sel { border-color: var(--accent); background: var(--accent-100); color: var(--accent-600); }
-  .grid2 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
-  .field { display: flex; flex-direction: column; gap: 6px; }
-  .field label { font-size: 12.5px; font-weight: 600; color: var(--ink-2); }
-  .field input, .field select { width: 100%; padding: 9px 12px; border: 1px solid var(--line-strong); border-radius: var(--r-sm); font-size: 13px; font-family: inherit; }
-  .field input:disabled { background: var(--bg); color: var(--ink-3); }
-  .cell-input { width: 80px; text-align: right; padding: 6px; border: 1px solid var(--line-strong); border-radius: 4px; font-family: var(--font-mono); }
-  .cell-input-w { width: 100%; padding: 6px; border: 1px solid var(--line-strong); border-radius: 4px; }
-  .note { display: flex; gap: 12px; background: #e3eaff; color: #2c48d8; padding: 14px 16px; border-radius: var(--r-sm); font-size: 13px; margin-top: 20px; }
-  .note svg { width: 20px; height: 20px; flex-shrink: 0; }
-  
-  /* Additional fixes for table */
-  .items-table th.num, .items-table td.num { text-align: right; }
-</style>
-
-<div class="inbound-page">
-    <div class="pagehead">
-        <div><h1>Tạo phiếu nhập kho</h1><p>Tạo phiếu nhập hàng mua theo PO hoặc nhận hàng khách trả theo SO.</p></div>
-        <div>
-            <a href="/Admin/Inbound" class="btn btn-light" style="margin-right:10px;">Hủy bỏ</a>
-            <button type="submit" form="createForm" name="actionType" value="draft" class="btn btn-light" style="margin-right:10px;">Lưu nháp</button>
-            <button type="submit" form="createForm" name="actionType" value="submit" class="btn btn-dark">Tạo và chuyển Sẵn sàng</button>
+<div class="inbound-create">
+    <div class="page-head">
+        <div><h1>Ghi nhận đợt nhập kho</h1><p>Mỗi phiếu tương ứng một lần hàng thực tế đến kho.</p></div>
+        <div class="page-actions">
+            <a href="/Admin/Inbound" class="btn btn-outline-secondary">Danh sách phiếu nhập</a>
+            <button type="submit" form="createForm" name="actionType" value="submit" class="btn btn-primary">Xác nhận thực nhận và tiếp tục cất hàng</button>
         </div>
     </div>
 
     @if (!ViewData.ModelState.IsValid)
     {
-        <div class="card" style="border-left: 4px solid #c1222f;">
-            <div asp-validation-summary="All" class="text-danger"></div>
-        </div>
+        <div class="alert alert-danger" role="alert"><div asp-validation-summary="All"></div></div>
     }
 
     <form method="post" id="createForm">
-        <div class="card">
-            <h3>Loại lệnh nhập</h3>
-            <div class="filters" style="margin-bottom:0">
-                <label class="radio-opt"><input type="radio" asp-for="InboundOrder.SourceType" value="PURCHASE_ORDER" onchange="toggleSource(this)">Nhập từ nhà cung cấp (PO)</label>
-                <label class="radio-opt"><input type="radio" asp-for="InboundOrder.SourceType" value="SALES_RETURN" onchange="toggleSource(this)">Nhập hàng khách trả lại (SO)</label>
+        <section class="inbound-card">
+            <h2>1. Chọn luồng nhập</h2>
+            <div class="source-types">
+                @if (canCreatePurchase) { <label class="source-type"><input type="radio" asp-for="InboundOrder.SourceType" value="PURCHASE_ORDER" onchange="toggleSource(this)"> Nhập hàng từ nhà cung cấp</label> }
+                @if (canCreateSalesReturn) { <label class="source-type"><input type="radio" asp-for="InboundOrder.SourceType" value="SALES_RETURN" onchange="toggleSource(this)"> Nhận hàng khách trả lại</label> }
             </div>
-        </div>
+        </section>
 
-        <div class="card">
-            <h3>Thông tin lệnh nhập</h3>
-            <div class="grid2">
-                <div class="field" id="po-field">
-                    <label>Chọn đơn PO *</label>
-                    <select asp-for="InboundOrder.PurchaseOrderId" asp-items="Model.PurchaseOrders" onchange="fetchSourceDetails('PURCHASE_ORDER', this.value)">
-                        <option value="">@(Model.PurchaseOrders.Any() ? "-- Chọn PO đã xác nhận --" : "-- Không có PO còn số lượng có thể nhập --")</option>
-                    </select>
-                    <small>Phiếu đang xử lý giữ chỗ theo số dự kiến; phiếu đã chốt chỉ trừ số hàng đạt thực tế.</small>
+        <section class="inbound-card">
+            <h2>2. Chọn đơn nguồn và lần giao hàng</h2>
+            <div id="po-field">
+                <input type="hidden" asp-for="InboundOrder.PurchaseOrderId" />
+                <div class="po-browser">
+                    <div class="po-browser-toolbar">
+                        <div class="po-search"><i class="bi bi-search"></i><input id="poSearch" type="search" autocomplete="off" placeholder="Tìm theo mã PO, nhà cung cấp, mã hoặc tên vật tư…"></div>
+                        <div class="po-tabs" role="tablist">
+                            <button type="button" class="po-tab" data-group="follow-up" onclick="showSourceGroup('follow-up')">Cần nhận đợt tiếp theo <span class="count">@followUpPurchaseOrders.Count</span></button>
+                            <button type="button" class="po-tab" data-group="initial" onclick="showSourceGroup('initial')">Chờ nhận lần đầu <span class="count">@initialPurchaseOrders.Count</span></button>
+                        </div>
+                    </div>
+                    <div class="po-source-list">
+                        @foreach (var source in Model.PurchaseOrderSources)
+                        {
+                            var group = source.IsFollowUpReceipt ? "follow-up" : "initial";
+                            <button type="button" class="po-source-card" data-group="@group" data-po-id="@source.PurchaseOrderId" data-search="@source.SearchText" onclick="selectPurchaseOrder(@source.PurchaseOrderId, this)">
+                                <span class="po-source-top">
+                                    <span><span class="po-number">@source.PurchaseOrderNumber</span><span class="po-supplier">@source.SupplierCode — @source.SupplierName</span></span>
+                                    <span class="po-badge @(source.IsFollowUpReceipt ? "follow-up" : "initial")">@(source.IsFollowUpReceipt ? $"Đợt tiếp theo · {source.PreviousReceiptCount} lần đã nhận" : "Lần đầu")</span>
+                                </span>
+                                <span class="po-metrics">
+                                    <span class="po-metric"><span>Số mặt hàng</span><strong>@source.ProductLineCount dòng</strong></span>
+                                    <span class="po-metric"><span>Lần nhận trước</span><strong>@source.PreviousReceiptCount phiếu</strong></span>
+                                </span>
+                                <span class="po-source-foot"><span>@source.ProductLineCount dòng vật tư</span><span>Dự kiến: @(source.ExpectedDeliveryDate?.ToString("dd/MM/yyyy") ?? "Chưa xác định")</span></span>
+                            </button>
+                        }
+                        @if (!Model.PurchaseOrderSources.Any())
+                        {
+                            <div class="empty-sources">Không có PO nào còn số lượng có thể lập phiếu nhập.</div>
+                        }
+                        else
+                        {
+                            <div id="noSearchResult" class="empty-sources" style="display:none">Không tìm thấy PO phù hợp trong nhóm này.</div>
+                        }
+                    </div>
                 </div>
-                <div class="field" id="so-field" style="display:none;">
-                    <label>Chọn đơn SO *</label>
+                <span asp-validation-for="InboundOrder.PurchaseOrderId" class="text-danger"></span>
+                <div id="poSelectionSummary" class="selection-summary" aria-live="polite"></div>
+            </div>
+
+            <div id="so-field" style="display:none">
+                <div class="field">
+                    <label>Đơn bán có hàng khách trả *</label>
+                    <input id="soSearch" type="search" autocomplete="off" placeholder="Tìm theo mã SO hoặc tên khách hàng…">
                     <select asp-for="InboundOrder.SalesOrderId" asp-items="Model.SalesOrders" onchange="fetchSourceDetails('SALES_RETURN', this.value)">
                         <option value="">@(Model.SalesOrders.Any() ? "-- Chọn SO đã xuất hàng --" : "-- Không có SO còn số lượng có thể nhận trả --")</option>
                     </select>
-                    <small>Chỉ hiển thị SO đã xuất hàng và còn số lượng khách có thể trả lại.</small>
+                    <small>Chỉ hiển thị SO đã xuất và còn số lượng được phép nhận trả.</small>
                 </div>
-                <div class="field"><label>Mã lệnh nhập</label><input disabled value="Tự động sinh khi tạo"></div>
-                <div class="field"><label>Đối tác</label><input id="SupplierName" disabled value=""></div>
+                <div id="soSelectionSummary" class="selection-summary" aria-live="polite"></div>
             </div>
-            <div class="grid2" style="margin-top:14px">
-                <div class="field">
-                    <label>Ngày dự kiến *</label>
-                    <input type="date" asp-for="InboundOrder.ExpectedReceiptDate" />
-                </div>
-                <div class="field">
-                    <label>Nhân viên kho phụ trách</label>
-                    <select asp-for="InboundOrder.AssignedToUserId" asp-items="Model.Users">
-                        <option value="">@(Model.Users.Any() ? "-- Chọn nhân viên kho đang rảnh --" : "-- Không có nhân viên kho đang rảnh --")</option>
-                    </select>
-                    <small>Bắt buộc khi gửi phiếu sang Sẵn sàng. Mỗi nhân viên chỉ được phụ trách một phiếu nhập hoặc xuất đang hoạt động.</small>
-                </div>
-                <div class="field">
-                    <label>Ghi chú</label>
-                    <input type="text" asp-for="InboundOrder.Notes" placeholder="Không bắt buộc" />
-                </div>
-            </div>
-        </div>
 
-        <div class="card">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                <h3 style="margin:0;font-size:15px;">Dòng hàng dự kiến</h3>
+            <div class="form-grid">
+                <div class="field"><label>Đối tác</label><input id="SupplierName" disabled value="Chưa chọn đơn nguồn"></div>
+                <div class="field"><label>Ngày nhận hàng của đợt này *</label><input type="date" asp-for="InboundOrder.ExpectedReceiptDate"><small id="expectedDateHelp">Chọn riêng cho từng lần giao; ngày dự kiến trên PO chỉ dùng để tham chiếu.</small><span asp-validation-for="InboundOrder.ExpectedReceiptDate" class="text-danger"></span></div>
+                <div class="field"><label>Nhân viên thực hiện</label><input value="@User.Identity?.Name" disabled><small>Hệ thống tự ghi nhận theo tài khoản đang đăng nhập.</small></div>
+                <div class="field" style="grid-column:1/-1"><label id="notesLabel">Ghi chú cho lần giao này</label><input type="text" asp-for="InboundOrder.Notes" maxlength="1000" placeholder="Ví dụ: chuyến giao thứ hai, theo lịch NCC ngày 20/09…"><small id="notesHelp">Ghi lại thông tin cần thiết cho nhân viên kho.</small><span asp-validation-for="InboundOrder.Notes" class="text-danger"></span></div>
             </div>
-            
-            <table class="items-table" id="itemsTable">
-                <thead>
-                    <tr>
-                        <th style="width: 35%">Sản phẩm</th>
-                        <th class="num" style="width: 12%">SL theo đơn</th>
-                        <th class="num" style="width: 12%">SL còn có thể nhập</th>
-                        <th class="num" style="width: 12%">SL dự kiến nhập</th>
-                        <th style="width: 5%">ĐVT</th>
-                        <th style="width: 19%">Ghi chú</th>
-                        <th style="width: 5%"></th>
-                    </tr>
-                </thead>
-                <tbody id="itemsBody">
-                    <!-- Rows will be added dynamically -->
-                </tbody>
-            </table>
-        </div>
+        </section>
 
+        <section class="inbound-card">
+            <h2>3. Số lượng thực nhận</h2>
+            <div class="items-wrap">
+                <table class="items-table" id="itemsTable">
+                    <thead><tr><th style="min-width:240px">Vật tư</th><th id="sourceQuantityHeader" class="num">Theo đơn</th><th class="num">Đã nhận trước</th><th class="num">Đang xử lý ở phiếu khác</th><th class="num">Còn có thể nhận</th><th class="num">Thực nhận lần này</th><th>Đơn vị</th><th>Hạn sử dụng</th></tr></thead>
+                    <tbody id="itemsBody"><tr><td colspan="8" class="items-empty">Chọn PO hoặc SO để tải danh sách vật tư.</td></tr></tbody>
+                </table>
+            </div>
+            <div id="processNote" class="process-note">Nhập số lượng thực tế kho nhận trong đợt này. Phần chưa giao vẫn còn trên PO để nhận ở đợt sau; hàng không nhận không được đưa vào phiếu.</div>
+        </section>
     </form>
 </div>
 
 @section Scripts {
-    <script>
-        var productsOptions = `@foreach(var p in Model.Products) { <option value="@p.Value">@Html.Raw(p.Text)</option> }`;
-        
-        function toggleSource(radio, clearValues = true) {
-            document.querySelectorAll('.radio-opt').forEach(el => el.classList.remove('sel'));
-            radio.closest('.radio-opt').classList.add('sel');
-            
-            document.getElementById('po-field').style.display = 'none';
-            document.getElementById('so-field').style.display = 'none';
-            
-            if (clearValues) {
-                document.getElementById('InboundOrder_PurchaseOrderId').value = '';
-                document.getElementById('InboundOrder_SalesOrderId').value = '';
-            }
-            
-            if(radio.value === 'PURCHASE_ORDER') {
-                document.getElementById('po-field').style.display = 'block';
-            } else {
-                document.getElementById('so-field').style.display = 'block';
-            }
+<script>
+    let activeSourceGroup = '@(followUpPurchaseOrders.Count > 0 ? "follow-up" : "initial")';
+    let rowSequence = 0;
+    const escapeHtml = value => String(value ?? '').replace(/[&<>'"]/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
+    const numberValue = (object, camel, pascal, fallback = 0) => Number(object?.[camel] ?? object?.[pascal] ?? fallback);
+    const textValue = (object, camel, pascal, fallback = '') => object?.[camel] ?? object?.[pascal] ?? fallback;
+    const formatQuantity = (value, scale = 0) => new Intl.NumberFormat('vi-VN', { minimumFractionDigits: Number(scale), maximumFractionDigits: Number(scale) }).format(Number(value || 0));
+    const quantityStep = scale => Number(scale) === 0 ? '1' : `0.${'0'.repeat(Number(scale) - 1)}1`;
+
+    function toggleSource(radio, clearValues = true) {
+        document.querySelectorAll('.source-type').forEach(element => element.classList.remove('selected'));
+        radio.closest('.source-type')?.classList.add('selected');
+        const isPurchase = radio.value === 'PURCHASE_ORDER';
+        document.getElementById('po-field').style.display = isPurchase ? 'block' : 'none';
+        document.getElementById('so-field').style.display = isPurchase ? 'none' : 'block';
+        document.getElementById('InboundOrder_ExpectedReceiptDate').readOnly = false;
+        document.getElementById('sourceQuantityHeader').textContent = isPurchase ? 'Theo đơn' : 'Đã thực xuất';
+        document.getElementById('notesLabel').textContent = isPurchase ? 'Ghi chú cho lần giao này' : 'Lý do và căn cứ chấp thuận trả hàng *';
+        const notes = document.getElementById('InboundOrder_Notes');
+        notes.required = !isPurchase;
+        notes.minLength = isPurchase ? 0 : 10;
+        notes.placeholder = isPurchase ? 'Ví dụ: chuyến giao thứ hai, theo lịch NCC ngày 20/09…' : 'Ví dụ: giao sai quy cách; Sales đã xác minh SO và chấp thuận nhận lại…';
+        document.getElementById('notesHelp').textContent = isPurchase ? 'Ghi lại thông tin cần thiết cho nhân viên kho.' : 'Bắt buộc tối thiểu 10 ký tự. SO hoàn tất chỉ là căn cứ số lượng, không tự động đồng nghĩa khách được trả hàng.';
+        document.getElementById('processNote').textContent = isPurchase
+            ? 'Nhập số lượng thực tế kho nhận trong đợt này. Phần PO chưa giao vẫn còn lại cho một phiếu nhập sau.'
+            : 'Chỉ ghi số lượng hàng khách thực tế trả và kho đồng ý nhận. Hàng không nhận được xử lý ngoài luồng và không vào tồn kho.';
+        if (clearValues) {
+            document.getElementById('InboundOrder_PurchaseOrderId').value = '';
+            document.getElementById('InboundOrder_SalesOrderId').value = '';
+            document.querySelectorAll('.po-source-card').forEach(element => element.classList.remove('selected'));
+            clearSourceDetails();
         }
+    }
 
-        var rowCount = 0;
-        const quantityStep = scale => scale === 0 ? '1' : `0.${'0'.repeat(scale - 1)}1`;
+    function showSourceGroup(group) {
+        activeSourceGroup = group;
+        document.querySelectorAll('.po-tab').forEach(tab => tab.classList.toggle('active', tab.dataset.group === group));
+        applySourceFilter();
+    }
 
-        function addRow() {
-            var html = `
-                <tr id="row_${rowCount}">
-                    <td>
-                        <select name="InboundOrder.Items[${rowCount}].ProductId" required>
-                            <option value="">-- Chọn sản phẩm --</option>
-                            ${productsOptions}
-                        </select>
-                    </td>
-                    <td class="num">
-                        <input type="text" disabled value="0" class="cell-input" style="background:#f2f3f7; color:#8890a6; text-align:right; border:none;" />
-                    </td>
-                    <td class="num">
-                        <input type="number" name="InboundOrder.Items[${rowCount}].ExpectedQuantity" min="1" step="0.01" value="1" required class="cell-input expected-qty" />
-                    </td>
-                    <td>
-                        <input type="text" disabled value="--" style="width: 50px; background: transparent; border: none; text-align: center;" />
-                    </td>
-                    <td>
-                        <input type="text" name="InboundOrder.Items[${rowCount}].Notes" placeholder="Ghi chú mặt hàng" class="cell-input-w" />
-                    </td>
-                    <td>
-                        <button type="button" class="btn-remove" onclick="removeRow(${rowCount})">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
-                        </button>
-                    </td>
-                </tr>
-            `;
-            document.getElementById('itemsBody').insertAdjacentHTML('beforeend', html);
-            rowCount++;
-        }
-
-        function removeRow(index) {
-            var row = document.getElementById(`row_${index}`);
-            if(row) row.remove();
-        }
-
-        async function fetchSourceDetails(sourceType, sourceId) {
-            if (!sourceId) {
-                var supplierNameEl = document.getElementById('SupplierName');
-                if (supplierNameEl) supplierNameEl.value = '';
-                var tbody = document.getElementById('itemsBody');
-                if (tbody) tbody.innerHTML = '';
-                rowCount = 0;
-                addRow();
-                return;
-            }
-
-            try {
-                let handler = '';
-                let paramName = '';
-                if (sourceType === 'PURCHASE_ORDER') {
-                    handler = 'PoDetails';
-                    paramName = 'poId';
-                } else if (sourceType === 'SALES_RETURN') {
-                    handler = 'SoDetails';
-                    paramName = 'soId';
-                }
-                
-                const response = await fetch(`?handler=${handler}&${paramName}=${sourceId}`);
-                if (!response.ok) {
-                    console.error("HTTP Error:", response.status);
-                    return;
-                }
-
-                let data;
-                try {
-                    data = await response.json();
-                } catch (e) {
-                    console.error("JSON Parse Error.");
-                    return;
-                }
-                
-                try {
-                    const supplierName = data.supplierName || data.SupplierName || '';
-                    const items = data.items || data.Items || [];
-
-                    // Set supplier name
-                    const supplierInput = document.getElementById('SupplierName');
-                    if(supplierInput) supplierInput.value = supplierName;
-
-                    // Clear existing rows
-                    const tbody = document.getElementById('itemsBody');
-                    if(tbody) tbody.innerHTML = '';
-                    
-                    rowCount = 0;
-
-                    // Add rows from Source
-                    items.forEach(item => {
-                        const productId = item.productId || item.ProductId;
-                        const productName = item.productName || item.ProductName;
-                        const remainingQuantity = item.remainingQuantity !== undefined ? item.remainingQuantity : item.RemainingQuantity;
-                        const unitName = item.unitName || item.UnitName || '--';
-                        const quantityScale = Number(item.quantityScale ?? item.QuantityScale ?? 0);
-                        
-                        const productCode = item.productCode || item.ProductCode || '';
-                        const orderedQuantity = item.orderedQuantity !== undefined ? item.orderedQuantity : item.OrderedQuantity;
-                        
-                        // Nếu số lượng còn lại = 0 thì bỏ qua không load lên
-                        if(remainingQuantity <= 0) return;
-
-                        var html = `
-                            <tr id="row_${rowCount}">
-                                <td>
-                                    <input type="hidden" name="InboundOrder.Items[${rowCount}].ProductId" value="${productId}" />
-                                    <span style="display:inline-block; background:#e2e8f0; color:#475569; padding:2px 6px; border-radius:4px; font-size:11px; font-weight:700; font-family:var(--font-mono); margin-right:6px;">${productCode}</span>
-                                    <span style="font-weight:600; font-size:13px;">${productName}</span>
-                                </td>
-                                <td class="num">
-                                    <input type="text" disabled value="${orderedQuantity}" class="cell-input" style="background:transparent; color:var(--ink); text-align:right; border:none; font-weight:600;" />
-                                </td>
-                                <td class="num">
-                                    <input type="hidden" class="remaining-hidden" value="${remainingQuantity}" />
-                                    <input type="text" disabled value="${remainingQuantity}" class="cell-input" style="background:#f2f3f7; color:#8890a6; text-align:right; border:none;" />
-                                </td>
-                                <td class="num">
-                                    <input type="number" name="InboundOrder.Items[${rowCount}].ExpectedQuantity" min="${quantityStep(quantityScale)}" max="${remainingQuantity}" step="${quantityStep(quantityScale)}" value="${remainingQuantity > 0 ? remainingQuantity : 1}" required class="cell-input expected-qty" />
-                                </td>
-                                <td>
-                                    <input type="text" disabled value="${unitName}" style="width: 50px; background: transparent; border: none; text-align: center;" />
-                                </td>
-                                <td>
-                                    <input type="text" name="InboundOrder.Items[${rowCount}].Notes" placeholder="Ghi chú mặt hàng" class="cell-input-w" />
-                                </td>
-                                <td>
-                                    <button type="button" class="btn-remove" onclick="removeRow(${rowCount})">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
-                                    </button>
-                                </td>
-                            </tr>
-                        `;
-                        if(tbody) tbody.insertAdjacentHTML('beforeend', html);
-                        rowCount++;
-                    });
-                } catch (renderError) {
-                    alert("Lỗi khi tạo giao diện: " + renderError.message);
-                }
-            } catch (error) {
-                console.error("Failed to fetch details", error);
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            // Trigger radio button toggle on load to sync UI state
-            var checkedRadio = document.querySelector('input[type="radio"]:checked');
-            if (checkedRadio) {
-                toggleSource(checkedRadio, false);
-            } else {
-                // Default fallback if nothing is checked
-                var firstRadio = document.querySelector('input[type="radio"]');
-                if (firstRadio) {
-                    firstRadio.checked = true;
-                    toggleSource(firstRadio);
-                }
-            }
-
-            var poEl = document.getElementById('InboundOrder_PurchaseOrderId');
-            var initialPo = poEl ? poEl.value : '';
-            var soEl = document.getElementById('InboundOrder_SalesOrderId');
-            var initialSo = soEl ? soEl.value : '';
-            
-            if(initialPo && checkedRadio && checkedRadio.value === 'PURCHASE_ORDER') {
-                fetchSourceDetails('PURCHASE_ORDER', initialPo);
-            } else if (initialSo && checkedRadio && checkedRadio.value === 'SALES_RETURN') {
-                fetchSourceDetails('SALES_RETURN', initialSo);
-            } else {
-                addRow();
-            }
-            
-            // Client side validation
-            var form = document.querySelector('form');
-            if (form) {
-                form.addEventListener('submit', function(e) {
-                    let items = document.querySelectorAll('#itemsBody tr');
-                    if(items.length === 0) {
-                        alert("Vui lòng thêm ít nhất 1 dòng hàng.");
-                        e.preventDefault();
-                        return false;
-                    }
-                    
-                    let isValid = true;
-                    items.forEach(function(tr) {
-                        if (!isValid) return; // skip if already invalid
-                        let expectedInput = tr.querySelector('.expected-qty');
-                        let remainingInput = tr.querySelector('.remaining-hidden');
-                        
-                        if(expectedInput && remainingInput) {
-                            let expected = parseFloat(expectedInput.value) || 0;
-                            let remaining = parseFloat(remainingInput.value) || 0;
-                            
-                            if(expected > remaining) {
-                                alert("Số lượng dự kiến không được vượt quá số lượng còn lại/thiếu.");
-                                expectedInput.focus();
-                                isValid = false;
-                            }
-                        }
-                    });
-                    
-                    if(!isValid) {
-                        e.preventDefault();
-                    }
-                });
-            }
+    function applySourceFilter() {
+        const keyword = (document.getElementById('poSearch')?.value || '').trim().toLocaleLowerCase('vi');
+        let visibleCount = 0;
+        document.querySelectorAll('.po-source-card').forEach(card => {
+            const visible = card.dataset.group === activeSourceGroup && (!keyword || (card.dataset.search || '').includes(keyword));
+            card.style.display = visible ? '' : 'none';
+            if (visible) visibleCount++;
         });
-    </script>
+        const noResult = document.getElementById('noSearchResult');
+        if (noResult) noResult.style.display = visibleCount === 0 ? 'block' : 'none';
+    }
+
+    async function selectPurchaseOrder(poId, card) {
+        document.getElementById('InboundOrder_PurchaseOrderId').value = poId;
+        document.querySelectorAll('.po-source-card').forEach(element => element.classList.remove('selected'));
+        card?.classList.add('selected');
+        await fetchSourceDetails('PURCHASE_ORDER', poId);
+    }
+
+    function clearSourceDetails() {
+        document.getElementById('SupplierName').value = 'Chưa chọn đơn nguồn';
+        document.getElementById('itemsBody').innerHTML = '<tr><td colspan="8" class="items-empty">Chọn PO hoặc SO để tải danh sách vật tư.</td></tr>';
+        const summary = document.getElementById('poSelectionSummary');
+        summary.classList.remove('visible'); summary.innerHTML = ''; rowSequence = 0;
+        const soSummary = document.getElementById('soSelectionSummary');
+        soSummary.classList.remove('visible'); soSummary.innerHTML = '';
+    }
+
+    function inboundStatusLabel(status) {
+        return ({DRAFT:'Chưa ghi nhận thực nhận',READY:'Chờ nhận hàng',RECEIVING:'Đang ghi nhận thực nhận',RECEIVED:'Chờ cất hàng',PUTAWAY_COMPLETED:'Đã hoàn tất nhập kho',CANCELLED:'Đã hủy'})[String(status || '').toUpperCase()] || status || 'Không xác định';
+    }
+
+    function renderPurchaseOrderSummary(data) {
+        const history = data.previousInbounds ?? data.PreviousInbounds ?? [];
+        const isFollowUp = data.isFollowUpReceipt ?? data.IsFollowUpReceipt ?? false;
+        const summary = document.getElementById('poSelectionSummary');
+        const historyHtml = history.length === 0 ? '' : `<div class="receipt-history"><div class="receipt-history-title">Các phiếu nhập đã liên kết với PO này</div>${history.slice(0,5).map(item => `<div class="history-row"><a href="/Admin/Inbound/Details/${numberValue(item,'inboundOrderId','InboundOrderId')}" target="_blank" rel="noopener">${escapeHtml(textValue(item,'inboundOrderNumber','InboundOrderNumber'))}</a><span>${escapeHtml(textValue(item,'assignedToUserName','AssignedToUserName','Chưa xác định'))}</span><span>Ngày nhận ${escapeHtml(String(textValue(item,'expectedReceiptDate','ExpectedReceiptDate','—')).slice(0,10).split('-').reverse().join('/'))}</span><span>${escapeHtml(inboundStatusLabel(textValue(item,'status','Status')))}</span></div>`).join('')}</div>`;
+        const sourceItems = data.items ?? data.Items ?? [];
+        const remainingLineCount = sourceItems.filter(item => numberValue(item,'remainingQuantity','RemainingQuantity') > 0).length;
+        const sourceDate = textValue(data,'expectedDeliveryDate','ExpectedDeliveryDate','');
+        const sourceDateLabel = sourceDate ? String(sourceDate).slice(0,10).split('-').reverse().join('/') : 'Chưa xác định';
+        summary.innerHTML = `<div class="summary-head"><div><div class="summary-title">${escapeHtml(textValue(data,'purchaseOrderNumber','PurchaseOrderNumber'))}</div><div class="summary-subtitle">${isFollowUp ? `Đây là lần nhận tiếp theo; ${numberValue(data,'previousReceiptCount','PreviousReceiptCount')} lần nhận trước được giữ độc lập.` : 'Đây là lần nhận đầu tiên của PO.'}</div></div><span class="po-badge ${isFollowUp ? 'follow-up' : 'initial'}">${isFollowUp ? 'Nhận đợt tiếp theo' : 'Nhận lần đầu'}</span></div><div class="summary-stats"><div class="summary-stat"><span>Ngày giao trên PO</span><strong>${escapeHtml(sourceDateLabel)}</strong></div><div class="summary-stat"><span>Số mặt hàng PO</span><strong>${sourceItems.length} dòng</strong></div><div class="summary-stat"><span>Còn chờ nhận</span><strong>${remainingLineCount} dòng</strong></div></div>${historyHtml}`;
+        summary.classList.add('visible');
+    }
+
+    function renderSalesReturnSummary(data) {
+        const history = data.previousInbounds ?? data.PreviousInbounds ?? [];
+        const sourceItems = data.items ?? data.Items ?? [];
+        const summary = document.getElementById('soSelectionSummary');
+        const historyHtml = history.length === 0 ? '' : `<div class="receipt-history"><div class="receipt-history-title">Các lần khách đã giao trả theo SO này</div>${history.slice(0,5).map(item => `<div class="history-row"><a href="/Admin/Inbound/Details/${numberValue(item,'inboundOrderId','InboundOrderId')}" target="_blank" rel="noopener">${escapeHtml(textValue(item,'inboundOrderNumber','InboundOrderNumber'))}</a><span>${escapeHtml(textValue(item,'assignedToUserName','AssignedToUserName','Chưa xác định'))}</span><span>Ngày nhận ${escapeHtml(String(textValue(item,'expectedReceiptDate','ExpectedReceiptDate','—')).slice(0,10).split('-').reverse().join('/'))}</span><span>${escapeHtml(inboundStatusLabel(textValue(item,'status','Status')))}</span></div>`).join('')}</div>`;
+        summary.innerHTML = `<div class="summary-head"><div><div class="summary-title">${escapeHtml(textValue(data,'purchaseOrderNumber','PurchaseOrderNumber'))}</div><div class="summary-subtitle">Khách hàng: ${escapeHtml(textValue(data,'supplierName','SupplierName'))}. Chỉ số lượng đã thực xuất và chưa nhận lại GOOD mới được lập phiếu.</div></div><span class="po-badge follow-up">Hàng khách trả</span></div><div class="summary-stats"><div class="summary-stat"><span>Số dòng còn có thể trả</span><strong>${sourceItems.length} dòng</strong></div><div class="summary-stat"><span>Các lần trả trước</span><strong>${numberValue(data,'previousReceiptCount','PreviousReceiptCount')} phiếu</strong></div><div class="summary-stat"><span>Đang giữ chỗ</span><strong>${sourceItems.filter(item => numberValue(item,'activePlannedQuantity','ActivePlannedQuantity') > 0).length} dòng</strong></div></div>${historyHtml}`;
+        summary.classList.add('visible');
+    }
+
+    function renderItems(items, isPurchase) {
+        const body = document.getElementById('itemsBody'); body.innerHTML = ''; rowSequence = 0;
+        items.forEach(item => {
+            const remaining = numberValue(item,'remainingQuantity','RemainingQuantity'); if (remaining <= 0) return;
+            const rowKey = `line_${rowSequence++}`;
+            const scale = numberValue(item,'quantityScale','QuantityScale');
+            const ordered = numberValue(item,'orderedQuantity','OrderedQuantity');
+            const accepted = numberValue(item,'acceptedQuantity','AcceptedQuantity');
+            const planned = numberValue(item,'activePlannedQuantity','ActivePlannedQuantity');
+            const productCode = textValue(item,'productCode','ProductCode');
+            const productName = textValue(item,'productName','ProductName');
+            const unitName = textValue(item,'unitName','UnitName','—');
+            const productId = numberValue(item,'productId','ProductId');
+            const trackExpiry = Boolean(item?.trackExpiry ?? item?.TrackExpiry ?? false) ||
+                String(item?.rotationMethod ?? item?.RotationMethod ?? '').toUpperCase() === 'FEFO';
+            const expectedField = `<input type="hidden" name="InboundOrder.Items[${rowKey}].ExpectedQuantity" value="${remaining}">`;
+            const actualField = `<input type="number" class="quantity-input actual-qty" name="InboundOrder.Items[${rowKey}].ActualReceivedQuantity" min="0" max="${remaining}" step="${quantityStep(scale)}" value="0" data-remaining="${remaining}" data-scale="${scale}">`;
+            const expiryField = trackExpiry
+                ? `<input type="date" class="form-control expiry-date" name="InboundOrder.Items[${rowKey}].ExpiryDate" aria-label="Hạn sử dụng của ${escapeHtml(productName)}"><small class="text-muted">Bắt buộc khi thực nhận lớn hơn 0</small>`
+                : '<span class="text-muted">Không áp dụng</span>';
+            body.insertAdjacentHTML('beforeend', `<tr data-inbound-line data-track-expiry="${trackExpiry}"><td><input type="hidden" name="InboundOrder.Items.Index" value="${rowKey}"><input type="hidden" name="InboundOrder.Items[${rowKey}].ProductId" value="${productId}">${expectedField}<span class="product-code">${escapeHtml(productCode)}</span><strong>${escapeHtml(productName)}</strong></td><td class="num">${formatQuantity(ordered, scale)}</td><td class="num">${formatQuantity(accepted, scale)}</td><td class="num">${formatQuantity(planned, scale)}</td><td class="num"><strong>${formatQuantity(remaining, scale)}</strong></td><td class="num">${actualField}</td><td>${escapeHtml(unitName)}</td><td>${expiryField}</td></tr>`);
+        });
+        if (!body.querySelector('[data-inbound-line]')) body.innerHTML = '<tr><td colspan="8" class="items-empty">Đơn nguồn không còn dòng vật tư nào có thể lập phiếu.</td></tr>';
+    }
+
+    async function fetchSourceDetails(sourceType, sourceId) {
+        if (!sourceId) { clearSourceDetails(); return; }
+        const isPurchase = sourceType === 'PURCHASE_ORDER';
+        try {
+            const response = await fetch(`?handler=${isPurchase ? 'PoDetails' : 'SoDetails'}&${isPurchase ? 'poId' : 'soId'}=${encodeURIComponent(sourceId)}`);
+            if (!response.ok) throw new Error('Đơn nguồn không còn đủ điều kiện lập phiếu nhập.');
+            const data = await response.json();
+            document.getElementById('SupplierName').value = textValue(data,'supplierName','SupplierName','Không xác định');
+            const expectedDateInput = document.getElementById('InboundOrder_ExpectedReceiptDate');
+            expectedDateInput.readOnly = false;
+            renderItems(data.items ?? data.Items ?? [], isPurchase);
+            if (isPurchase) {
+                renderPurchaseOrderSummary(data);
+                document.getElementById('soSelectionSummary').classList.remove('visible');
+            } else {
+                renderSalesReturnSummary(data);
+                document.getElementById('poSelectionSummary').classList.remove('visible');
+            }
+        } catch (error) { clearSourceDetails(); alert(error.message || 'Không thể tải chi tiết đơn nguồn.'); }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('poSearch')?.addEventListener('input', applySourceFilter);
+        document.getElementById('soSearch')?.addEventListener('input', event => {
+            const keyword = event.target.value.trim().toLocaleLowerCase('vi');
+            const select = document.getElementById('InboundOrder_SalesOrderId');
+            [...select.options].forEach((option, index) => {
+                if (index === 0) return;
+                option.hidden = Boolean(keyword) && !option.text.toLocaleLowerCase('vi').includes(keyword);
+            });
+            if (select.selectedOptions[0]?.hidden) { select.value = ''; clearSourceDetails(); }
+        });
+        const selectedRadio = document.querySelector('input[name="InboundOrder.SourceType"]:checked') || document.querySelector('input[name="InboundOrder.SourceType"]');
+        if (selectedRadio) { selectedRadio.checked = true; toggleSource(selectedRadio, false); }
+        const selectedPoId = document.getElementById('InboundOrder_PurchaseOrderId')?.value;
+        const selectedPoCard = selectedPoId ? document.querySelector(`.po-source-card[data-po-id="${CSS.escape(selectedPoId)}"]`) : null;
+        if (selectedPoCard) { activeSourceGroup = selectedPoCard.dataset.group; selectPurchaseOrder(selectedPoId, selectedPoCard); }
+        else {
+            const selectedSoId = document.getElementById('InboundOrder_SalesOrderId')?.value;
+            if (selectedSoId && selectedRadio?.value === 'SALES_RETURN') fetchSourceDetails('SALES_RETURN', selectedSoId);
+        }
+        showSourceGroup(activeSourceGroup);
+        document.getElementById('createForm')?.addEventListener('submit', event => {
+            const rows = [...document.querySelectorAll('[data-inbound-line]')];
+            if (rows.length === 0) { event.preventDefault(); alert('Vui lòng chọn đơn nguồn còn vật tư để nhận.'); return; }
+            let hasActualQuantity = false;
+            for (const row of rows) {
+                const input = row.querySelector('.actual-qty');
+                const quantity = Number(input?.value || 0);
+                const remaining = Number(input?.dataset.remaining || 0);
+                if (quantity < 0 || quantity > remaining) { event.preventDefault(); input?.focus(); alert('Số lượng thực nhận phải từ 0 đến số lượng còn lại.'); return; }
+                if (quantity > 0) {
+                    hasActualQuantity = true;
+                    const expiry = row.querySelector('.expiry-date');
+                    if (row.dataset.trackExpiry === 'true' && !expiry?.value) {
+                        event.preventDefault(); expiry?.focus(); alert('Vui lòng nhập hạn sử dụng cho vật tư có quản lý hạn dùng.'); return;
+                    }
+                }
+            }
+            if (!hasActualQuantity) { event.preventDefault(); alert('Phải có ít nhất một vật tư có số lượng thực nhận lớn hơn 0.'); }
+        });
+    });
+</script>
 }

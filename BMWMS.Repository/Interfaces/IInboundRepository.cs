@@ -10,6 +10,7 @@ public interface IInboundRepository
     Task<(IEnumerable<InboundOrder> Items, int TotalCount)> GetInboundOrdersPageAsync(
         string? keyword,
         string? status,
+        string? sourceType,
         DateTime? fromDate,
         DateTime? toDate,
         long? assignedToUserId,
