@@ -263,10 +263,18 @@
                         <a href="/Admin/Users/Create" class="nav-sub-item @(Context.Request.Path == "/Admin/Users/Create" ? "active" : "")">Tạo tài khoản mới</a>
                     </div>
 
-                    <a href="/Admin/AuditLogs" class="nav-item @(Context.Request.Path.StartsWithSegments("/Admin/AuditLogs") ? "active" : "")">
-                        <i class="ri-history-line nav-item-icon"></i>
-                        Nhật ký hoạt động
-                    </a>
+                    var isAuditActive = Context.Request.Path.StartsWithSegments("/Admin/AuditLogs") || Context.Request.Path.StartsWithSegments("/Admin/Users/AuditLogs");
+                    <div class="nav-item nav-item-has-sub @(isAuditActive ? "expanded active" : "")" onclick="toggleSubmenu(this)">
+                        <div class="nav-item-main">
+                            <i class="ri-history-line nav-item-icon"></i>
+                            Nhật ký hoạt động
+                        </div>
+                        <i class="ri-arrow-right-s-line nav-item-arrow"></i>
+                    </div>
+                    <div class="nav-submenu @(isAuditActive ? "expanded" : "")">
+                        <a href="/Admin/AuditLogs" class="nav-sub-item @(Context.Request.Path == "/Admin/AuditLogs" || Context.Request.Path == "/Admin/AuditLogs/Index" ? "active" : "")">Nhật ký hệ thống</a>
+                        <a href="/Admin/Users/AuditLogs" class="nav-sub-item @(Context.Request.Path == "/Admin/Users/AuditLogs" ? "active" : "")">Nhật ký người dùng</a>
+                    </div>
                 }
 
                 <a href="/Admin/Profile" class="nav-item @(Context.Request.Path == "/Admin/Profile" ? "active" : "")">

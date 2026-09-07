@@ -40,8 +40,8 @@ public class AuditLogsController : ControllerBase
     }
 
     [HttpGet("options")]
-    public async Task<IActionResult> GetOptions()
+    public async Task<IActionResult> GetOptions([FromQuery] string? entityName = null)
     {
-        return Ok(await _auditLogService.GetOptionsAsync());
+        return Ok(await _auditLogService.GetOptionsAsync(entityName));
     }
 }
