@@ -97,7 +97,7 @@ public class AuthService : IAuthService
                 {
                     UserId = user.UserId,
                     ActionType = "LOGIN_LOCKED",
-                    EntityName = AuditEntities.User,
+                    EntityName = "UserSession",
                     EntityId = user.UserId.ToString(),
                     NewValues = new { LockedMinutes = LockoutMinutes },
                     IpAddress = ipAddress
@@ -112,7 +112,7 @@ public class AuthService : IAuthService
             {
                 UserId = user.UserId,
                 ActionType = "LOGIN_FAILED",
-                EntityName = AuditEntities.User,
+                EntityName = "UserSession",
                 EntityId = user.UserId.ToString(),
                 IpAddress = ipAddress
             });
@@ -143,7 +143,7 @@ public class AuthService : IAuthService
         {
             UserId = user.UserId,
             ActionType = "LOGIN_SUCCESS",
-            EntityName = AuditEntities.User,
+            EntityName = "UserSession",
             EntityId = user.UserId.ToString(),
             NewValues = new { SessionId = session.SessionId },
             IpAddress = ipAddress
@@ -213,7 +213,7 @@ public class AuthService : IAuthService
             {
                 UserId = user?.UserId,
                 ActionType = "FORGOT_PASSWORD_REQUEST_IGNORED",
-                EntityName = AuditEntities.User,
+                EntityName = "UserSession",
                 EntityId = user?.UserId.ToString(),
                 NewValues = new
                 {
@@ -251,7 +251,7 @@ public class AuthService : IAuthService
         {
             UserId = user.UserId,
             ActionType = "FORGOT_PASSWORD_REQUEST",
-            EntityName = AuditEntities.User,
+            EntityName = "UserSession",
             EntityId = user.UserId.ToString(),
             IpAddress = ipAddress
         });
@@ -264,8 +264,9 @@ public class AuthService : IAuthService
         {
             await _auditLogService.RecordAsync(new AuditEventDto
             {
+                UserId = null,
                 ActionType = "RESET_PASSWORD_FAILED",
-                EntityName = AuditEntities.User,
+                EntityName = "UserSession",
                 NewValues = new { Reason = "UNKNOWN_ACCOUNT", IdentifierFingerprint = Fingerprint(request.Email) },
                 IpAddress = ipAddress
             });
@@ -352,7 +353,7 @@ public class AuthService : IAuthService
         {
             UserId = userId,
             ActionType = "LOGIN_DENIED",
-            EntityName = AuditEntities.User,
+            EntityName = "UserSession",
             EntityId = userId.ToString(),
             NewValues = new { Reason = reason },
             IpAddress = ipAddress

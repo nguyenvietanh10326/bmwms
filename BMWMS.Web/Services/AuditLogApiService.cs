@@ -35,8 +35,27 @@ public class AuditLogApiService
     public Task<(AuditLogDetailModel? Data, string? Error)> GetAuditLogAsync(long id) =>
         GetAsync<AuditLogDetailModel>($"api/audit-logs/{id}");
 
-    public Task<(AuditLogOptionsModel? Data, string? Error)> GetOptionsAsync() =>
-        GetAsync<AuditLogOptionsModel>("api/audit-logs/options");
+    public async Task<(AuditLogOptionsModel? Data, string? Error)> GetOptionsAsync(string? entityName = null)
+    {
+        try
+        {
+            var url = "api/audit-logs/options";
+            if (!string.IsNullOrWhiteSpace(entityName))
+            {
+                url += $"?entityName={Uri.EscapeDataString(entityName)}";
+            }
+            var response = await _httpClient.GetAsync(url);
+            if (!response.IsSuccessStatusCode)
+                return (null, "Không thể tải danh mục bộ lọc.");
+
+            var result = await response.Content.ReadFromJsonAsync<AuditLogOptionsModel>();
+            return (result, null);
+        }
+        catch (Exception ex)
+        {
+            return (null, $"Lỗi kết nối: {ex.Message}");
+        }
+    }
 
     private async Task<(T? Data, string? Error)> GetAsync<T>(string url)
     {

@@ -8,5 +8,5 @@ public interface IAuditLogService
     Task StageAsync(AuditEventDto auditEvent);
     Task<AuditLogListResponseDto> GetAuditLogsAsync(AuditLogFilterDto filter);
     Task<AuditLogDetailDto?> GetAuditLogAsync(long auditLogId);
-    Task<AuditLogOptionsDto> GetOptionsAsync();
+    Task<AuditLogOptionsDto> GetOptionsAsync(string? entityName = null);
 }

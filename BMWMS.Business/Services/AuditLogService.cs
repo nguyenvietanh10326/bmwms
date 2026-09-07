@@ -137,10 +137,10 @@ public class AuditLogService : IAuditLogService
         };
     }
 
-    public async Task<AuditLogOptionsDto> GetOptionsAsync()
+    public async Task<AuditLogOptionsDto> GetOptionsAsync(string? entityName = null)
     {
         // Các repository dùng chung scoped DbContext; không chạy song song trên cùng context.
-        var actions = await _auditLogRepository.GetActionTypesAsync();
+        var actions = await _auditLogRepository.GetActionTypesAsync(entityName);
         var entities = await _auditLogRepository.GetEntityNamesAsync();
         var actors = await _auditLogRepository.GetActorsAsync();
 

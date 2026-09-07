@@ -19,7 +19,7 @@ public interface IAuditLogRepository
         int pageSize);
 
     Task<AuditLog?> GetByIdAsync(long auditLogId);
-    Task<List<string>> GetActionTypesAsync();
+    Task<List<string>> GetActionTypesAsync(string? entityName = null);
     Task<List<string>> GetEntityNamesAsync();
     Task<List<User>> GetActorsAsync();
 }
