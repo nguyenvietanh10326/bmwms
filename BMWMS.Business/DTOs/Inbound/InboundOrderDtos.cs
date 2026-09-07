@@ -187,6 +187,7 @@ public class PurchaseOrderItemForInboundDto
     public byte QuantityScale { get; set; }
     public bool TrackLot { get; set; }
     public bool TrackExpiry { get; set; }
+    public string RotationMethod { get; set; } = string.Empty;
     public decimal OrderedQuantity { get; set; }
     public decimal InboundQuantity { get; set; }
     public decimal AcceptedQuantity { get; set; }

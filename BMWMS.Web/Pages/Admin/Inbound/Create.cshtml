@@ -175,8 +175,8 @@
             <h2>3. Số lượng thực nhận</h2>
             <div class="items-wrap">
                 <table class="items-table" id="itemsTable">
-                    <thead><tr><th style="min-width:240px">Vật tư</th><th id="sourceQuantityHeader" class="num">Theo đơn</th><th class="num">Đã nhận trước</th><th class="num">Đang xử lý ở phiếu khác</th><th class="num">Còn có thể nhận</th><th class="num">Thực nhận lần này</th><th>Đơn vị</th><th>Hạn sử dụng</th></tr></thead>
-                    <tbody id="itemsBody"><tr><td colspan="8" class="items-empty">Chọn PO hoặc SO để tải danh sách vật tư.</td></tr></tbody>
+                    <thead><tr><th style="min-width:240px">Vật tư</th><th id="sourceQuantityHeader" class="num">Theo đơn</th><th class="num">Đã nhận trước</th><th class="num">Còn có thể nhận</th><th class="num">Thực nhận lần này</th><th>Đơn vị</th><th>Hạn sử dụng</th></tr></thead>
+                    <tbody id="itemsBody"><tr><td colspan="7" class="items-empty">Chọn PO hoặc SO để tải danh sách vật tư.</td></tr></tbody>
                 </table>
             </div>
             <div id="processNote" class="process-note">Nhập số lượng thực tế kho nhận trong đợt này. Phần chưa giao vẫn còn trên PO để nhận ở đợt sau; hàng không nhận không được đưa vào phiếu.</div>
@@ -246,7 +246,7 @@
 
     function clearSourceDetails() {
         document.getElementById('SupplierName').value = 'Chưa chọn đơn nguồn';
-        document.getElementById('itemsBody').innerHTML = '<tr><td colspan="8" class="items-empty">Chọn PO hoặc SO để tải danh sách vật tư.</td></tr>';
+        document.getElementById('itemsBody').innerHTML = '<tr><td colspan="7" class="items-empty">Chọn PO hoặc SO để tải danh sách vật tư.</td></tr>';
         const summary = document.getElementById('poSelectionSummary');
         summary.classList.remove('visible'); summary.innerHTML = ''; rowSequence = 0;
         const soSummary = document.getElementById('soSelectionSummary');
@@ -287,7 +287,6 @@
             const scale = numberValue(item,'quantityScale','QuantityScale');
             const ordered = numberValue(item,'orderedQuantity','OrderedQuantity');
             const accepted = numberValue(item,'acceptedQuantity','AcceptedQuantity');
-            const planned = numberValue(item,'activePlannedQuantity','ActivePlannedQuantity');
             const productCode = textValue(item,'productCode','ProductCode');
             const productName = textValue(item,'productName','ProductName');
             const unitName = textValue(item,'unitName','UnitName','—');
@@ -299,9 +298,9 @@
             const expiryField = trackExpiry
                 ? `<input type="date" class="form-control expiry-date" name="InboundOrder.Items[${rowKey}].ExpiryDate" aria-label="Hạn sử dụng của ${escapeHtml(productName)}"><small class="text-muted">Bắt buộc khi thực nhận lớn hơn 0</small>`
                 : '<span class="text-muted">Không áp dụng</span>';
-            body.insertAdjacentHTML('beforeend', `<tr data-inbound-line data-track-expiry="${trackExpiry}"><td><input type="hidden" name="InboundOrder.Items.Index" value="${rowKey}"><input type="hidden" name="InboundOrder.Items[${rowKey}].ProductId" value="${productId}">${expectedField}<span class="product-code">${escapeHtml(productCode)}</span><strong>${escapeHtml(productName)}</strong></td><td class="num">${formatQuantity(ordered, scale)}</td><td class="num">${formatQuantity(accepted, scale)}</td><td class="num">${formatQuantity(planned, scale)}</td><td class="num"><strong>${formatQuantity(remaining, scale)}</strong></td><td class="num">${actualField}</td><td>${escapeHtml(unitName)}</td><td>${expiryField}</td></tr>`);
+            body.insertAdjacentHTML('beforeend', `<tr data-inbound-line data-track-expiry="${trackExpiry}"><td><input type="hidden" name="InboundOrder.Items.Index" value="${rowKey}"><input type="hidden" name="InboundOrder.Items[${rowKey}].ProductId" value="${productId}">${expectedField}<span class="product-code">${escapeHtml(productCode)}</span><strong>${escapeHtml(productName)}</strong></td><td class="num">${formatQuantity(ordered, scale)}</td><td class="num">${formatQuantity(accepted, scale)}</td><td class="num"><strong>${formatQuantity(remaining, scale)}</strong></td><td class="num">${actualField}</td><td>${escapeHtml(unitName)}</td><td>${expiryField}</td></tr>`);
         });
-        if (!body.querySelector('[data-inbound-line]')) body.innerHTML = '<tr><td colspan="8" class="items-empty">Đơn nguồn không còn dòng vật tư nào có thể lập phiếu.</td></tr>';
+        if (!body.querySelector('[data-inbound-line]')) body.innerHTML = '<tr><td colspan="7" class="items-empty">Đơn nguồn không còn dòng vật tư nào có thể lập phiếu.</td></tr>';
     }
 
     async function fetchSourceDetails(sourceType, sourceId) {
