@@ -11,6 +11,18 @@ namespace BMWMS.Repository.Interfaces.StockOperations
         public decimal Quantity { get; set; }
     }
 
+    public class TransferIssueItemParam
+    {
+        public long TransferOrderDetailId { get; set; }
+        public decimal ActualMovedQuantity { get; set; }
+    }
+
+    public class TransferReceiptItemParam
+    {
+        public long TransferOrderDetailId { get; set; }
+        public long DestinationLocationId { get; set; }
+    }
+
     public interface ITransferRepository
     {
         Task<List<WarehouseZone>> GetZonesByWarehouseAsync(long warehouseId = 1);
@@ -44,8 +56,13 @@ namespace BMWMS.Repository.Interfaces.StockOperations
             long updatedByUserId,
             string? notes);
         Task<TransferOrder> RejectOrderAsync(long transferOrderId, long rejectedByUserId, string? notes);
-        Task<TransferOrder> ConfirmTransferIssueAsync(long transferOrderId, long staffUserId, string? notes);
-        Task<TransferOrder> ConfirmTransferReceiptAsync(long transferOrderId, long staffUserId, string? notes);
+        Task<TransferOrder> ConfirmTransferIssueAsync(long transferOrderId, long staffUserId, IReadOnlyCollection<TransferIssueItemParam> items, string? notes);
+        Task<TransferOrder> ConfirmTransferReceiptAsync(
+            long transferOrderId,
+            long staffUserId,
+            IReadOnlyCollection<TransferReceiptItemParam> items,
+            string? destinationChangeReason,
+            string? notes);
 
         // Backward compatible one-shot confirm endpoint for older clients.
         Task<TransferOrder> ConfirmTransferAsync(long transferOrderId, long staffUserId, string? notes);

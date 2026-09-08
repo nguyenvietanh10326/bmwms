@@ -15,6 +15,7 @@ namespace BMWMS.Web.Pages.Transfer
         }
 
         public TransferOrderDetailViewDto? Order { get; set; }
+        public List<LocationOptionDto> DestinationLocations { get; set; } = new();
 
         [BindProperty(SupportsGet = true)]
         public long Id { get; set; }
@@ -34,6 +35,12 @@ namespace BMWMS.Web.Pages.Transfer
             Order = await _transferSvc.GetOrderByIdAsync(id);
             if (Order == null) return NotFound();
             CheckUserRole();
+            if (Order.CanReceive)
+            {
+                DestinationLocations = (await _transferSvc.GetLocationsAsync(1))
+                    .Where(location => location.IsPutawayAllowed)
+                    .ToList();
+            }
             return Page();
         }
 
@@ -75,7 +82,13 @@ namespace BMWMS.Web.Pages.Transfer
             return RedirectToPage("/Transfer/Details", new { id });
         }
 
-        public async Task<IActionResult> OnPostIssueAsync(long id, string? notes)
+        public async Task<IActionResult> OnPostIssueAsync(
+            long id,
+            string? notes,
+            List<long> detailIds,
+            List<decimal> actualMovedQuantities,
+            bool acknowledgeCapacityWarning,
+            string? capacityWarningReason)
         {
             CheckUserRole();
             if (!IsStaff)
@@ -84,12 +97,36 @@ namespace BMWMS.Web.Pages.Transfer
                 return RedirectToPage("/Transfer/Details", new { id });
             }
 
-            var result = await _transferSvc.ConfirmIssueAsync(id, notes);
+            if (detailIds.Count != actualMovedQuantities.Count)
+            {
+                TempData["ErrorMessage"] = "Dữ liệu số lượng thực chuyển không hợp lệ.";
+                return RedirectToPage("/Transfer/Details", new { id });
+            }
+
+            var request = new ConfirmTransferDto
+            {
+                Notes = notes,
+                AcknowledgeCapacityWarning = acknowledgeCapacityWarning,
+                CapacityWarningReason = capacityWarningReason,
+                Items = detailIds.Select((detailId, index) => new ConfirmTransferItemDto
+                {
+                    TransferOrderDetailId = detailId,
+                    ActualMovedQuantity = actualMovedQuantities[index]
+                }).ToList()
+            };
+            var result = await _transferSvc.ConfirmIssueAsync(id, request);
             TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] = result.Message;
             return RedirectToPage("/Transfer/Details", new { id });
         }
 
-        public async Task<IActionResult> OnPostReceiveAsync(long id, string? notes)
+        public async Task<IActionResult> OnPostReceiveAsync(
+            long id,
+            string? notes,
+            List<long> receiptDetailIds,
+            List<long> receiptDestinationIds,
+            bool acknowledgeCapacityWarning,
+            string? capacityWarningReason,
+            string? destinationChangeReason)
         {
             CheckUserRole();
             if (!IsStaff)
@@ -98,7 +135,24 @@ namespace BMWMS.Web.Pages.Transfer
                 return RedirectToPage("/Transfer/Details", new { id });
             }
 
-            var result = await _transferSvc.ConfirmReceiptAsync(id, notes);
+            if (receiptDetailIds.Count != receiptDestinationIds.Count)
+            {
+                TempData["ErrorMessage"] = "Dữ liệu vị trí đích không hợp lệ.";
+                return RedirectToPage("/Transfer/Details", new { id });
+            }
+
+            var result = await _transferSvc.ConfirmReceiptAsync(id, new ConfirmTransferDto
+            {
+                Notes = notes,
+                AcknowledgeCapacityWarning = acknowledgeCapacityWarning,
+                CapacityWarningReason = capacityWarningReason,
+                DestinationChangeReason = destinationChangeReason,
+                Items = receiptDetailIds.Select((detailId, index) => new ConfirmTransferItemDto
+                {
+                    TransferOrderDetailId = detailId,
+                    DestinationLocationId = receiptDestinationIds[index]
+                }).ToList()
+            });
             TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] = result.Message;
             return RedirectToPage("/Transfer/Details", new { id });
         }
@@ -112,7 +166,7 @@ namespace BMWMS.Web.Pages.Transfer
 
             CurrentRole = !string.IsNullOrEmpty(roleName) ? roleName : (!string.IsNullOrEmpty(roleCode) ? roleCode : "User");
             IsManager   = roleCode.Contains("ADMIN") || roleCode.Contains("MANAGER") || roleCode == "WAREHOUSE_MANAGER";
-            IsStaff     = roleCode == "WAREHOUSE_STAFF" || IsManager; // Manager can also act as staff
+            IsStaff     = roleCode == "WAREHOUSE_STAFF";
         }
     }
 }
