@@ -134,6 +134,10 @@ namespace BMWMS.Business.Services.Inventory
 
         public async Task<(bool Success, string Message)> CreateLocationAsync(CreateUpdateStorageLocationDto dto)
         {
+            var capacityValidation = ValidatePhysicalLimits(dto);
+            if (capacityValidation != null)
+                return (false, capacityValidation);
+
             var isDuplicate = await _locationRepository.ExistsCodeAsync(dto.WarehouseId, dto.LocationCode);
             if (isDuplicate)
             {
@@ -162,6 +166,10 @@ namespace BMWMS.Business.Services.Inventory
 
         public async Task<(bool Success, string Message)> UpdateLocationAsync(CreateUpdateStorageLocationDto dto)
         {
+            var capacityValidation = ValidatePhysicalLimits(dto);
+            if (capacityValidation != null)
+                return (false, capacityValidation);
+
             var entity = await _locationRepository.GetByIdAsync(dto.StorageLocationId);
             if (entity == null)
             {
@@ -188,6 +196,17 @@ namespace BMWMS.Business.Services.Inventory
 
             await _locationRepository.UpdateAsync(entity);
             return (true, "Cập nhật vị trí thành công.");
+        }
+
+        private static string? ValidatePhysicalLimits(CreateUpdateStorageLocationDto dto)
+        {
+            if (dto.AreaSquareMeter.HasValue && dto.AreaSquareMeter <= 0)
+                return "Diện tích vị trí phải lớn hơn 0 hoặc để trống.";
+            if (dto.MaxWeightKg.HasValue && dto.MaxWeightKg <= 0)
+                return "Tải trọng tối đa phải lớn hơn 0 hoặc để trống.";
+            if (dto.MaxVolumeM3.HasValue && dto.MaxVolumeM3 <= 0)
+                return "Thể tích tối đa phải lớn hơn 0 hoặc để trống.";
+            return null;
         }
 
         // --- HIERARCHICAL STRUCTURE METHODS ---

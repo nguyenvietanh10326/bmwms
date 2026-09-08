@@ -157,6 +157,17 @@ namespace BMWMS.Business.DTOs.StockOperations
     public class ConfirmTransferDto
     {
         public string? Notes { get; set; }
+        public List<ConfirmTransferItemDto> Items { get; set; } = new();
+        public bool AcknowledgeCapacityWarning { get; set; }
+        public string? CapacityWarningReason { get; set; }
+        public string? DestinationChangeReason { get; set; }
+    }
+
+    public class ConfirmTransferItemDto
+    {
+        public long TransferOrderDetailId { get; set; }
+        public decimal ActualMovedQuantity { get; set; }
+        public long? DestinationLocationId { get; set; }
     }
 
     public class TransferUseCaseDto
@@ -222,6 +233,13 @@ namespace BMWMS.Business.DTOs.StockOperations
     {
         public bool IsValid { get; set; }
         public string Message { get; set; } = string.Empty;
+        public string CapacityStatus { get; set; } = "NOT_CONFIGURED";
+        public decimal? CurrentWeightKg { get; set; }
+        public decimal? ProjectedWeightKg { get; set; }
+        public decimal? MaxWeightKg { get; set; }
+        public decimal? CurrentVolumeM3 { get; set; }
+        public decimal? ProjectedVolumeM3 { get; set; }
+        public decimal? MaxVolumeM3 { get; set; }
     }
 
     public class StaffOptionDto

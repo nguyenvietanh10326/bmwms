@@ -202,6 +202,8 @@ namespace BMWMS.Business.DTOs.Stocktake
     public class StocktakeNoteDto
     {
         public string? Notes { get; set; }
+        public bool AcknowledgeCapacityWarning { get; set; }
+        public string? CapacityWarningReason { get; set; }
     }
 
     public class StocktakeLocationOptionDto

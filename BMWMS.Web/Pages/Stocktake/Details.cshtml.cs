@@ -109,13 +109,22 @@ namespace BMWMS.Web.Pages.Stocktake
         }
 
         // BP-05: Warehouse Manager — Approve stock adjustment → BMWMS posts adjustment + audit
-        public async Task<IActionResult> OnPostApproveAsync(long id, string? notes)
+        public async Task<IActionResult> OnPostApproveAsync(
+            long id,
+            string? notes,
+            bool acknowledgeCapacityWarning,
+            string? capacityWarningReason)
         {
             CheckRole();
             if (!IsManager)
                 return Deny(id, "Bạn không có quyền phê duyệt điều chỉnh tồn.");
 
-            var result = await _stocktakeService.ApproveSessionAsync(id, notes);
+            var result = await _stocktakeService.ApproveSessionAsync(id, new StocktakeNoteModel
+            {
+                Notes = notes,
+                AcknowledgeCapacityWarning = acknowledgeCapacityWarning,
+                CapacityWarningReason = capacityWarningReason
+            });
             TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] = result.Message;
             return RedirectToPage("/Stocktake/Details", new { id });
         }

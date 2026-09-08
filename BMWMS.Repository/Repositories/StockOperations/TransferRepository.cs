@@ -99,7 +99,7 @@ namespace BMWMS.Repository.Repositories.StockOperations
                 .AsNoTracking()
                 .Include(u => u.Role)
                 .Where(u => u.Status == "ACTIVE" && u.Role != null &&
-                           (u.Role.RoleCode == "WAREHOUSE_STAFF" || u.Role.RoleCode == "WAREHOUSE_MANAGER" || u.Role.RoleCode == "SYSTEM_ADMIN"))
+                           u.Role.RoleCode == "WAREHOUSE_STAFF")
                 .OrderBy(u => u.FullName)
                 .ToListAsync();
         }
@@ -162,6 +162,8 @@ namespace BMWMS.Repository.Repositories.StockOperations
             try
             {
                 await ValidateTransferItemsAsync(warehouseId, items, quantitySelector: i => i.Quantity);
+                if (assignedToUserId.HasValue && assignedToUserId.Value > 0)
+                    await ValidateWarehouseStaffAsync(assignedToUserId.Value);
 
                 var orderNumber = $"BT-{DateTime.UtcNow:yyyyMMdd-HHmmss}";
 
@@ -219,12 +221,19 @@ namespace BMWMS.Repository.Repositories.StockOperations
 
                 await ValidateOrderDetailsAsync(order, d => d.RequestedQuantity);
 
+                var effectiveAssigneeId = assignedToUserId.HasValue && assignedToUserId.Value > 0
+                    ? assignedToUserId.Value
+                    : order.AssignedToUserId;
+                if (!effectiveAssigneeId.HasValue || effectiveAssigneeId.Value <= 0)
+                    throw new InvalidOperationException("Phải phân công một nhân viên kho trước khi duyệt phiếu điều chuyển.");
+                await ValidateWarehouseStaffAsync(effectiveAssigneeId.Value);
+                await EnsureWarehouseStaffAvailableAsync(effectiveAssigneeId.Value, transferOrderId);
+
                 order.Status = StatusAssigned;
                 order.ConfirmedByUserId = approvedByUserId;
                 order.ConfirmedAt = DateTime.UtcNow;
 
-                if (assignedToUserId.HasValue && assignedToUserId.Value > 0)
-                    order.AssignedToUserId = assignedToUserId.Value;
+                order.AssignedToUserId = effectiveAssigneeId.Value;
 
                 order.Notes = AppendNote(order.Notes, "Duyet", notes);
 
@@ -257,6 +266,8 @@ namespace BMWMS.Repository.Repositories.StockOperations
                     throw new InvalidOperationException($"Phieu dang o trang thai '{order.Status}', chi co the sua truoc khi phe duyet.");
 
                 await ValidateTransferItemsAsync(warehouseId, items, quantitySelector: i => i.Quantity);
+                if (assignedToUserId.HasValue && assignedToUserId.Value > 0)
+                    await ValidateWarehouseStaffAsync(assignedToUserId.Value);
 
                 order.SourceWarehouseId = warehouseId > 0 ? warehouseId : order.SourceWarehouseId;
                 order.DestinationWarehouseId = warehouseId > 0 ? warehouseId : order.DestinationWarehouseId;
@@ -324,32 +335,54 @@ namespace BMWMS.Repository.Repositories.StockOperations
             }
         }
 
-        public async Task<TransferOrder> ConfirmTransferIssueAsync(long transferOrderId, long staffUserId, string? notes)
+        public async Task<TransferOrder> ConfirmTransferIssueAsync(
+            long transferOrderId,
+            long staffUserId,
+            IReadOnlyCollection<TransferIssueItemParam> items,
+            string? notes)
         {
-            await using var transaction = await _context.Database.BeginTransactionAsync();
+            var ownedTransaction = _context.Database.CurrentTransaction == null
+                ? await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable)
+                : null;
             try
             {
-                var order = await GetTrackedOrderAsync(transferOrderId, includeTransactions: false);
+                var order = await GetTrackedOrderAsync(transferOrderId, includeTransactions: true);
 
                 if (!IsApprovedStatus(order.Status))
                     throw new InvalidOperationException($"Phieu dang o trang thai '{order.Status}'. Chi co the xac nhan xuat khi phieu da duoc duyet.");
 
-                await ApplyIssueAsync(order, staffUserId, notes);
+                await ValidateAssignedOperatorAsync(order, staffUserId);
+
+                await ApplyIssueAsync(order, staffUserId, items, notes);
 
                 await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
+                if (ownedTransaction != null)
+                    await ownedTransaction.CommitAsync();
                 return order;
             }
             catch
             {
-                await transaction.RollbackAsync();
+                if (ownedTransaction != null)
+                    await ownedTransaction.RollbackAsync();
                 throw;
+            }
+            finally
+            {
+                if (ownedTransaction != null)
+                    await ownedTransaction.DisposeAsync();
             }
         }
 
-        public async Task<TransferOrder> ConfirmTransferReceiptAsync(long transferOrderId, long staffUserId, string? notes)
+        public async Task<TransferOrder> ConfirmTransferReceiptAsync(
+            long transferOrderId,
+            long staffUserId,
+            IReadOnlyCollection<TransferReceiptItemParam> items,
+            string? destinationChangeReason,
+            string? notes)
         {
-            await using var transaction = await _context.Database.BeginTransactionAsync();
+            var ownedTransaction = _context.Database.CurrentTransaction == null
+                ? await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable)
+                : null;
             try
             {
                 var order = await GetTrackedOrderAsync(transferOrderId, includeTransactions: true);
@@ -357,19 +390,28 @@ namespace BMWMS.Repository.Repositories.StockOperations
                 if (order.Status != StatusInProgress)
                     throw new InvalidOperationException($"Phieu dang o trang thai '{order.Status}'. Chi co the xac nhan nhap khi phieu dang di chuyen.");
 
+                await ValidateAssignedOperatorAsync(order, staffUserId);
+
                 if (HasPostedReceipt(order))
                     CompleteOrder(order, staffUserId, notes);
                 else
-                    await ApplyReceiptAsync(order, staffUserId, notes);
+                    await ApplyReceiptAsync(order, staffUserId, items, destinationChangeReason, notes);
 
                 await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
+                if (ownedTransaction != null)
+                    await ownedTransaction.CommitAsync();
                 return order;
             }
             catch
             {
-                await transaction.RollbackAsync();
+                if (ownedTransaction != null)
+                    await ownedTransaction.RollbackAsync();
                 throw;
+            }
+            finally
+            {
+                if (ownedTransaction != null)
+                    await ownedTransaction.DisposeAsync();
             }
         }
 
@@ -382,13 +424,36 @@ namespace BMWMS.Repository.Repositories.StockOperations
 
                 if (IsApprovedStatus(order.Status))
                 {
-                    await ApplyIssueAsync(order, staffUserId, notes);
-                    await ApplyReceiptAsync(order, staffUserId, notes);
+                    var requestedItems = order.TransferOrderDetails.Select(detail => new TransferIssueItemParam
+                    {
+                        TransferOrderDetailId = detail.TransferOrderDetailId,
+                        ActualMovedQuantity = detail.RequestedQuantity
+                    }).ToList();
+                    await ApplyIssueAsync(order, staffUserId, requestedItems, notes);
+                    await ApplyReceiptAsync(
+                        order,
+                        staffUserId,
+                        order.TransferOrderDetails.Select(detail => new TransferReceiptItemParam
+                        {
+                            TransferOrderDetailId = detail.TransferOrderDetailId,
+                            DestinationLocationId = detail.DestinationLocationId ?? 0
+                        }).ToList(),
+                        destinationChangeReason: null,
+                        notes: notes);
                 }
                 else if (order.Status == StatusInProgress)
                 {
                     if (!HasPostedReceipt(order))
-                        await ApplyReceiptAsync(order, staffUserId, notes);
+                        await ApplyReceiptAsync(
+                            order,
+                            staffUserId,
+                            order.TransferOrderDetails.Select(detail => new TransferReceiptItemParam
+                            {
+                                TransferOrderDetailId = detail.TransferOrderDetailId,
+                                DestinationLocationId = detail.DestinationLocationId ?? 0
+                            }).ToList(),
+                            destinationChangeReason: null,
+                            notes: notes);
                     else
                         CompleteOrder(order, staffUserId, notes);
                 }
@@ -475,39 +540,46 @@ namespace BMWMS.Repository.Repositories.StockOperations
             return order;
         }
 
-        private async Task ApplyIssueAsync(TransferOrder order, long staffUserId, string? notes)
+        private async Task ApplyIssueAsync(
+            TransferOrder order,
+            long staffUserId,
+            IReadOnlyCollection<TransferIssueItemParam> items,
+            string? notes)
         {
-            await ValidateOrderDetailsAsync(order, d => d.RequestedQuantity);
+            if (items == null || items.Count == 0)
+                throw new InvalidOperationException("Vui lòng nhập số lượng thực chuyển cho từng dòng hàng.");
+
+            var duplicateDetailId = items.GroupBy(item => item.TransferOrderDetailId).FirstOrDefault(group => group.Count() > 1);
+            if (duplicateDetailId != null)
+                throw new InvalidOperationException("Dữ liệu số lượng thực chuyển bị trùng dòng hàng.");
+
+            var quantityByDetailId = items.ToDictionary(item => item.TransferOrderDetailId, item => item.ActualMovedQuantity);
+            if (quantityByDetailId.Count != order.TransferOrderDetails.Count ||
+                order.TransferOrderDetails.Any(detail => !quantityByDetailId.ContainsKey(detail.TransferOrderDetailId)))
+                throw new InvalidOperationException("Phải khai báo số lượng thực chuyển cho tất cả dòng hàng trong phiếu.");
+
+            foreach (var detail in order.TransferOrderDetails)
+            {
+                var actualQuantity = quantityByDetailId[detail.TransferOrderDetailId];
+                if (actualQuantity <= 0 || actualQuantity > detail.RequestedQuantity)
+                    throw new InvalidOperationException(
+                        $"Số lượng thực chuyển của sản phẩm {detail.ProductId} phải lớn hơn 0 và không vượt {detail.RequestedQuantity}.");
+            }
+
+            await ValidateOrderDetailsAsync(order, detail => quantityByDetailId[detail.TransferOrderDetailId]);
 
             var now = DateTime.UtcNow;
             foreach (var detail in order.TransferOrderDetails)
             {
-                detail.MovedQuantity = detail.RequestedQuantity;
+                if (!detail.SourceLocationId.HasValue || !detail.ProductLotId.HasValue)
+                    throw new InvalidOperationException("Phiếu thiếu thông tin vị trí nguồn hoặc lớp hàng.");
+
+                detail.MovedQuantity = quantityByDetailId[detail.TransferOrderDetailId];
                 detail.ConfirmedByUserId = staffUserId;
                 detail.ConfirmedAt = now;
                 detail.StaffNote = AppendNote(detail.StaffNote, "Xuat", notes);
-            }
 
-            order.Status = StatusInProgress;
-            order.ConfirmedByUserId = staffUserId;
-            order.ConfirmedAt = now;
-            order.Notes = AppendNote(order.Notes, "Xac nhan xuat", notes);
-        }
-
-        private async Task ApplyReceiptAsync(TransferOrder order, long staffUserId, string? notes)
-        {
-            await ValidateOrderDetailsAsync(order, d => d.MovedQuantity);
-
-            var now = DateTime.UtcNow;
-            foreach (var detail in order.TransferOrderDetails)
-            {
-                if (!detail.SourceLocationId.HasValue || !detail.DestinationLocationId.HasValue || !detail.ProductLotId.HasValue)
-                    throw new InvalidOperationException("Phieu thieu thong tin o nguon, o dich hoac lo hang.");
-
-                if (detail.MovedQuantity <= 0)
-                    throw new InvalidOperationException("Chua co so luong da xuat de xac nhan nhap.");
-
-                if (!detail.InventoryTransactions.Any(t => t.TransactionType == "TRANSFER_OUT"))
+                if (!detail.InventoryTransactions.Any(transaction => transaction.TransactionType == "TRANSFER_OUT"))
                 {
                     _context.InventoryTransactions.Add(new InventoryTransaction
                     {
@@ -520,9 +592,75 @@ namespace BMWMS.Repository.Repositories.StockOperations
                         TransferOrderDetailId = detail.TransferOrderDetailId,
                         PerformedByUserId = staffUserId,
                         TransactionAt = now,
-                        Notes = $"Xuat dieu chuyen {order.TransferOrderNumber}: {detail.MovedQuantity}"
+                        Notes = $"Xuất điều chuyển {order.TransferOrderNumber}: {detail.MovedQuantity}"
                     });
                 }
+            }
+
+            order.Status = StatusInProgress;
+            order.ConfirmedByUserId = staffUserId;
+            order.ConfirmedAt = now;
+            order.Notes = AppendNote(order.Notes, "Xac nhan xuat", notes);
+        }
+
+        private async Task ApplyReceiptAsync(
+            TransferOrder order,
+            long staffUserId,
+            IReadOnlyCollection<TransferReceiptItemParam> items,
+            string? destinationChangeReason,
+            string? notes)
+        {
+            if (items == null || items.Count == 0)
+                throw new InvalidOperationException("Phải xác nhận vị trí đích cho tất cả dòng hàng.");
+
+            var duplicate = items.GroupBy(item => item.TransferOrderDetailId).FirstOrDefault(group => group.Count() > 1);
+            if (duplicate != null)
+                throw new InvalidOperationException("Dữ liệu vị trí nhận bị trùng dòng hàng.");
+
+            var destinationByDetailId = items.ToDictionary(item => item.TransferOrderDetailId, item => item.DestinationLocationId);
+            if (destinationByDetailId.Count != order.TransferOrderDetails.Count ||
+                order.TransferOrderDetails.Any(detail => !destinationByDetailId.ContainsKey(detail.TransferOrderDetailId)))
+                throw new InvalidOperationException("Phải xác nhận vị trí đích cho tất cả dòng hàng.");
+
+            var destinationChanged = order.TransferOrderDetails.Any(detail =>
+                detail.DestinationLocationId != destinationByDetailId[detail.TransferOrderDetailId]);
+            if (destinationChanged && string.IsNullOrWhiteSpace(destinationChangeReason))
+                throw new InvalidOperationException("Phải nhập lý do khi thay đổi vị trí đích của hàng đang di chuyển.");
+
+            foreach (var detail in order.TransferOrderDetails)
+            {
+                var destinationId = destinationByDetailId[detail.TransferOrderDetailId];
+                if (!detail.SourceLocationId.HasValue || destinationId <= 0 || destinationId == detail.SourceLocationId.Value)
+                    throw new InvalidOperationException("Vị trí đích không hợp lệ hoặc trùng vị trí nguồn.");
+
+                var destination = await _context.StorageLocations
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(location => location.StorageLocationId == destinationId)
+                    ?? throw new InvalidOperationException($"Không tìm thấy vị trí đích ID={destinationId}.");
+                if (destination.WarehouseId != order.SourceWarehouseId || !IsLocationActive(destination) || !destination.IsPutawayAllowed)
+                    throw new InvalidOperationException($"Vị trí đích '{destination.LocationCode}' không thuộc kho, không hoạt động hoặc không cho phép cất hàng.");
+
+                if (detail.DestinationLocationId != destinationId)
+                {
+                    detail.StaffNote = AppendNote(
+                        detail.StaffNote,
+                        "Doi vi tri dich",
+                        $"{detail.DestinationLocationId} -> {destinationId}. {destinationChangeReason?.Trim()}");
+                    detail.DestinationLocationId = destinationId;
+                }
+            }
+
+            var now = DateTime.UtcNow;
+            foreach (var detail in order.TransferOrderDetails)
+            {
+                if (!detail.SourceLocationId.HasValue || !detail.DestinationLocationId.HasValue || !detail.ProductLotId.HasValue)
+                    throw new InvalidOperationException("Phieu thieu thong tin o nguon, o dich hoac lo hang.");
+
+                if (detail.MovedQuantity <= 0)
+                    throw new InvalidOperationException("Chua co so luong da xuat de xac nhan nhap.");
+
+                if (!detail.InventoryTransactions.Any(t => t.TransactionType == "TRANSFER_OUT"))
+                    throw new InvalidOperationException("Chưa có giao dịch xuất khỏi vị trí nguồn; không thể xác nhận nhập vị trí đích.");
 
                 if (!detail.InventoryTransactions.Any(t => t.TransactionType == "TRANSFER_IN"))
                 {
@@ -651,6 +789,46 @@ namespace BMWMS.Repository.Repositories.StockOperations
             return inventory == null
                 ? 0
                 : inventory.AvailableQuantity ?? (inventory.OnHandQuantity - inventory.ReservedQuantity);
+        }
+
+        private async Task ValidateAssignedOperatorAsync(TransferOrder order, long userId)
+        {
+            await ValidateWarehouseStaffAsync(userId);
+            if (order.AssignedToUserId != userId)
+                throw new InvalidOperationException("Bạn không phải nhân viên kho được phân công xử lý phiếu điều chuyển này.");
+        }
+
+        private async Task ValidateWarehouseStaffAsync(long userId)
+        {
+            var isWarehouseStaff = await _context.Users
+                .AsNoTracking()
+                .AnyAsync(user => user.UserId == userId &&
+                                  user.Status == "ACTIVE" &&
+                                  user.Role.RoleCode == "WAREHOUSE_STAFF");
+            if (!isWarehouseStaff)
+                throw new InvalidOperationException("Chỉ nhân viên có vai trò WAREHOUSE_STAFF đang hoạt động mới được phân công hoặc xử lý phiếu điều chuyển.");
+        }
+
+        private async Task EnsureWarehouseStaffAvailableAsync(long userId, long excludeTransferOrderId)
+        {
+            var hasActiveInbound = await _context.InboundOrders.AnyAsync(order =>
+                order.AssignedToUserId == userId &&
+                order.Status != "CANCELLED" &&
+                order.Status != "PUTAWAY_COMPLETED" &&
+                (order.Status != "COMPLETED" ||
+                 order.InboundOrderItems.SelectMany(item => item.InboundOrderDetails)
+                     .Any(detail => detail.ConditionStatus == "GOOD" && detail.InventoryTransaction == null)));
+            var hasActiveOutbound = await _context.OutboundOrders.AnyAsync(order =>
+                order.AssignedToUserId == userId &&
+                order.Status != "CANCELLED" &&
+                order.Status != "COMPLETED");
+            var hasActiveTransfer = await _context.TransferOrders.AnyAsync(order =>
+                order.TransferOrderId != excludeTransferOrderId &&
+                order.AssignedToUserId == userId &&
+                (order.Status == StatusAssigned || order.Status == StatusApprovedLegacy || order.Status == StatusInProgress));
+
+            if (hasActiveInbound || hasActiveOutbound || hasActiveTransfer)
+                throw new InvalidOperationException("Nhân viên kho đang phụ trách một phiếu nhập, xuất hoặc điều chuyển khác.");
         }
 
         private static IQueryable<TransferOrder> ApplyStatusFilter(IQueryable<TransferOrder> query, string status)
