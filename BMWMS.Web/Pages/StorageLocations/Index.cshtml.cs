@@ -1,6 +1,7 @@
 ﻿using BMWMS.Web.Models.Inventory;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 
@@ -99,6 +100,58 @@ namespace BMWMS.Web.Pages.StorageLocations
             Buffer.BlockCopy(bytes, 0, fullBytes, preamble.Length, bytes.Length);
 
             return File(fullBytes, "text/csv", $"StorageLocations_WH{Filter.WarehouseId}_{DateTime.Now:yyyyMMdd_HHmm}.csv");
+        }
+
+        public Task<IActionResult> OnGetLocationAsync(long id) =>
+            ProxyGetAsync($"api/storagelocations/{id}");
+
+        public Task<IActionResult> OnGetLocationInventoryAsync(long id) =>
+            ProxyGetAsync($"api/storagelocations/{id}/inventory");
+
+        public Task<IActionResult> OnGetSearchProductAsync(long warehouseId, string keyword = "") =>
+            ProxyGetAsync(
+                $"api/storagelocations/search-product?warehouseId={warehouseId}" +
+                $"&keyword={Uri.EscapeDataString(keyword ?? string.Empty)}");
+
+        public async Task<IActionResult> OnPostSaveLocationAsync(
+            [FromBody] CreateUpdateStorageLocationDto dto)
+        {
+            var client = _httpClientFactory.CreateClient("ApiClient");
+            var response = dto.StorageLocationId > 0
+                ? await client.PutAsJsonAsync($"api/storagelocations/{dto.StorageLocationId}", dto)
+                : await client.PostAsJsonAsync("api/storagelocations", dto);
+            return await ProxyResponseAsync(response);
+        }
+
+        public async Task<IActionResult> OnPostCreateZoneAsync([FromBody] CreateUpdateZoneDto dto)
+        {
+            var client = _httpClientFactory.CreateClient("ApiClient");
+            return await ProxyResponseAsync(
+                await client.PostAsJsonAsync("api/storagelocations/zones", dto));
+        }
+
+        public async Task<IActionResult> OnPostCreateRackAsync([FromBody] CreateUpdateRackDto dto)
+        {
+            var client = _httpClientFactory.CreateClient("ApiClient");
+            return await ProxyResponseAsync(
+                await client.PostAsJsonAsync("api/storagelocations/racks", dto));
+        }
+
+        private async Task<IActionResult> ProxyGetAsync(string requestUri)
+        {
+            var client = _httpClientFactory.CreateClient("ApiClient");
+            return await ProxyResponseAsync(await client.GetAsync(requestUri));
+        }
+
+        private static async Task<IActionResult> ProxyResponseAsync(HttpResponseMessage response)
+        {
+            var content = await response.Content.ReadAsStringAsync();
+            return new ContentResult
+            {
+                StatusCode = (int)response.StatusCode,
+                ContentType = response.Content.Headers.ContentType?.ToString() ?? "application/json; charset=utf-8",
+                Content = content
+            };
         }
     }
 }
