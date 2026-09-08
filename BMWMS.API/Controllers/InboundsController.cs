@@ -74,9 +74,12 @@ public class InboundsController : ControllerBase
 
     [HttpGet("putaway-locations")]
     [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF")]
-    public async Task<ActionResult<List<PutawayLocationDto>>> GetPutawayLocations([FromQuery] long warehouseId, [FromQuery] long productId)
+    public async Task<ActionResult<List<PutawayLocationDto>>> GetPutawayLocations(
+        [FromQuery] long warehouseId,
+        [FromQuery] long productId,
+        [FromQuery] decimal putawayQuantity = 0)
     {
-        return Ok(await _inboundService.GetPutawayLocationsAsync(warehouseId, productId));
+        return Ok(await _inboundService.GetPutawayLocationsAsync(warehouseId, productId, putawayQuantity));
     }
 
     [HttpPost]
@@ -260,7 +263,25 @@ public class InboundsController : ControllerBase
 
         try
         {
-            await _inboundService.PutawayBatchAsync(id, dtos, currentUserId);
+            await _inboundService.PutawayBatchAsync(id, new PutawayBatchRequestDto { Items = dtos }, currentUserId);
+            return Ok();
+        }
+        catch (Exception ex)
+        {
+            return HandleException(ex);
+        }
+    }
+
+    [HttpPost("{id}/putaway-with-capacity")]
+    [Authorize(Roles = "WAREHOUSE_STAFF")]
+    public async Task<IActionResult> PutawayBatchWithCapacity(long id, [FromBody] PutawayBatchRequestDto request)
+    {
+        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (!long.TryParse(userIdClaim, out var currentUserId)) return Unauthorized();
+
+        try
+        {
+            await _inboundService.PutawayBatchAsync(id, request, currentUserId);
             return Ok();
         }
         catch (Exception ex)

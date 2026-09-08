@@ -248,6 +248,13 @@ public class PutawayInboundItemDto
     public decimal PutawayQuantity { get; set; }
 }
 
+public class PutawayBatchRequestDto
+{
+    public List<PutawayInboundItemDto> Items { get; set; } = new();
+    public bool AcknowledgeCapacityWarning { get; set; }
+    public string? CapacityWarningReason { get; set; }
+}
+
 public class PutawayLocationDto
 {
     public long StorageLocationId { get; set; }
@@ -260,9 +267,20 @@ public class PutawayLocationDto
     public string RackCode { get; set; } = string.Empty;
     public string RackName { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
-    public decimal CurrentOnHandQuantity { get; set; }
+    public decimal CurrentProductQuantity { get; set; }
     public int StoredProductCount { get; set; }
     public bool IsRecommended { get; set; }
+    public bool HasRecommendationConfiguration { get; set; }
     public int Priority { get; set; }
     public bool IsDefault { get; set; }
+    public bool CapacityEvaluationEnabled { get; set; }
+    public string CapacityStatus { get; set; } = "DISABLED";
+    public decimal? MaxWeightKg { get; set; }
+    public decimal? CurrentWeightKg { get; set; }
+    public decimal? ProjectedWeightKg { get; set; }
+    public decimal? MaxVolumeM3 { get; set; }
+    public decimal? CurrentVolumeM3 { get; set; }
+    public decimal? ProjectedVolumeM3 { get; set; }
+    public string CapacityMessage { get; set; } = string.Empty;
+    public bool RequiresAcknowledgement { get; set; }
 }

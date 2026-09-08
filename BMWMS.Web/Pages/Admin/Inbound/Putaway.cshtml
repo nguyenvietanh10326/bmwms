@@ -20,7 +20,15 @@
     <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
     <div class="alert alert-info">
         Phiếu chỉ hoàn tất khi đã phân bổ <strong>đủ toàn bộ số lượng thực nhận</strong> vào vị trí chi tiết.
-        Chỉ các bin thuộc khu lưu trữ đã cấu hình cho từng sản phẩm được hiển thị. Có thể chia một mặt hàng vào nhiều bin.
+        Vị trí cấu hình cho sản phẩm chỉ là gợi ý; nhân viên có thể chọn bin khác. Có thể chia một mặt hàng vào nhiều bin.
+        @if (Model.CapacityEvaluationEnabled)
+        {
+            <span>Hệ thống sẽ tính lại sức chứa khi xác nhận.</span>
+        }
+        else
+        {
+            <span>Kiểm tra sức chứa tự động chưa được bật; nhân viên cần kiểm tra vị trí thực tế.</span>
+        }
     </div>
 
     <form method="post" id="putawayForm">
@@ -70,7 +78,11 @@
                                                 @foreach (var location in group.OrderBy(location => location.Priority).ThenBy(location => location.LocationCode))
                                                 {
                                                     var searchText = $"{location.ZoneCode} {location.ZoneName} {location.RackCode} {location.RackName} {location.LocationCode} {location.LocationName}".ToLowerInvariant();
-                                                    <option value="@location.StorageLocationId" data-search="@searchText">@location.DisplayName</option>
+                                                    <option value="@location.StorageLocationId"
+                                                            data-search="@searchText"
+                                                            data-capacity-status="@location.CapacityStatus"
+                                                            data-capacity-message="@location.CapacityMessage"
+                                                            data-requires-acknowledgement="@location.RequiresAcknowledgement.ToString().ToLowerInvariant()">@location.DisplayName</option>
                                                 }
                                             </optgroup>
                                         }
@@ -111,7 +123,11 @@
                                         @foreach (var location in group.OrderBy(location => location.Priority).ThenBy(location => location.LocationCode))
                                         {
                                             var searchText = $"{location.ZoneCode} {location.ZoneName} {location.RackCode} {location.RackName} {location.LocationCode} {location.LocationName}".ToLowerInvariant();
-                                            <option value="@location.StorageLocationId" data-search="@searchText">@location.DisplayName</option>
+                                            <option value="@location.StorageLocationId"
+                                                    data-search="@searchText"
+                                                    data-capacity-status="@location.CapacityStatus"
+                                                    data-capacity-message="@location.CapacityMessage"
+                                                    data-requires-acknowledgement="@location.RequiresAcknowledgement.ToString().ToLowerInvariant()">@location.DisplayName</option>
                                         }
                                     </optgroup>
                                 }
@@ -127,6 +143,20 @@
                 </template>
             </section>
         }
+
+        <div id="capacityWarningPanel" class="alert alert-warning d-none" role="alert">
+            <strong>Cần xác nhận của nhân viên kho</strong>
+            <ul id="capacityWarningList" class="mb-2 mt-2"></ul>
+            <div class="form-check mb-2">
+                <input asp-for="AcknowledgeCapacityWarning" class="form-check-input" />
+                <label asp-for="AcknowledgeCapacityWarning" class="form-check-label">
+                    Tôi đã kiểm tra vị trí thực tế và chịu trách nhiệm về lựa chọn này.
+                </label>
+            </div>
+            <label asp-for="CapacityWarningReason" class="form-label">Lý do lựa chọn</label>
+            <textarea asp-for="CapacityWarningReason" class="form-control" maxlength="500" rows="2"
+                      placeholder="Ví dụ: Bin ưu tiên đang tạm khóa; đã kiểm tra vị trí thay thế ngoài thực tế."></textarea>
+        </div>
 
         <div class="d-flex justify-content-end gap-2 sticky-bottom bg-body py-3 border-top">
             <a asp-page="./Details" asp-route-id="@Model.Order.InboundOrderId" class="btn btn-outline-secondary">Hủy thao tác</a>
@@ -147,7 +177,10 @@
             if (event.target.classList.contains('allocation-quantity')) validateCard(event.target.closest('.receipt-card'));
         });
         document.addEventListener('change', event => {
-            if (event.target.classList.contains('location-select')) validateCard(event.target.closest('.receipt-card'));
+            if (event.target.classList.contains('location-select')) {
+                validateCard(event.target.closest('.receipt-card'));
+                updateCapacityWarnings();
+            }
         });
         document.addEventListener('click', event => {
             const button = event.target.closest('.remove-allocation');
@@ -157,6 +190,7 @@
             validateCard(card);
         });
         document.querySelectorAll('.receipt-card').forEach(validateCard);
+        updateCapacityWarnings();
     });
 
     function addAllocation(card) {
@@ -206,6 +240,32 @@
         if (!button) return;
         const hasMissingLocations = @hasMissingLocation.ToString().ToLowerInvariant();
         button.disabled = hasMissingLocations || !cards.length || cards.some(card => card.dataset.valid !== 'true');
+    }
+
+    function updateCapacityWarnings() {
+        const selectedOptions = [...document.querySelectorAll('.location-select')]
+            .map(select => select.selectedOptions[0])
+            .filter(option => option && option.value);
+        const messages = selectedOptions
+            .filter(option => option.dataset.requiresAcknowledgement === 'true' || option.dataset.capacityStatus === 'EXCEEDED')
+            .map(option => option.dataset.capacityStatus === 'EXCEEDED'
+                ? `${option.textContent.trim()}: số lượng toàn dòng có thể vượt sức chứa; hãy chia nhỏ và hệ thống sẽ tính lại khi lưu.`
+                : `${option.textContent.trim()}: ${option.dataset.capacityMessage || 'Cần kiểm tra vị trí thực tế.'}`);
+        const uniqueMessages = [...new Set(messages)];
+        const panel = document.getElementById('capacityWarningPanel');
+        const list = document.getElementById('capacityWarningList');
+        const acknowledgement = document.getElementById('AcknowledgeCapacityWarning');
+        const reason = document.getElementById('CapacityWarningReason');
+        const requiresAcknowledgement = selectedOptions.some(option => option.dataset.requiresAcknowledgement === 'true');
+
+        panel.classList.toggle('d-none', uniqueMessages.length === 0);
+        list.replaceChildren(...uniqueMessages.map(message => {
+            const item = document.createElement('li');
+            item.textContent = message;
+            return item;
+        }));
+        acknowledgement.required = requiresAcknowledgement;
+        reason.required = requiresAcknowledgement;
     }
 </script>
 
