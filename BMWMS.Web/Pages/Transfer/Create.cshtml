@@ -70,7 +70,7 @@
         <div style="display: flex; gap: 10px;">
             <a href="/Transfer/Index" class="btn btn-light">Hủy bỏ</a>
             <button type="submit" form="transfer-form" name="action" value="draft" class="btn btn-dark" onclick="return prepareSubmit()">Lưu nháp</button>
-            <button type="submit" form="transfer-form" name="action" value="assign" class="btn btn-primary" onclick="return prepareSubmit()">Tạo và giao luôn</button>
+            <button type="submit" form="transfer-form" name="action" value="assign" class="btn btn-primary" onclick="return prepareSubmit()">@(Model.IsEditMode ? "Cập nhật lệnh" : "Tạo lệnh")</button>
         </div>
     </div>
 
