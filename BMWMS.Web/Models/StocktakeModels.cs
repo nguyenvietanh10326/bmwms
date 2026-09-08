@@ -192,6 +192,8 @@ namespace BMWMS.Web.Models
     public class StocktakeNoteModel
     {
         public string? Notes { get; set; }
+        public bool AcknowledgeCapacityWarning { get; set; }
+        public string? CapacityWarningReason { get; set; }
     }
 
     public class StocktakeActionResultModel
@@ -217,6 +219,7 @@ namespace BMWMS.Web.Models
         public string FullName { get; set; } = string.Empty;
         public string Username { get; set; } = string.Empty;
         public string RoleCode { get; set; } = string.Empty;
+        public string RoleName { get; set; } = string.Empty;
     }
 
     public class StocktakeProductLotOptionModel

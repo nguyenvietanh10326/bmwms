@@ -23,6 +23,7 @@ namespace BMWMS.Web.Models.Inventory
         public long WarehouseId { get; set; }
         public string WarehouseName { get; set; } = null!;
         public string Status { get; set; } = null!;
+        public int LineCount { get; set; }
         public decimal TotalRequestedQuantity { get; set; }
         public decimal TotalIssuedQuantity { get; set; }
         public DateOnly ExpectedIssueDate { get; set; }

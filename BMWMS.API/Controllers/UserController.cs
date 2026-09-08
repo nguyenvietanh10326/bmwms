@@ -101,7 +101,7 @@ public class UserController : ControllerBase
         }
     }
 
-    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF")]
+    [Authorize(Roles = "SYSTEM_ADMIN")]
     [HttpGet]
     public async Task<IActionResult> GetUsers([FromQuery] UserFilterDto filter)
     {
@@ -139,10 +139,16 @@ public class UserController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> CreateUser([FromBody] CreateUserDto dto)
     {
+        var actorIdText = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!long.TryParse(actorIdText, out var actorId))
+        {
+            return Unauthorized(new { message = "Token không hợp lệ." });
+        }
+
         try
         {
             var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
-            var newUserId = await _userService.CreateUserAsync(dto, ipAddress);
+            var newUserId = await _userService.CreateUserAsync(dto, actorId, ipAddress);
             return Ok(new { message = "Tạo người dùng thành công", userId = newUserId });
         }
         catch (ArgumentException ex)

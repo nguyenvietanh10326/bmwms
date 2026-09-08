@@ -1,10 +1,8 @@
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
-using System.Net.Http;
-using System.Net.Http.Json;
-using System.Threading.Tasks;
 using BMWMS.Web.Models;
+using Microsoft.AspNetCore.Mvc;
 
 namespace BMWMS.Web.Services;
 
@@ -20,10 +18,12 @@ public class InboundApiService
     public async Task<InboundOrderPageModel> GetInboundOrdersPageAsync(InboundOrderFilterModel filter)
     {
         var queryString = $"?pageIndex={filter.PageIndex}&pageSize={filter.PageSize}";
-        if (!string.IsNullOrEmpty(filter.Keyword)) queryString += $"&keyword={filter.Keyword}";
-        if (!string.IsNullOrEmpty(filter.Status)) queryString += $"&status={filter.Status}";
+        if (!string.IsNullOrEmpty(filter.Keyword)) queryString += $"&keyword={Uri.EscapeDataString(filter.Keyword)}";
+        if (!string.IsNullOrEmpty(filter.Status)) queryString += $"&status={Uri.EscapeDataString(filter.Status)}";
+        if (!string.IsNullOrEmpty(filter.SourceType)) queryString += $"&sourceType={Uri.EscapeDataString(filter.SourceType)}";
         if (filter.FromDate.HasValue) queryString += $"&fromDate={filter.FromDate.Value:yyyy-MM-dd}";
         if (filter.ToDate.HasValue) queryString += $"&toDate={filter.ToDate.Value:yyyy-MM-dd}";
+        if (filter.AssignedToUserId.HasValue) queryString += $"&assignedToUserId={filter.AssignedToUserId.Value}";
 
         var response = await _httpClient.GetFromJsonAsync<InboundOrderPageModel>($"api/inbounds{queryString}");
         return response ?? new InboundOrderPageModel();
@@ -37,7 +37,8 @@ public class InboundApiService
     public async Task<long> CreateInboundOrderAsync(CreateInboundOrderDto dto)
     {
         var response = await _httpClient.PostAsJsonAsync("api/inbounds", dto);
-        response.EnsureSuccessStatusCode();
+        if (!response.IsSuccessStatusCode)
+            throw new InvalidOperationException(await ReadErrorAsync(response));
         return await response.Content.ReadFromJsonAsync<long>();
     }
 
@@ -55,6 +56,13 @@ public class InboundApiService
     {
         var response = await _httpClient.GetFromJsonAsync<List<SourceOrderDropdownDto>>("api/inbounds/purchase-orders/pending");
         return response ?? new List<SourceOrderDropdownDto>();
+    }
+
+    public async Task<List<PurchaseOrderInboundSourceDto>> GetPurchaseOrderInboundSourcesAsync()
+    {
+        return await _httpClient.GetFromJsonAsync<List<PurchaseOrderInboundSourceDto>>(
+                   "api/inbounds/purchase-orders/available")
+               ?? new List<PurchaseOrderInboundSourceDto>();
     }
 
     public async Task<List<AvailableWarehouseStaffDto>> GetAvailableWarehouseStaffAsync()
@@ -84,8 +92,7 @@ public class InboundApiService
         var response = await _httpClient.PutAsJsonAsync($"api/inbounds/{id}", dto);
         if (!response.IsSuccessStatusCode)
         {
-            var error = await response.Content.ReadAsStringAsync();
-            throw new Exception($"Cập nhật thất bại: {error}");
+            throw new Exception($"Cập nhật thất bại: {await ReadErrorAsync(response)}");
         }
     }
 
@@ -94,8 +101,7 @@ public class InboundApiService
         var response = await _httpClient.PutAsync($"api/inbounds/{id}/confirm", null);
         if (!response.IsSuccessStatusCode)
         {
-            var error = await response.Content.ReadAsStringAsync();
-            throw new Exception($"Xác nhận thất bại: {error}");
+            throw new Exception($"Xác nhận thất bại: {await ReadErrorAsync(response)}");
         }
     }
 
@@ -105,8 +111,7 @@ public class InboundApiService
         var response = await _httpClient.PutAsJsonAsync($"api/inbounds/{id}/cancel", dto);
         if (!response.IsSuccessStatusCode)
         {
-            var error = await response.Content.ReadAsStringAsync();
-            throw new Exception($"Hủy thất bại: {error}");
+            throw new Exception($"Hủy thất bại: {await ReadErrorAsync(response)}");
         }
     }
 
@@ -115,10 +120,23 @@ public class InboundApiService
         var response = await _httpClient.PostAsJsonAsync($"/api/inbounds/{id}/receive", dto);
         if (response.IsSuccessStatusCode)
         {
-            return await response.Content.ReadFromJsonAsync<long>();
+            var result = await response.Content.ReadFromJsonAsync<ReceiveItemResponse>();
+            return result?.ProductLotId ?? throw new Exception("API không trả về mã lô vừa nhận.");
         }
-        var error = await response.Content.ReadAsStringAsync();
-        throw new Exception(error);
+        throw new Exception(await ReadErrorAsync(response));
+    }
+
+    public async Task CompleteReceiptAsync(long id, List<InboundReceiptDecisionDto> decisions, string? notes = null)
+    {
+        var response = await _httpClient.PostAsJsonAsync($"/api/inbounds/{id}/complete-receipt", new CompleteInboundReceiptDto
+        {
+            Notes = notes,
+            Decisions = decisions
+        });
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new Exception($"Hoàn tất kiểm nhận thất bại: {await ReadErrorAsync(response)}");
+        }
     }
 
     public async Task ReceiveBatchAsync(long inboundOrderId, ReceiveBatchInboundDto dto)
@@ -126,18 +144,38 @@ public class InboundApiService
         var response = await _httpClient.PostAsJsonAsync($"/api/inbounds/{inboundOrderId}/receive-batch", dto);
         if (!response.IsSuccessStatusCode)
         {
-            var error = await response.Content.ReadAsStringAsync();
-            throw new Exception($"Lỗi khi nhận hàng hàng loạt: {error}");
+            throw new Exception($"Lưu kiểm nhận thất bại: {await ReadErrorAsync(response)}");
         }
     }
 
-    public async Task PutawayBatchAsync(long id, List<PutawayInboundItemDto> dtos)
+    public async Task PutawayBatchAsync(long id, PutawayBatchRequestDto request)
     {
-        var response = await _httpClient.PostAsJsonAsync($"/api/inbounds/{id}/putaway", dtos);
+        var response = await _httpClient.PostAsJsonAsync($"/api/inbounds/{id}/putaway-with-capacity", request);
         if (!response.IsSuccessStatusCode)
         {
-            var error = await response.Content.ReadAsStringAsync();
-            throw new Exception($"Xếp vị trí thất bại: {error}");
+            throw new Exception($"Xếp vị trí thất bại: {await ReadErrorAsync(response)}");
         }
     }
+
+    private static async Task<string> ReadErrorAsync(HttpResponseMessage response)
+    {
+        try
+        {
+            var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+            if (!string.IsNullOrWhiteSpace(problem?.Detail)) return problem.Detail;
+            if (!string.IsNullOrWhiteSpace(problem?.Title)) return problem.Title;
+        }
+        catch
+        {
+            // API cũ có thể vẫn trả chuỗi thuần; đọc lại ở nhánh bên dưới nếu còn nội dung.
+        }
+
+        var raw = await response.Content.ReadAsStringAsync();
+        return string.IsNullOrWhiteSpace(raw) ? $"API trả về mã {response.StatusCode}." : raw.Trim('"');
+    }
+}
+
+public class ReceiveItemResponse
+{
+    public long ProductLotId { get; set; }
 }

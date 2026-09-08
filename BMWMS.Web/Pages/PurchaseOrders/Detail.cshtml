@@ -8,10 +8,14 @@
         : $"Chi tiết đơn mua hàng {Model.Order.PurchaseOrderNumber}";
     ViewData["ActivePage"] = "PurchaseOrders";
 
-    var totalOrdered = Model.Order?.Items.Sum(item => item.OrderedQuantity) ?? 0;
-    var totalPlanned = Model.Order?.Items.Sum(item => item.PlannedInboundQuantity) ?? 0;
-    var totalReceived = Model.Order?.Items.Sum(item => item.ReceivedQuantity) ?? 0;
-    var totalRemaining = Model.Order?.Items.Sum(item => item.RemainingQuantity) ?? 0;
+    var lineCount = Model.Order?.Items.Count ?? 0;
+    var fullyAcceptedLineCount = Model.Order?.Items.Count(item => item.ReceivedQuantity >= item.OrderedQuantity) ?? 0;
+    var plannedLineCount = Model.Order?.Items.Count(item => item.PlannedInboundQuantity > 0) ?? 0;
+    var remainingLineCount = Model.Order?.Items.Count(item => item.RemainingQuantity > 0) ?? 0;
+    var canProcessSupplierEmail = User.IsInRole("SYSTEM_ADMIN") || User.IsInRole("PURCHASING_STAFF");
+    var canSendToSupplier = Model.Order?.CanSendToSupplier == true && canProcessSupplierEmail;
+    var canClosePartial = canProcessSupplierEmail && Model.Order?.Status == "PARTIALLY_RECEIVED" &&
+        remainingLineCount > 0 && plannedLineCount == 0;
 }
 
 <style>
@@ -68,18 +72,12 @@
                 <button type="button" class="btn btn-outline-secondary" onclick="window.print()">
                     <i class="bi bi-printer me-1"></i>In phiếu
                 </button>
-                @if (Model.Order.CanCreateInbound)
+                @if (canSendToSupplier)
                 {
-                    <a href="/Admin/Inbound/Create?purchaseOrderId=@Model.Order.PurchaseOrderId" class="btn btn-success">
-                        <i class="bi bi-box-arrow-in-down me-1"></i>Tạo phiếu nhập kho
-                    </a>
-                }
-                @if (Model.Order.CanConfirm)
-                {
-                    <form method="post" asp-page-handler="Confirm" asp-route-id="@Model.Id"
-                          onsubmit="return confirm('Xác nhận PO này để có thể lập phiếu nhập kho?');">
+                    <form method="post" asp-page-handler="SendToSupplier" asp-route-id="@Model.Id"
+                          onsubmit="return confirm('Gửi nội dung PO và file Excel tới email của nhà cung cấp? Gửi thành công sẽ tự động xác nhận PO và không thể hủy.');">
                         <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-check2-circle me-1"></i>Xác nhận PO
+                            <i class="bi bi-envelope-arrow-up me-1"></i>Gửi mail cho NCC
                         </button>
                     </form>
                 }
@@ -89,40 +87,66 @@
                         <i class="bi bi-x-circle me-1"></i>Hủy PO
                     </button>
                 }
+                @if (canClosePartial)
+                {
+                    <form method="post" asp-page-handler="ClosePartial" asp-route-id="@Model.Id"
+                          class="close-partial-po-form">
+                        <input type="hidden" name="reason" />
+                        <button type="submit" class="btn btn-outline-warning">
+                            <i class="bi bi-check2-square me-1"></i>Kết thúc PO theo số thực nhận
+                        </button>
+                    </form>
+                }
             </div>
         </div>
+
+        @if (Model.Order.Status == "DRAFT")
+        {
+            <div class="alert alert-info d-flex gap-2 align-items-start">
+                <i class="bi bi-envelope mt-1"></i>
+                <div>PO đang ở trạng thái Nháp. Khi email và file Excel được gửi thành công, hệ thống sẽ tự động xác nhận PO.</div>
+            </div>
+        }
+
+        @if (Model.Order.Status == "CONFIRMED")
+        {
+            <div class="alert alert-primary d-flex gap-2 align-items-start">
+                <i class="bi bi-lock mt-1"></i>
+                <div>PO đã được xác nhận và không còn được phép hủy. Nhân viên kho sẽ chọn PO này khi hàng thực tế đến kho.</div>
+            </div>
+        }
 
         @if ((Model.Order.Status == "CONFIRMED" || Model.Order.Status == "PARTIALLY_RECEIVED") && !Model.Order.CanCreateInbound)
         {
             <div class="alert alert-info d-flex gap-2 align-items-start">
                 <i class="bi bi-info-circle mt-1"></i>
-                <div>Toàn bộ số lượng còn lại đã được phân bổ vào các phiếu nhập kho đang hoạt động.</div>
+                <div>Phần còn lại đang được xử lý trên một phiếu nhập chưa hoàn tất.</div>
             </div>
         }
 
         <div class="row g-3 mb-4">
-            <div class="col-sm-6 col-xl-3">
+            <div class="col-sm-6 col-xl-2">
                 <div class="card po-card po-summary h-100"><div class="card-body">
-                    <div class="po-label">Số lượng đặt</div>
-                    <div class="h4 mb-0 quantity-number">@FormatHelper.FormatQuantity(totalOrdered, "")</div>
+                    <div class="po-label">Số mặt hàng</div>
+                    <div class="h4 mb-0 quantity-number">@lineCount dòng</div>
                 </div></div>
             </div>
-            <div class="col-sm-6 col-xl-3">
+            <div class="col-sm-6 col-xl-2">
                 <div class="card po-card po-summary secondary h-100"><div class="card-body">
-                    <div class="po-label">Đã lập phiếu nhập</div>
-                    <div class="h4 mb-0 quantity-number">@FormatHelper.FormatQuantity(totalPlanned, "")</div>
+                    <div class="po-label">Đang trên phiếu nhập</div>
+                    <div class="h4 mb-0 quantity-number">@plannedLineCount dòng</div>
                 </div></div>
             </div>
-            <div class="col-sm-6 col-xl-3">
+            <div class="col-sm-6 col-xl-2">
                 <div class="card po-card po-summary success h-100"><div class="card-body">
-                    <div class="po-label">Đã nhận thực tế</div>
-                    <div class="h4 mb-0 quantity-number text-success">@FormatHelper.FormatQuantity(totalReceived, "")</div>
+                    <div class="po-label">Đã nhận đủ</div>
+                    <div class="h4 mb-0 quantity-number text-success">@fullyAcceptedLineCount dòng</div>
                 </div></div>
             </div>
-            <div class="col-sm-6 col-xl-3">
+            <div class="col-sm-6 col-xl-2">
                 <div class="card po-card po-summary warning h-100"><div class="card-body">
-                    <div class="po-label">Còn phải nhận</div>
-                    <div class="h4 mb-0 quantity-number text-warning-emphasis">@FormatHelper.FormatQuantity(totalRemaining, "")</div>
+                    <div class="po-label">Còn có thể lập phiếu</div>
+                    <div class="h4 mb-0 quantity-number text-warning-emphasis">@remainingLineCount dòng</div>
                 </div></div>
             </div>
         </div>
@@ -134,7 +158,7 @@
                     <div class="col-md-6 col-xl-3">
                         <div class="po-label">Nhà cung cấp</div>
                         <div class="po-value">@Model.Order.SupplierName</div>
-                        <div class="text-muted small">@Model.Order.SupplierCode</div>
+                        <div class="text-muted small">@Model.Order.SupplierCode · @(string.IsNullOrWhiteSpace(Model.Order.SupplierEmail) ? "Chưa có email" : Model.Order.SupplierEmail)</div>
                     </div>
                     <div class="col-md-6 col-xl-3">
                         <div class="po-label">Ngày đặt hàng</div>
@@ -152,6 +176,21 @@
                         <div class="po-label">Ghi chú nghiệp vụ</div>
                         <div class="po-value fw-normal" style="white-space: pre-line;">@(string.IsNullOrWhiteSpace(Model.Order.Notes) ? "Không có ghi chú" : Model.Order.Notes)</div>
                     </div>
+                    <div class="col-md-6">
+                        <div class="po-label">Trạng thái gửi NCC</div>
+                        @if (Model.Order.ConfirmedAt.HasValue && Model.Order.Status != "DRAFT")
+                        {
+                            <div class="po-value text-success">Đã gửi và xác nhận</div>
+                            <div class="text-muted small">
+                                Xác nhận @Model.Order.ConfirmedAt.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                                · Email NCC hiện tại: @(string.IsNullOrWhiteSpace(Model.Order.SupplierEmail) ? "Chưa có" : Model.Order.SupplierEmail)
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-muted">Chưa gửi email</div>
+                        }
+                    </div>
                 </div>
             </div>
         </div>
@@ -166,9 +205,9 @@
                                 <th>Vật tư</th>
                                 <th>Đơn vị</th>
                                 <th class="text-end">Số lượng đặt</th>
-                                <th class="text-end">Đã lập phiếu nhập</th>
-                                <th class="text-end">Đã nhận thực tế</th>
-                                <th class="text-end">Còn phải nhận</th>
+                                <th class="text-end">Đang giữ trên phiếu</th>
+                                <th class="text-end">Đã thực nhận</th>
+                                <th class="text-end">Còn có thể lập</th>
                                 <th>Ghi chú dòng</th>
                             </tr>
                         </thead>
@@ -181,10 +220,10 @@
                                         <div class="text-muted small">@item.ProductCode</div>
                                     </td>
                                     <td>@item.Unit</td>
-                                    <td class="text-end quantity-number">@FormatHelper.FormatQuantity(item.OrderedQuantity, item.Unit)</td>
-                                    <td class="text-end quantity-number">@FormatHelper.FormatQuantity(item.PlannedInboundQuantity, item.Unit)</td>
-                                    <td class="text-end quantity-number text-success fw-semibold">@FormatHelper.FormatQuantity(item.ReceivedQuantity, item.Unit)</td>
-                                    <td class="text-end quantity-number @(item.RemainingQuantity > 0 ? "text-warning-emphasis fw-semibold" : "text-muted")">@FormatHelper.FormatQuantity(item.RemainingQuantity, item.Unit)</td>
+                                    <td class="text-end quantity-number">@FormatHelper.FormatQuantity(item.OrderedQuantity, item.QuantityScale)</td>
+                                    <td class="text-end quantity-number">@FormatHelper.FormatQuantity(item.PlannedInboundQuantity, item.QuantityScale)</td>
+                                    <td class="text-end quantity-number text-success fw-semibold">@FormatHelper.FormatQuantity(item.ReceivedQuantity, item.QuantityScale)</td>
+                                    <td class="text-end quantity-number @(item.RemainingQuantity > 0 ? "text-warning-emphasis fw-semibold" : "text-muted")">@FormatHelper.FormatQuantity(item.RemainingQuantity, item.QuantityScale)</td>
                                     <td>@(string.IsNullOrWhiteSpace(item.Notes) ? "—" : item.Notes)</td>
                                 </tr>
                             }
@@ -209,9 +248,8 @@
                         <thead class="table-light">
                             <tr>
                                 <th>Mã phiếu nhập</th>
-                                <th>Ngày dự kiến</th>
-                                <th class="text-end">Dự kiến nhận</th>
-                                <th class="text-end">Đã nhận</th>
+                                <th>Ngày nhận của đợt</th>
+                                <th class="text-end">Số mặt hàng</th>
                                 <th>Trạng thái</th>
                                 <th>Ghi chú</th>
                             </tr>
@@ -222,21 +260,16 @@
                                 <tr>
                                     <td>
                                         <a href="/Admin/Inbound/Details/@inbound.InboundOrderId" class="fw-semibold text-decoration-none">@inbound.InboundOrderNumber</a>
-                                        @if (inbound.IsSupplemental)
-                                        {
-                                            <span class="badge bg-warning-subtle text-warning-emphasis ms-1">Bổ sung</span>
-                                        }
                                     </td>
                                     <td>@inbound.ExpectedReceiptDate.ToString("dd/MM/yyyy")</td>
-                                    <td class="text-end quantity-number">@FormatHelper.FormatQuantity(inbound.ExpectedQuantity, "")</td>
-                                    <td class="text-end quantity-number">@FormatHelper.FormatQuantity(inbound.ReceivedQuantity, "")</td>
+                                    <td class="text-end quantity-number">@inbound.LineCount dòng</td>
                                     <td><span class="badge rounded-pill @Model.GetStatusClass(inbound.Status)">@Model.GetInboundStatusLabel(inbound.Status)</span></td>
                                     <td>@(string.IsNullOrWhiteSpace(inbound.Notes) ? "—" : inbound.Notes)</td>
                                 </tr>
                             }
                             @if (!Model.Order.Inbounds.Any())
                             {
-                                <tr><td colspan="6" class="text-center text-muted py-4">PO chưa có phiếu nhập kho liên quan.</td></tr>
+                                <tr><td colspan="5" class="text-center text-muted py-4">PO chưa có phiếu nhập kho liên quan.</td></tr>
                             }
                         </tbody>
                     </table>
@@ -292,6 +325,18 @@
                     </div>
                 </div>
             </div>
-        }
     }
+}
+
+<script>
+    document.querySelector('.close-partial-po-form')?.addEventListener('submit', event => {
+        const reason = prompt('Nhập lý do không nhận phần hàng còn lại (10-500 ký tự):');
+        if (!reason || reason.trim().length < 10 || reason.trim().length > 500 ||
+            !confirm('PO sẽ kết thúc theo số thực nhận và không thể tạo thêm phiếu nhập. Tiếp tục?')) {
+            event.preventDefault();
+            return;
+        }
+        event.currentTarget.querySelector('input[name="reason"]').value = reason.trim();
+    });
+</script>
 </div>

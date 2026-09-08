@@ -3,6 +3,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using BMWMS.Business.DTOs.Auth;
+using BMWMS.Business.DTOs.Audit;
 using BMWMS.Business.DTOs.User;
 using BMWMS.Business.Interfaces;
 using BMWMS.Repository.Interfaces;
@@ -13,10 +14,12 @@ namespace BMWMS.Business.Services;
 public class UserService : IUserService
 {
     private readonly IUserRepository _userRepository;
+    private readonly IAuditLogService _auditLogService;
 
-    public UserService(IUserRepository userRepository)
+    public UserService(IUserRepository userRepository, IAuditLogService auditLogService)
     {
         _userRepository = userRepository;
+        _auditLogService = auditLogService;
     }
 
     public async Task<LoginResponseDto> GetProfileAsync(long userId)
@@ -67,8 +70,7 @@ public class UserService : IUserService
             }
         }
 
-        // Lưu log thay đổi (audit)
-        var oldValues = $"{{ \"FullName\": \"{user.FullName}\", \"PhoneNumber\": \"{user.PhoneNumber}\", \"Email\": \"{user.Email}\" }}";
+        var oldValues = new { user.FullName, user.PhoneNumber, user.Email };
         
         user.FullName = dto.FullName;
         user.PhoneNumber = dto.PhoneNumber;
@@ -77,21 +79,18 @@ public class UserService : IUserService
             user.Email = dto.Email;
         }
 
-        await _userRepository.UpdateAsync(user);
-
-        var newValues = $"{{ \"FullName\": \"{user.FullName}\", \"PhoneNumber\": \"{user.PhoneNumber}\", \"Email\": \"{user.Email}\" }}";
-
-        await _userRepository.AddAuditLogAsync(new AuditLog
+        await _auditLogService.StageAsync(new AuditEventDto
         {
             UserId = user.UserId,
             ActionType = "UPDATE_PROFILE",
-            EntityName = "User",
+            EntityName = AuditEntities.User,
             EntityId = user.UserId.ToString(),
-            OldValuesJson = oldValues,
-            NewValuesJson = newValues,
-            IpAddress = ipAddress,
-            CreatedAt = DateTime.UtcNow
+            OldValues = oldValues,
+            NewValues = new { user.FullName, user.PhoneNumber, user.Email },
+            IpAddress = ipAddress
         });
+
+        await _userRepository.UpdateAsync(user);
     }
 
     public async Task ChangePasswordAsync(long userId, ChangePasswordRequestDto dto, string? ipAddress)
@@ -149,18 +148,17 @@ public class UserService : IUserService
             CreatedAt = DateTime.UtcNow
         });
 
-        await _userRepository.UpdateAsync(user);
-
-        // 6. Ghi Audit Log (Rule BR-05: without credential content)
-        await _userRepository.AddAuditLogAsync(new AuditLog
+        // Không truyền credential vào audit snapshot. Audit được stage để cùng SaveChanges với User.
+        await _auditLogService.StageAsync(new AuditEventDto
         {
             UserId = user.UserId,
             ActionType = "CHANGE_PASSWORD",
-            EntityName = "User",
+            EntityName = AuditEntities.User,
             EntityId = user.UserId.ToString(),
-            IpAddress = ipAddress,
-            CreatedAt = DateTime.UtcNow
+            IpAddress = ipAddress
         });
+
+        await _userRepository.UpdateAsync(user);
 
         // 7. Thu hồi các session khác nếu cần thiết
         if (dto.SignOutOtherSessions)
@@ -239,7 +237,7 @@ public class UserService : IUserService
         return dto;
     }
 
-    public async Task<long> CreateUserAsync(CreateUserDto dto, string? ipAddress)
+    public async Task<long> CreateUserAsync(CreateUserDto dto, long actorUserId, string? ipAddress)
     {
         if (await _userRepository.CheckUsernameExistsAsync(dto.Username))
         {
@@ -284,17 +282,25 @@ public class UserService : IUserService
             CreatedAt = DateTime.UtcNow
         });
 
-        await _userRepository.AddAsync(user);
-
-        await _userRepository.AddAuditLogAsync(new AuditLog
+        await _auditLogService.StageAsync(new AuditEventDto
         {
-            UserId = user.UserId, // Note: This will be the new ID if EF populates it, otherwise it's 0 for the log. For accurate logging, it might need a separate SaveChanges or EF handles it if we don't save log inside AddAsync. Wait, AddAsync in repo already calls SaveChanges! So user.UserId is populated.
+            UserId = actorUserId,
             ActionType = "CREATE_USER",
-            EntityName = "User",
-            EntityId = user.UserId.ToString(),
-            IpAddress = ipAddress,
-            CreatedAt = DateTime.UtcNow
+            EntityName = AuditEntities.User,
+            EntityId = user.Username,
+            NewValues = new
+            {
+                user.Username,
+                user.Email,
+                user.FullName,
+                user.PhoneNumber,
+                user.RoleId,
+                user.Status
+            },
+            IpAddress = ipAddress
         });
+
+        await _userRepository.AddAsync(user);
 
         return user.UserId;
     }
@@ -330,7 +336,14 @@ public class UserService : IUserService
             }
         }
 
-        var oldValues = $"{{ \"FullName\": \"{user.FullName}\", \"Email\": \"{user.Email}\", \"PhoneNumber\": \"{user.PhoneNumber}\", \"RoleId\": {user.RoleId}, \"Status\": \"{user.Status}\" }}";
+        var oldValues = new
+        {
+            user.FullName,
+            user.Email,
+            user.PhoneNumber,
+            user.RoleId,
+            user.Status
+        };
         
         user.FullName = dto.FullName;
         user.Email = dto.Email;
@@ -339,21 +352,25 @@ public class UserService : IUserService
         user.Status = dto.Status;
         user.UpdatedAt = DateTime.UtcNow;
 
-        await _userRepository.UpdateAsync(user);
-
-        var newValues = $"{{ \"FullName\": \"{user.FullName}\", \"Email\": \"{user.Email}\", \"PhoneNumber\": \"{user.PhoneNumber}\", \"RoleId\": {user.RoleId}, \"Status\": \"{user.Status}\" }}";
-
-        await _userRepository.AddAuditLogAsync(new AuditLog
+        await _auditLogService.StageAsync(new AuditEventDto
         {
             UserId = editorId,
             ActionType = "UPDATE_USER",
-            EntityName = "User",
+            EntityName = AuditEntities.User,
             EntityId = targetUserId.ToString(),
-            OldValuesJson = oldValues,
-            NewValuesJson = newValues,
-            IpAddress = ipAddress,
-            CreatedAt = DateTime.UtcNow
+            OldValues = oldValues,
+            NewValues = new
+            {
+                user.FullName,
+                user.Email,
+                user.PhoneNumber,
+                user.RoleId,
+                user.Status
+            },
+            IpAddress = ipAddress
         });
+
+        await _userRepository.UpdateAsync(user);
     }
 
     public async Task AssignRoleAsync(long targetUserId, AssignRoleDto dto, long editorId, string? ipAddress)
@@ -379,26 +396,23 @@ public class UserService : IUserService
             }
         }
 
-        var oldValues = $"{{ \"RoleId\": {user.RoleId} }}";
+        var oldValues = new { user.RoleId };
         
         user.RoleId = dto.RoleId;
         user.UpdatedAt = DateTime.UtcNow;
 
-        await _userRepository.UpdateAsync(user);
-
-        var newValues = $"{{ \"RoleId\": {user.RoleId}, \"Reason\": \"{dto.Reason}\" }}";
-
-        await _userRepository.AddAuditLogAsync(new AuditLog
+        await _auditLogService.StageAsync(new AuditEventDto
         {
             UserId = editorId,
             ActionType = "ASSIGN_ROLE",
-            EntityName = "User",
+            EntityName = AuditEntities.User,
             EntityId = targetUserId.ToString(),
-            OldValuesJson = oldValues,
-            NewValuesJson = newValues,
-            IpAddress = ipAddress,
-            CreatedAt = DateTime.UtcNow
+            OldValues = oldValues,
+            NewValues = new { user.RoleId, dto.Reason },
+            IpAddress = ipAddress
         });
+
+        await _userRepository.UpdateAsync(user);
 
         // BR-05: Hủy tất cả các phiên đăng nhập hiện tại để quyền mới được áp dụng ngay lập tức
         await _userRepository.RevokeActiveSessionsAsync(targetUserId);
@@ -444,23 +458,21 @@ public class UserService : IUserService
         }
 
         user.UpdatedAt = DateTime.UtcNow;
-        await _userRepository.UpdateAsync(user);
 
-        var newValues = $"{{ \"Status\": \"{user.Status}\", \"Reason\": \"{dto.Reason}\" }}";
         var oldStatus = isCurrentlyLocked ? "LOCKED" : "ACTIVE";
-        var oldValues = $"{{ \"Status\": \"{oldStatus}\" }}";
 
-        await _userRepository.AddAuditLogAsync(new AuditLog
+        await _auditLogService.StageAsync(new AuditEventDto
         {
             UserId = adminId,
             ActionType = dto.Action == "LOCK" ? "LOCK_ACCOUNT" : "UNLOCK_ACCOUNT",
-            EntityName = "User",
+            EntityName = AuditEntities.User,
             EntityId = targetUserId.ToString(),
-            OldValuesJson = oldValues,
-            NewValuesJson = newValues,
-            IpAddress = ipAddress,
-            CreatedAt = DateTime.UtcNow
+            OldValues = new { Status = oldStatus },
+            NewValues = new { user.Status, dto.Reason },
+            IpAddress = ipAddress
         });
+
+        await _userRepository.UpdateAsync(user);
 
         if (dto.Action == "LOCK")
         {

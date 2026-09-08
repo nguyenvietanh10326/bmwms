@@ -1,6 +1,7 @@
 using BMWMS.Web.Models.Inventory;
 using BMWMS.Web.Models.Warehouse;
 using BMWMS.Web.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.Collections.Generic;
@@ -8,6 +9,7 @@ using System.Threading.Tasks;
 
 namespace BMWMS.Web.Pages.PurchaseOrders;
 
+[Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF")]
 public class IndexModel : PageModel
 {
     private readonly PurchaseOrderApiService _apiService;

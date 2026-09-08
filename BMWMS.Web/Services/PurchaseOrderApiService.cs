@@ -88,6 +88,29 @@ namespace BMWMS.Web.Services
             }
         }
 
+        public async Task<(bool IsSuccess, string? Message)> SendPurchaseOrderToSupplierAsync(long id)
+        {
+            try
+            {
+                var response = await _httpClient.PostAsync($"api/PurchaseOrders/{id}/send-to-supplier", null);
+                var content = await response.Content.ReadAsStringAsync();
+                var fallback = response.IsSuccessStatusCode
+                    ? "Đã gửi email PO cho nhà cung cấp."
+                    : "Gửi email PO cho nhà cung cấp thất bại.";
+                try
+                {
+                    var json = JsonNode.Parse(content);
+                    fallback = json?["message"]?.ToString() ?? json?["title"]?.ToString() ?? fallback;
+                }
+                catch { }
+                return (response.IsSuccessStatusCode, fallback);
+            }
+            catch (Exception ex)
+            {
+                return (false, $"Lỗi kết nối hoặc timeout khi gửi email: {ex.Message}");
+            }
+        }
+
         public async Task<(bool IsSuccess, string? Message)> CancelPurchaseOrderAsync(long id, string? reason = null)
         {
             try
@@ -105,6 +128,28 @@ namespace BMWMS.Web.Services
                     errorMessage = json?["message"]?.ToString() ?? json?["title"]?.ToString() ?? errorMessage;
                 } catch { }
                 return (false, errorMessage);
+            }
+            catch (Exception ex)
+            {
+                return (false, $"Lỗi kết nối hoặc timeout: {ex.Message}");
+            }
+        }
+
+        public async Task<(bool IsSuccess, string? Message)> ClosePartiallyReceivedOrderAsync(long id, string reason)
+        {
+            try
+            {
+                var response = await _httpClient.PostAsync(
+                    $"api/PurchaseOrders/{id}/close-partial?reason={Uri.EscapeDataString(reason ?? string.Empty)}", null);
+                var content = await response.Content.ReadAsStringAsync();
+                var message = response.IsSuccessStatusCode ? "Đã kết thúc PO." : "Không thể kết thúc PO.";
+                try
+                {
+                    var json = JsonNode.Parse(content);
+                    message = json?["message"]?.ToString() ?? message;
+                }
+                catch { }
+                return (response.IsSuccessStatusCode, message);
             }
             catch (Exception ex)
             {

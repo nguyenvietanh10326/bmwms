@@ -14,8 +14,21 @@ public class MockEmailService : IEmailService
 
     public Task SendEmailAsync(string to, string subject, string body)
     {
-        _logger.LogInformation("\n========== GỬI EMAIL GIẢ LẬP ==========\nĐến: {To}\nTiêu đề: {Subject}\nNội dung: {Body}\n========================================\n", 
-            to, subject, body);
+        return SendEmailAsync(new EmailMessage
+        {
+            To = to,
+            Subject = subject,
+            HtmlBody = body
+        });
+    }
+
+    public Task SendEmailAsync(EmailMessage message)
+    {
+        _logger.LogInformation(
+            "Email giả lập tới {Recipient}, tiêu đề {Subject}, số tệp đính kèm {AttachmentCount}.",
+            message.To,
+            message.Subject,
+            message.Attachments.Count);
         return Task.CompletedTask;
     }
 }

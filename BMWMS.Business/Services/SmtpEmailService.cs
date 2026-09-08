@@ -19,6 +19,16 @@ public class SmtpEmailService : IEmailService
 
     public async Task SendEmailAsync(string to, string subject, string body)
     {
+        await SendEmailAsync(new EmailMessage
+        {
+            To = to,
+            Subject = subject,
+            HtmlBody = body
+        });
+    }
+
+    public async Task SendEmailAsync(EmailMessage message)
+    {
         var smtpConfig = _config.GetSection("SmtpSettings");
         var host = smtpConfig["Host"];
         var port = int.Parse(smtpConfig["Port"] ?? "587");
@@ -30,7 +40,7 @@ public class SmtpEmailService : IEmailService
         if (string.IsNullOrEmpty(host) || string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
         {
             _logger.LogWarning("SMTP Settings are not fully configured. Email was not sent.");
-            return;
+            throw new InvalidOperationException("Cấu hình SMTP chưa đầy đủ nên email chưa được gửi.");
         }
 
         using var client = new SmtpClient(host, port)
@@ -40,25 +50,35 @@ public class SmtpEmailService : IEmailService
             Timeout = 10000 // 10 seconds
         };
 
-        var mailMessage = new MailMessage
+        if (string.IsNullOrWhiteSpace(message.To))
+            throw new ArgumentException("Địa chỉ email người nhận không hợp lệ.", nameof(message));
+
+        using var mailMessage = new MailMessage
         {
             From = new MailAddress(fromEmail ?? username, "BMWMS System"),
-            Subject = subject,
-            Body = body,
+            Subject = message.Subject,
+            Body = message.HtmlBody,
             IsBodyHtml = true,
         };
 
-        mailMessage.To.Add(to);
+        mailMessage.To.Add(message.To);
+
+        foreach (var attachment in message.Attachments)
+        {
+            if (attachment.Content.Length == 0) continue;
+            var stream = new MemoryStream(attachment.Content, writable: false);
+            mailMessage.Attachments.Add(new Attachment(stream, attachment.FileName, attachment.ContentType));
+        }
 
         try
         {
             await client.SendMailAsync(mailMessage);
-            _logger.LogInformation("Sent email successfully to {to}", to);
+            _logger.LogInformation("Sent email successfully to {Recipient}", message.To);
         }
         catch (System.Exception ex)
         {
-            _logger.LogError(ex, "Failed to send email to {to}", to);
-            // In a real application, you might want to rethrow or handle this differently
+            _logger.LogError(ex, "Failed to send email to {Recipient}", message.To);
+            throw;
         }
     }
 }

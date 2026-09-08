@@ -70,7 +70,7 @@
         <div style="display: flex; gap: 10px;">
             <a href="/Transfer/Index" class="btn btn-light">Hủy bỏ</a>
             <button type="submit" form="transfer-form" name="action" value="draft" class="btn btn-dark" onclick="return prepareSubmit()">Lưu nháp</button>
-            <button type="submit" form="transfer-form" name="action" value="assign" class="btn btn-primary" onclick="return prepareSubmit()">Tạo và giao luôn</button>
+            <button type="submit" form="transfer-form" name="action" value="assign" class="btn btn-primary" onclick="return prepareSubmit()">@(Model.IsEditMode ? "Cập nhật lệnh" : "Tạo lệnh")</button>
         </div>
     </div>
 
@@ -98,7 +98,7 @@
                         <option value="">-- Chọn nhân viên --</option>
                         @foreach (var staff in Model.StaffUsers)
                         {
-                            <option value="@staff.UserId" selected="@(Model.SelectedAssignedToUserId == staff.UserId ? "selected" : null)">@staff.FullName (@staff.RoleCode)</option>
+                            <option value="@staff.UserId" selected="@(Model.SelectedAssignedToUserId == staff.UserId ? "selected" : null)">@staff.FullName (@staff.RoleName)</option>
                         }
                     </select>
                 </div>
@@ -248,7 +248,7 @@
 
         <!-- QTY & UOM -->
         <td>
-            <input type="text" id="qty-${ri}" placeholder="0" style="font-weight:700; text-align:right; width: 100%; padding: 7px 10px; border: 1px solid var(--line-strong); border-radius: 4px;" oninput="this.value = this.value.replace(/[^0-9.,]/g, '')" />
+            <input type="text" id="qty-${ri}" placeholder="0" style="font-weight:700; text-align:right; width: 100%; padding: 7px 10px; border: 1px solid var(--line-strong); border-radius: 4px;" oninput="validateQty(${ri}, this)" />
         </td>
         <td style="text-align:center;">
             <span id="uom-${ri}" style="font-size:12px; color:#64748b; font-weight:500;">—</span>
@@ -336,6 +336,24 @@
         document.getElementById(`uom-${ri}`).textContent = unit;
         const qtyInput = document.getElementById(`qty-${ri}`);
         // if (avail) qtyInput.max = avail;
+        if (qtyInput.value) validateQty(ri, qtyInput);
+    }
+
+    function validateQty(ri, input) {
+        input.value = input.value.replace(/[^0-9.,]/g, '');
+        let qtyStr = input.value.replace(',', '.');
+        if (!qtyStr) return;
+        const qty = parseFloat(qtyStr);
+        const sel = document.getElementById(`src-product-${ri}`);
+        if (!sel || sel.selectedIndex <= 0) return;
+        const availStr = sel.options[sel.selectedIndex]?.dataset.avail;
+        if (availStr && !isNaN(qty)) {
+            const avail = parseFloat(availStr);
+            if (qty > avail) {
+                alert(`Số lượng nhập vượt quá khả dụng (${avail})!`);
+                input.value = avail;
+            }
+        }
     }
 
     // ── Cascade: Dest Zone → Rack ──────────────────────────────────────────
@@ -448,6 +466,16 @@
                 tr.style.outline = '2px solid #ef4444';
                 return;
             }
+
+            const sel = document.getElementById(`src-product-${ri}`);
+            const availStr = sel?.options[sel.selectedIndex]?.dataset.avail;
+            if (availStr && qty > parseFloat(availStr)) {
+                valid = false;
+                tr.style.outline = '2px solid #ef4444';
+                alert(`Số lượng nhập ở dòng ${ri} vượt quá khả dụng (${availStr})!`);
+                return;
+            }
+
             tr.style.outline = '';
 
             const [productId, productLotId] = productVal.split('|');

@@ -1,4 +1,5 @@
 using BMWMS.Business.Common;
+using BMWMS.Business.DTOs.Audit;
 using BMWMS.Business.DTOs.Supplier;
 using BMWMS.Business.Interfaces;
 using BMWMS.Repository.Interfaces;
@@ -8,10 +9,12 @@ namespace BMWMS.Business.Services;
 public class SupplierService : ISupplierService
 {
     private readonly ISupplierRepository _supplierRepository;
+    private readonly IAuditLogService _auditLogService;
 
-    public SupplierService(ISupplierRepository supplierRepository)
+    public SupplierService(ISupplierRepository supplierRepository, IAuditLogService auditLogService)
     {
         _supplierRepository = supplierRepository;
+        _auditLogService = auditLogService;
     }
 
     public async Task<PagedResultDto<SupplierListResponseDto>> GetPagedListAsync(SupplierFilterDto filter)
@@ -110,20 +113,23 @@ public class SupplierService : ISupplierService
             CreatedAt = DateTime.UtcNow
         };
 
-        await _supplierRepository.AddAsync(supplier);
-
-        // Audit Log
-        var newValues = $"{{ \"SupplierCode\": \"{supplier.SupplierCode}\", \"SupplierName\": \"{supplier.SupplierName}\", \"TaxCode\": \"{supplier.TaxCode}\", \"Status\": \"{supplier.Status}\" }}";
-        await _supplierRepository.AddAuditLogAsync(new Repository.Models.AuditLog
+        await _auditLogService.StageAsync(new AuditEventDto
         {
             UserId = creatorId,
             ActionType = "CREATE_SUPPLIER",
-            EntityName = "Supplier",
-            EntityId = supplier.SupplierId.ToString(),
-            NewValuesJson = newValues,
-            IpAddress = ipAddress,
-            CreatedAt = DateTime.UtcNow
+            EntityName = AuditEntities.Supplier,
+            EntityId = supplier.SupplierCode,
+            NewValues = new
+            {
+                supplier.SupplierCode,
+                supplier.SupplierName,
+                supplier.TaxCode,
+                supplier.Status
+            },
+            IpAddress = ipAddress
         });
+
+        await _supplierRepository.AddAsync(supplier);
 
         return supplier.SupplierId;
     }
@@ -161,7 +167,17 @@ public class SupplierService : ISupplierService
             }
         }
 
-        var oldValues = $"{{ \"SupplierCode\": \"{supplier.SupplierCode}\", \"SupplierName\": \"{supplier.SupplierName}\", \"TaxCode\": \"{supplier.TaxCode}\", \"PhoneNumber\": \"{supplier.PhoneNumber}\", \"Email\": \"{supplier.Email}\", \"Address\": \"{supplier.Address}\", \"RepresentativeName\": \"{supplier.RepresentativeName}\", \"Status\": \"{supplier.Status}\" }}";
+        var oldValues = new
+        {
+            supplier.SupplierCode,
+            supplier.SupplierName,
+            supplier.TaxCode,
+            supplier.PhoneNumber,
+            supplier.Email,
+            supplier.Address,
+            supplier.RepresentativeName,
+            supplier.Status
+        };
 
         supplier.SupplierCode = dto.SupplierCode;
         supplier.SupplierName = dto.SupplierName;
@@ -174,21 +190,28 @@ public class SupplierService : ISupplierService
         supplier.UpdatedAt = DateTime.UtcNow;
         supplier.UpdatedByUserId = updaterId;
 
-        await _supplierRepository.UpdateAsync(supplier);
-
-        var newValues = $"{{ \"SupplierCode\": \"{supplier.SupplierCode}\", \"SupplierName\": \"{supplier.SupplierName}\", \"TaxCode\": \"{supplier.TaxCode}\", \"PhoneNumber\": \"{supplier.PhoneNumber}\", \"Email\": \"{supplier.Email}\", \"Address\": \"{supplier.Address}\", \"RepresentativeName\": \"{supplier.RepresentativeName}\", \"Status\": \"{supplier.Status}\" }}";
-
-        await _supplierRepository.AddAuditLogAsync(new Repository.Models.AuditLog
+        await _auditLogService.StageAsync(new AuditEventDto
         {
             UserId = updaterId,
             ActionType = "UPDATE_SUPPLIER",
-            EntityName = "Supplier",
+            EntityName = AuditEntities.Supplier,
             EntityId = supplier.SupplierId.ToString(),
-            OldValuesJson = oldValues,
-            NewValuesJson = newValues,
-            IpAddress = ipAddress,
-            CreatedAt = DateTime.UtcNow
+            OldValues = oldValues,
+            NewValues = new
+            {
+                supplier.SupplierCode,
+                supplier.SupplierName,
+                supplier.TaxCode,
+                supplier.PhoneNumber,
+                supplier.Email,
+                supplier.Address,
+                supplier.RepresentativeName,
+                supplier.Status
+            },
+            IpAddress = ipAddress
         });
+
+        await _supplierRepository.UpdateAsync(supplier);
     }
 
     public async Task<PagedResultDto<SupplierProductResponseDto>> GetSupplierProductsAsync(string supplierCode, SupplierProductFilterDto filter)

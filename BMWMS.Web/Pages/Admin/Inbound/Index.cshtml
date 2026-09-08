@@ -9,31 +9,31 @@
     @if (TempData["SuccessMessage"] is string success) { <div class="alert alert-success">@success</div> }
     @if (TempData["ErrorMessage"] is string error) { <div class="alert alert-danger">@error</div> }
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <div><h3 class="mb-1">Phiếu nhập kho</h3><div class="text-muted">Theo dõi nhập hàng mua theo PO và hàng khách trả theo SO.</div></div>
-        @if (User.IsInRole("SYSTEM_ADMIN") || User.IsInRole("WAREHOUSE_MANAGER")) { <a asp-page="./Create" class="btn btn-primary">Tạo phiếu nhập</a> }
+        <div><h3 class="mb-1">Phiếu nhập kho</h3><div class="text-muted">Theo dõi từng lần nhận hàng theo PO hoặc nhận hàng khách trả theo SO.</div></div>
+        @if (User.IsInRole("WAREHOUSE_STAFF")) { <a asp-page="./Create" class="btn btn-primary">Ghi nhận đợt nhập</a> }
     </div>
     <form method="get" class="card border-0 shadow-sm mb-3"><div class="card-body row g-3 align-items-end">
         <div class="col-md-4"><label class="form-label">Tìm kiếm</label><input asp-for="Filter.Keyword" class="form-control" placeholder="Mã phiếu, PO, SO hoặc đối tác" /></div>
-        <div class="col-md-3"><label class="form-label">Trạng thái</label><select asp-for="Filter.Status" class="form-select"><option value="">Tất cả</option><option value="DRAFT">Nháp</option><option value="ASSIGNED">Sẵn sàng nhận</option><option value="IN_PROGRESS">Đang nhận hàng</option><option value="COMPLETED">Đã nhận/putaway</option><option value="CANCELLED">Đã hủy</option></select></div>
+        <div class="col-md-3"><label class="form-label">Trạng thái</label><select asp-for="Filter.Status" class="form-select"><option value="">Tất cả</option><option value="RECEIVED">Chờ cất hàng</option><option value="PUTAWAY_COMPLETED">Đã hoàn tất nhập kho</option><option value="CANCELLED">Đã hủy</option></select></div>
         <div class="col-md-2"><label class="form-label">Từ ngày</label><input asp-for="Filter.FromDate" type="date" class="form-control" /></div>
         <div class="col-md-2"><label class="form-label">Đến ngày</label><input asp-for="Filter.ToDate" type="date" class="form-control" /></div>
         <div class="col-md-1"><button class="btn btn-primary w-100">Lọc</button></div>
     </div></form>
     <div class="card border-0 shadow-sm"><div class="table-responsive"><table class="table align-middle mb-0">
-        <thead class="table-light"><tr><th>Mã phiếu</th><th>Luồng nghiệp vụ</th><th>Đối tác</th><th>Ngày dự kiến</th><th class="text-end">Dự kiến</th><th class="text-end">Đã giao</th><th>Trạng thái</th><th></th></tr></thead>
+        <thead class="table-light"><tr><th>Mã phiếu</th><th>Nguồn nhập</th><th>Đối tác</th><th>Ngày nhận thực tế</th><th class="text-end">Số mặt hàng</th><th>Trạng thái</th><th></th></tr></thead>
         <tbody>
-        @if (Model.Data.Items.Count == 0) { <tr><td colspan="8" class="text-center text-muted py-5">Không có phiếu nhập phù hợp.</td></tr> }
+        @if (Model.Data.Items.Count == 0) { <tr><td colspan="7" class="text-center text-muted py-5">Không có phiếu nhập phù hợp.</td></tr> }
         @foreach (var item in Model.Data.Items)
         {
             <tr><td><a asp-page="./Details" asp-route-id="@item.InboundOrderId" class="fw-semibold text-decoration-none">@item.InboundOrderNumber</a><div class="text-muted small">@item.CreatedAt.ToString("dd/MM/yyyy HH:mm")</div></td>
             <td>@(item.SourceType == "SALES_RETURN" ? "Khách trả theo SO" : "Nhập mua theo PO")<div class="text-muted small">@item.SourceReference</div></td>
-            <td>@item.SupplierName</td><td>@item.ExpectedReceiptDate.ToString("dd/MM/yyyy")</td><td class="text-end">@item.TotalExpectedQuantity.ToString("N2")</td><td class="text-end">@item.TotalReceivedQuantity.ToString("N2")</td>
+            <td>@item.SupplierName</td><td>@item.ExpectedReceiptDate.ToString("dd/MM/yyyy")</td><td class="text-end">@item.LineCount dòng</td>
             <td><span class="badge @StatusClass(item.Status)">@StatusLabel(item.Status)</span></td><td class="text-end"><a asp-page="./Details" asp-route-id="@item.InboundOrderId" class="btn btn-sm btn-outline-primary">Chi tiết</a></td></tr>
         }
         </tbody>
     </table></div><div class="card-footer bg-white d-flex justify-content-between"><span class="text-muted">Tổng cộng @Model.Data.TotalCount phiếu</span><span>Trang @Model.Filter.PageIndex / @totalPages</span></div></div>
 </div>
 @functions {
-    string StatusLabel(string status) => status switch { "DRAFT" => "Nháp", "READY" => "Sẵn sàng nhận", "RECEIVING" => "Đang nhận hàng", "RECEIVED" => "Đã nhận, chờ putaway", "PUTAWAY_COMPLETED" => "Đã hoàn tất putaway", "CANCELLED" => "Đã hủy", _ => status };
+    string StatusLabel(string status) => status switch { "DRAFT" => "Chưa ghi nhận thực nhận", "READY" => "Chờ nhận hàng", "RECEIVING" => "Đang ghi nhận thực nhận", "RECEIVED" => "Chờ cất hàng", "PUTAWAY_COMPLETED" => "Đã hoàn tất nhập kho", "CANCELLED" => "Đã hủy", _ => status };
     string StatusClass(string status) => status switch { "PUTAWAY_COMPLETED" => "bg-success", "RECEIVED" => "bg-info text-dark", "RECEIVING" => "bg-warning text-dark", "READY" => "bg-primary", "CANCELLED" => "bg-danger", _ => "bg-secondary" };
 }

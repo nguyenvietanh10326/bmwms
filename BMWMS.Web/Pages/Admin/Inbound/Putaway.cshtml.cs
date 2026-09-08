@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Globalization;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
@@ -9,11 +10,10 @@ using BMWMS.Web.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace BMWMS.Web.Pages.Admin.Inbound;
 
-[Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF")]
+[Authorize(Roles = "WAREHOUSE_STAFF")]
 public class PutawayModel : PageModel
 {
     private readonly InboundApiService _inboundApiService;
@@ -25,97 +25,144 @@ public class PutawayModel : PageModel
         _httpClient = httpClientFactory.CreateClient("ApiClient");
     }
 
-    public InboundOrderDetailDto Order { get; set; } = default!;
-    public InboundOrderItemDto Item { get; set; } = default!;
-    public InboundReceiptDto Receipt { get; set; } = default!;
+    public InboundOrderDetailDto Order { get; private set; } = default!;
+    public List<PutawayReceiptRow> ReceiptRows { get; private set; } = new();
 
     [BindProperty]
     public List<PutawayInboundItemDto> PutawayDtos { get; set; } = new();
 
-    public SelectList Locations { get; set; } = default!;
+    [BindProperty]
+    public bool AcknowledgeCapacityWarning { get; set; }
 
-    public async Task<IActionResult> OnGetAsync(long id, long itemId, long lotId)
+    [BindProperty]
+    public string? CapacityWarningReason { get; set; }
+
+    public bool CapacityEvaluationEnabled => ReceiptRows
+        .SelectMany(row => row.Locations)
+        .Any(location => location.CapacityEvaluationEnabled);
+
+    // Keep the former query parameters optional so links generated before this
+    // page became an order-wide operation continue to work.
+    public async Task<IActionResult> OnGetAsync(long id, long? itemId = null, long? lotId = null)
+    {
+        var result = await LoadPageAsync(id);
+        return result ?? Page();
+    }
+
+    public async Task<IActionResult> OnPostAsync(long id)
+    {
+        if (!ModelState.IsValid)
+        {
+            await LoadPageAsync(id, redirectWhenInvalid: false);
+            return Page();
+        }
+
+        try
+        {
+            await _inboundApiService.PutawayBatchAsync(id, new PutawayBatchRequestDto
+            {
+                Items = PutawayDtos,
+                AcknowledgeCapacityWarning = AcknowledgeCapacityWarning,
+                CapacityWarningReason = CapacityWarningReason
+            });
+            TempData["SuccessMessage"] = "Đã xác nhận đầy đủ vị trí cất hàng và cập nhật tồn kho.";
+            return RedirectToPage("Details", new { id });
+        }
+        catch (Exception ex)
+        {
+            TempData["ErrorMessage"] = ex.Message;
+            await LoadPageAsync(id, redirectWhenInvalid: false);
+            return Page();
+        }
+    }
+
+    private async Task<IActionResult?> LoadPageAsync(long id, bool redirectWhenInvalid = true)
     {
         var data = await _inboundApiService.GetInboundOrderByIdAsync(id);
         if (data == null)
             return NotFound();
 
         Order = data;
-
-        var userIdClaimForCheck = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (User.IsInRole("WAREHOUSE_STAFF") && long.TryParse(userIdClaimForCheck, out var userId) && Order.AssignedToUserId != userId)
+        if (Order.Status != "RECEIVED")
         {
-            TempData["ErrorMessage"] = "Bạn không có quyền xếp vị trí cho lệnh này vì nó không được phân công cho bạn.";
-            return RedirectToPage("Index");
-        }
-        Item = Order.Items.FirstOrDefault(x => x.InboundOrderItemId == itemId)!;
-        if (Item == null) return NotFound();
-
-        Receipt = Item.Receipts.FirstOrDefault(r => r.ProductLotId == lotId)!;
-        if (Receipt == null) return NotFound();
-
-        PutawayDtos.Add(new PutawayInboundItemDto 
-        {
-            InboundOrderItemId = itemId,
-            ProductLotId = lotId,
-            PutawayQuantity = Receipt.ReceivedQuantity - Receipt.PutawayQuantity
-        });
-
-        await LoadLocations(Order.WarehouseId, Item.ProductId);
-        
-        return Page();
-    }
-
-    public async Task<IActionResult> OnPostAsync(long id, long itemId, long lotId)
-    {
-        if (!ModelState.IsValid)
-        {
-            await OnGetAsync(id, itemId, lotId);
-            return Page();
-        }
-
-        try
-        {
-            await _inboundApiService.PutawayBatchAsync(id, PutawayDtos);
-            TempData["SuccessMessage"] = "Xếp vị trí thành công.";
-            
-            // Fetch order again to find if there are more items needing putaway
-            var order = await _inboundApiService.GetInboundOrderByIdAsync(id);
-            var nextItemNeedingPutaway = order?.Items.FirstOrDefault(i => i.Receipts.Any(r => r.ConditionStatus == "GOOD" && r.ReceivedQuantity > r.PutawayQuantity));
-            
-            if (nextItemNeedingPutaway != null)
+            if (!redirectWhenInvalid)
             {
-                var nextReceipt = nextItemNeedingPutaway.Receipts.First(r => r.ConditionStatus == "GOOD" && r.ReceivedQuantity > r.PutawayQuantity);
-                return RedirectToPage("Putaway", new { id = id, itemId = nextItemNeedingPutaway.InboundOrderItemId, lotId = nextReceipt.ProductLotId });
+                ModelState.AddModelError(string.Empty, "Phiếu không còn hàng chờ xếp vị trí.");
+                return null;
             }
 
+            TempData["ErrorMessage"] = "Chỉ được xếp vị trí khi phiếu đã ghi nhận thực nhận và còn hàng chưa cất.";
+            return RedirectToPage("Details", new { id });
+        }
+
+        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (!long.TryParse(userIdClaim, out var userId) || Order.AssignedToUserId != userId)
+        {
+            if (!redirectWhenInvalid)
+            {
+                ModelState.AddModelError(string.Empty, "Bạn không phải nhân viên chịu trách nhiệm cho đợt nhập này.");
+                return null;
+            }
+
+            TempData["ErrorMessage"] = "Bạn không phải nhân viên chịu trách nhiệm cho đợt nhập này.";
             return RedirectToPage("Index");
         }
-        catch (Exception ex)
+
+        ReceiptRows = Order.Items
+            .SelectMany(item => item.Receipts
+                .Where(receipt => receipt.ConditionStatus == "GOOD" && receipt.ReceivedQuantity > receipt.PutawayQuantity)
+                .Select(receipt => new PutawayReceiptRow
+                {
+                    InboundOrderItemId = item.InboundOrderItemId,
+                    ProductId = item.ProductId,
+                    ProductCode = item.ProductCode,
+                    ProductName = item.ProductName,
+                    UnitName = item.UnitName,
+                    QuantityScale = item.QuantityScale,
+                    ProductLotId = receipt.ProductLotId,
+                    LotNumber = receipt.LotNumber,
+                    ExpiryDate = receipt.ExpiryDate,
+                    RemainingQuantity = receipt.ReceivedQuantity - receipt.PutawayQuantity
+                }))
+            .ToList();
+
+        foreach (var row in ReceiptRows)
         {
-            TempData["ErrorMessage"] = ex.Message;
-            await OnGetAsync(id, itemId, lotId);
-            return Page();
+            row.Locations = await LoadLocationsAsync(Order.WarehouseId, row.ProductId, row.RemainingQuantity);
         }
+
+        return null;
     }
 
-    private async Task LoadLocations(long warehouseId, long productId)
+    private async Task<List<PutawayLocationOption>> LoadLocationsAsync(
+        long warehouseId,
+        long productId,
+        decimal putawayQuantity)
     {
-        var response = await _httpClient.GetAsync($"api/Inbounds/putaway-locations?warehouseId={warehouseId}&productId={productId}");
-        if (response.IsSuccessStatusCode)
-        {
-            var result = await response.Content.ReadFromJsonAsync<List<PutawayLocationOption>>();
-            if (result != null)
-            {
-                Locations = new SelectList(result, "StorageLocationId", "DisplayName");
-            }
-        }
-        
-        if (Locations == null)
-        {
-            Locations = new SelectList(new List<PutawayLocationOption>(), "StorageLocationId", "DisplayName");
-        }
+        var response = await _httpClient.GetAsync(
+            $"api/Inbounds/putaway-locations?warehouseId={warehouseId}&productId={productId}" +
+            $"&putawayQuantity={putawayQuantity.ToString(CultureInfo.InvariantCulture)}");
+        if (!response.IsSuccessStatusCode)
+            return new List<PutawayLocationOption>();
+
+        return await response.Content.ReadFromJsonAsync<List<PutawayLocationOption>>()
+            ?? new List<PutawayLocationOption>();
     }
+}
+
+public sealed class PutawayReceiptRow
+{
+    public long InboundOrderItemId { get; set; }
+    public long ProductId { get; set; }
+    public string ProductCode { get; set; } = string.Empty;
+    public string ProductName { get; set; } = string.Empty;
+    public string UnitName { get; set; } = string.Empty;
+    public byte QuantityScale { get; set; }
+    public long ProductLotId { get; set; }
+    public string? LotNumber { get; set; }
+    public DateOnly? ExpiryDate { get; set; }
+    public decimal RemainingQuantity { get; set; }
+    public List<PutawayLocationOption> Locations { get; set; } = new();
 }
 
 public class PutawayLocationOption
@@ -123,7 +170,47 @@ public class PutawayLocationOption
     public long StorageLocationId { get; set; }
     public string LocationCode { get; set; } = string.Empty;
     public string LocationName { get; set; } = string.Empty;
+    public long? ZoneId { get; set; }
+    public string ZoneCode { get; set; } = string.Empty;
+    public string ZoneName { get; set; } = string.Empty;
+    public long? RackId { get; set; }
+    public string RackCode { get; set; } = string.Empty;
+    public string RackName { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public decimal CurrentProductQuantity { get; set; }
+    public int StoredProductCount { get; set; }
+    public bool IsRecommended { get; set; }
+    public bool HasRecommendationConfiguration { get; set; }
     public int Priority { get; set; }
     public bool IsDefault { get; set; }
-    public string DisplayName => $"{LocationCode} — {LocationName}{(IsDefault ? " (mặc định)" : string.Empty)}";
+    public bool CapacityEvaluationEnabled { get; set; }
+    public string CapacityStatus { get; set; } = "DISABLED";
+    public decimal? MaxWeightKg { get; set; }
+    public decimal? CurrentWeightKg { get; set; }
+    public decimal? ProjectedWeightKg { get; set; }
+    public decimal? MaxVolumeM3 { get; set; }
+    public decimal? CurrentVolumeM3 { get; set; }
+    public decimal? ProjectedVolumeM3 { get; set; }
+    public string CapacityMessage { get; set; } = string.Empty;
+    public bool RequiresAcknowledgement { get; set; }
+    public string HierarchyPath => $"{(string.IsNullOrWhiteSpace(ZoneCode) ? "Chưa phân khu" : ZoneCode)} / {(string.IsNullOrWhiteSpace(RackCode) ? "Chưa phân kệ" : RackCode)} / {LocationCode}";
+    public string DisplayName => $"{(IsDefault ? "★ " : IsRecommended ? "• " : string.Empty)}{HierarchyPath} — {LocationName} · {CapacitySummary}";
+
+    private string CapacitySummary => CapacityStatus switch
+    {
+        "AVAILABLE" => $"Còn đủ chỗ{FormatUsage()}",
+        "EXCEEDED" => $"Không đủ chỗ{FormatUsage()}",
+        "UNKNOWN" => "Chưa đủ dữ liệu tính sức chứa",
+        "NOT_CONFIGURED" => "Chưa cấu hình giới hạn",
+        _ => $"Đang có {CurrentProductQuantity:0.####} của sản phẩm"
+    };
+
+    private string FormatUsage()
+    {
+        if (ProjectedWeightKg.HasValue && MaxWeightKg.HasValue)
+            return $" · {ProjectedWeightKg:0.##}/{MaxWeightKg:0.##} kg";
+        if (ProjectedVolumeM3.HasValue && MaxVolumeM3.HasValue)
+            return $" · {ProjectedVolumeM3:0.####}/{MaxVolumeM3:0.####} m³";
+        return string.Empty;
+    }
 }

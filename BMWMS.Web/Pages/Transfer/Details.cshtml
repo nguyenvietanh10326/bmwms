@@ -161,17 +161,6 @@
 
     @if (Model.Order != null)
     {
-        @if (Model.Order.IsWorkflowLinked)
-        {
-            var parentUrl = Model.Order.ParentDocumentType == "INBOUND"
-                ? $"/Admin/Inbound/Details/{Model.Order.ParentDocumentId}"
-                : $"/OutboundOrders/Details/{Model.Order.ParentDocumentId}";
-            <div class="alert alert-info">
-                Đây là phiếu điều chuyển tác nghiệp tự động của
-                <a href="@parentUrl" class="fw-semibold">@Model.Order.ParentDocumentNumber</a>.
-                Hãy nhận/putaway hoặc lấy/xuất từ phiếu nguồn; phiếu này không tự ghi TRANSFER_IN/TRANSFER_OUT.
-            </div>
-        }
         <div class="card">
             <h3>Thông tin chung</h3>
             <div class="grid2">
@@ -373,14 +362,24 @@
                             <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:10px; margin-bottom:12px; font-size:12px;">
                                 @foreach (var d in Model.Order.Details)
                                 {
-                                    <div style="display:flex; align-items:center; gap:8px; padding:4px 0; border-bottom:1px solid #f1f5f9;">
-                                        <span style="font-weight:700; color:#1e293b;">@d.ProductCode</span>
-                                        <span style="color:#64748b;">@d.LotNumber</span>
-                                        <span>|</span>
-                                        <span style="background:#fef3c7; color:#92400e; padding:2px 6px; border-radius:4px;">@d.SourceLocationCode</span>
-                                        <span>→</span>
-                                        <span style="background:#dbeafe; color:#1e40af; padding:2px 6px; border-radius:4px;">@d.DestLocationCode</span>
-                                        <span style="font-weight:700; color:#2563eb; margin-left:auto;">@d.RequestedQuantity.ToString("N2") @d.UnitName</span>
+                                    <div style="padding:7px 0; border-bottom:1px solid #f1f5f9;">
+                                        <div style="display:flex; align-items:center; gap:8px;">
+                                            <span style="font-weight:700; color:#1e293b;">@d.ProductCode</span>
+                                            <span style="color:#64748b;">@d.LotNumber</span>
+                                            <span>|</span>
+                                            <span style="background:#fef3c7; color:#92400e; padding:2px 6px; border-radius:4px;">@d.SourceLocationCode</span>
+                                            <span>→</span>
+                                            <span style="background:#dbeafe; color:#1e40af; padding:2px 6px; border-radius:4px;">@d.DestLocationCode</span>
+                                        </div>
+                                        <div class="mt-2 d-flex align-items-center gap-2">
+                                            <input type="hidden" name="detailIds" value="@d.TransferOrderDetailId" />
+                                            <label class="form-label mb-0" style="min-width:145px;">Số lượng thực chuyển</label>
+                                            <input type="number" name="actualMovedQuantities" class="form-control form-control-sm text-end"
+                                                   value="@d.RequestedQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                                   min="0.0001" max="@d.RequestedQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                                   step="0.0001" required />
+                                            <span style="font-weight:700; color:#2563eb; white-space:nowrap;">/ @d.RequestedQuantity.ToString("N2") @d.UnitName</span>
+                                        </div>
                                     </div>
                                 }
                             </div>
@@ -390,6 +389,11 @@
                             <label class="form-label" style="font-weight:600; font-size:12px; color:#475569;">Ghi chú xuất hàng (tùy chọn)</label>
                             <textarea name="notes" class="form-control form-control-sm" rows="2" placeholder="Ghi chú quá trình xuất hàng..."></textarea>
                         </div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" name="acknowledgeCapacityWarning" value="true" id="issueCapacityAck">
+                            <label class="form-check-label" for="issueCapacityAck">Tôi đã kiểm tra thực tế khi vị trí chưa đủ dữ liệu sức chứa.</label>
+                        </div>
+                        <textarea name="capacityWarningReason" class="form-control form-control-sm" rows="2" placeholder="Lý do tiếp tục khi hệ thống cảnh báo sức chứa..."></textarea>
                     </div>
                     <div class="modal-footer" style="border-top:1px solid #f1f5f9;">
                         <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="font-size: 13px; padding: 7px 14px;">Hủy</button>
@@ -425,14 +429,27 @@
                             <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:10px; margin-bottom:12px; font-size:12px;">
                                 @foreach (var d in Model.Order.Details)
                                 {
-                                    <div style="display:flex; align-items:center; gap:8px; padding:4px 0; border-bottom:1px solid #f1f5f9;">
-                                        <span style="font-weight:700; color:#1e293b;">@d.ProductCode</span>
-                                        <span style="color:#64748b;">@d.LotNumber</span>
-                                        <span>|</span>
-                                        <span style="background:#fef3c7; color:#92400e; padding:2px 6px; border-radius:4px;">@d.SourceLocationCode</span>
-                                        <span>→</span>
-                                        <span style="background:#dbeafe; color:#1e40af; padding:2px 6px; border-radius:4px;">@d.DestLocationCode</span>
-                                        <span style="font-weight:700; color:#0e7490; margin-left:auto;">@d.RequestedQuantity.ToString("N2") @d.UnitName</span>
+                                    <div style="padding:7px 0; border-bottom:1px solid #f1f5f9;">
+                                        <div class="d-flex align-items-center gap-2 mb-2">
+                                            <span style="font-weight:700; color:#1e293b;">@d.ProductCode</span>
+                                            <span style="color:#64748b;">@d.LotNumber</span>
+                                            <span style="margin-left:auto; font-weight:700; color:#0e7490;">@d.MovedQuantity.ToString("N2") @d.UnitName</span>
+                                        </div>
+                                        <input type="hidden" name="receiptDetailIds" value="@d.TransferOrderDetailId" />
+                                        <label class="form-label mb-1">Vị trí nhận thực tế</label>
+                                        <select name="receiptDestinationIds" class="form-select form-select-sm" required>
+                                            @foreach (var location in Model.DestinationLocations)
+                                            {
+                                                if (location.LocationId == d.DestLocationId)
+                                                {
+                                                    <option value="@location.LocationId" selected>@location.DisplayLabel</option>
+                                                }
+                                                else if (location.LocationId != d.SourceLocationId)
+                                                {
+                                                    <option value="@location.LocationId">@location.DisplayLabel</option>
+                                                }
+                                            }
+                                        </select>
                                     </div>
                                 }
                             </div>
@@ -442,6 +459,13 @@
                             <label class="form-label" style="font-weight:600; font-size:12px; color:#475569;">Ghi chú nhập hàng (tùy chọn)</label>
                             <textarea name="notes" class="form-control form-control-sm" rows="2" placeholder="Ghi chú quá trình nhập hàng..."></textarea>
                         </div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" name="acknowledgeCapacityWarning" value="true" id="receiveCapacityAck">
+                            <label class="form-check-label" for="receiveCapacityAck">Tôi đã kiểm tra thực tế khi vị trí chưa đủ dữ liệu sức chứa.</label>
+                        </div>
+                        <textarea name="capacityWarningReason" class="form-control form-control-sm" rows="2" placeholder="Lý do tiếp tục khi hệ thống cảnh báo sức chứa..."></textarea>
+                        <label class="form-label mt-3 mb-1">Lý do đổi vị trí đích (bắt buộc nếu chọn khác kế hoạch)</label>
+                        <textarea name="destinationChangeReason" class="form-control form-control-sm" rows="2" placeholder="Ví dụ: vị trí dự kiến đã đầy khi hàng đến..."></textarea>
                     </div>
                     <div class="modal-footer" style="border-top:1px solid #f1f5f9;">
                         <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="font-size: 13px; padding: 7px 14px;">Hủy</button>

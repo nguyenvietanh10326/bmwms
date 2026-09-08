@@ -31,4 +31,9 @@ public static class FormatHelper
             return quantity.ToString("0.###"); 
         }
     }
+
+    public static string FormatQuantity(decimal quantity, byte quantityScale)
+    {
+        return quantity.ToString(quantityScale == 0 ? "N0" : $"N{quantityScale}");
+    }
 }

@@ -1,7 +1,7 @@
 ﻿using BMWMS.Business.DTOs.Inventory;
 using BMWMS.Business.Interfaces.Inventory;
 using BMWMS.Business.Services.Inventory;
-using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using static BMWMS.Business.Interfaces.Inventory.ISalesOrderService;
@@ -10,6 +10,7 @@ namespace BMWMS.API.Controllers.Inventory
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF,SALES_STAFF,PURCHASING_STAFF")]
     public class OutboundOrdersController : ControllerBase
     {
         private readonly IOutboundOrderService _outboundOrderService;
@@ -29,6 +30,11 @@ namespace BMWMS.API.Controllers.Inventory
         [HttpGet]
         public async Task<IActionResult> GetOutboundOrders([FromQuery] OutboundOrderQueryFilter filter)
         {
+            if (User.IsInRole("WAREHOUSE_STAFF"))
+            {
+                if (!TryGetCurrentUserId(out var currentUserId)) return Unauthorized();
+                filter.AssignedToUserId = currentUserId;
+            }
             var result = await _outboundOrderService.GetOutboundOrdersAsync(filter);
             return Ok(result);
         }
@@ -46,14 +52,19 @@ namespace BMWMS.API.Controllers.Inventory
                 return NotFound(new { message = $"Không tìm thấy phiếu xuất kho với ID = {id}" });
             }
 
+            if (User.IsInRole("WAREHOUSE_STAFF") &&
+                (!TryGetCurrentUserId(out var currentUserId) || result.AssignedToUserId != currentUserId))
+                return Forbid();
+
             return Ok(result);
         }
 
         /// <summary>
-        /// Tạo mới phiếu xuất kho (Lưu nháp hoặc Gửi duyệt)
+        /// Tạo phiếu xuất kho và giao trực tiếp cho nhân viên kho xử lý
         /// POST: api/OutboundOrders
         /// </summary>
         [HttpPost]
+        [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,SALES_STAFF,PURCHASING_STAFF")]
         public async Task<IActionResult> Create([FromBody] CreateOutboundOrderRequest request)
         {
             if (!ModelState.IsValid)
@@ -63,7 +74,7 @@ namespace BMWMS.API.Controllers.Inventory
 
             try
             {
-                long currentUserId = GetCurrentUserId();
+                if (!TryGetCurrentUserId(out var currentUserId)) return Unauthorized();
 
                 var createdOrder = await _outboundOrderService.CreateOutboundOrderAsync(request, currentUserId);
 
@@ -98,6 +109,7 @@ namespace BMWMS.API.Controllers.Inventory
         /// PATCH: api/OutboundOrders/5/status
         /// </summary>
         [HttpPatch("{id:long}/status")]
+        [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
         public async Task<IActionResult> UpdateStatus(long id, [FromBody] UpdateStatusRequest request)
         {
             if (string.IsNullOrWhiteSpace(request.Status))
@@ -119,6 +131,7 @@ namespace BMWMS.API.Controllers.Inventory
         /// POST: api/OutboundOrders/5/cancel
         /// </summary>
         [HttpPost("{id:long}/cancel")]
+        [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
         public async Task<IActionResult> Cancel(long id)
         {
             try
@@ -162,6 +175,7 @@ namespace BMWMS.API.Controllers.Inventory
         }
 
         [HttpGet("staff")]
+        [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,SALES_STAFF,PURCHASING_STAFF")]
         public async Task<ActionResult<List<UserSelectDto>>> GetWarehouseStaff()
         {
             return Ok(await _outboundOrderService.GetWarehouseStaffAsync());
@@ -198,6 +212,10 @@ namespace BMWMS.API.Controllers.Inventory
             {
                 return NotFound(new { message = $"Không tìm thấy lệnh xuất kho với ID = {id}" });
             }
+            if (User.IsInRole("WAREHOUSE_STAFF") &&
+                (!TryGetCurrentUserId(out var currentUserId) || processData.AssignedToUserId != currentUserId))
+                return Forbid();
+
             return Ok(processData);
         }
 
@@ -205,6 +223,7 @@ namespace BMWMS.API.Controllers.Inventory
         /// 5. MÀN 2: Thực thi Pick hàng từ Bin/Lot cụ thể
         /// </summary>
         [HttpPost("execute-pick")]
+        [Authorize(Roles = "WAREHOUSE_STAFF")]
         public async Task<IActionResult> ExecutePick([FromBody] ExecutePickItemRequest request)
         {
             if (!ModelState.IsValid)
@@ -214,7 +233,7 @@ namespace BMWMS.API.Controllers.Inventory
 
             try
             {
-                long currentUserId = GetCurrentUserId();
+                if (!TryGetCurrentUserId(out var currentUserId)) return Unauthorized();
                 var (success, message) = await _outboundOrderService.ExecutePickAsync(request, currentUserId);
 
                 if (!success)
@@ -229,10 +248,31 @@ namespace BMWMS.API.Controllers.Inventory
                 return StatusCode(500, new { message = "Lỗi khi xử lý Pick hàng!", detail = ex.Message });
             }
         }
+
+        [HttpPost("execute-pick-batch")]
+        [Authorize(Roles = "WAREHOUSE_STAFF")]
+        public async Task<IActionResult> ExecutePickBatch([FromBody] List<ExecutePickItemRequest> requests)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            if (!TryGetCurrentUserId(out var currentUserId)) return Unauthorized();
+
+            var (success, message) = await _outboundOrderService.ExecutePickBatchAsync(requests, currentUserId);
+            return success ? Ok(new { success = true, message }) : BadRequest(new { message });
+        }
+
+        [HttpPost("{id:long}/complete-early")]
+        [Authorize(Roles = "WAREHOUSE_STAFF")]
+        public async Task<IActionResult> CompleteSalesDeliveryEarly(long id, [FromQuery] string reason)
+        {
+            if (!TryGetCurrentUserId(out var currentUserId)) return Unauthorized();
+            var (success, message) = await _outboundOrderService.CompleteSalesDeliveryEarlyAsync(id, currentUserId, reason);
+            return success ? Ok(new { success = true, message }) : BadRequest(new { message });
+        }
         /// <summary>
         /// 6. Cập nhật trạng thái thủ công (ASSIGNED, IN_PROGRESS, COMPLETED, CANCELLED)
         /// </summary>
         [HttpPut("{id:long}/status")]
+        [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
         public async Task<IActionResult> UpdateStatus(long id, [FromBody] UpdateOutboundOrderStatusRequest request)
         {
             if (id != request.OutboundOrderId)
@@ -253,6 +293,7 @@ namespace BMWMS.API.Controllers.Inventory
         /// 7. Hủy lệnh xuất kho
         /// </summary>
         [HttpPut("{id:long}/cancel")]
+        [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
         public async Task<IActionResult> CancelOrder(long id)
         {
             try
@@ -271,15 +312,8 @@ namespace BMWMS.API.Controllers.Inventory
             }
         }
         #region Helper Methods
-        private long GetCurrentUserId()
-        {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (long.TryParse(userIdClaim, out long userId))
-            {
-                return userId;
-            }
-            return 1; 
-        }
+        private bool TryGetCurrentUserId(out long userId) =>
+            long.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out userId);
         #endregion
     }
 

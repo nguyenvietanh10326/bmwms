@@ -153,7 +153,7 @@ public class SuppliersController : ControllerBase
         }
     }
 
-    [Authorize(Roles = "SYSTEM_ADMIN,PURCHASING_MANAGER,PURCHASING_STAFF")]
+    [Authorize(Roles = "SYSTEM_ADMIN,PURCHASING_STAFF")]
     [HttpPost("{supplierCode}/products")]
     public async Task<IActionResult> AssignProducts(string supplierCode, [FromBody] BMWMS.Business.DTOs.Inventory.AssignSupplierProductsDto dto)
     {

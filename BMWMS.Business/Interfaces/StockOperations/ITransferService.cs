@@ -20,8 +20,8 @@ namespace BMWMS.Business.Interfaces.StockOperations
         Task<TransferResultDto> ApproveOrderAsync(long transferOrderId, long approvedByUserId, ApproveTransferDto dto);
         Task<TransferResultDto> RejectOrderAsync(long transferOrderId, long rejectedByUserId, string? notes);
 
-        Task<TransferResultDto> ConfirmTransferIssueAsync(long transferOrderId, long staffUserId, string? notes);
-        Task<TransferResultDto> ConfirmTransferReceiptAsync(long transferOrderId, long staffUserId, string? notes);
+        Task<TransferResultDto> ConfirmTransferIssueAsync(long transferOrderId, long staffUserId, ConfirmTransferDto request);
+        Task<TransferResultDto> ConfirmTransferReceiptAsync(long transferOrderId, long staffUserId, ConfirmTransferDto request);
 
         // Backward compatible one-shot confirm endpoint for older clients.
         Task<TransferResultDto> ConfirmTransferAsync(long transferOrderId, long staffUserId, string? notes);

@@ -110,7 +110,8 @@ public class AuthController : ControllerBase
 
         try
         {
-            await _authService.ForgotPasswordAsync(dto);
+            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+            await _authService.ForgotPasswordAsync(dto, ipAddress);
             return Ok(new { message = "Nếu email hợp lệ, một mã xác thực đã được gửi đến email của bạn." });
         }
         catch (Exception ex)
@@ -128,7 +129,8 @@ public class AuthController : ControllerBase
 
         try
         {
-            await _authService.ResetPasswordAsync(dto);
+            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+            await _authService.ResetPasswordAsync(dto, ipAddress);
             return Ok(new { message = "Đặt lại mật khẩu thành công." });
         }
         catch (InvalidOperationException ex)

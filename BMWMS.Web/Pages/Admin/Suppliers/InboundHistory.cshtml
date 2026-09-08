@@ -171,7 +171,7 @@
             <select name="Status" class="form-select premium-input">
                 <option value="">Tất cả trạng thái</option>
                 <option value="COMPLETED" selected="@(Model.Filter.Status == "COMPLETED")">Đã nhận</option>
-                <option value="IN_PROGRESS" selected="@(Model.Filter.Status == "IN_PROGRESS")">Chờ xử lý</option>
+                <option value="IN_PROGRESS" selected="@(Model.Filter.Status == "IN_PROGRESS")">Đang kiểm nhận</option>
                 <option value="ASSIGNED" selected="@(Model.Filter.Status == "ASSIGNED")">Đã phân công</option>
                 <option value="DRAFT" selected="@(Model.Filter.Status == "DRAFT")">Nháp</option>
                 <option value="CANCELLED" selected="@(Model.Filter.Status == "CANCELLED")">Đã hủy</option>
@@ -233,7 +233,7 @@
                                 }
                                 else if (item.Status == "IN_PROGRESS" || item.Status == "ASSIGNED")
                                 {
-                                    <span class="badge-premium badge-warning-premium"><span class="status-dot bg-yellow-500"></span> Chờ xử lý</span>
+                                    <span class="badge-premium badge-warning-premium"><span class="status-dot bg-yellow-500"></span> Đang kiểm nhận</span>
                                 }
                                 else if (item.Status == "DRAFT")
                                 {
@@ -367,7 +367,8 @@
         function renderInboundDetail(data) {
             const getStatusBadge = (status) => {
                 if (status === "COMPLETED") return `<span class="badge-premium badge-success-premium"><span class="status-dot bg-green-500"></span> Đã nhận</span>`;
-                if (status === "IN_PROGRESS" || status === "ASSIGNED") return `<span class="badge-premium badge-warning-premium"><span class="status-dot bg-yellow-500"></span> Chờ xử lý</span>`;
+                if (status === "IN_PROGRESS") return `<span class="badge-premium badge-warning-premium"><span class="status-dot bg-yellow-500"></span> Đang kiểm nhận</span>`;
+                if (status === "ASSIGNED") return `<span class="badge-premium badge-warning-premium"><span class="status-dot bg-yellow-500"></span> Sẵn sàng nhận</span>`;
                 if (status === "DRAFT") return `<span class="badge-premium badge-secondary-premium"><span class="status-dot bg-gray-500"></span> Nháp</span>`;
                 if (status === "CANCELLED") return `<span class="badge-premium badge-danger-premium"><span class="status-dot bg-red-500"></span> Đã hủy</span>`;
                 return `<span class="badge-premium badge-secondary-premium">${status}</span>`;

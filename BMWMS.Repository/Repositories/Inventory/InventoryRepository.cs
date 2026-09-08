@@ -198,12 +198,16 @@ namespace BMWMS.Repository.Repositories.Inventory
 
             if (allocationStrategy == "FEFO")
             {
-                query = query.OrderBy(x => x.ProductLot != null ? x.ProductLot.ExpiryDate : null)
+                query = query.OrderBy(x => x.ProductLot.ExpiryDate == null)
+                             .ThenBy(x => x.ProductLot.ExpiryDate)
+                             .ThenBy(x => x.ProductLot.FirstReceivedDate)
+                             .ThenBy(x => x.StorageLocation.LocationCode)
                              .ThenBy(x => x.InventoryId);
             }
             else
             {
-                query = query.OrderBy(x => x.ProductLot != null ? (DateTime?)x.ProductLot.CreatedAt : null)
+                query = query.OrderBy(x => x.ProductLot.FirstReceivedDate)
+                             .ThenBy(x => x.StorageLocation.LocationCode)
                              .ThenBy(x => x.InventoryId);
             }
 

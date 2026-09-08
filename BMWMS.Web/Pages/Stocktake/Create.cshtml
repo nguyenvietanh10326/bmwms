@@ -109,7 +109,7 @@
                         <option value="">-- Để trống sẽ tự nhận --</option>
                         @foreach (var user in Model.StaffUsers)
                         {
-                            <option value="@user.UserId">@user.FullName (@user.RoleCode)</option>
+                            <option value="@user.UserId">@user.FullName (@user.RoleName)</option>
                         }
                     </select>
                 </div>

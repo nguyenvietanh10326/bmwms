@@ -7,7 +7,7 @@ namespace BMWMS.API.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-[Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
+[Authorize]
 public class ReportsController : ControllerBase
 {
     private readonly IReportService _reportService;
@@ -19,7 +19,7 @@ public class ReportsController : ControllerBase
         _excelExportService = excelExportService;
     }
 
-    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,SALES_STAFF")]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF,PURCHASING_STAFF,SALES_STAFF")]
     [HttpGet("inventory")]
     public async Task<IActionResult> GetInventoryReport([FromQuery] InventoryReportFilterDto filter)
     {
@@ -34,6 +34,7 @@ public class ReportsController : ControllerBase
         }
     }
 
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF,PURCHASING_STAFF")]
     [HttpGet("inbound")]
     public async Task<IActionResult> GetInboundReport([FromQuery] InboundReportFilterDto filter)
     {
@@ -48,6 +49,7 @@ public class ReportsController : ControllerBase
         }
     }
 
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF,SALES_STAFF")]
     [HttpGet("outbound")]
     public async Task<IActionResult> GetOutboundReport([FromQuery] OutboundReportFilterDto filter)
     {
@@ -62,6 +64,7 @@ public class ReportsController : ControllerBase
         }
     }
 
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF,PURCHASING_STAFF,SALES_STAFF")]
     [HttpGet("inoutstock")]
     public async Task<IActionResult> GetInOutStockReport([FromQuery] InOutStockReportFilterDto filter)
     {
@@ -76,6 +79,7 @@ public class ReportsController : ControllerBase
         }
     }
 
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF,SALES_STAFF")]
     [HttpGet("product-statistics")]
     public async Task<IActionResult> GetProductStatistics([FromQuery] ProductStatisticsFilterDto filter)
     {
@@ -90,6 +94,7 @@ public class ReportsController : ControllerBase
         }
     }
 
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF")]
     [HttpGet("supplier-statistics")]
     public async Task<IActionResult> GetSupplierStatistics([FromQuery] SupplierStatisticsFilterDto filter)
     {
@@ -104,6 +109,7 @@ public class ReportsController : ControllerBase
         }
     }
 
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF")]
     [HttpGet("stocktake-statistics")]
     public async Task<IActionResult> GetStocktakeStatistics([FromQuery] StocktakeStatisticsFilterDto filter)
     {
@@ -118,6 +124,7 @@ public class ReportsController : ControllerBase
         }
     }
 
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF,PURCHASING_STAFF,SALES_STAFF")]
     [HttpGet("low-stock")]
     public async Task<IActionResult> GetLowStockAlerts([FromQuery] LowStockAlertFilterDto filter)
     {
@@ -132,6 +139,7 @@ public class ReportsController : ControllerBase
         }
     }
 
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF")]
     [HttpGet("expiring-lots")]
     public async Task<IActionResult> GetExpiringLotAlerts([FromQuery] ExpiringLotAlertFilterDto filter)
     {
@@ -146,6 +154,7 @@ public class ReportsController : ControllerBase
         }
     }
 
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF,SALES_STAFF")]
     [HttpGet("inventory/export")]
     public async Task<IActionResult> ExportInventory([FromQuery] InventoryReportFilterDto filter)
     {
@@ -155,6 +164,7 @@ public class ReportsController : ControllerBase
         return File(fileContent, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "InventoryReport.xlsx");
     }
 
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF,SALES_STAFF")]
     [HttpGet("inbound/export")]
     public async Task<IActionResult> ExportInbound([FromQuery] InboundReportFilterDto filter)
     {
@@ -164,6 +174,7 @@ public class ReportsController : ControllerBase
         return File(fileContent, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "InboundReport.xlsx");
     }
 
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF,SALES_STAFF")]
     [HttpGet("outbound/export")]
     public async Task<IActionResult> ExportOutbound([FromQuery] OutboundReportFilterDto filter)
     {
@@ -173,6 +184,7 @@ public class ReportsController : ControllerBase
         return File(fileContent, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "OutboundReport.xlsx");
     }
 
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF,SALES_STAFF")]
     [HttpGet("inoutstock/export")]
     public async Task<IActionResult> ExportInOutStock([FromQuery] InOutStockReportFilterDto filter)
     {
@@ -182,6 +194,7 @@ public class ReportsController : ControllerBase
         return File(fileContent, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "InOutStockReport.xlsx");
     }
 
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF,SALES_STAFF")]
     [HttpGet("product-statistics/export")]
     public async Task<IActionResult> ExportProductStatistics([FromQuery] ProductStatisticsFilterDto filter)
     {
@@ -191,6 +204,7 @@ public class ReportsController : ControllerBase
         return File(fileContent, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "ProductStatistics.xlsx");
     }
 
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF,SALES_STAFF")]
     [HttpGet("supplier-statistics/export")]
     public async Task<IActionResult> ExportSupplierStatistics([FromQuery] SupplierStatisticsFilterDto filter)
     {
@@ -200,6 +214,7 @@ public class ReportsController : ControllerBase
         return File(fileContent, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "SupplierStatistics.xlsx");
     }
 
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF,SALES_STAFF")]
     [HttpGet("stocktake-statistics/export")]
     public async Task<IActionResult> ExportStocktakeStatistics([FromQuery] StocktakeStatisticsFilterDto filter)
     {
@@ -209,6 +224,7 @@ public class ReportsController : ControllerBase
         return File(fileContent, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "StocktakeStatistics.xlsx");
     }
 
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF,SALES_STAFF")]
     [HttpGet("low-stock/export")]
     public async Task<IActionResult> ExportLowStockAlerts([FromQuery] LowStockAlertFilterDto filter)
     {
@@ -218,6 +234,7 @@ public class ReportsController : ControllerBase
         return File(fileContent, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "LowStockAlerts.xlsx");
     }
 
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF,SALES_STAFF")]
     [HttpGet("expiring-lots/export")]
     public async Task<IActionResult> ExportExpiringLotAlerts([FromQuery] ExpiringLotAlertFilterDto filter)
     {
@@ -227,6 +244,7 @@ public class ReportsController : ControllerBase
         return File(fileBytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "ExpiringLotAlerts.xlsx");
     }
 
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF,PURCHASING_STAFF,SALES_STAFF")]
     [HttpGet("overdue-orders")]
     public async Task<IActionResult> GetOverdueOrderAlerts([FromQuery] OverdueOrderAlertFilterDto filter)
     {
@@ -234,6 +252,7 @@ public class ReportsController : ControllerBase
         return Ok(result);
     }
 
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF,PURCHASING_STAFF,SALES_STAFF")]
     [HttpGet("overdue-orders/export")]
     public async Task<IActionResult> ExportOverdueOrderAlerts([FromQuery] OverdueOrderAlertFilterDto filter)
     {

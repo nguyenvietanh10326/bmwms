@@ -10,7 +10,6 @@ public interface ISupplierRepository
     Task<bool> CheckSupplierCodeExistsAsync(string code);
     Task<bool> CheckTaxCodeExistsAsync(string taxCode);
     Task AddAsync(Supplier supplier);
-    Task AddAuditLogAsync(AuditLog log);
     Task<bool> HasPurchaseReferencesAsync(long supplierId);
     Task UpdateAsync(Supplier supplier);
     Task<(IEnumerable<SupplierProduct> Items, int TotalCount)> GetSupplierProductsAsync(long supplierId, string? search, string? status, int page, int pageSize);

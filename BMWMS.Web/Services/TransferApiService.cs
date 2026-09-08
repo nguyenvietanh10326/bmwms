@@ -50,10 +50,6 @@ namespace BMWMS.Web.Services
             public decimal TotalRequestedQuantity { get; set; }
             public decimal TotalMovedQuantity { get; set; }
             public bool InventoryPosted { get; set; }
-            public bool IsWorkflowLinked { get; set; }
-            public string? ParentDocumentType { get; set; }
-            public long? ParentDocumentId { get; set; }
-            public string? ParentDocumentNumber { get; set; }
             public string? Notes { get; set; }
         }
 
@@ -96,10 +92,6 @@ namespace BMWMS.Web.Services
             public DateTime? ConfirmedAt { get; set; }
             public bool InventoryPosted { get; set; }
             public bool CanEdit { get; set; }
-            public bool IsWorkflowLinked { get; set; }
-            public string? ParentDocumentType { get; set; }
-            public long? ParentDocumentId { get; set; }
-            public string? ParentDocumentNumber { get; set; }
             public bool CanApprove { get; set; }
             public bool CanReject { get; set; }
             public bool CanIssue { get; set; }
@@ -173,6 +165,17 @@ namespace BMWMS.Web.Services
         public class ConfirmTransferDto
         {
             public string? Notes { get; set; }
+            public List<ConfirmTransferItemDto> Items { get; set; } = new();
+            public bool AcknowledgeCapacityWarning { get; set; }
+            public string? CapacityWarningReason { get; set; }
+            public string? DestinationChangeReason { get; set; }
+        }
+
+        public class ConfirmTransferItemDto
+        {
+            public long TransferOrderDetailId { get; set; }
+            public decimal ActualMovedQuantity { get; set; }
+            public long? DestinationLocationId { get; set; }
         }
 
         public class ZoneOptionDto
@@ -232,6 +235,7 @@ namespace BMWMS.Web.Services
             public string FullName { get; set; } = "";
             public string Username { get; set; } = "";
             public string RoleCode { get; set; } = "";
+            public string RoleName { get; set; } = "";
         }
 
         public class TransferResultDto
@@ -420,11 +424,11 @@ namespace BMWMS.Web.Services
             catch (Exception ex) { return new TransferResultDto { Success = false, Message = $"Lỗi kết nối: {ex.Message}" }; }
         }
 
-        public async Task<TransferResultDto> ConfirmIssueAsync(long id, string? notes)
+        public async Task<TransferResultDto> ConfirmIssueAsync(long id, ConfirmTransferDto request)
         {
             try
             {
-                var json = JsonSerializer.Serialize(new ConfirmTransferDto { Notes = notes });
+                var json = JsonSerializer.Serialize(request);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
                 var response = await _httpClient.PostAsync($"api/transfers/{id}/issue", content);
                 if (response.IsSuccessStatusCode)
@@ -435,11 +439,11 @@ namespace BMWMS.Web.Services
             catch (Exception ex) { return new TransferResultDto { Success = false, Message = $"Loi ket noi: {ex.Message}" }; }
         }
 
-        public async Task<TransferResultDto> ConfirmReceiptAsync(long id, string? notes)
+        public async Task<TransferResultDto> ConfirmReceiptAsync(long id, ConfirmTransferDto request)
         {
             try
             {
-                var json = JsonSerializer.Serialize(new ConfirmTransferDto { Notes = notes });
+                var json = JsonSerializer.Serialize(request);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
                 var response = await _httpClient.PostAsync($"api/transfers/{id}/receive", content);
                 if (response.IsSuccessStatusCode)

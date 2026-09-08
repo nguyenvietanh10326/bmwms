@@ -1,0 +1,177 @@
+@page
+@model BMWMS.Web.Pages.Admin.Users.AuditLogsModel
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Nhật ký hoạt động người dùng";
+    ViewData["HeaderTitle"] = "Nhật ký hoạt động người dùng";
+    var totalPages = Model.AuditLogs.TotalPages;
+    var currentPage = Model.AuditLogs.PageIndex > 0 ? Model.AuditLogs.PageIndex : Model.Filter.PageIndex;
+    var start = Model.AuditLogs.TotalCount == 0 ? 0 : (currentPage - 1) * Model.Filter.PageSize + 1;
+    var end = Math.Min(currentPage * Model.Filter.PageSize, Model.AuditLogs.TotalCount);
+}
+
+@section Styles {
+    <style>
+        .audit-summary { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px; align-items: center; }
+        .audit-note { display: flex; gap: 10px; color: #475569; font-size: 13px; line-height: 1.55; }
+        .audit-note i { color: #2563eb; font-size: 19px; margin-top: 1px; }
+        .audit-count { min-width: 130px; text-align: right; }
+        .audit-count strong { display: block; color: #0f172a; font-size: 26px; line-height: 1; }
+        .audit-count span { color: #64748b; font-size: 12px; }
+        .audit-filters { display: grid; grid-template-columns: 2fr repeat(2, minmax(150px, 1fr)); gap: 12px; }
+        .audit-filters-secondary { display: grid; grid-template-columns: repeat(4, minmax(150px, 1fr)) auto; gap: 12px; margin-top: 12px; align-items: end; }
+        .audit-action { color: #0f172a; font-weight: 600; }
+        .audit-code { color: #64748b; font-family: Consolas, monospace; font-size: 11px; }
+        .audit-actor { color: #0f172a; font-weight: 500; }
+        .audit-actor small { display: block; color: #64748b; font-weight: 400; }
+        .audit-object { color: #334155; }
+        .audit-object small { display: block; color: #64748b; font-family: Consolas, monospace; }
+        .audit-detail-link { color: #2563eb; font-weight: 600; text-decoration: none; white-space: nowrap; }
+        .audit-empty { padding: 52px 20px !important; text-align: center; color: #64748b; }
+        @@media (max-width: 1100px) { .audit-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); } .audit-filters-secondary { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+        @@media (max-width: 700px) { .audit-summary { grid-template-columns: 1fr; } .audit-count { text-align: left; } .audit-filters, .audit-filters-secondary { grid-template-columns: 1fr; } }
+    </style>
+}
+
+<div class="page-header">
+    <div class="page-header-title">Nhật ký hoạt động người dùng</div>
+    <div class="page-header-sub">Theo dõi các thay đổi, tạo mới, chỉnh sửa thông tin hoặc quyền hạn của tài khoản.</div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+{
+    <div class="alert alert-danger mx-4" role="alert">
+        <i class="ri-error-warning-line me-1"></i>@Model.ErrorMessage
+    </div>
+}
+
+<div class="form-card audit-summary">
+    <div class="audit-note">
+        <i class="ri-shield-user-line"></i>
+        <div>
+            <strong>Nhật ký người dùng chỉ xem và chuyên biệt cho CRUD.</strong><br />
+            Chỉ hiển thị các bản ghi thay đổi lên tài khoản, chẳng hạn CREATE_USER, UPDATE_USER, ASSIGN_ROLE, LOCK_ACCOUNT.
+        </div>
+    </div>
+    <div class="audit-count">
+        <strong>@Model.AuditLogs.TotalCount</strong>
+        <span>bản ghi phù hợp</span>
+    </div>
+</div>
+
+<form method="get" class="form-card" autocomplete="off">
+    <input type="hidden" name="Filter.PageIndex" value="1" />
+    <div class="audit-filters">
+        <div class="form-group">
+            <label class="form-label" for="auditKeyword">Tìm kiếm</label>
+            <div style="position: relative;">
+                <i class="ri-search-line" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#94a3b8;"></i>
+                <input id="auditKeyword" name="Filter.Keyword" value="@Model.Filter.Keyword" class="form-control" style="padding-left:36px;" placeholder="Hành động, đối tượng, mã, người dùng hoặc IP" />
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="auditAction">Hành động</label>
+            <select id="auditAction" name="Filter.ActionType" class="form-control form-control-select">
+                <option value="">Tất cả hành động</option>
+                @foreach (var item in Model.Options.Actions)
+                {
+                    <option value="@item.Value" selected="@(Model.Filter.ActionType == item.Value ? "selected" : null)">@item.Label (@item.Value)</option>
+                }
+            </select>
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="auditActor">Người thực hiện</label>
+            <select id="auditActor" name="Filter.UserId" class="form-control form-control-select">
+                <option value="">Tất cả người dùng</option>
+                @foreach (var actor in Model.Options.Actors)
+                {
+                    <option value="@actor.UserId" selected="@(Model.Filter.UserId == actor.UserId ? "selected" : null)">@actor.Code · @actor.Name (@actor.Username)</option>
+                }
+            </select>
+        </div>
+    </div>
+
+    <div class="audit-filters-secondary">
+        <div class="form-group">
+            <label class="form-label" for="auditEntityId">Tên đăng nhập (ID)</label>
+            <input id="auditEntityId" name="Filter.EntityId" value="@Model.Filter.EntityId" class="form-control" placeholder="Ví dụ: admin" />
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="auditFrom">Từ ngày</label>
+            <input id="auditFrom" type="date" name="Filter.FromDate" value="@(Model.Filter.FromDate?.ToString("yyyy-MM-dd"))" class="form-control" />
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="auditTo">Đến ngày</label>
+            <input id="auditTo" type="date" name="Filter.ToDate" value="@(Model.Filter.ToDate?.ToString("yyyy-MM-dd"))" class="form-control" />
+        </div>
+        <div style="display:flex;gap:8px;">
+            <button type="submit" class="btn btn-primary"><i class="ri-filter-3-line me-1"></i>Áp dụng</button>
+            <a href="/Admin/Users/AuditLogs" class="btn btn-secondary" title="Xóa bộ lọc"><i class="ri-refresh-line"></i></a>
+        </div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:8px;margin-top:12px;color:#64748b;font-size:12px;">
+        <label for="auditPageSize">Số dòng mỗi trang:</label>
+        <select id="auditPageSize" name="Filter.PageSize" class="form-control form-control-select" style="width:90px;" onchange="this.form.submit()">
+            @foreach (var size in new[] { 10, 20, 50, 100 })
+            {
+                <option value="@size" selected="@(Model.Filter.PageSize == size ? "selected" : null)">@size</option>
+            }
+        </select>
+    </div>
+</form>
+
+<div class="form-card" style="padding:0;overflow-x:auto;">
+    <table class="panel-table" style="width:100%;min-width:900px;">
+        <thead>
+            <tr>
+                <th>Thời gian</th>
+                <th>Người thực hiện</th>
+                <th>Hành động</th>
+                <th>Tài khoản bị tác động</th>
+                <th>IP</th>
+                <th>Thay đổi</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (Model.AuditLogs.Items.Count == 0)
+            {
+                <tr><td colspan="7" class="audit-empty"><i class="ri-file-search-line" style="font-size:34px;display:block;margin-bottom:8px;"></i>Không có nhật ký phù hợp với bộ lọc.</td></tr>
+            }
+            else
+            {
+                @foreach (var log in Model.AuditLogs.Items)
+                {
+                    <tr>
+                        <td style="white-space:nowrap;">@Model.FormatLocalTime(log.CreatedAt)</td>
+                        <td><div class="audit-actor">@log.ActorName<small>@log.ActorCode</small></div></td>
+                        <td><div class="audit-action">@log.ActionName</div><div class="audit-code">@log.ActionType</div></td>
+                        <td><div class="audit-object">@log.EntityDisplayName<small>@log.EntityName · @(log.EntityId ?? "—")</small></div></td>
+                        <td class="audit-code">@(log.IpAddress ?? "—")</td>
+                        <td>@(log.ChangeCount > 0 ? $"{log.ChangeCount} trường" : "Không có snapshot")</td>
+                        <td><a class="audit-detail-link" href="/Admin/AuditLogs/Details?id=@log.AuditLogId">Xem chi tiết <i class="ri-arrow-right-s-line"></i></a></td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 20px;border-top:1px solid #e2e8f0;background:#fafafa;color:#64748b;font-size:13px;gap:12px;flex-wrap:wrap;">
+        <span>Hiển thị <strong>@start</strong>–<strong>@end</strong> trong tổng số <strong>@Model.AuditLogs.TotalCount</strong> bản ghi</span>
+        @if (totalPages > 1)
+        {
+            var startPage = Math.Max(1, currentPage - 2);
+            var endPage = Math.Min(totalPages, startPage + 4);
+            startPage = Math.Max(1, endPage - 4);
+            <div style="display:flex;gap:4px;align-items:center;">
+                <a href="@Model.BuildPageUrl(Math.Max(1, currentPage - 1))" class="pagination-btn @(currentPage == 1 ? "disabled" : "")">&lsaquo;</a>
+                @for (var pageNumber = startPage; pageNumber <= endPage; pageNumber++)
+                {
+                    <a href="@Model.BuildPageUrl(pageNumber)" class="pagination-btn @(pageNumber == currentPage ? "active" : "")">@pageNumber</a>
+                }
+                <a href="@Model.BuildPageUrl(Math.Min(totalPages, currentPage + 1))" class="pagination-btn @(currentPage == totalPages ? "disabled" : "")">&rsaquo;</a>
+            </div>
+        }
+    </div>
+</div>

@@ -26,6 +26,7 @@
                 var isSysAdmin = currentRole == "SYSTEM_ADMIN";
                 var isPurchasing = currentRole == "PURCHASING_STAFF";
                 var isWhManager = currentRole == "WAREHOUSE_MANAGER";
+                var isWhStaff = currentRole == "WAREHOUSE_STAFF";
             }
             <!-- 1. TỔNG QUAN -->
             <div class="nav-section">
@@ -166,8 +167,11 @@
                     <i class="ri-arrow-right-s-line nav-item-arrow"></i>
                 </div>
                 <div class="nav-submenu @(isInboundActive ? "expanded" : "")">
-                    <a href="/Admin/Inbound" class="nav-sub-item @(Context.Request.Path == "/Admin/Inbound" || Context.Request.Path == "/Admin/Inbound/Index" ? "active" : "")">Danh sách lệnh nhập</a>
-                    <a href="/Admin/Inbound/Create" class="nav-sub-item @(Context.Request.Path == "/Admin/Inbound/Create" ? "active" : "")">Tạo lệnh nhập</a>
+                    <a href="/Admin/Inbound" class="nav-sub-item @(Context.Request.Path == "/Admin/Inbound" || Context.Request.Path == "/Admin/Inbound/Index" ? "active" : "")">Danh sách phiếu nhập</a>
+                    @if (isWhStaff)
+                    {
+                        <a href="/Admin/Inbound/Create" class="nav-sub-item @(Context.Request.Path == "/Admin/Inbound/Create" ? "active" : "")">Ghi nhận đợt nhập</a>
+                    }
                 </div>
                 @{
                     var isOutboundActive = Context.Request.Path.StartsWithSegments("/OutboundOrders");
@@ -257,6 +261,19 @@
                     <div class="nav-submenu @(isUserActive ? "expanded" : "")">
                         <a href="/Admin/Users" class="nav-sub-item @(Context.Request.Path == "/Admin/Users" ? "active" : "")">Danh sách người dùng</a>
                         <a href="/Admin/Users/Create" class="nav-sub-item @(Context.Request.Path == "/Admin/Users/Create" ? "active" : "")">Tạo tài khoản mới</a>
+                    </div>
+
+                    var isAuditActive = Context.Request.Path.StartsWithSegments("/Admin/AuditLogs") || Context.Request.Path.StartsWithSegments("/Admin/Users/AuditLogs");
+                    <div class="nav-item nav-item-has-sub @(isAuditActive ? "expanded active" : "")" onclick="toggleSubmenu(this)">
+                        <div class="nav-item-main">
+                            <i class="ri-history-line nav-item-icon"></i>
+                            Nhật ký hoạt động
+                        </div>
+                        <i class="ri-arrow-right-s-line nav-item-arrow"></i>
+                    </div>
+                    <div class="nav-submenu @(isAuditActive ? "expanded" : "")">
+                        <a href="/Admin/AuditLogs" class="nav-sub-item @(Context.Request.Path == "/Admin/AuditLogs" || Context.Request.Path == "/Admin/AuditLogs/Index" ? "active" : "")">Nhật ký hệ thống</a>
+                        <a href="/Admin/Users/AuditLogs" class="nav-sub-item @(Context.Request.Path == "/Admin/Users/AuditLogs" ? "active" : "")">Nhật ký người dùng</a>
                     </div>
                 }
 

@@ -1,0 +1,144 @@
+@page
+@model BMWMS.Web.Pages.Admin.AuditLogs.DetailsModel
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Chi tiết nhật ký";
+    ViewData["HeaderTitle"] = "Chi tiết nhật ký hoạt động";
+}
+
+@section Styles {
+    <style>
+        .audit-meta-grid { display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px; }
+        .audit-meta { border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;background:#fff; }
+        .audit-meta-label { color:#64748b;font-size:11px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px; }
+        .audit-meta-value { color:#0f172a;font-size:14px;font-weight:600;word-break:break-word; }
+        .audit-code { font-family:Consolas,monospace;font-size:12px;color:#475569; }
+        .audit-change-badge { display:inline-flex;padding:3px 8px;border-radius:999px;font-size:11px;font-weight:600;background:#eff6ff;color:#1d4ed8; }
+        .audit-value { white-space:pre-wrap;word-break:break-word;max-width:420px; }
+        .audit-empty-snapshot { color:#64748b;padding:28px;text-align:center;border:1px dashed #cbd5e1;border-radius:8px; }
+        .audit-snapshot-grid { display:grid;grid-template-columns:1fr 1fr;gap:16px; }
+        @@media(max-width:1000px) { .audit-meta-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .audit-snapshot-grid { grid-template-columns:1fr; } }
+        @@media(max-width:600px) { .audit-meta-grid { grid-template-columns:1fr; } }
+    </style>
+}
+
+<div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;">
+    <div>
+        <div class="page-header-title">Chi tiết nhật ký hoạt động</div>
+        <div class="page-header-sub">Bản ghi chỉ đọc; dùng để truy vết ai đã thực hiện thay đổi nào và vào thời điểm nào.</div>
+    </div>
+    <a href="/Admin/AuditLogs" class="btn btn-secondary"><i class="ri-arrow-left-line me-1"></i>Quay lại danh sách</a>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+{
+    <div class="alert alert-danger mx-4" role="alert"><i class="ri-error-warning-line me-1"></i>@Model.ErrorMessage</div>
+}
+else if (Model.AuditLog is not null)
+{
+    var log = Model.AuditLog;
+    <div class="form-card">
+        <div class="audit-meta-grid">
+            <div class="audit-meta">
+                <div class="audit-meta-label">Mã nhật ký</div>
+                <div class="audit-meta-value">LOG-@log.AuditLogId.ToString("D8")</div>
+            </div>
+            <div class="audit-meta">
+                <div class="audit-meta-label">Thời gian</div>
+                <div class="audit-meta-value">@Model.FormatLocalTime(log.CreatedAt)</div>
+            </div>
+            <div class="audit-meta">
+                <div class="audit-meta-label">Người thực hiện</div>
+                <div class="audit-meta-value">@log.ActorName <span class="audit-code">· @log.ActorCode</span></div>
+            </div>
+            <div class="audit-meta">
+                <div class="audit-meta-label">Địa chỉ IP</div>
+                <div class="audit-meta-value audit-code">@(log.IpAddress ?? "—")</div>
+            </div>
+            <div class="audit-meta">
+                <div class="audit-meta-label">Phân hệ</div>
+                <div class="audit-meta-value">@log.ModuleName <span class="audit-code">· @log.ModuleCode</span></div>
+            </div>
+            <div class="audit-meta">
+                <div class="audit-meta-label">Hành động</div>
+                <div class="audit-meta-value">@log.ActionName <span class="audit-code">· @log.ActionType</span></div>
+            </div>
+            <div class="audit-meta">
+                <div class="audit-meta-label">Đối tượng</div>
+                <div class="audit-meta-value">@log.EntityDisplayName <span class="audit-code">· @log.EntityName</span></div>
+            </div>
+            <div class="audit-meta">
+                <div class="audit-meta-label">Mã/ID đối tượng</div>
+                <div class="audit-meta-value audit-code">@(log.EntityId ?? "—")</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="form-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+            <div>
+                <h3 style="font-size:16px;margin:0;color:#0f172a;">Các trường đã thay đổi</h3>
+                <div style="font-size:12px;color:#64748b;margin-top:3px;">So sánh snapshot trước và sau; trường nhạy cảm luôn được che.</div>
+            </div>
+            <span class="audit-change-badge">@log.Changes.Count thay đổi</span>
+        </div>
+        @if (log.Changes.Count == 0)
+        {
+            <div class="audit-empty-snapshot">Sự kiện này không có snapshot trước/sau hoặc không làm thay đổi giá trị trường.</div>
+        }
+        else
+        {
+            <div style="overflow-x:auto;">
+                <table class="panel-table" style="width:100%;min-width:760px;">
+                    <thead><tr><th>Trường</th><th>Giá trị trước</th><th>Giá trị sau</th><th>Loại</th></tr></thead>
+                    <tbody>
+                    @foreach (var change in log.Changes)
+                    {
+                        <tr>
+                            <td class="audit-code">@change.Field</td>
+                            <td class="audit-value">@Model.DisplayValue(change.OldValue)</td>
+                            <td class="audit-value">@Model.DisplayValue(change.NewValue)</td>
+                            <td><span class="audit-change-badge">@Model.ChangeTypeLabel(change.ChangeType)</span></td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+
+    <div class="audit-snapshot-grid form-card">
+        <section>
+            <h3 style="font-size:15px;color:#0f172a;margin-bottom:12px;">Snapshot trước</h3>
+            @if (log.OldValues.Count == 0)
+            {
+                <div class="audit-empty-snapshot">Không có dữ liệu trước.</div>
+            }
+            else
+            {
+                <table class="panel-table" style="width:100%;"><thead><tr><th>Trường</th><th>Giá trị</th></tr></thead><tbody>
+                @foreach (var item in log.OldValues)
+                {
+                    <tr><td class="audit-code">@item.Field</td><td class="audit-value">@Model.DisplayValue(item.Value)</td></tr>
+                }
+                </tbody></table>
+            }
+        </section>
+        <section>
+            <h3 style="font-size:15px;color:#0f172a;margin-bottom:12px;">Snapshot sau</h3>
+            @if (log.NewValues.Count == 0)
+            {
+                <div class="audit-empty-snapshot">Không có dữ liệu sau.</div>
+            }
+            else
+            {
+                <table class="panel-table" style="width:100%;"><thead><tr><th>Trường</th><th>Giá trị</th></tr></thead><tbody>
+                @foreach (var item in log.NewValues)
+                {
+                    <tr><td class="audit-code">@item.Field</td><td class="audit-value">@Model.DisplayValue(item.Value)</td></tr>
+                }
+                </tbody></table>
+            }
+        </section>
+    </div>
+}
