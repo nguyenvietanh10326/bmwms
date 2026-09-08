@@ -152,6 +152,13 @@ public class PutawayInboundItemDto
     public decimal PutawayQuantity { get; set; }
 }
 
+public class PutawayBatchRequestDto
+{
+    public List<PutawayInboundItemDto> Items { get; set; } = new();
+    public bool AcknowledgeCapacityWarning { get; set; }
+    public string? CapacityWarningReason { get; set; }
+}
+
 public class InboundOrderTimelineDto
 {
     public DateTime EventTime { get; set; }

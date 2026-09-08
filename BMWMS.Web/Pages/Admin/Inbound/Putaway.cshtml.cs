@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Globalization;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
@@ -30,6 +31,16 @@ public class PutawayModel : PageModel
     [BindProperty]
     public List<PutawayInboundItemDto> PutawayDtos { get; set; } = new();
 
+    [BindProperty]
+    public bool AcknowledgeCapacityWarning { get; set; }
+
+    [BindProperty]
+    public string? CapacityWarningReason { get; set; }
+
+    public bool CapacityEvaluationEnabled => ReceiptRows
+        .SelectMany(row => row.Locations)
+        .Any(location => location.CapacityEvaluationEnabled);
+
     // Keep the former query parameters optional so links generated before this
     // page became an order-wide operation continue to work.
     public async Task<IActionResult> OnGetAsync(long id, long? itemId = null, long? lotId = null)
@@ -48,7 +59,12 @@ public class PutawayModel : PageModel
 
         try
         {
-            await _inboundApiService.PutawayBatchAsync(id, PutawayDtos);
+            await _inboundApiService.PutawayBatchAsync(id, new PutawayBatchRequestDto
+            {
+                Items = PutawayDtos,
+                AcknowledgeCapacityWarning = AcknowledgeCapacityWarning,
+                CapacityWarningReason = CapacityWarningReason
+            });
             TempData["SuccessMessage"] = "Đã xác nhận đầy đủ vị trí cất hàng và cập nhật tồn kho.";
             return RedirectToPage("Details", new { id });
         }
@@ -110,20 +126,22 @@ public class PutawayModel : PageModel
                 }))
             .ToList();
 
-        foreach (var productGroup in ReceiptRows.GroupBy(row => row.ProductId))
+        foreach (var row in ReceiptRows)
         {
-            var locations = await LoadLocationsAsync(Order.WarehouseId, productGroup.Key);
-            foreach (var row in productGroup)
-                row.Locations = locations;
+            row.Locations = await LoadLocationsAsync(Order.WarehouseId, row.ProductId, row.RemainingQuantity);
         }
 
         return null;
     }
 
-    private async Task<List<PutawayLocationOption>> LoadLocationsAsync(long warehouseId, long productId)
+    private async Task<List<PutawayLocationOption>> LoadLocationsAsync(
+        long warehouseId,
+        long productId,
+        decimal putawayQuantity)
     {
         var response = await _httpClient.GetAsync(
-            $"api/Inbounds/putaway-locations?warehouseId={warehouseId}&productId={productId}");
+            $"api/Inbounds/putaway-locations?warehouseId={warehouseId}&productId={productId}" +
+            $"&putawayQuantity={putawayQuantity.ToString(CultureInfo.InvariantCulture)}");
         if (!response.IsSuccessStatusCode)
             return new List<PutawayLocationOption>();
 
@@ -159,11 +177,40 @@ public class PutawayLocationOption
     public string RackCode { get; set; } = string.Empty;
     public string RackName { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
-    public decimal CurrentOnHandQuantity { get; set; }
+    public decimal CurrentProductQuantity { get; set; }
     public int StoredProductCount { get; set; }
     public bool IsRecommended { get; set; }
+    public bool HasRecommendationConfiguration { get; set; }
     public int Priority { get; set; }
     public bool IsDefault { get; set; }
+    public bool CapacityEvaluationEnabled { get; set; }
+    public string CapacityStatus { get; set; } = "DISABLED";
+    public decimal? MaxWeightKg { get; set; }
+    public decimal? CurrentWeightKg { get; set; }
+    public decimal? ProjectedWeightKg { get; set; }
+    public decimal? MaxVolumeM3 { get; set; }
+    public decimal? CurrentVolumeM3 { get; set; }
+    public decimal? ProjectedVolumeM3 { get; set; }
+    public string CapacityMessage { get; set; } = string.Empty;
+    public bool RequiresAcknowledgement { get; set; }
     public string HierarchyPath => $"{(string.IsNullOrWhiteSpace(ZoneCode) ? "Chưa phân khu" : ZoneCode)} / {(string.IsNullOrWhiteSpace(RackCode) ? "Chưa phân kệ" : RackCode)} / {LocationCode}";
-    public string DisplayName => $"{(IsDefault ? "★ " : IsRecommended ? "• " : string.Empty)}{HierarchyPath} — {LocationName} · Tồn {CurrentOnHandQuantity:0.####}";
+    public string DisplayName => $"{(IsDefault ? "★ " : IsRecommended ? "• " : string.Empty)}{HierarchyPath} — {LocationName} · {CapacitySummary}";
+
+    private string CapacitySummary => CapacityStatus switch
+    {
+        "AVAILABLE" => $"Còn đủ chỗ{FormatUsage()}",
+        "EXCEEDED" => $"Không đủ chỗ{FormatUsage()}",
+        "UNKNOWN" => "Chưa đủ dữ liệu tính sức chứa",
+        "NOT_CONFIGURED" => "Chưa cấu hình giới hạn",
+        _ => $"Đang có {CurrentProductQuantity:0.####} của sản phẩm"
+    };
+
+    private string FormatUsage()
+    {
+        if (ProjectedWeightKg.HasValue && MaxWeightKg.HasValue)
+            return $" · {ProjectedWeightKg:0.##}/{MaxWeightKg:0.##} kg";
+        if (ProjectedVolumeM3.HasValue && MaxVolumeM3.HasValue)
+            return $" · {ProjectedVolumeM3:0.####}/{MaxVolumeM3:0.####} m³";
+        return string.Empty;
+    }
 }

@@ -148,9 +148,9 @@ public class InboundApiService
         }
     }
 
-    public async Task PutawayBatchAsync(long id, List<PutawayInboundItemDto> dtos)
+    public async Task PutawayBatchAsync(long id, PutawayBatchRequestDto request)
     {
-        var response = await _httpClient.PostAsJsonAsync($"/api/inbounds/{id}/putaway", dtos);
+        var response = await _httpClient.PostAsJsonAsync($"/api/inbounds/{id}/putaway-with-capacity", request);
         if (!response.IsSuccessStatusCode)
         {
             throw new Exception($"Xếp vị trí thất bại: {await ReadErrorAsync(response)}");

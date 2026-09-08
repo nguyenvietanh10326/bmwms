@@ -5,6 +5,8 @@ using BMWMS.Business.DTOs.Inbound;
 using BMWMS.Business.Interfaces;
 using BMWMS.Business.Common;
 using BMWMS.Business.DTOs.Audit;
+using BMWMS.Business.DTOs.Capacity;
+using BMWMS.Business.Configuration;
 using BMWMS.Repository.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using System.Data;
@@ -17,17 +19,23 @@ public class InboundService : IInboundService
     private readonly BMWMS.Repository.Models.BmwmsContext _context;
     private readonly INotificationService _notificationService;
     private readonly IAuditLogService _auditLogService;
+    private readonly ICapacityEvaluationService _capacityEvaluationService;
+    private readonly WarehouseCapacityOptions _capacityOptions;
 
     public InboundService(
         IInboundRepository inboundRepository,
         BMWMS.Repository.Models.BmwmsContext context,
         INotificationService notificationService,
-        IAuditLogService auditLogService)
+        IAuditLogService auditLogService,
+        ICapacityEvaluationService capacityEvaluationService,
+        WarehouseCapacityOptions capacityOptions)
     {
         _inboundRepository = inboundRepository;
         _context = context;
         _notificationService = notificationService;
         _auditLogService = auditLogService;
+        _capacityEvaluationService = capacityEvaluationService;
+        _capacityOptions = capacityOptions;
     }
 
     public async Task<InboundOrderPageDto> GetInboundOrdersPageAsync(InboundOrderFilterDto filter)
@@ -335,8 +343,6 @@ public class InboundService : IInboundService
             (i.ProductId, i.ExpectedQuantity, "Số lượng theo đơn"),
             (i.ProductId, i.ActualReceivedQuantity, "Số lượng thực nhận")
         }).Where(value => value.Item2 > 0));
-        await EnsureProductsHaveStorageZoneAsync(dto.Items.Select(item => item.ProductId), dto.WarehouseId);
-
         var productIds = dto.Items.Select(item => item.ProductId).ToList();
         var products = await _context.Products
             .Include(product => product.UnitOfMeasure)
@@ -1561,13 +1567,18 @@ public class InboundService : IInboundService
         }
     }
 
-    public async Task PutawayBatchAsync(long inboundOrderId, List<PutawayInboundItemDto> dtos, long currentUserId)
+    public async Task PutawayBatchAsync(long inboundOrderId, PutawayBatchRequestDto request, long currentUserId)
     {
-        if (dtos == null || dtos.Count == 0 || dtos.Any(x => x.PutawayQuantity <= 0))
+        if (request == null)
+            throw new ArgumentNullException(nameof(request));
+        var dtos = request.Items ?? new List<PutawayInboundItemDto>();
+        if (dtos.Count == 0 || dtos.Any(x => x.PutawayQuantity <= 0))
             throw new ArgumentException("Danh sách xếp hàng vào vị trí không hợp lệ.");
+        if (request.CapacityWarningReason?.Trim().Length > 500)
+            throw new ArgumentException("Lý do xác nhận cảnh báo không được vượt quá 500 ký tự.");
         if (dtos.GroupBy(x => new { x.InboundOrderItemId, x.ProductLotId, x.StorageLocationId })
             .Any(group => group.Count() > 1))
-            throw new ArgumentException("Không được lặp cùng một sản phẩm, lô và vị trí đích trong một lần phân bổ.");
+            throw new ArgumentException("Không được lặp cùng một sản phẩm, đợt nhận và vị trí đích trong một lần phân bổ.");
 
         await using var dbTransaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
         try
@@ -1584,7 +1595,7 @@ public class InboundService : IInboundService
 
             await EnsureAssignedUserAsync(order.AssignedToUserId, currentUserId, "xếp hàng vào vị trí");
             if (order.Status != "COMPLETED")
-                throw new InvalidOperationException("Chỉ được xếp hàng vào vị trí sau khi đã hoàn tất kiểm nhận.");
+                throw new InvalidOperationException("Chỉ được xếp hàng vào vị trí sau khi đã hoàn tất ghi nhận thực nhận.");
 
             var waitingByReceipt = order.InboundOrderItems
                 .SelectMany(item => item.InboundOrderDetails
@@ -1607,17 +1618,22 @@ public class InboundService : IInboundService
                                                   quantity != expected.Value))
                 throw new ArgumentException("Phải phân bổ đúng toàn bộ số lượng đang chờ cất của tất cả vật tư trong phiếu.");
 
+            var itemsById = order.InboundOrderItems.ToDictionary(item => item.InboundOrderItemId);
+            var destinationIds = dtos.Select(allocation => allocation.StorageLocationId).Distinct().ToList();
+            var destinations = await _context.StorageLocations
+                .Include(location => location.StorageRack)
+                    .ThenInclude(rack => rack!.WarehouseZone)
+                .Where(location => destinationIds.Contains(location.StorageLocationId))
+                .ToDictionaryAsync(location => location.StorageLocationId);
+            if (destinations.Count != destinationIds.Count)
+                throw new ArgumentException("Một hoặc nhiều vị trí đích không còn tồn tại.");
+
             foreach (var allocation in dtos)
             {
-                var item = order.InboundOrderItems.SingleOrDefault(i => i.InboundOrderItemId == allocation.InboundOrderItemId)
-                    ?? throw new ArgumentException("Dòng hàng không thuộc phiếu nhập kho.");
+                if (!itemsById.TryGetValue(allocation.InboundOrderItemId, out var item))
+                    throw new ArgumentException("Dòng hàng không thuộc phiếu nhập kho.");
                 QuantityRules.EnsureValid(item.Product, allocation.PutawayQuantity, "Số lượng xếp vị trí");
-                var destination = await _context.StorageLocations
-                    .Include(location => location.StorageRack)
-                        .ThenInclude(rack => rack!.WarehouseZone)
-                    .FirstOrDefaultAsync(l => l.StorageLocationId == allocation.StorageLocationId)
-                    ?? throw new ArgumentException("Không tìm thấy vị trí đích.");
-
+                var destination = destinations[allocation.StorageLocationId];
                 if (destination.WarehouseId != order.WarehouseId || destination.LocationType != "BIN" ||
                     !destination.IsPutawayAllowed || !IsActive(destination.Status))
                     throw new InvalidOperationException($"Vị trí {destination.LocationCode} không hợp lệ để xếp hàng.");
@@ -1626,36 +1642,87 @@ public class InboundService : IInboundService
                      !IsActive(destination.StorageRack.WarehouseZone.Status)))
                     throw new InvalidOperationException($"Khu hoặc kệ chứa vị trí {destination.LocationCode} đang bị khóa/ngừng hoạt động.");
 
-                var storageRules = await _context.ProductFixedLocations
-                    .Include(rule => rule.StorageLocation)
-                        .ThenInclude(location => location.StorageRack)
-                    .Where(rule => rule.ProductId == item.ProductId && rule.IsActive)
-                    .ToListAsync();
-                if (storageRules.Count == 0)
-                    throw new InvalidOperationException($"Sản phẩm {item.Product.ProductCode} chưa được cấu hình zone lưu trữ.");
+                var stagingQuantity = item.InboundOrderDetails
+                    .Where(detail => detail.ProductLotId == allocation.ProductLotId &&
+                                     detail.ConditionStatus == "GOOD" && detail.InventoryTransaction == null)
+                    .Sum(detail => detail.ReceivedQuantity);
+                if (stagingQuantity < allocation.PutawayQuantity)
+                    throw new InvalidOperationException("Số lượng phân bổ vượt số hàng thực nhận đang chờ xếp vị trí.");
+            }
 
-                var allowedZoneIds = storageRules
-                    .Where(rule => rule.StorageLocation.StorageRack != null)
-                    .Select(rule => rule.StorageLocation.StorageRack!.ZoneId)
-                    .ToHashSet();
-                var allowedStandaloneLocationIds = storageRules
-                    .Where(rule => rule.StorageLocation.StorageRack == null)
-                    .Select(rule => rule.StorageLocationId)
-                    .ToHashSet();
-                var destinationIsAllowed = destination.StorageRack != null
-                    ? allowedZoneIds.Contains(destination.StorageRack.ZoneId)
-                    : allowedStandaloneLocationIds.Contains(destination.StorageLocationId);
-                if (!destinationIsAllowed)
-                    throw new ArgumentException($"Vị trí {destination.LocationCode} không thuộc zone được phép của {item.Product.ProductCode}.");
+            var productIds = itemsById.Values.Select(item => item.ProductId).Distinct().ToList();
+            var recommendationRules = await _context.ProductFixedLocations
+                .AsNoTracking()
+                .Include(rule => rule.StorageLocation)
+                    .ThenInclude(location => location.StorageRack)
+                .Where(rule => productIds.Contains(rule.ProductId) && rule.IsActive &&
+                               rule.StorageLocation.WarehouseId == order.WarehouseId)
+                .ToListAsync();
+            var recommendationOverrides = dtos
+                .Where(allocation =>
+                {
+                    var productId = itemsById[allocation.InboundOrderItemId].ProductId;
+                    var productRules = recommendationRules.Where(rule => rule.ProductId == productId).ToList();
+                    if (productRules.Count == 0) return false;
+                    var destination = destinations[allocation.StorageLocationId];
+                    return !IsRecommendedLocation(destination, productRules);
+                })
+                .Select(allocation => new
+                {
+                    ProductCode = itemsById[allocation.InboundOrderItemId].Product.ProductCode,
+                    LocationCode = destinations[allocation.StorageLocationId].LocationCode
+                })
+                .Distinct()
+                .ToList();
 
+            IReadOnlyDictionary<long, LocationCapacityEvaluationDto> capacityEvaluations =
+                new Dictionary<long, LocationCapacityEvaluationDto>();
+            if (_capacityOptions.Enabled)
+            {
+                capacityEvaluations = await _capacityEvaluationService.EvaluateAsync(
+                    dtos.Select(allocation => new CapacityAllocationDto
+                    {
+                        StorageLocationId = allocation.StorageLocationId,
+                        ProductId = itemsById[allocation.InboundOrderItemId].ProductId,
+                        Quantity = allocation.PutawayQuantity
+                    }).ToList(),
+                    acquireLocationLocks: true);
+
+                var exceeded = capacityEvaluations.Values
+                    .Where(value => value.OverallStatus == CapacityEvaluationStatuses.Exceeded)
+                    .Select(value => value.LocationCode)
+                    .OrderBy(code => code)
+                    .ToList();
+                if (exceeded.Count > 0)
+                    throw new InvalidOperationException(
+                        $"Không đủ sức chứa tại vị trí: {string.Join(", ", exceeded)}. Vui lòng chia số lượng hoặc chọn vị trí khác.");
+
+                var incomplete = capacityEvaluations.Values
+                    .Where(value => value.OverallStatus is CapacityEvaluationStatuses.Unknown or CapacityEvaluationStatuses.NotConfigured)
+                    .Select(value => value.LocationCode)
+                    .OrderBy(code => code)
+                    .ToList();
+                if (_capacityOptions.IsStrict && incomplete.Count > 0)
+                    throw new InvalidOperationException(
+                        $"Chưa đủ cấu hình để kiểm tra sức chứa tại: {string.Join(", ", incomplete)}.");
+
+                var requiresAcknowledgement = incomplete.Count > 0 || recommendationOverrides.Count > 0;
+                if (requiresAcknowledgement &&
+                    (!request.AcknowledgeCapacityWarning || string.IsNullOrWhiteSpace(request.CapacityWarningReason)))
+                    throw new ArgumentException(
+                        "Vui lòng xác nhận cảnh báo và ghi lý do khi sức chứa chưa đủ dữ liệu hoặc chọn ngoài vị trí khuyến nghị.");
+            }
+
+            foreach (var allocation in dtos)
+            {
+                var item = itemsById[allocation.InboundOrderItemId];
+                var destination = destinations[allocation.StorageLocationId];
                 var remaining = allocation.PutawayQuantity;
                 var stagingDetails = item.InboundOrderDetails
-                    .Where(d => d.ProductLotId == allocation.ProductLotId && d.ConditionStatus == "GOOD" &&
-                                d.InventoryTransaction == null)
-                    .OrderBy(d => d.RecordedAt)
+                    .Where(detail => detail.ProductLotId == allocation.ProductLotId &&
+                                     detail.ConditionStatus == "GOOD" && detail.InventoryTransaction == null)
+                    .OrderBy(detail => detail.RecordedAt)
                     .ToList();
-                if (stagingDetails.Sum(d => d.ReceivedQuantity) < remaining)
-                    throw new InvalidOperationException("Số lượng phân bổ vượt số hàng được chấp nhận đang chờ xếp vị trí.");
 
                 foreach (var staging in stagingDetails.Where(_ => remaining > 0))
                 {
@@ -1664,7 +1731,7 @@ public class InboundService : IInboundService
                     if (moved == staging.ReceivedQuantity)
                     {
                         staging.StorageLocationId = destination.StorageLocationId;
-                        staging.Notes = "Đã xếp vào bin thực tế.";
+                        staging.Notes = "Đã xếp vào vị trí thực tế.";
                         postedDetail = staging;
                     }
                     else
@@ -1681,7 +1748,7 @@ public class InboundService : IInboundService
                             ConditionStatus = "GOOD",
                             RecordedByUserId = currentUserId,
                             RecordedAt = DateTime.UtcNow,
-                            Notes = "Putaway tách nhiều vị trí."
+                            Notes = "Xếp một đợt nhận vào nhiều vị trí."
                         };
                         _context.InboundOrderDetails.Add(postedDetail);
                         item.InboundOrderDetails.Add(postedDetail);
@@ -1698,7 +1765,7 @@ public class InboundService : IInboundService
                         InboundOrderDetail = postedDetail,
                         PerformedByUserId = currentUserId,
                         TransactionAt = DateTime.UtcNow,
-                        Notes = $"Putaway từ {order.InboundOrderNumber} vào {destination.LocationCode}."
+                        Notes = $"Xếp hàng từ {order.InboundOrderNumber} vào {destination.LocationCode}."
                     };
                     postedDetail.InventoryTransaction = inventoryTransaction;
                     _context.InventoryTransactions.Add(inventoryTransaction);
@@ -1712,13 +1779,21 @@ public class InboundService : IInboundService
                 ActionType = "PUTAWAY_INBOUND",
                 EntityName = "InboundPutaway",
                 EntityId = order.InboundOrderId.ToString(),
-                NewValues = dtos.Select(allocation => new
+                NewValues = new
                 {
-                    allocation.InboundOrderItemId,
-                    allocation.ProductLotId,
-                    allocation.StorageLocationId,
-                    allocation.PutawayQuantity
-                })
+                    Allocations = dtos.Select(allocation => new
+                    {
+                        allocation.InboundOrderItemId,
+                        allocation.ProductLotId,
+                        allocation.StorageLocationId,
+                        allocation.PutawayQuantity
+                    }),
+                    CapacityEnabled = _capacityOptions.Enabled,
+                    CapacityEvaluations = capacityEvaluations.Values,
+                    RecommendationOverrides = recommendationOverrides,
+                    WarningAcknowledged = request.AcknowledgeCapacityWarning,
+                    WarningReason = request.CapacityWarningReason?.Trim()
+                }
             });
             await _context.SaveChangesAsync();
             await dbTransaction.CommitAsync();
@@ -1808,71 +1883,61 @@ public class InboundService : IInboundService
         }
     }
 
-    private async Task EnsureProductsHaveStorageZoneAsync(IEnumerable<long> productIds, long warehouseId)
+    public async Task<List<PutawayLocationDto>> GetPutawayLocationsAsync(
+        long warehouseId,
+        long productId,
+        decimal putawayQuantity = 0)
     {
-        var ids = productIds.Distinct().ToList();
-        var configuredIds = await _context.ProductFixedLocations
-            .Where(rule => ids.Contains(rule.ProductId) && rule.IsActive &&
-                           rule.StorageLocation.WarehouseId == warehouseId &&
-                           (rule.StorageLocation.StorageRack == null ||
-                            (rule.StorageLocation.StorageRack.WarehouseZone.Status == "ACTIVE" ||
-                             rule.StorageLocation.StorageRack.WarehouseZone.Status == "AVAILABLE")))
-            .Select(rule => rule.ProductId)
-            .Distinct()
-            .ToListAsync();
-        var missingIds = ids.Except(configuredIds).ToList();
-        if (missingIds.Count == 0)
-            return;
+        if (warehouseId <= 0 || productId <= 0 || putawayQuantity < 0)
+            throw new ArgumentException("Thông tin tìm vị trí xếp hàng không hợp lệ.");
 
-        var missingCodes = await _context.Products
-            .Where(product => missingIds.Contains(product.ProductId))
-            .OrderBy(product => product.ProductCode)
-            .Select(product => product.ProductCode)
-            .ToListAsync();
-        throw new InvalidOperationException(
-            $"Chưa cấu hình zone lưu trữ cho sản phẩm: {string.Join(", ", missingCodes)}. Vui lòng cấu hình vị trí cố định trong zone trước khi lập phiếu nhập.");
-    }
-
-    public async Task<List<PutawayLocationDto>> GetPutawayLocationsAsync(long warehouseId, long productId)
-    {
         var storageRules = await _context.ProductFixedLocations
             .AsNoTracking()
             .Include(rule => rule.StorageLocation)
                 .ThenInclude(location => location.StorageRack)
-            .Where(rule => rule.ProductId == productId && rule.IsActive)
+            .Where(rule => rule.ProductId == productId && rule.IsActive &&
+                           rule.StorageLocation.WarehouseId == warehouseId)
             .ToListAsync();
-        if (storageRules.Count == 0)
-            return new List<PutawayLocationDto>();
-
-        var allowedZoneIds = storageRules
-            .Where(rule => rule.StorageLocation.StorageRack != null)
-            .Select(rule => rule.StorageLocation.StorageRack!.ZoneId)
-            .ToHashSet();
-        var allowedStandaloneLocationIds = storageRules
-            .Where(rule => rule.StorageLocation.StorageRack == null)
-            .Select(rule => rule.StorageLocationId)
-            .ToHashSet();
 
         var locations = await _context.StorageLocations
+            .AsNoTracking()
             .Include(location => location.StorageRack)
                 .ThenInclude(rack => rack!.WarehouseZone)
             .Include(location => location.Inventories)
-            .Include(location => location.ProductFixedLocations)
             .Where(location => location.WarehouseId == warehouseId &&
                                location.LocationType == "BIN" && location.IsPutawayAllowed &&
-                               ((location.StorageRack != null && allowedZoneIds.Contains(location.StorageRack.ZoneId)) ||
-                                allowedStandaloneLocationIds.Contains(location.StorageLocationId)) &&
                                (location.Status == "ACTIVE" || location.Status == "AVAILABLE" || location.Status == "OCCUPIED"))
             .ToListAsync();
+
+        IReadOnlyDictionary<long, LocationCapacityEvaluationDto> capacityEvaluations =
+            new Dictionary<long, LocationCapacityEvaluationDto>();
+        if (_capacityOptions.Enabled && locations.Count > 0)
+        {
+            capacityEvaluations = await _capacityEvaluationService.EvaluateAsync(
+                locations.Select(location => new CapacityAllocationDto
+                {
+                    StorageLocationId = location.StorageLocationId,
+                    ProductId = productId,
+                    Quantity = putawayQuantity
+                }).ToList());
+        }
 
         return locations
             .Select(location =>
             {
-                var fixedLocation = location.ProductFixedLocations
-                    .Where(fixedItem => fixedItem.ProductId == productId && fixedItem.IsActive)
-                    .OrderByDescending(fixedItem => fixedItem.IsDefault)
-                    .ThenBy(fixedItem => fixedItem.Priority)
+                var matchingRules = storageRules
+                    .Where(rule => IsRecommendedLocation(location, new[] { rule }))
+                    .OrderByDescending(rule => rule.IsDefault)
+                    .ThenBy(rule => rule.Priority)
+                    .ToList();
+                var preferredRule = matchingRules
                     .FirstOrDefault();
+                capacityEvaluations.TryGetValue(location.StorageLocationId, out var capacity);
+                var capacityStatus = capacity?.OverallStatus ?? "DISABLED";
+                var isRecommended = matchingRules.Count > 0;
+                var requiresAcknowledgement = _capacityOptions.Enabled &&
+                    (capacityStatus is CapacityEvaluationStatuses.Unknown or CapacityEvaluationStatuses.NotConfigured ||
+                     (storageRules.Count > 0 && !isRecommended));
                 return new PutawayLocationDto
                 {
                     StorageLocationId = location.StorageLocationId,
@@ -1885,24 +1950,65 @@ public class InboundService : IInboundService
                     RackCode = location.StorageRack?.RackCode ?? string.Empty,
                     RackName = location.StorageRack?.RackName ?? string.Empty,
                     Status = location.Status,
-                    CurrentOnHandQuantity = location.Inventories.Sum(inventory => inventory.OnHandQuantity),
+                    CurrentProductQuantity = location.Inventories
+                        .Where(inventory => inventory.ProductId == productId)
+                        .Sum(inventory => inventory.OnHandQuantity),
                     StoredProductCount = location.Inventories
                         .Where(inventory => inventory.OnHandQuantity > 0)
                         .Select(inventory => inventory.ProductId)
                         .Distinct()
                         .Count(),
-                    IsRecommended = fixedLocation != null,
-                    Priority = fixedLocation?.Priority ?? int.MaxValue,
-                    IsDefault = fixedLocation?.IsDefault ?? false
+                    IsRecommended = isRecommended,
+                    HasRecommendationConfiguration = storageRules.Count > 0,
+                    Priority = preferredRule?.Priority ?? int.MaxValue,
+                    IsDefault = preferredRule?.IsDefault ?? false,
+                    CapacityEvaluationEnabled = _capacityOptions.Enabled,
+                    CapacityStatus = capacityStatus,
+                    MaxWeightKg = capacity?.MaxWeightKg,
+                    CurrentWeightKg = capacity?.CurrentWeightKg,
+                    ProjectedWeightKg = capacity?.ProjectedWeightKg,
+                    MaxVolumeM3 = capacity?.MaxVolumeM3,
+                    CurrentVolumeM3 = capacity?.CurrentVolumeM3,
+                    ProjectedVolumeM3 = capacity?.ProjectedVolumeM3,
+                    CapacityMessage = BuildCapacityMessage(capacity),
+                    RequiresAcknowledgement = requiresAcknowledgement
                 };
             })
-            .OrderByDescending(location => location.IsDefault)
+            .OrderBy(location => location.CapacityStatus == CapacityEvaluationStatuses.Exceeded)
+            .ThenByDescending(location => location.IsDefault)
             .ThenByDescending(location => location.IsRecommended)
             .ThenBy(location => location.Priority)
             .ThenBy(location => location.ZoneCode)
             .ThenBy(location => location.RackCode)
             .ThenBy(location => location.LocationCode)
             .ToList();
+    }
+
+    private static bool IsRecommendedLocation(
+        BMWMS.Repository.Models.StorageLocation destination,
+        IReadOnlyCollection<BMWMS.Repository.Models.ProductFixedLocation> rules)
+    {
+        return rules.Any(rule => rule.StorageLocation.StorageRack != null && destination.StorageRack != null
+            ? rule.StorageLocation.StorageRack.ZoneId == destination.StorageRack.ZoneId
+            : rule.StorageLocationId == destination.StorageLocationId);
+    }
+
+    private static string BuildCapacityMessage(LocationCapacityEvaluationDto? capacity)
+    {
+        if (capacity == null)
+            return "Kiểm tra sức chứa đang tắt.";
+        if (capacity.OverallStatus == CapacityEvaluationStatuses.Exceeded)
+            return "Số lượng dự kiến vượt giới hạn tải trọng hoặc thể tích của vị trí.";
+        if (capacity.OverallStatus == CapacityEvaluationStatuses.Unknown)
+        {
+            var missing = capacity.MissingWeightProductCodes
+                .Concat(capacity.MissingVolumeProductCodes)
+                .Distinct(StringComparer.OrdinalIgnoreCase);
+            return $"Chưa đủ hệ số lưu kho để tính sức chứa cho: {string.Join(", ", missing)}.";
+        }
+        if (capacity.OverallStatus == CapacityEvaluationStatuses.NotConfigured)
+            return "Vị trí chưa cấu hình giới hạn tải trọng hoặc thể tích.";
+        return "Vị trí còn đủ sức chứa theo dữ liệu đã cấu hình.";
     }
 
     private static bool IsActive(string? status)

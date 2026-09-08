@@ -18,8 +18,8 @@ public interface IInboundService
     Task CancelInboundOrderAsync(long id, CancelInboundOrderDto dto, long currentUserId);
     Task ConfirmInboundOrderAsync(long id, long currentUserId);
     Task<long> ReceiveItemAsync(long inboundOrderId, ReceiveInboundItemDto dto, long currentUserId);
-    Task PutawayBatchAsync(long inboundOrderId, List<PutawayInboundItemDto> dtos, long currentUserId);
+    Task PutawayBatchAsync(long inboundOrderId, PutawayBatchRequestDto request, long currentUserId);
     Task ReceiveBatchAsync(long inboundOrderId, ReceiveBatchInboundDto dto, long currentUserId);
     Task CompleteReceiptAsync(long inboundOrderId, CompleteInboundReceiptDto dto, long currentUserId);
-    Task<List<PutawayLocationDto>> GetPutawayLocationsAsync(long warehouseId, long productId);
+    Task<List<PutawayLocationDto>> GetPutawayLocationsAsync(long warehouseId, long productId, decimal putawayQuantity = 0);
 }
