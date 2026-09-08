@@ -11,43 +11,51 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace BMWMS.Web.Pages.Admin.Inbound;
 
-[Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
+[Authorize(Roles = "WAREHOUSE_STAFF")]
 public class CreateModel : PageModel
 {
     private readonly InboundApiService _inboundApiService;
-    private readonly ProductApiService _productApiService;
 
-    public CreateModel(
-        InboundApiService inboundApiService,
-        ProductApiService productApiService)
+    public CreateModel(InboundApiService inboundApiService)
     {
         _inboundApiService = inboundApiService;
-        _productApiService = productApiService;
     }
 
     [BindProperty]
     public CreateInboundOrderDto InboundOrder { get; set; } = new();
 
-    public SelectList Products { get; set; } = new(Array.Empty<object>());
-    public SelectList Users { get; set; } = new(Array.Empty<object>());
-    public SelectList PurchaseOrders { get; set; } = new(Array.Empty<object>());
+    public List<PurchaseOrderInboundSourceDto> PurchaseOrderSources { get; set; } = new();
+    public IEnumerable<PurchaseOrderInboundSourceDto> InitialPurchaseOrders =>
+        PurchaseOrderSources.Where(source => !source.IsFollowUpReceipt);
+    public IEnumerable<PurchaseOrderInboundSourceDto> FollowUpPurchaseOrders =>
+        PurchaseOrderSources.Where(source => source.IsFollowUpReceipt);
     public SelectList SalesOrders { get; set; } = new(Array.Empty<object>());
-
-    public async Task OnGetAsync(long? purchaseOrderId, long? salesOrderId)
+    public async Task<IActionResult> OnGetAsync(long? purchaseOrderId, long? salesOrderId, long? parentInboundOrderId)
     {
+        if (parentInboundOrderId.HasValue)
+        {
+            TempData["ErrorMessage"] = "Chức năng phiếu nhập bổ sung đã được loại bỏ. Hãy tạo phiếu nhập PO thông thường cho phần PO còn thiếu.";
+            return RedirectToPage("./Index");
+        }
+
         InboundOrder = new CreateInboundOrderDto
         {
-            ExpectedReceiptDate = DateOnly.FromDateTime(DateTime.Today.AddDays(1)),
-            SourceType = salesOrderId.HasValue ? "SALES_RETURN" : "PURCHASE_ORDER",
+            ExpectedReceiptDate = DateOnly.FromDateTime(DateTime.Today),
+            SourceType = salesOrderId.HasValue
+                ? "SALES_RETURN"
+                : "PURCHASE_ORDER",
             PurchaseOrderId = purchaseOrderId,
             SalesOrderId = salesOrderId
         };
 
         await LoadDropdowns();
+        return Page();
     }
 
-    public async Task<IActionResult> OnPostAsync()
+    public async Task<IActionResult> OnPostAsync(string actionType)
     {
+        InboundOrder.IsSubmit = true;
+
         if (!ModelState.IsValid)
         {
             await LoadDropdowns();
@@ -57,8 +65,20 @@ public class CreateModel : PageModel
         try
         {
             var newOrderId = await _inboundApiService.CreateInboundOrderAsync(InboundOrder);
-            TempData["SuccessMessage"] = "Lệnh nhập kho đã được tạo thành công.";
-            return RedirectToPage("./Details", new { id = newOrderId });
+            TempData["SuccessMessage"] = "Đã ghi nhận số lượng thực nhận. Hãy xác nhận vị trí cất hàng.";
+            var order = await _inboundApiService.GetInboundOrderByIdAsync(newOrderId);
+            var firstReceipt = order?.Items
+                .SelectMany(item => item.Receipts.Select(receipt => new { Item = item, Receipt = receipt }))
+                .FirstOrDefault(entry => entry.Receipt.ConditionStatus == "GOOD" &&
+                                         entry.Receipt.ReceivedQuantity > entry.Receipt.PutawayQuantity);
+            return firstReceipt == null
+                ? RedirectToPage("./Details", new { id = newOrderId })
+                : RedirectToPage("./Putaway", new
+                {
+                    id = newOrderId,
+                    itemId = firstReceipt.Item.InboundOrderItemId,
+                    lotId = firstReceipt.Receipt.ProductLotId
+                });
         }
         catch (Exception ex)
         {
@@ -72,22 +92,7 @@ public class CreateModel : PageModel
     {
         try
         {
-            var productResult = await _productApiService.GetPagedListAsync(new ProductFilterModel { PageSize = 1000 });
-            Products = new SelectList(productResult.Items, "ProductId", "ProductName");
-        }
-        catch { }
-
-        try
-        {
-            var warehouseUsers = await _inboundApiService.GetAvailableWarehouseStaffAsync();
-            Users = new SelectList(warehouseUsers, "UserId", "FullName");
-        }
-        catch { }
-
-        try
-        {
-            var pendingPos = await _inboundApiService.GetPendingPurchaseOrdersAsync();
-            PurchaseOrders = new SelectList(pendingPos, "Id", "Name");
+            PurchaseOrderSources = await _inboundApiService.GetPurchaseOrderInboundSourcesAsync();
         }
         catch { }
 
@@ -112,4 +117,5 @@ public class CreateModel : PageModel
         if (result == null) return NotFound();
         return new JsonResult(result);
     }
+
 }

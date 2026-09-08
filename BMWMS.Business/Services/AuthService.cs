@@ -3,6 +3,7 @@ using System.Security.Claims;
 using System.Text;
 using BCrypt.Net;
 using BMWMS.Business.DTOs.Auth;
+using BMWMS.Business.DTOs.Audit;
 using BMWMS.Business.Interfaces;
 using BMWMS.Repository.Interfaces;
 using BMWMS.Repository.Models;
@@ -19,12 +20,18 @@ public class AuthService : IAuthService
     private readonly IUserRepository _userRepository;
     private readonly IEmailService _emailService;
     private readonly IConfiguration _configuration;
+    private readonly IAuditLogService _auditLogService;
 
-    public AuthService(IUserRepository userRepository, IEmailService emailService, IConfiguration configuration)
+    public AuthService(
+        IUserRepository userRepository,
+        IEmailService emailService,
+        IConfiguration configuration,
+        IAuditLogService auditLogService)
     {
         _userRepository = userRepository;
         _emailService = emailService;
         _configuration = configuration;
+        _auditLogService = auditLogService;
     }
 
     public async Task<LoginResponseDto> LoginAsync(LoginRequestDto dto, string? ipAddress, string? userAgent)
@@ -35,6 +42,17 @@ public class AuthService : IAuthService
         // 2. User không tồn tại → thông báo chung (không tiết lộ trường nào sai - BR-01)
         if (user == null)
         {
+            await _auditLogService.RecordAsync(new AuditEventDto
+            {
+                ActionType = "LOGIN_FAILED",
+                EntityName = AuditEntities.User,
+                NewValues = new
+                {
+                    Reason = "UNKNOWN_ACCOUNT",
+                    IdentifierFingerprint = Fingerprint(dto.UsernameOrEmail)
+                },
+                IpAddress = ipAddress
+            });
             throw new UnauthorizedAccessException("Tên đăng nhập hoặc mật khẩu không đúng.");
         }
 
@@ -42,18 +60,21 @@ public class AuthService : IAuthService
         if (user.LockedUntil.HasValue && user.LockedUntil.Value > DateTime.UtcNow)
         {
             var remaining = (int)Math.Ceiling((user.LockedUntil.Value - DateTime.UtcNow).TotalMinutes);
+            await RecordLoginDeniedAsync(user.UserId, "TEMPORARILY_LOCKED", ipAddress);
             throw new InvalidOperationException($"LOCKED:{remaining}");
         }
 
         // 4. Kiểm tra tài khoản có ACTIVE không (AF-03)
         if (user.Status != "ACTIVE")
         {
+            await RecordLoginDeniedAsync(user.UserId, "ACCOUNT_INACTIVE", ipAddress);
             throw new InvalidOperationException("INACTIVE");
         }
 
         // 5. Kiểm tra role hợp lệ (BR-03)
         if (user.Role == null || !user.Role.IsActive)
         {
+            await RecordLoginDeniedAsync(user.UserId, "ROLE_INACTIVE_OR_MISSING", ipAddress);
             throw new InvalidOperationException("Tài khoản chưa được gán vai trò hợp lệ. Vui lòng liên hệ quản trị viên.");
         }
 
@@ -72,15 +93,14 @@ public class AuthService : IAuthService
                 user.FailedLoginCount = 0;
                 await _userRepository.UpdateAsync(user);
 
-                // Ghi audit log
-                await _userRepository.AddAuditLogAsync(new AuditLog
+                await _auditLogService.RecordAsync(new AuditEventDto
                 {
                     UserId = user.UserId,
                     ActionType = "LOGIN_LOCKED",
-                    EntityName = "User",
+                    EntityName = "UserSession",
                     EntityId = user.UserId.ToString(),
-                    IpAddress = ipAddress,
-                    CreatedAt = DateTime.UtcNow
+                    NewValues = new { LockedMinutes = LockoutMinutes },
+                    IpAddress = ipAddress
                 });
 
                 throw new InvalidOperationException($"LOCKED:{LockoutMinutes}");
@@ -88,15 +108,13 @@ public class AuthService : IAuthService
 
             await _userRepository.UpdateAsync(user);
 
-            // Ghi audit log thất bại
-            await _userRepository.AddAuditLogAsync(new AuditLog
+            await _auditLogService.RecordAsync(new AuditEventDto
             {
                 UserId = user.UserId,
                 ActionType = "LOGIN_FAILED",
-                EntityName = "User",
+                EntityName = "UserSession",
                 EntityId = user.UserId.ToString(),
-                IpAddress = ipAddress,
-                CreatedAt = DateTime.UtcNow
+                IpAddress = ipAddress
             });
 
             throw new UnauthorizedAccessException("Tên đăng nhập hoặc mật khẩu không đúng.");
@@ -121,15 +139,14 @@ public class AuthService : IAuthService
         };
         await _userRepository.AddSessionAsync(session);
 
-        // 9. Ghi audit log thành công (BR-04)
-        await _userRepository.AddAuditLogAsync(new AuditLog
+        await _auditLogService.RecordAsync(new AuditEventDto
         {
             UserId = user.UserId,
             ActionType = "LOGIN_SUCCESS",
-            EntityName = "User",
+            EntityName = "UserSession",
             EntityId = user.UserId.ToString(),
-            IpAddress = ipAddress,
-            CreatedAt = DateTime.UtcNow
+            NewValues = new { SessionId = session.SessionId },
+            IpAddress = ipAddress
         });
 
         // 10. Tạo JWT Token
@@ -177,22 +194,34 @@ public class AuthService : IAuthService
     {
         await _userRepository.RevokeSessionAsync(sessionId);
 
-        await _userRepository.AddAuditLogAsync(new AuditLog
+        await _auditLogService.RecordAsync(new AuditEventDto
         {
             UserId = userId,
             ActionType = "LOGOUT_SUCCESS",
             EntityName = "UserSession",
             EntityId = sessionId.ToString(),
-            IpAddress = ipAddress,
-            CreatedAt = DateTime.UtcNow
+            IpAddress = ipAddress
         });
     }
 
-    public async Task ForgotPasswordAsync(ForgotPasswordDto request)
+    public async Task ForgotPasswordAsync(ForgotPasswordDto request, string? ipAddress)
     {
         var user = await _userRepository.GetByUsernameOrEmailAsync(request.Email);
         if (user == null || user.Status != "ACTIVE")
         {
+            await _auditLogService.RecordAsync(new AuditEventDto
+            {
+                UserId = user?.UserId,
+                ActionType = "FORGOT_PASSWORD_REQUEST_IGNORED",
+                EntityName = "UserSession",
+                EntityId = user?.UserId.ToString(),
+                NewValues = new
+                {
+                    Reason = user is null ? "UNKNOWN_ACCOUNT" : "ACCOUNT_INACTIVE",
+                    IdentifierFingerprint = Fingerprint(request.Email)
+                },
+                IpAddress = ipAddress
+            });
             // Do not reveal if email exists or not
             return;
         }
@@ -218,28 +247,49 @@ public class AuthService : IAuthService
         string body = $"Chào {user.FullName},\n\nMã xác thực để đặt lại mật khẩu của bạn là: {otp}\n\nMã này sẽ hết hạn trong vòng 15 phút.\nNếu bạn không yêu cầu, vui lòng bỏ qua email này.";
         await _emailService.SendEmailAsync(user.Email, "Yêu cầu đặt lại mật khẩu BMWMS", body);
 
-        await _userRepository.AddAuditLogAsync(new AuditLog
+        await _auditLogService.RecordAsync(new AuditEventDto
         {
             UserId = user.UserId,
             ActionType = "FORGOT_PASSWORD_REQUEST",
-            EntityName = "User",
+            EntityName = "UserSession",
             EntityId = user.UserId.ToString(),
-            CreatedAt = DateTime.UtcNow
+            IpAddress = ipAddress
         });
     }
 
-    public async Task ResetPasswordAsync(ResetPasswordDto request)
+    public async Task ResetPasswordAsync(ResetPasswordDto request, string? ipAddress)
     {
         var user = await _userRepository.GetByUsernameOrEmailAsync(request.Email);
         if (user == null)
+        {
+            await _auditLogService.RecordAsync(new AuditEventDto
+            {
+                UserId = null,
+                ActionType = "RESET_PASSWORD_FAILED",
+                EntityName = "UserSession",
+                NewValues = new { Reason = "UNKNOWN_ACCOUNT", IdentifierFingerprint = Fingerprint(request.Email) },
+                IpAddress = ipAddress
+            });
             throw new InvalidOperationException("Yêu cầu không hợp lệ.");
+        }
 
         using var sha256 = System.Security.Cryptography.SHA256.Create();
         byte[] inputTokenHash = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(request.Token));
 
         var validToken = await _userRepository.GetValidPasswordResetTokenAsync(user.UserId, inputTokenHash);
         if (validToken == null)
+        {
+            await _auditLogService.RecordAsync(new AuditEventDto
+            {
+                UserId = user.UserId,
+                ActionType = "RESET_PASSWORD_FAILED",
+                EntityName = AuditEntities.User,
+                EntityId = user.UserId.ToString(),
+                NewValues = new { Reason = "TOKEN_INVALID_OR_EXPIRED" },
+                IpAddress = ipAddress
+            });
             throw new InvalidOperationException("Mã xác thực không hợp lệ hoặc đã hết hạn.");
+        }
 
         // Rule BR-03: check past passwords
         if (BCrypt.Net.BCrypt.Verify(request.NewPassword, user.PasswordHash))
@@ -287,5 +337,32 @@ public class AuthService : IAuthService
             PasswordHash = oldHashForHistory,
             CreatedAt = DateTime.UtcNow
         });
+
+        await _auditLogService.RecordAsync(new AuditEventDto
+        {
+            UserId = user.UserId,
+            ActionType = "RESET_PASSWORD_SUCCESS",
+            EntityName = AuditEntities.User,
+            EntityId = user.UserId.ToString(),
+            IpAddress = ipAddress
+        });
+    }
+
+    private Task RecordLoginDeniedAsync(long userId, string reason, string? ipAddress) =>
+        _auditLogService.RecordAsync(new AuditEventDto
+        {
+            UserId = userId,
+            ActionType = "LOGIN_DENIED",
+            EntityName = "UserSession",
+            EntityId = userId.ToString(),
+            NewValues = new { Reason = reason },
+            IpAddress = ipAddress
+        });
+
+    private static string Fingerprint(string value)
+    {
+        var normalized = value.Trim().ToLowerInvariant();
+        var hash = System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(normalized));
+        return Convert.ToHexString(hash)[..16];
     }
 }

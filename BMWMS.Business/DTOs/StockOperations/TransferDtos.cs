@@ -40,10 +40,6 @@ namespace BMWMS.Business.DTOs.StockOperations
         public decimal TotalRequestedQuantity { get; set; }
         public decimal TotalMovedQuantity { get; set; }
         public bool InventoryPosted { get; set; }
-        public bool IsWorkflowLinked { get; set; }
-        public string? ParentDocumentType { get; set; }
-        public long? ParentDocumentId { get; set; }
-        public string? ParentDocumentNumber { get; set; }
         public string? Notes { get; set; }
     }
 
@@ -89,10 +85,6 @@ namespace BMWMS.Business.DTOs.StockOperations
         public DateTime? ConfirmedAt { get; set; }
         public bool InventoryPosted { get; set; }
         public bool CanEdit { get; set; }
-        public bool IsWorkflowLinked { get; set; }
-        public string? ParentDocumentType { get; set; }
-        public long? ParentDocumentId { get; set; }
-        public string? ParentDocumentNumber { get; set; }
         public bool CanApprove { get; set; }
         public bool CanReject { get; set; }
         public bool CanIssue { get; set; }
@@ -165,6 +157,17 @@ namespace BMWMS.Business.DTOs.StockOperations
     public class ConfirmTransferDto
     {
         public string? Notes { get; set; }
+        public List<ConfirmTransferItemDto> Items { get; set; } = new();
+        public bool AcknowledgeCapacityWarning { get; set; }
+        public string? CapacityWarningReason { get; set; }
+        public string? DestinationChangeReason { get; set; }
+    }
+
+    public class ConfirmTransferItemDto
+    {
+        public long TransferOrderDetailId { get; set; }
+        public decimal ActualMovedQuantity { get; set; }
+        public long? DestinationLocationId { get; set; }
     }
 
     public class TransferUseCaseDto
@@ -230,6 +233,13 @@ namespace BMWMS.Business.DTOs.StockOperations
     {
         public bool IsValid { get; set; }
         public string Message { get; set; } = string.Empty;
+        public string CapacityStatus { get; set; } = "NOT_CONFIGURED";
+        public decimal? CurrentWeightKg { get; set; }
+        public decimal? ProjectedWeightKg { get; set; }
+        public decimal? MaxWeightKg { get; set; }
+        public decimal? CurrentVolumeM3 { get; set; }
+        public decimal? ProjectedVolumeM3 { get; set; }
+        public decimal? MaxVolumeM3 { get; set; }
     }
 
     public class StaffOptionDto
@@ -238,6 +248,7 @@ namespace BMWMS.Business.DTOs.StockOperations
         public string FullName { get; set; } = string.Empty;
         public string Username { get; set; } = string.Empty;
         public string RoleCode { get; set; } = string.Empty;
+        public string RoleName { get; set; } = string.Empty;
     }
 
     public class TransferResultDto

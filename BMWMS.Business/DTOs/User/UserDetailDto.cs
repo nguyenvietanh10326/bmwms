@@ -24,6 +24,6 @@ public class UserActivityDto
 {
     public DateTime CreatedAt { get; set; }
     public string ActionType { get; set; } = null!;
-    public string IpAddress { get; set; } = null!;
+    public string? IpAddress { get; set; }
     public string? Details { get; set; }
 }

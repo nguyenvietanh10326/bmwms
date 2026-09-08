@@ -73,7 +73,10 @@ public class AuthApiService
                     "Tên đăng nhập hoặc mật khẩu không đúng.", "invalid", null);
             }
 
-            _logger.LogWarning("Login API returned {Status}", response.StatusCode);
+            _logger.LogWarning(
+                "Login API returned {Status}. Response body: {ResponseBody}",
+                response.StatusCode,
+                body);
             return new LoginResult(false, null, "Lỗi hệ thống. Vui lòng thử lại.", "server", null);
         }
         catch (HttpRequestException ex)

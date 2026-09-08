@@ -10,6 +10,7 @@ public interface IInboundService
     Task<long> CreateInboundOrderAsync(CreateInboundOrderDto dto, long currentUserId);
     Task<PurchaseOrderForInboundDto?> GetPurchaseOrderForInboundAsync(long purchaseOrderId);
     Task<List<SourceOrderDropdownDto>> GetPendingPurchaseOrdersAsync();
+    Task<List<PurchaseOrderInboundSourceDto>> GetPurchaseOrderInboundSourcesAsync();
     Task<List<AvailableWarehouseStaffDto>> GetAvailableWarehouseStaffAsync();
     Task<List<SourceOrderDropdownDto>> GetReturnableSalesOrdersAsync();
     Task<PurchaseOrderForInboundDto?> GetSalesOrderForInboundAsync(long salesOrderId);
@@ -17,7 +18,8 @@ public interface IInboundService
     Task CancelInboundOrderAsync(long id, CancelInboundOrderDto dto, long currentUserId);
     Task ConfirmInboundOrderAsync(long id, long currentUserId);
     Task<long> ReceiveItemAsync(long inboundOrderId, ReceiveInboundItemDto dto, long currentUserId);
-    Task PutawayBatchAsync(long inboundOrderId, List<PutawayInboundItemDto> dtos, long currentUserId);
+    Task PutawayBatchAsync(long inboundOrderId, PutawayBatchRequestDto request, long currentUserId);
     Task ReceiveBatchAsync(long inboundOrderId, ReceiveBatchInboundDto dto, long currentUserId);
-    Task<List<PutawayLocationDto>> GetPutawayLocationsAsync(long warehouseId, long productId);
+    Task CompleteReceiptAsync(long inboundOrderId, CompleteInboundReceiptDto dto, long currentUserId);
+    Task<List<PutawayLocationDto>> GetPutawayLocationsAsync(long warehouseId, long productId, decimal putawayQuantity = 0);
 }

@@ -733,15 +733,15 @@
             <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 16px;">
                 <div>
                     <label style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 4px;">Diện tích (m²)</label>
-                    <input type="number" step="0.1" id="locArea" placeholder="0" style="width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; box-sizing: border-box;" />
+                    <input type="number" min="0.0001" step="0.1" id="locArea" placeholder="Để trống nếu chưa cấu hình" style="width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; box-sizing: border-box;" />
                 </div>
                 <div>
                     <label style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 4px;">Tải trọng max (kg)</label>
-                    <input type="number" step="1" id="locWeight" placeholder="0" style="width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; box-sizing: border-box;" />
+                    <input type="number" min="0.0001" step="0.0001" id="locWeight" placeholder="Để trống nếu chưa cấu hình" style="width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; box-sizing: border-box;" />
                 </div>
                 <div>
                     <label style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 4px;">Thể tích max (m³)</label>
-                    <input type="number" step="0.1" id="locVolume" placeholder="0" style="width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; box-sizing: border-box;" />
+                    <input type="number" min="0.0001" step="0.0001" id="locVolume" placeholder="Để trống nếu chưa cấu hình" style="width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; box-sizing: border-box;" />
                 </div>
             </div>
 
@@ -852,8 +852,10 @@
 <!-- ============================================================= -->
 <!-- JAVASCRIPT LOGIC                                              -->
 <!-- ============================================================= -->
+<span class="d-none">@Html.AntiForgeryToken()</span>
 <script>
-    const apiBaseUrl = "https://localhost:7194";
+    const storageLocationPageUrl = window.location.pathname;
+    const requestVerificationToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
     const currentWarehouseId = @Model.Filter.WarehouseId;
     let lookupTimeout = null;
 
@@ -880,7 +882,7 @@
     // --- 1. LOT INVENTORY MODAL ---
     async function openLocationLotDetailModal(locationId) {
         try {
-            const res = await fetch(`${apiBaseUrl}/api/StorageLocations/${locationId}/inventory`);
+            const res = await fetch(`${storageLocationPageUrl}?handler=LocationInventory&id=${locationId}`);
             if (!res.ok) throw new Error('Không thể tải dữ liệu tồn kho của vị trí này.');
             const data = await res.json();
 
@@ -968,7 +970,7 @@
         container.innerHTML = `<div style="text-align: center; padding: 24px; color: #64748b; font-size: 13px;"><i class="ri-loader-4-line ri-spin" style="font-size: 20px;"></i> Đang tìm kiếm...</div>`;
 
         try {
-            const res = await fetch(`${apiBaseUrl}/api/StorageLocations/search-product?warehouseId=${currentWarehouseId}&keyword=${encodeURIComponent(kw)}`);
+            const res = await fetch(`${storageLocationPageUrl}?handler=SearchProduct&warehouseId=${currentWarehouseId}&keyword=${encodeURIComponent(kw)}`);
             if (!res.ok) throw new Error('Lỗi khi tra cứu sản phẩm');
             const list = await res.json();
 
@@ -1030,7 +1032,7 @@
 
     async function openEditLocationModal(locationId) {
         try {
-            const res = await fetch(`${apiBaseUrl}/api/StorageLocations/${locationId}`);
+            const res = await fetch(`${storageLocationPageUrl}?handler=Location&id=${locationId}`);
             if (!res.ok) throw new Error('Không thể tải thông tin vị trí');
             const data = await res.json();
 
@@ -1118,13 +1120,15 @@
             status: getVal('locStatus') || 'Active'
         };
 
-        const url = isCreate ? `${apiBaseUrl}/api/StorageLocations` : `${apiBaseUrl}/api/StorageLocations/${id}`;
-        const method = isCreate ? 'POST' : 'PUT';
+        const url = `${storageLocationPageUrl}?handler=SaveLocation`;
 
         try {
             const res = await fetch(url, {
-                method: method,
-                headers: { 'Content-Type': 'application/json' },
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': requestVerificationToken
+                },
                 body: JSON.stringify(payload)
             });
 
@@ -1170,9 +1174,12 @@
         };
 
         try {
-            const res = await fetch(`${apiBaseUrl}/api/StorageLocations/zones`, {
+            const res = await fetch(`${storageLocationPageUrl}?handler=CreateZone`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': requestVerificationToken
+                },
                 body: JSON.stringify(payload)
             });
 
@@ -1225,9 +1232,12 @@
         };
 
         try {
-            const res = await fetch(`${apiBaseUrl}/api/StorageLocations/racks`, {
+            const res = await fetch(`${storageLocationPageUrl}?handler=CreateRack`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': requestVerificationToken
+                },
                 body: JSON.stringify(payload)
             });
 

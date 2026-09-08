@@ -29,5 +29,6 @@ namespace BMWMS.Repository.Interfaces
         Task DeleteAsync(long productId);
 
         Task<List<ProductAttributeValue>> GetProductAttributeValuesAsync(long productId);
+        Task<List<ProductAttribute>> GetProductAttributesByIdsAsync(IEnumerable<long> productAttributeIds);
     }
 }

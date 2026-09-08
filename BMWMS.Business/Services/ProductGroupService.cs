@@ -1,4 +1,5 @@
-using BMWMS.Business.Common;
+﻿using BMWMS.Business.Common;
+using BMWMS.Business.DTOs.Audit;
 using BMWMS.Business.DTOs.ProductGroup;
 using BMWMS.Business.Interfaces;
 using BMWMS.Repository.Interfaces;
@@ -13,10 +14,12 @@ namespace BMWMS.Business.Services
     public class ProductGroupService : IProductGroupService
     {
         private readonly IProductGroupRepository _productGroupRepository;
+        private readonly IAuditLogService _auditLogService;
 
-        public ProductGroupService(IProductGroupRepository productGroupRepository)
+        public ProductGroupService(IProductGroupRepository productGroupRepository, IAuditLogService auditLogService)
         {
             _productGroupRepository = productGroupRepository;
+            _auditLogService = auditLogService;
         }
 
         public async Task<PagedResultDto<ProductGroupResponseDto>> GetPagedListAsync(ProductGroupFilterDto filter)
@@ -159,13 +162,11 @@ namespace BMWMS.Business.Services
             }).ToList();
         }
 
-        public async Task<long> CreateAsync(CreateProductGroupDto dto)
+        public async Task<long> CreateAsync(CreateProductGroupDto dto, long userId)
         {
             var isCodeExists = await _productGroupRepository.IsGroupCodeExistsAsync(dto.GroupCode.Trim());
             if (isCodeExists)
-            {
-                throw new InvalidOperationException($"Mã nhóm sản phẩm '{dto.GroupCode}' đã tồn tại trong hệ thống.");
-            }
+                throw new InvalidOperationException($"Ma nhom san pham '{dto.GroupCode}' da ton tai trong he thong.");
 
             var group = new ProductGroup
             {
@@ -192,16 +193,25 @@ namespace BMWMS.Business.Services
                 await _productGroupRepository.UpdateGroupAttributesAsync(id, attrs);
             }
 
+            await _auditLogService.RecordAsync(new AuditEventDto
+            {
+                UserId = userId > 0 ? userId : null,
+                ActionType = AuditActions.Create,
+                EntityName = AuditEntities.ProductGroup,
+                EntityId = id.ToString(),
+                NewValues = new { group.GroupCode, group.GroupName, group.Description, group.Status }
+            });
+
             return id;
         }
 
-        public async Task UpdateAsync(long productGroupId, UpdateProductGroupDto dto)
+        public async Task UpdateAsync(long productGroupId, UpdateProductGroupDto dto, long userId)
         {
             var group = await _productGroupRepository.GetByIdAsync(productGroupId);
             if (group == null)
-            {
-                throw new KeyNotFoundException($"Không tìm thấy nhóm sản phẩm với ID: {productGroupId}");
-            }
+                throw new KeyNotFoundException($"Khong tim thay nhom san pham voi ID: {productGroupId}");
+
+            var oldValues = new { group.GroupName, group.Description, group.Status };
 
             group.GroupName = dto.GroupName.Trim();
             group.Description = dto.Description?.Trim();
@@ -223,46 +233,70 @@ namespace BMWMS.Business.Services
 
                 await _productGroupRepository.UpdateGroupAttributesAsync(productGroupId, attrs);
             }
+
+            await _auditLogService.RecordAsync(new AuditEventDto
+            {
+                UserId = userId > 0 ? userId : null,
+                ActionType = AuditActions.Update,
+                EntityName = AuditEntities.ProductGroup,
+                EntityId = productGroupId.ToString(),
+                OldValues = oldValues,
+                NewValues = new { group.GroupName, group.Description, group.Status }
+            });
         }
 
-        public async Task ToggleStatusAsync(long productGroupId)
+        public async Task ToggleStatusAsync(long productGroupId, long userId)
         {
             var group = await _productGroupRepository.GetByIdAsync(productGroupId);
             if (group == null)
-            {
-                throw new KeyNotFoundException($"Không tìm thấy nhóm sản phẩm với ID: {productGroupId}");
-            }
+                throw new KeyNotFoundException($"Khong tim thay nhom san pham voi ID: {productGroupId}");
 
+            var oldStatus = group.Status;
             group.Status = group.Status == "ACTIVE" ? "INACTIVE" : "ACTIVE";
             group.UpdatedAt = DateTime.UtcNow;
 
             await _productGroupRepository.UpdateAsync(group);
+
+            await _auditLogService.RecordAsync(new AuditEventDto
+            {
+                UserId = userId > 0 ? userId : null,
+                ActionType = AuditActions.ChangeStatus,
+                EntityName = AuditEntities.ProductGroup,
+                EntityId = productGroupId.ToString(),
+                OldValues = new { Status = oldStatus },
+                NewValues = new { Status = group.Status }
+            });
         }
 
-        public async Task DeleteAsync(long productGroupId)
+        public async Task DeleteAsync(long productGroupId, long userId)
         {
             var group = await _productGroupRepository.GetByIdAsync(productGroupId);
             if (group == null)
-            {
-                throw new KeyNotFoundException($"Không tìm thấy nhóm sản phẩm với ID: {productGroupId}");
-            }
+                throw new KeyNotFoundException($"Khong tim thay nhom san pham voi ID: {productGroupId}");
 
             var hasProducts = await _productGroupRepository.HasProductsAsync(productGroupId);
             if (hasProducts)
-            {
-                throw new InvalidOperationException("Không thể xóa nhóm sản phẩm này vì đang có sản phẩm/vật tư liên kết. Vui lòng chuyển trạng thái sang Không hoạt động (INACTIVE).");
-            }
+                throw new InvalidOperationException("Khong the xoa nhom san pham nay vi dang co san pham/vat tu lien ket.");
+
+            var snapshot = new { group.GroupCode, group.GroupName, group.Description, group.Status };
 
             await _productGroupRepository.DeleteAsync(productGroupId);
+
+            await _auditLogService.RecordAsync(new AuditEventDto
+            {
+                UserId = userId > 0 ? userId : null,
+                ActionType = AuditActions.Delete,
+                EntityName = AuditEntities.ProductGroup,
+                EntityId = productGroupId.ToString(),
+                OldValues = snapshot
+            });
         }
 
-        public async Task UpdateGroupAttributesAsync(long productGroupId, List<GroupAttributeAssignmentDto> attributes)
+        public async Task UpdateGroupAttributesAsync(long productGroupId, List<GroupAttributeAssignmentDto> attributes, long userId)
         {
             var group = await _productGroupRepository.GetByIdAsync(productGroupId);
             if (group == null)
-            {
-                throw new KeyNotFoundException($"Không tìm thấy nhóm sản phẩm với ID: {productGroupId}");
-            }
+                throw new KeyNotFoundException($"Khong tim thay nhom san pham voi ID: {productGroupId}");
 
             var attrs = attributes.Select(a => new ProductGroupAttribute
             {
@@ -274,6 +308,20 @@ namespace BMWMS.Business.Services
             }).ToList();
 
             await _productGroupRepository.UpdateGroupAttributesAsync(productGroupId, attrs);
+
+            await _auditLogService.RecordAsync(new AuditEventDto
+            {
+                UserId = userId > 0 ? userId : null,
+                ActionType = AuditActions.Update,
+                EntityName = AuditEntities.ProductGroup,
+                EntityId = productGroupId.ToString(),
+                NewValues = new
+                {
+                    GroupCode = group.GroupCode,
+                    Action = "Cap nhat thuoc tinh EAV",
+                    AttributeCount = attributes.Count
+                }
+            });
         }
     }
 }

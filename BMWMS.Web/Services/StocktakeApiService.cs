@@ -270,13 +270,13 @@ namespace BMWMS.Web.Services
             }
         }
 
-        public async Task<StocktakeActionResultModel> ApproveSessionAsync(long id, string? notes)
+        public async Task<StocktakeActionResultModel> ApproveSessionAsync(long id, StocktakeNoteModel request)
         {
             try
             {
                 var response = await _httpClient.PostAsJsonAsync(
                     $"api/stocktakes/{id}/approve",
-                    new StocktakeNoteModel { Notes = notes });
+                    request);
                 return await ReadActionResultAsync(response);
             }
             catch (Exception ex)

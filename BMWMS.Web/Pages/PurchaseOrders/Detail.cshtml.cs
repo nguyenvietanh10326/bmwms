@@ -1,11 +1,13 @@
 using BMWMS.Web.Models.Inventory;
 using BMWMS.Web.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.Threading.Tasks;
 
 namespace BMWMS.Web.Pages.PurchaseOrders;
 
+[Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF")]
 public class DetailModel : PageModel
 {
     private readonly PurchaseOrderApiService _apiService;
@@ -30,17 +32,17 @@ public class DetailModel : PageModel
         return Page();
     }
 
-    public async Task<IActionResult> OnPostConfirmAsync()
+    public async Task<IActionResult> OnPostSendToSupplierAsync()
     {
-        var (isSuccess, message) = await _apiService.ConfirmPurchaseOrderAsync(Id);
+        if (!User.IsInRole("SYSTEM_ADMIN") && !User.IsInRole("PURCHASING_STAFF"))
+            return Forbid();
+
+        var (isSuccess, message) = await _apiService.SendPurchaseOrderToSupplierAsync(Id);
         if (isSuccess)
-        {
             TempData["SuccessMessage"] = message;
-        }
         else
-        {
             TempData["ErrorMessage"] = message;
-        }
+
         return RedirectToPage(new { id = Id });
     }
 
@@ -58,12 +60,22 @@ public class DetailModel : PageModel
         return RedirectToPage(new { id = Id });
     }
 
+    public async Task<IActionResult> OnPostClosePartialAsync(string reason)
+    {
+        if (!User.IsInRole("SYSTEM_ADMIN") && !User.IsInRole("PURCHASING_STAFF"))
+            return Forbid();
+        var (isSuccess, message) = await _apiService.ClosePartiallyReceivedOrderAsync(Id, reason);
+        TempData[isSuccess ? "SuccessMessage" : "ErrorMessage"] = message;
+        return RedirectToPage(new { id = Id });
+    }
+
     public string GetPurchaseOrderStatusLabel(string? status) => (status ?? string.Empty).ToUpperInvariant() switch
     {
         "DRAFT" => "Nháp",
         "CONFIRMED" => "Đã xác nhận",
         "PARTIALLY_RECEIVED" => "Đã nhận một phần",
         "RECEIVED" => "Đã nhận đủ",
+        "CLOSED" => "Đã kết thúc nhận",
         "CANCELLED" => "Đã hủy",
         _ => "Không xác định"
     };
@@ -83,7 +95,7 @@ public class DetailModel : PageModel
     {
         "CONFIRMED" or "READY" => "bg-primary-subtle text-primary",
         "PARTIALLY_RECEIVED" or "RECEIVING" => "bg-warning-subtle text-warning-emphasis",
-        "RECEIVED" or "PUTAWAY_COMPLETED" => "bg-success-subtle text-success",
+        "RECEIVED" or "PUTAWAY_COMPLETED" or "CLOSED" => "bg-success-subtle text-success",
         "CANCELLED" => "bg-danger-subtle text-danger",
         _ => "bg-secondary-subtle text-secondary"
     };

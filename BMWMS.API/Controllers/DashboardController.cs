@@ -7,7 +7,7 @@ namespace BMWMS.API.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-[Authorize]
+[Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,SALES_STAFF")]
 public class DashboardController : ControllerBase
 {
     private readonly IDashboardService _dashboardService;

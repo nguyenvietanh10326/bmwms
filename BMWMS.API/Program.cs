@@ -2,6 +2,7 @@ using System.Text;
 using BMWMS.Business.Interfaces;
 using BMWMS.Business.Interfaces.Inventory;
 using BMWMS.Business.Interfaces.Stocktake;
+using BMWMS.Business.Configuration;
 using BMWMS.Business.Services;
 using BMWMS.Business.Services.Inventory;
 using BMWMS.Business.Services.Stocktake;
@@ -87,6 +88,7 @@ builder.Services.AddScoped<IInventoryRepository, InventoryRepository>();
 builder.Services.AddScoped<IStorageLocationRepository, StorageLocationRepository>();
 builder.Services.AddScoped<IStocktakeRepository, StocktakeRepository>();
 builder.Services.AddScoped<IInboundRepository, InboundRepository>();
+builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();
 
 // Services
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -103,7 +105,14 @@ builder.Services.AddScoped<IInventoryService, InventoryService>();
 builder.Services.AddScoped<IStorageLocationService, StorageLocationService>();
 builder.Services.AddScoped<IStocktakeService, StocktakeService>();
 builder.Services.AddScoped<IInboundService, InboundService>();
+builder.Services.AddScoped<ICapacityEvaluationService, CapacityEvaluationService>();
 builder.Services.AddScoped<IEmailService, SmtpEmailService>();
+builder.Services.AddScoped<IPurchaseOrderEmailComposer, PurchaseOrderEmailComposer>();
+builder.Services.AddScoped<IAuditLogService, AuditLogService>();
+
+var warehouseCapacityOptions = new WarehouseCapacityOptions();
+builder.Configuration.GetSection("WarehouseCapacity").Bind(warehouseCapacityOptions);
+builder.Services.AddSingleton(warehouseCapacityOptions);
 
 // Report
 builder.Services.AddScoped<IReportRepository, ReportRepository>();

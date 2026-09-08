@@ -36,6 +36,7 @@ namespace BMWMS.Business.DTOs.Inventory
         public long SupplierId { get; set; }
         public string SupplierCode { get; set; } = string.Empty;
         public string SupplierName { get; set; } = string.Empty;
+        public string? SupplierEmail { get; set; }
 
         public DateOnly OrderDate { get; set; }
         public DateOnly? ExpectedDeliveryDate { get; set; }
@@ -51,7 +52,7 @@ namespace BMWMS.Business.DTOs.Inventory
         public string? ConfirmedByUserName { get; set; }
         public DateTime? ConfirmedAt { get; set; }
 
-        public bool CanConfirm { get; set; }
+        public bool CanSendToSupplier { get; set; }
         public bool CanCancel { get; set; }
         public bool CanCreateInbound { get; set; }
 
@@ -66,9 +67,10 @@ namespace BMWMS.Business.DTOs.Inventory
         public DateOnly ExpectedReceiptDate { get; set; }
         public string Status { get; set; } = string.Empty;
         public string? Notes { get; set; }
+        public int LineCount { get; set; }
         public decimal ExpectedQuantity { get; set; }
         public decimal ReceivedQuantity { get; set; }
-        public bool IsSupplemental { get; set; }
+        public decimal RejectedQuantity { get; set; }
     }
 
     public class PurchaseOrderItemDto
@@ -78,47 +80,12 @@ namespace BMWMS.Business.DTOs.Inventory
         public string ProductCode { get; set; } = string.Empty;
         public string ProductName { get; set; } = string.Empty;
         public string Unit { get; set; } = string.Empty;
+        public byte QuantityScale { get; set; }
         public decimal OrderedQuantity { get; set; }
         public decimal PlannedInboundQuantity { get; set; }
         public decimal ReceivedQuantity { get; set; }
+        public decimal RejectedQuantity { get; set; }
         public decimal RemainingQuantity { get; set; }
-        public string? Notes { get; set; }
-    }
-    #endregion
-
-    #region 3. DTO Cho Màn Hình Tạo Mới / Sửa (Create/Update Request)
-    public class CreatePurchaseOrderDto
-    {
-        [Required(ErrorMessage = "Vui lòng chọn Nhà cung cấp")]
-        public long SupplierId { get; set; }
-
-        [Required(ErrorMessage = "Vui lòng chọn Ngày đặt hàng")]
-        public DateOnly OrderDate { get; set; } = DateOnly.FromDateTime(DateTime.Now);
-
-        public DateOnly? ExpectedDeliveryDate { get; set; }
-
-        public long? WarehouseId { get; set; } // Kho dự kiến nhận hàng
-
-        public string? Notes { get; set; }
-
-        // Bỏ trống hoặc "Draft" nếu bấm "Lưu nháp", "Confirmed" nếu bấm "Xác nhận đơn mua"
-        public bool IsSubmitForConfirmation { get; set; } = false;
-
-        [MinLength(1, ErrorMessage = "Đơn mua hàng phải có ít nhất 1 sản phẩm")]
-        public List<CreatePurchaseOrderItemDto> Items { get; set; } = new();
-    }
-
-    public class CreatePurchaseOrderItemDto
-    {
-        [Required(ErrorMessage = "Vui lòng chọn sản phẩm")]
-        public long ProductId { get; set; }
-
-        [Range(0.0001, double.MaxValue, ErrorMessage = "Số lượng phải lớn hơn 0")]
-        public decimal OrderedQuantity { get; set; }
-
-        [Range(0, double.MaxValue, ErrorMessage = "Đơn giá không hợp lệ")]
-        public decimal UnitPrice { get; set; }
-
         public string? Notes { get; set; }
     }
     #endregion

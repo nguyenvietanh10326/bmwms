@@ -202,6 +202,8 @@ namespace BMWMS.Business.DTOs.Stocktake
     public class StocktakeNoteDto
     {
         public string? Notes { get; set; }
+        public bool AcknowledgeCapacityWarning { get; set; }
+        public string? CapacityWarningReason { get; set; }
     }
 
     public class StocktakeLocationOptionDto
@@ -218,6 +220,7 @@ namespace BMWMS.Business.DTOs.Stocktake
         public string FullName { get; set; } = string.Empty;
         public string Username { get; set; } = string.Empty;
         public string RoleCode { get; set; } = string.Empty;
+        public string RoleName { get; set; } = string.Empty;
     }
 
     public class StocktakeProductLotOptionDto

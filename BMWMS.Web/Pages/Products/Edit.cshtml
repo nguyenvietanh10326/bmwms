@@ -147,11 +147,17 @@
                         <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">
                             Phương Pháp Luân Chuyển Xuất Kho <span style="color: #dc2626;">*</span>
                         </label>
-                        <select id="ddlRotationMethod" asp-for="Product.RotationMethod" style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; background: #fff;" required>
+                        <select id="ddlRotationMethod" asp-for="Product.RotationMethod" style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; background: #fff;" required onchange="onRotationMethodChanged(this.value)">
                             <option value="FIFO">FIFO - Nhập trước Xuất trước (First In First Out)</option>
                             <option value="FEFO">FEFO - Hết hạn trước Xuất trước (First Expired First Out)</option>
                             <option value="LIFO">LIFO - Nhập sau Xuất trước (Last In First Out)</option>
                         </select>
+
+                        <!-- FEFO Required Notice -->
+                        <div id="fefoRequiredNotice" style="display: none; background: #fffbeb; border: 1px solid #fde68a; color: #92400e; padding: 10px 14px; border-radius: 8px; margin-top: 10px; font-size: 12px;">
+                            <i class="ri-error-warning-line" style="color: #d97706; margin-right: 6px;"></i>
+                            <strong>FEFO:</strong> Bắt buộc phải bật "Theo dõi Hạn sử dụng" và nhập số ngày HSD mặc định.
+                        </div>
                     </div>
 
                     <div style="background: #f8fafc; border-radius: 8px; padding: 16px; border: 1px solid #e2e8f0; margin-bottom: 18px;">
@@ -173,7 +179,7 @@
 
                         <div id="shelfLifeContainer" style="margin-top: 10px;">
                             <label style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 4px;">
-                                Hạn sử dụng mặc định (Số ngày)
+                                Hạn sử dụng mặc định (Số ngày) <span id="shelfLifeRequiredStar" style="color: #dc2626; display: none;">*</span>
                             </label>
                             <input type="number" id="txtShelfLife" asp-for="Product.DefaultShelfLifeDays" style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px;" />
                             <span asp-validation-for="Product.DefaultShelfLifeDays" style="color: #dc2626; font-size: 12px;"></span>
@@ -212,6 +218,33 @@
     <script>
         // Existing values from model
         const existingAttributeValues = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Product.AttributeValues ?? new()));
+
+        function onRotationMethodChanged(value) {
+            const isFEFO = value === 'FEFO';
+            const chkExpiry = document.getElementById('chkExpiry');
+            const fefoNotice = document.getElementById('fefoRequiredNotice');
+            const shelfLifeStar = document.getElementById('shelfLifeRequiredStar');
+            const txtShelfLife = document.getElementById('txtShelfLife');
+
+            if (isFEFO) {
+                chkExpiry.checked = true;
+                chkExpiry.onclick = function() { return false; };
+                chkExpiry.style.opacity = '0.7';
+                chkExpiry.style.cursor = 'not-allowed';
+                fefoNotice.style.display = 'block';
+                shelfLifeStar.style.display = 'inline';
+                txtShelfLife.setAttribute('required', 'required');
+                toggleShelfLife(true);
+            } else {
+                chkExpiry.onclick = null;
+                chkExpiry.style.opacity = '1';
+                chkExpiry.style.cursor = 'pointer';
+                fefoNotice.style.display = 'none';
+                shelfLifeStar.style.display = 'none';
+                txtShelfLife.removeAttribute('required');
+                toggleShelfLife(chkExpiry.checked);
+            }
+        }
 
         function toggleShelfLife(isChecked) {
             var container = document.getElementById('shelfLifeContainer');
@@ -320,9 +353,11 @@
                         </select>
                     `;
                 } else if (attr.dataType === 'NUMBER') {
+                    const isStorageCapacityFactor = attr.attributeCode === 'STORAGE_WEIGHT_KG_PER_BASE_UOM'
+                        || attr.attributeCode === 'STORAGE_VOLUME_M3_PER_BASE_UOM';
                     inputHtml = `
                         <div style="position: relative;">
-                            <input type="number" step="any" name="Product.AttributeValues[${idx}].AttributeValue" value="${currVal}" placeholder="Nhập số lượng/kích thước..." style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px;" ${attr.isRequired ? 'required' : ''} />
+                            <input type="number" step="any" ${isStorageCapacityFactor ? 'min="0.000001"' : ''} name="Product.AttributeValues[${idx}].AttributeValue" value="${currVal}" placeholder="${isStorageCapacityFactor ? 'Nhập hệ số trên một đơn vị cơ sở...' : 'Nhập số lượng/kích thước...'}" style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px;" ${attr.isRequired ? 'required' : ''} />
                             ${attr.unitLabel ? `<span style="position: absolute; right: 10px; top: 8px; font-size: 12px; color: #94a3b8; font-weight: 500;">${attr.unitLabel}</span>` : ''}
                         </div>
                     `;
@@ -351,10 +386,8 @@
         }
 
         document.addEventListener('DOMContentLoaded', function() {
-            var chkExpiry = document.getElementById('chkExpiry');
-            if (chkExpiry) {
-                toggleShelfLife(chkExpiry.checked);
-            }
+            var rotationMethod = document.getElementById('ddlRotationMethod');
+            if (rotationMethod) onRotationMethodChanged(rotationMethod.value);
 
             var groupDdl = document.getElementById('ddlProductGroup');
             if (groupDdl && groupDdl.value) {

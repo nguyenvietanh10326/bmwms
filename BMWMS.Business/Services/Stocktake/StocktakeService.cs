@@ -1,7 +1,13 @@
+using System.Data;
+using BMWMS.Business.Configuration;
+using BMWMS.Business.DTOs.Audit;
+using BMWMS.Business.DTOs.Capacity;
 using BMWMS.Business.DTOs.Stocktake;
+using BMWMS.Business.Interfaces;
 using BMWMS.Business.Interfaces.Stocktake;
 using BMWMS.Repository.Interfaces.Stocktake;
 using BMWMS.Repository.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace BMWMS.Business.Services.Stocktake
 {
@@ -24,10 +30,23 @@ namespace BMWMS.Business.Services.Stocktake
         private const string ResolutionRecount = "RECOUNT";
 
         private readonly IStocktakeRepository _stocktakeRepo;
+        private readonly BmwmsContext _context;
+        private readonly ICapacityEvaluationService _capacityEvaluationService;
+        private readonly WarehouseCapacityOptions _capacityOptions;
+        private readonly IAuditLogService _auditLogService;
 
-        public StocktakeService(IStocktakeRepository stocktakeRepo)
+        public StocktakeService(
+            IStocktakeRepository stocktakeRepo,
+            BmwmsContext context,
+            ICapacityEvaluationService capacityEvaluationService,
+            WarehouseCapacityOptions capacityOptions,
+            IAuditLogService auditLogService)
         {
             _stocktakeRepo = stocktakeRepo;
+            _context = context;
+            _capacityEvaluationService = capacityEvaluationService;
+            _capacityOptions = capacityOptions;
+            _auditLogService = auditLogService;
         }
 
         public async Task<List<StocktakeLocationOptionDto>> GetLocationOptionsAsync(long warehouseId, List<long>? rackIds = null, List<long>? productGroupIds = null)
@@ -50,7 +69,8 @@ namespace BMWMS.Business.Services.Stocktake
                 UserId = u.UserId,
                 FullName = u.FullName ?? u.Username,
                 Username = u.Username,
-                RoleCode = u.Role?.RoleCode ?? string.Empty
+                RoleCode = u.Role?.RoleCode ?? string.Empty,
+                RoleName = u.Role?.RoleName ?? string.Empty
             }).ToList();
         }
 
@@ -292,17 +312,110 @@ namespace BMWMS.Business.Services.Stocktake
             }
         }
 
-        public async Task<StocktakeActionResultDto> ApproveSessionAsync(long stocktakeSessionId, long approvedByUserId, string? notes)
+        public async Task<StocktakeActionResultDto> ApproveSessionAsync(
+            long stocktakeSessionId,
+            long approvedByUserId,
+            StocktakeNoteDto request)
         {
+            await using var dbTransaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
             try
             {
-                var session = await _stocktakeRepo.ApproveSessionAsync(stocktakeSessionId, approvedByUserId, notes);
-                return Success(session, $"Da phe duyet va hoan tat dot kiem kho {session.StocktakeNumber}.");
+                var snapshot = await _context.StocktakeSessions
+                    .AsNoTracking()
+                    .Include(session => session.StocktakeItems)
+                    .FirstOrDefaultAsync(session => session.StocktakeSessionId == stocktakeSessionId)
+                    ?? throw new InvalidOperationException("Không tìm thấy đợt kiểm kho.");
+
+                var positiveAdjustments = snapshot.StocktakeItems
+                    .Select(item => new
+                    {
+                        Item = item,
+                        Adjustment = item.AdjustmentQuantity ??
+                            (string.Equals(item.Resolution, ResolutionAcceptDifference, StringComparison.OrdinalIgnoreCase)
+                                ? (item.CountedQuantity ?? 0) - item.BookQuantity
+                                : 0)
+                    })
+                    .Where(row => row.Adjustment > 0)
+                    .Select(row => new CapacityAllocationDto
+                    {
+                        StorageLocationId = row.Item.StorageLocationId,
+                        ProductId = row.Item.ProductId,
+                        Quantity = row.Adjustment
+                    })
+                    .ToList();
+
+                var evaluations = new Dictionary<long, LocationCapacityEvaluationDto>();
+                if (_capacityOptions.Enabled && positiveAdjustments.Count > 0)
+                {
+                    evaluations = (await _capacityEvaluationService.EvaluateAsync(
+                            positiveAdjustments,
+                            acquireLocationLocks: true))
+                        .ToDictionary(pair => pair.Key, pair => pair.Value);
+                    EnsureStocktakeCapacityDecision(
+                        evaluations.Values,
+                        request.AcknowledgeCapacityWarning,
+                        request.CapacityWarningReason);
+                }
+
+                var session = await _stocktakeRepo.ApproveSessionAsync(
+                    stocktakeSessionId,
+                    approvedByUserId,
+                    request.Notes);
+                await _auditLogService.StageAsync(new AuditEventDto
+                {
+                    UserId = approvedByUserId,
+                    ActionType = "APPROVE_STOCKTAKE",
+                    EntityName = AuditEntities.StocktakeSession,
+                    EntityId = session.StocktakeSessionId.ToString(),
+                    NewValues = new
+                    {
+                        session.StocktakeNumber,
+                        session.Status,
+                        PositiveAdjustments = positiveAdjustments,
+                        CapacityEnabled = _capacityOptions.Enabled,
+                        CapacityEvaluations = evaluations.Values,
+                        WarningAcknowledged = request.AcknowledgeCapacityWarning,
+                        WarningReason = request.CapacityWarningReason?.Trim()
+                    }
+                });
+                await _context.SaveChangesAsync();
+                await dbTransaction.CommitAsync();
+                return Success(session, $"Đã phê duyệt và hoàn tất đợt kiểm kho {session.StocktakeNumber}.");
             }
             catch (Exception ex)
             {
+                await dbTransaction.RollbackAsync();
                 return Fail(ex.Message, stocktakeSessionId);
             }
+        }
+
+        private void EnsureStocktakeCapacityDecision(
+            IEnumerable<LocationCapacityEvaluationDto> evaluations,
+            bool warningAcknowledged,
+            string? warningReason)
+        {
+            var values = evaluations.ToList();
+            var exceeded = values
+                .Where(value => value.OverallStatus == CapacityEvaluationStatuses.Exceeded)
+                .Select(value => value.LocationCode)
+                .OrderBy(code => code)
+                .ToList();
+            if (exceeded.Count > 0)
+                throw new InvalidOperationException(
+                    $"Không thể duyệt vì điều chỉnh tăng làm vượt sức chứa tại: {string.Join(", ", exceeded)}.");
+
+            var incomplete = values
+                .Where(value => value.OverallStatus is CapacityEvaluationStatuses.Unknown or CapacityEvaluationStatuses.NotConfigured)
+                .Select(value => value.LocationCode)
+                .OrderBy(code => code)
+                .ToList();
+            if (_capacityOptions.IsStrict && incomplete.Count > 0)
+                throw new InvalidOperationException(
+                    $"Chưa đủ cấu hình để kiểm tra sức chứa tại: {string.Join(", ", incomplete)}.");
+
+            if (incomplete.Count > 0 && (!warningAcknowledged || string.IsNullOrWhiteSpace(warningReason)))
+                throw new InvalidOperationException(
+                    $"Chưa đủ dữ liệu sức chứa tại {string.Join(", ", incomplete)}. Vui lòng xác nhận cảnh báo và nhập lý do để duyệt.");
         }
 
         private async Task<bool> EnsureAccessAsync(long stocktakeSessionId, long currentUserId, bool canManage)
