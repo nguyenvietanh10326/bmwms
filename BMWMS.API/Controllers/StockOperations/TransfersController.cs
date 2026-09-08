@@ -141,21 +141,21 @@ namespace BMWMS.API.Controllers.StockOperations
         }
 
         [HttpPost("{id}/issue")]
-        [Authorize(Roles = "WAREHOUSE_MANAGER,WAREHOUSE_STAFF")]
+        [Authorize(Roles = "WAREHOUSE_STAFF")]
         public async Task<IActionResult> ConfirmIssue(long id, [FromBody] ConfirmTransferDto dto)
         {
             var userId = GetCurrentUserId();
-            var result = await _transferService.ConfirmTransferIssueAsync(id, userId, dto.Notes);
+            var result = await _transferService.ConfirmTransferIssueAsync(id, userId, dto);
             if (!result.Success) return BadRequest(new { message = result.Message });
             return Ok(result);
         }
 
         [HttpPost("{id}/receive")]
-        [Authorize(Roles = "WAREHOUSE_MANAGER,WAREHOUSE_STAFF")]
+        [Authorize(Roles = "WAREHOUSE_STAFF")]
         public async Task<IActionResult> ConfirmReceipt(long id, [FromBody] ConfirmTransferDto dto)
         {
             var userId = GetCurrentUserId();
-            var result = await _transferService.ConfirmTransferReceiptAsync(id, userId, dto.Notes);
+            var result = await _transferService.ConfirmTransferReceiptAsync(id, userId, dto);
             if (!result.Success) return BadRequest(new { message = result.Message });
             return Ok(result);
         }
