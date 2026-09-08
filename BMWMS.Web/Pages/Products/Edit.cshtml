@@ -353,9 +353,11 @@
                         </select>
                     `;
                 } else if (attr.dataType === 'NUMBER') {
+                    const isStorageCapacityFactor = attr.attributeCode === 'STORAGE_WEIGHT_KG_PER_BASE_UOM'
+                        || attr.attributeCode === 'STORAGE_VOLUME_M3_PER_BASE_UOM';
                     inputHtml = `
                         <div style="position: relative;">
-                            <input type="number" step="any" name="Product.AttributeValues[${idx}].AttributeValue" value="${currVal}" placeholder="Nhập số lượng/kích thước..." style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px;" ${attr.isRequired ? 'required' : ''} />
+                            <input type="number" step="any" ${isStorageCapacityFactor ? 'min="0.000001"' : ''} name="Product.AttributeValues[${idx}].AttributeValue" value="${currVal}" placeholder="${isStorageCapacityFactor ? 'Nhập hệ số trên một đơn vị cơ sở...' : 'Nhập số lượng/kích thước...'}" style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px;" ${attr.isRequired ? 'required' : ''} />
                             ${attr.unitLabel ? `<span style="position: absolute; right: 10px; top: 8px; font-size: 12px; color: #94a3b8; font-weight: 500;">${attr.unitLabel}</span>` : ''}
                         </div>
                     `;

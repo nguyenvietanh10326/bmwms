@@ -231,5 +231,14 @@ namespace BMWMS.Repository.Repositories
                 .AsNoTracking()
                 .ToListAsync();
         }
+
+        public async Task<List<ProductAttribute>> GetProductAttributesByIdsAsync(IEnumerable<long> productAttributeIds)
+        {
+            var ids = productAttributeIds.Distinct().ToList();
+            return await _context.ProductAttributes
+                .AsNoTracking()
+                .Where(attribute => ids.Contains(attribute.ProductAttributeId))
+                .ToListAsync();
+        }
     }
 }
