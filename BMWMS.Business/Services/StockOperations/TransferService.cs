@@ -1,17 +1,36 @@
+using System.Data;
+using BMWMS.Business.Configuration;
+using BMWMS.Business.DTOs.Audit;
+using BMWMS.Business.DTOs.Capacity;
 using BMWMS.Business.DTOs.StockOperations;
+using BMWMS.Business.Interfaces;
 using BMWMS.Business.Interfaces.StockOperations;
 using BMWMS.Repository.Interfaces.StockOperations;
 using BMWMS.Repository.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace BMWMS.Business.Services.StockOperations
 {
     public class TransferService : ITransferService
     {
         private readonly ITransferRepository _transferRepo;
+        private readonly BmwmsContext _context;
+        private readonly ICapacityEvaluationService _capacityEvaluationService;
+        private readonly WarehouseCapacityOptions _capacityOptions;
+        private readonly IAuditLogService _auditLogService;
 
-        public TransferService(ITransferRepository transferRepo)
+        public TransferService(
+            ITransferRepository transferRepo,
+            BmwmsContext context,
+            ICapacityEvaluationService capacityEvaluationService,
+            WarehouseCapacityOptions capacityOptions,
+            IAuditLogService auditLogService)
         {
             _transferRepo = transferRepo;
+            _context = context;
+            _capacityEvaluationService = capacityEvaluationService;
+            _capacityOptions = capacityOptions;
+            _auditLogService = auditLogService;
         }
 
         public async Task<List<ZoneOptionDto>> GetZonesAsync(long warehouseId = 1)
@@ -435,73 +454,281 @@ namespace BMWMS.Business.Services.StockOperations
             }
         }
 
-        public async Task<TransferResultDto> ConfirmTransferIssueAsync(long transferOrderId, long staffUserId, string? notes)
+        public async Task<TransferResultDto> ConfirmTransferIssueAsync(
+            long transferOrderId,
+            long staffUserId,
+            ConfirmTransferDto request)
         {
+            await using var dbTransaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
             try
             {
-                var order = await _transferRepo.ConfirmTransferIssueAsync(transferOrderId, staffUserId, notes);
+                var snapshot = await _transferRepo.GetOrderWithDetailsAsync(transferOrderId)
+                    ?? throw new InvalidOperationException("Không tìm thấy phiếu điều chuyển.");
+
+                var actualByDetailId = ValidateAndBuildActualQuantities(snapshot, request.Items);
+                var evaluations = new Dictionary<long, LocationCapacityEvaluationDto>();
+                if (_capacityOptions.Enabled)
+                {
+                    var movements = snapshot.TransferOrderDetails.SelectMany(detail => new[]
+                    {
+                        new CapacityAllocationDto
+                        {
+                            StorageLocationId = detail.SourceLocationId ?? 0,
+                            ProductId = detail.ProductId,
+                            Quantity = -actualByDetailId[detail.TransferOrderDetailId]
+                        },
+                        new CapacityAllocationDto
+                        {
+                            StorageLocationId = detail.DestinationLocationId ?? 0,
+                            ProductId = detail.ProductId,
+                            Quantity = actualByDetailId[detail.TransferOrderDetailId]
+                        }
+                    }).ToList();
+
+                    evaluations = (await _capacityEvaluationService.EvaluateAsync(movements, acquireLocationLocks: true))
+                        .ToDictionary(pair => pair.Key, pair => pair.Value);
+                    EnsureCapacityDecision(
+                        evaluations,
+                        snapshot.TransferOrderDetails.Select(detail => detail.DestinationLocationId ?? 0),
+                        request.AcknowledgeCapacityWarning,
+                        request.CapacityWarningReason);
+                }
+
+                var repoItems = actualByDetailId.Select(pair => new TransferIssueItemParam
+                {
+                    TransferOrderDetailId = pair.Key,
+                    ActualMovedQuantity = pair.Value
+                }).ToList();
+                var order = await _transferRepo.ConfirmTransferIssueAsync(
+                    transferOrderId,
+                    staffUserId,
+                    repoItems,
+                    request.Notes);
+
+                await _auditLogService.StageAsync(new AuditEventDto
+                {
+                    UserId = staffUserId,
+                    ActionType = "ISSUE_TRANSFER",
+                    EntityName = AuditEntities.TransferOrder,
+                    EntityId = order.TransferOrderId.ToString(),
+                    NewValues = new
+                    {
+                        order.TransferOrderNumber,
+                        order.Status,
+                        ActualQuantities = repoItems,
+                        CapacityEnabled = _capacityOptions.Enabled,
+                        CapacityEvaluations = evaluations.Values,
+                        WarningAcknowledged = request.AcknowledgeCapacityWarning,
+                        WarningReason = request.CapacityWarningReason?.Trim()
+                    }
+                });
+                await _context.SaveChangesAsync();
+                await dbTransaction.CommitAsync();
                 return new TransferResultDto
                 {
                     Success = true,
-                    Message = $"Da xac nhan xuat phieu {order.TransferOrderNumber}.",
+                    Message = $"Đã xác nhận xuất hàng khỏi vị trí nguồn cho phiếu {order.TransferOrderNumber}.",
                     TransferOrderId = order.TransferOrderId,
                     TransferOrderNumber = order.TransferOrderNumber
                 };
             }
             catch (InvalidOperationException ex)
             {
+                await dbTransaction.RollbackAsync();
                 return new TransferResultDto { Success = false, Message = ex.Message };
             }
             catch (Exception ex)
             {
-                return new TransferResultDto { Success = false, Message = $"Loi khi xac nhan xuat: {ex.Message}" };
+                await dbTransaction.RollbackAsync();
+                return new TransferResultDto { Success = false, Message = $"Không thể xác nhận xuất điều chuyển: {ex.Message}" };
             }
         }
 
-        public async Task<TransferResultDto> ConfirmTransferReceiptAsync(long transferOrderId, long staffUserId, string? notes)
+        public async Task<TransferResultDto> ConfirmTransferReceiptAsync(
+            long transferOrderId,
+            long staffUserId,
+            ConfirmTransferDto request)
         {
+            await using var dbTransaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
             try
             {
-                var order = await _transferRepo.ConfirmTransferReceiptAsync(transferOrderId, staffUserId, notes);
+                var snapshot = await _transferRepo.GetOrderWithDetailsAsync(transferOrderId)
+                    ?? throw new InvalidOperationException("Không tìm thấy phiếu điều chuyển.");
+                var destinationsByDetailId = ValidateAndBuildReceiptDestinations(snapshot, request.Items, request.DestinationChangeReason);
+
+                var evaluations = new Dictionary<long, LocationCapacityEvaluationDto>();
+                if (_capacityOptions.Enabled)
+                {
+                    var movements = snapshot.TransferOrderDetails.Select(detail => new CapacityAllocationDto
+                    {
+                        StorageLocationId = destinationsByDetailId[detail.TransferOrderDetailId],
+                        ProductId = detail.ProductId,
+                        Quantity = detail.MovedQuantity
+                    }).ToList();
+                    if (movements.Any(movement => movement.StorageLocationId <= 0 || movement.Quantity <= 0))
+                        throw new InvalidOperationException("Phiếu thiếu vị trí đích hoặc số lượng đã xuất hợp lệ.");
+
+                    evaluations = (await _capacityEvaluationService.EvaluateAsync(movements, acquireLocationLocks: true))
+                        .ToDictionary(pair => pair.Key, pair => pair.Value);
+                    EnsureCapacityDecision(
+                        evaluations,
+                        movements.Select(movement => movement.StorageLocationId),
+                        request.AcknowledgeCapacityWarning,
+                        request.CapacityWarningReason);
+                }
+
+                var receiptItems = destinationsByDetailId.Select(pair => new TransferReceiptItemParam
+                {
+                    TransferOrderDetailId = pair.Key,
+                    DestinationLocationId = pair.Value
+                }).ToList();
+                var order = await _transferRepo.ConfirmTransferReceiptAsync(
+                    transferOrderId,
+                    staffUserId,
+                    receiptItems,
+                    request.DestinationChangeReason,
+                    request.Notes);
+                await _auditLogService.StageAsync(new AuditEventDto
+                {
+                    UserId = staffUserId,
+                    ActionType = "RECEIVE_TRANSFER",
+                    EntityName = AuditEntities.TransferOrder,
+                    EntityId = order.TransferOrderId.ToString(),
+                    NewValues = new
+                    {
+                        order.TransferOrderNumber,
+                        order.Status,
+                        CapacityEnabled = _capacityOptions.Enabled,
+                        CapacityEvaluations = evaluations.Values,
+                        ReceiptDestinations = receiptItems,
+                        DestinationChangeReason = request.DestinationChangeReason?.Trim(),
+                        WarningAcknowledged = request.AcknowledgeCapacityWarning,
+                        WarningReason = request.CapacityWarningReason?.Trim()
+                    }
+                });
+                await _context.SaveChangesAsync();
+                await dbTransaction.CommitAsync();
                 return new TransferResultDto
                 {
                     Success = true,
-                    Message = $"Da xac nhan nhap va hoan tat phieu {order.TransferOrderNumber}.",
+                    Message = $"Đã xác nhận nhập vào vị trí đích và hoàn tất phiếu {order.TransferOrderNumber}.",
                     TransferOrderId = order.TransferOrderId,
                     TransferOrderNumber = order.TransferOrderNumber
                 };
             }
             catch (InvalidOperationException ex)
             {
+                await dbTransaction.RollbackAsync();
                 return new TransferResultDto { Success = false, Message = ex.Message };
             }
             catch (Exception ex)
             {
-                return new TransferResultDto { Success = false, Message = $"Loi khi xac nhan nhap: {ex.Message}" };
+                await dbTransaction.RollbackAsync();
+                return new TransferResultDto { Success = false, Message = $"Không thể xác nhận nhập điều chuyển: {ex.Message}" };
             }
         }
 
         public async Task<TransferResultDto> ConfirmTransferAsync(long transferOrderId, long staffUserId, string? notes)
         {
-            try
+            await Task.CompletedTask;
+            return new TransferResultDto
             {
-                var order = await _transferRepo.ConfirmTransferAsync(transferOrderId, staffUserId, notes);
-                return new TransferResultDto
-                {
-                    Success = true,
-                    Message = $"Da hoan tat luon phieu {order.TransferOrderNumber}.",
-                    TransferOrderId = order.TransferOrderId,
-                    TransferOrderNumber = order.TransferOrderNumber
-                };
-            }
-            catch (InvalidOperationException ex)
+                Success = false,
+                Message = "Chức năng xác nhận điều chuyển một bước đã ngừng sử dụng. Hãy xác nhận xuất tại nguồn, sau đó xác nhận nhập tại đích."
+            };
+        }
+
+        private static Dictionary<long, decimal> ValidateAndBuildActualQuantities(
+            TransferOrder order,
+            IReadOnlyCollection<ConfirmTransferItemDto>? requestItems)
+        {
+            if (requestItems == null || requestItems.Count == 0)
+                throw new InvalidOperationException("Vui lòng nhập số lượng thực chuyển cho từng dòng hàng.");
+
+            var duplicate = requestItems.GroupBy(item => item.TransferOrderDetailId).FirstOrDefault(group => group.Count() > 1);
+            if (duplicate != null)
+                throw new InvalidOperationException("Dữ liệu số lượng thực chuyển bị trùng dòng hàng.");
+
+            var result = requestItems.ToDictionary(item => item.TransferOrderDetailId, item => item.ActualMovedQuantity);
+            if (result.Count != order.TransferOrderDetails.Count ||
+                order.TransferOrderDetails.Any(detail => !result.ContainsKey(detail.TransferOrderDetailId)))
+                throw new InvalidOperationException("Phải nhập số lượng thực chuyển cho tất cả dòng hàng.");
+
+            foreach (var detail in order.TransferOrderDetails)
             {
-                return new TransferResultDto { Success = false, Message = ex.Message };
+                var actual = result[detail.TransferOrderDetailId];
+                if (actual <= 0 || actual > detail.RequestedQuantity)
+                    throw new InvalidOperationException(
+                        $"Số lượng thực chuyển của {detail.Product?.ProductCode ?? $"ID {detail.ProductId}"} phải lớn hơn 0 và không vượt số lượng dự kiến.");
             }
-            catch (Exception ex)
-            {
-                return new TransferResultDto { Success = false, Message = $"Loi khi xac nhan: {ex.Message}" };
-            }
+
+            return result;
+        }
+
+        private static Dictionary<long, long> ValidateAndBuildReceiptDestinations(
+            TransferOrder order,
+            IReadOnlyCollection<ConfirmTransferItemDto>? requestItems,
+            string? destinationChangeReason)
+        {
+            if (requestItems == null || requestItems.Count == 0)
+                throw new InvalidOperationException("Phải xác nhận vị trí đích cho tất cả dòng hàng.");
+
+            var duplicate = requestItems.GroupBy(item => item.TransferOrderDetailId).FirstOrDefault(group => group.Count() > 1);
+            if (duplicate != null)
+                throw new InvalidOperationException("Dữ liệu vị trí đích bị trùng dòng hàng.");
+
+            var result = requestItems.ToDictionary(
+                item => item.TransferOrderDetailId,
+                item => item.DestinationLocationId ?? 0);
+            if (result.Count != order.TransferOrderDetails.Count ||
+                order.TransferOrderDetails.Any(detail => !result.ContainsKey(detail.TransferOrderDetailId)))
+                throw new InvalidOperationException("Phải xác nhận vị trí đích cho tất cả dòng hàng.");
+            if (result.Values.Any(destinationId => destinationId <= 0))
+                throw new InvalidOperationException("Vị trí đích không hợp lệ.");
+
+            var changed = order.TransferOrderDetails.Any(detail =>
+                result[detail.TransferOrderDetailId] != detail.DestinationLocationId);
+            if (changed && string.IsNullOrWhiteSpace(destinationChangeReason))
+                throw new InvalidOperationException("Phải nhập lý do khi thay đổi vị trí đích của hàng đang di chuyển.");
+
+            return result;
+        }
+
+        private void EnsureCapacityDecision(
+            IReadOnlyDictionary<long, LocationCapacityEvaluationDto> evaluations,
+            IEnumerable<long> destinationLocationIds,
+            bool warningAcknowledged,
+            string? warningReason)
+        {
+            var destinations = destinationLocationIds
+                .Where(id => id > 0)
+                .Distinct()
+                .Select(id => evaluations.GetValueOrDefault(id))
+                .Where(value => value != null)
+                .Cast<LocationCapacityEvaluationDto>()
+                .ToList();
+
+            var exceeded = destinations
+                .Where(value => value.OverallStatus == CapacityEvaluationStatuses.Exceeded)
+                .Select(value => value.LocationCode)
+                .OrderBy(code => code)
+                .ToList();
+            if (exceeded.Count > 0)
+                throw new InvalidOperationException(
+                    $"Không đủ sức chứa tại vị trí đích: {string.Join(", ", exceeded)}. Vui lòng giảm số lượng hoặc chọn vị trí khác.");
+
+            var incomplete = destinations
+                .Where(value => value.OverallStatus is CapacityEvaluationStatuses.Unknown or CapacityEvaluationStatuses.NotConfigured)
+                .Select(value => value.LocationCode)
+                .OrderBy(code => code)
+                .ToList();
+            if (_capacityOptions.IsStrict && incomplete.Count > 0)
+                throw new InvalidOperationException(
+                    $"Chưa đủ cấu hình để kiểm tra sức chứa tại: {string.Join(", ", incomplete)}.");
+
+            if (incomplete.Count > 0 && (!warningAcknowledged || string.IsNullOrWhiteSpace(warningReason)))
+                throw new InvalidOperationException(
+                    $"Chưa đủ dữ liệu sức chứa tại {string.Join(", ", incomplete)}. Vui lòng xác nhận cảnh báo và nhập lý do để tiếp tục.");
         }
 
         private static (string Label, string Css) GetStatusBadge(string status)

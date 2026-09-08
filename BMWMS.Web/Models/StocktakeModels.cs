@@ -192,6 +192,8 @@ namespace BMWMS.Web.Models
     public class StocktakeNoteModel
     {
         public string? Notes { get; set; }
+        public bool AcknowledgeCapacityWarning { get; set; }
+        public string? CapacityWarningReason { get; set; }
     }
 
     public class StocktakeActionResultModel

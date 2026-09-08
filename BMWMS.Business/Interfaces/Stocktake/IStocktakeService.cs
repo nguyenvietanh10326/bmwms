@@ -19,6 +19,6 @@ namespace BMWMS.Business.Interfaces.Stocktake
         Task<StocktakeActionResultDto> SubmitLocationAsync(long stocktakeSessionId, long storageLocationId, long submittedByUserId, bool canManage, string? notes);
         Task<StocktakeActionResultDto> AddUnexpectedItemAsync(long stocktakeSessionId, UnexpectedStocktakeItemDto dto, long countedByUserId, bool canManage);
         Task<StocktakeActionResultDto> ApplyResolutionsAsync(long stocktakeSessionId, List<StocktakeResolutionDto> resolutions, long reviewedByUserId);
-        Task<StocktakeActionResultDto> ApproveSessionAsync(long stocktakeSessionId, long approvedByUserId, string? notes);
+        Task<StocktakeActionResultDto> ApproveSessionAsync(long stocktakeSessionId, long approvedByUserId, StocktakeNoteDto request);
     }
 }

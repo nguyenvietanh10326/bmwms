@@ -630,7 +630,9 @@ namespace BMWMS.Repository.Repositories.Stocktake
 
         public async Task<StocktakeSession> ApproveSessionAsync(long stocktakeSessionId, long approvedByUserId, string? notes)
         {
-            await using var transaction = await _context.Database.BeginTransactionAsync();
+            var ownedTransaction = _context.Database.CurrentTransaction == null
+                ? await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable)
+                : null;
             try
             {
                 var session = await GetTrackedSessionForMutationAsync(stocktakeSessionId);
@@ -691,13 +693,20 @@ namespace BMWMS.Repository.Repositories.Stocktake
                 session.Notes = AppendNote(session.Notes, "Approve", notes);
 
                 await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
+                if (ownedTransaction != null)
+                    await ownedTransaction.CommitAsync();
                 return session;
             }
             catch
             {
-                await transaction.RollbackAsync();
+                if (ownedTransaction != null)
+                    await ownedTransaction.RollbackAsync();
                 throw;
+            }
+            finally
+            {
+                if (ownedTransaction != null)
+                    await ownedTransaction.DisposeAsync();
             }
         }
 
