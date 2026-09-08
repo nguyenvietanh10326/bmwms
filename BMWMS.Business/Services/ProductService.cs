@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Globalization;
 
 namespace BMWMS.Business.Services
 {
@@ -160,6 +161,7 @@ namespace BMWMS.Business.Services
 
         public async Task<long> CreateAsync(CreateProductDto dto, long currentUserId)
         {
+            await NormalizeAndValidateAttributeValuesAsync(dto.AttributeValues);
             string cleanCode = dto.ProductCode.Trim().ToUpper();
 
             if (await _productRepository.IsCodeExistsAsync(cleanCode))
@@ -231,6 +233,7 @@ namespace BMWMS.Business.Services
 
         public async Task UpdateAsync(long productId, UpdateProductDto dto, long currentUserId)
         {
+            await NormalizeAndValidateAttributeValuesAsync(dto.AttributeValues);
             var product = await _productRepository.GetByIdAsync(productId);
             if (product == null)
             {
@@ -312,6 +315,46 @@ namespace BMWMS.Business.Services
                 OldValues = oldValues,
                 NewValues = new { product.ProductCode, product.ProductName, product.RotationMethod, product.Status }
             });
+        }
+
+        private async Task NormalizeAndValidateAttributeValuesAsync(List<ProductAttributeValueDto>? values)
+        {
+            var submitted = values?
+                .Where(value => !string.IsNullOrWhiteSpace(value.AttributeValue))
+                .ToList() ?? new List<ProductAttributeValueDto>();
+            if (submitted.Count == 0)
+                return;
+            if (submitted.GroupBy(value => value.ProductAttributeId).Any(group => group.Count() > 1))
+                throw new InvalidOperationException("Không được gửi lặp cùng một thuộc tính sản phẩm.");
+
+            var attributes = await _productRepository.GetProductAttributesByIdsAsync(
+                submitted.Select(value => value.ProductAttributeId));
+            var attributesById = attributes.ToDictionary(attribute => attribute.ProductAttributeId);
+            if (attributesById.Count != submitted.Count)
+                throw new InvalidOperationException("Một hoặc nhiều thuộc tính sản phẩm không tồn tại.");
+
+            foreach (var submittedValue in submitted)
+            {
+                var attribute = attributesById[submittedValue.ProductAttributeId];
+                if (!string.Equals(attribute.DataType, "NUMBER", StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                var normalized = submittedValue.AttributeValue.Trim().Replace(',', '.');
+                if (!decimal.TryParse(
+                        normalized,
+                        NumberStyles.AllowDecimalPoint | NumberStyles.AllowLeadingSign,
+                        CultureInfo.InvariantCulture,
+                        out var number))
+                    throw new InvalidOperationException($"Thuộc tính '{attribute.AttributeName}' phải là số hợp lệ.");
+
+                var isCapacityAttribute = attribute.AttributeCode is
+                    CapacityEvaluationService.StorageWeightAttributeCode or
+                    CapacityEvaluationService.StorageVolumeAttributeCode;
+                if (isCapacityAttribute && number <= 0)
+                    throw new InvalidOperationException($"Thuộc tính '{attribute.AttributeName}' phải lớn hơn 0.");
+
+                submittedValue.AttributeValue = number.ToString(CultureInfo.InvariantCulture);
+            }
         }
 
         public async Task ToggleStatusAsync(long productId, long currentUserId)
