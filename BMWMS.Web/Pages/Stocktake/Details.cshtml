@@ -459,6 +459,14 @@
                 <div class="modal-body">
                     <label class="form-label fw-semibold">Ghi chú</label>
                     <textarea name="notes" class="form-control" rows="3" placeholder="Nhập ghi chú..."></textarea>
+                    <div class="alert alert-info mt-3 mb-2" style="font-size:13px;">
+                        Điều chỉnh tăng tồn sẽ được kiểm tra lại theo tải trọng và thể tích của từng vị trí trước khi phê duyệt.
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" name="acknowledgeCapacityWarning" value="true" id="stocktakeCapacityAck">
+                        <label class="form-check-label" for="stocktakeCapacityAck">Tôi đã kiểm tra thực tế khi vị trí chưa đủ dữ liệu sức chứa.</label>
+                    </div>
+                    <textarea name="capacityWarningReason" class="form-control" rows="2" placeholder="Lý do tiếp tục khi hệ thống cảnh báo sức chứa..."></textarea>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-light" data-bs-dismiss="modal">Quay lại</button>
