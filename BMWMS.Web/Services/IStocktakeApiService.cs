@@ -21,6 +21,6 @@ namespace BMWMS.Web.Services
         Task<StocktakeActionResultModel> RequestRecountAsync(long id, long locationId);
         Task<StocktakeActionResultModel> SubmitForReviewAsync(long id);
         Task<StocktakeActionResultModel> ApplyResolutionsAsync(long id, List<StocktakeResolutionModel> resolutions);
-        Task<StocktakeActionResultModel> ApproveSessionAsync(long id, string? notes);
+        Task<StocktakeActionResultModel> ApproveSessionAsync(long id, StocktakeNoteModel request);
     }
 }

@@ -230,7 +230,10 @@ namespace BMWMS.API.Controllers
         [Authorize(Roles = "WAREHOUSE_MANAGER")]
         public async Task<IActionResult> ApproveStocktake(long id, [FromBody] StocktakeNoteDto? request)
         {
-            var result = await _stocktakeService.ApproveSessionAsync(id, GetCurrentUserId(), request?.Notes);
+            var result = await _stocktakeService.ApproveSessionAsync(
+                id,
+                GetCurrentUserId(),
+                request ?? new StocktakeNoteDto());
             if (!result.Success)
                 return BadRequest(new { message = result.Message });
 
