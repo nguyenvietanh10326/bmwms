@@ -13,9 +13,9 @@ namespace BMWMS.Business.Interfaces.Inventory
 
         Task<StorageLocationItemDto?> GetByIdAsync(long locationId);
 
-        Task<(bool Success, string Message)> CreateLocationAsync(CreateUpdateStorageLocationDto dto);
+        Task<(bool Success, string Message)> CreateLocationAsync(CreateUpdateStorageLocationDto dto, long currentUserId = 0);
 
-        Task<(bool Success, string Message)> UpdateLocationAsync(CreateUpdateStorageLocationDto dto);
+        Task<(bool Success, string Message)> UpdateLocationAsync(CreateUpdateStorageLocationDto dto, long currentUserId = 0);
 
         // --- HIERARCHICAL STRUCTURE & METRICS ---
         Task<List<WarehouseZoneDto>> GetZonesAsync(long warehouseId);
@@ -31,12 +31,18 @@ namespace BMWMS.Business.Interfaces.Inventory
         Task<List<ProductLocationSearchItemDto>> SearchProductLocationsAsync(long warehouseId, string keyword);
 
         // --- ZONE & RACK CREATION ---
-        Task<(bool Success, string Message)> CreateZoneAsync(CreateUpdateZoneDto dto);
+        Task<(bool Success, string Message)> CreateZoneAsync(CreateUpdateZoneDto dto, long currentUserId = 0);
 
-        Task<(bool Success, string Message)> UpdateZoneAsync(CreateUpdateZoneDto dto);
+        Task<(bool Success, string Message)> UpdateZoneAsync(CreateUpdateZoneDto dto, long currentUserId = 0);
 
-        Task<(bool Success, string Message)> CreateRackAsync(CreateUpdateRackDto dto);
+        Task<(bool Success, string Message)> CreateRackAsync(CreateUpdateRackDto dto, long currentUserId = 0);
 
-        Task<(bool Success, string Message)> UpdateRackAsync(CreateUpdateRackDto dto);
+        Task<(bool Success, string Message)> UpdateRackAsync(CreateUpdateRackDto dto, long currentUserId = 0);
+
+        Task<(bool Success, string Message)> ChangeLocationStatusAsync(long locationId, bool active, long currentUserId = 0);
+
+        Task<(bool Success, string Message)> ChangeRackStatusAsync(long rackId, bool active, long currentUserId = 0);
+
+        Task<(bool Success, string Message)> ChangeZoneStatusAsync(long zoneId, bool active, long currentUserId = 0);
     }
 }
