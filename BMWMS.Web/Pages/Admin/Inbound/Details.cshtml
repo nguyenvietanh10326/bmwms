@@ -1,5 +1,6 @@
 @page "{id:long}"
 @model BMWMS.Web.Pages.Admin.Inbound.DetailsModel
+@using BMWMS.Web.Helpers
 @{
     Layout = "_AdminLayout";
     ViewData["Title"] = $"Chi tiết phiếu nhập {Model.Order.InboundOrderNumber}";
@@ -95,7 +96,7 @@
 
 @functions {
     string StatusLabel(string status) => status switch { "DRAFT" => "Chưa ghi nhận thực nhận", "READY" => "Chờ nhận hàng", "RECEIVING" => "Đang ghi nhận thực nhận", "RECEIVED" => "Chờ cất hàng", "PUTAWAY_COMPLETED" => "Đã hoàn tất nhập kho", "CANCELLED" => "Đã hủy", _ => status };
-    string FormatQuantity(decimal value, byte scale) => value.ToString(scale == 0 ? "N0" : $"N{scale}");
+    string FormatQuantity(decimal value, byte scale) => FormatHelper.FormatQuantity(value, scale);
     string LocationPath(BMWMS.Web.Models.InboundReceiptDto receipt) => string.Join(" / ",
         new[] { receipt.ZoneCode, receipt.RackCode, receipt.LocationCode }.Where(value => !string.IsNullOrWhiteSpace(value)));
 }
