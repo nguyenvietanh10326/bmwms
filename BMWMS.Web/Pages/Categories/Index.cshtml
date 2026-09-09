@@ -616,8 +616,9 @@
             // Merge all system attributes
             allSystemAttributes.forEach((attr, idx) => {
                 const assigned = assignedMap.get(attr.productAttributeId);
-                const isChecked = !!assigned;
-                const isRequired = assigned ? assigned.isRequired : false;
+                const isCapacityAttribute = attr.attributeCode === 'STORAGE_VOLUME_M3_PER_BASE_UOM';
+                const isChecked = isCapacityAttribute || !!assigned;
+                const isRequired = isCapacityAttribute || (assigned ? assigned.isRequired : false);
                 const displayOrder = assigned ? assigned.displayOrder : (idx + 1);
                 const defaultValue = assigned ? (assigned.defaultValue || '') : '';
 
@@ -634,7 +635,7 @@
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td class="text-center">
-                        <input type="checkbox" class="form-check-input attr-enabled" data-id="${attr.productAttributeId}" ${isChecked ? 'checked' : ''} onchange="toggleRowInputs(this)" />
+                        <input type="checkbox" class="form-check-input attr-enabled" data-id="${attr.productAttributeId}" ${isChecked ? 'checked' : ''} ${isCapacityAttribute ? 'disabled' : ''} onchange="toggleRowInputs(this)" />
                     </td>
                     <td>
                         <div class="fw-bold text-dark">${attr.attributeName}</div>
@@ -645,7 +646,7 @@
                         <div class="mt-1">${typeBadge}</div>
                     </td>
                     <td class="text-center">
-                        <input type="checkbox" class="form-check-input attr-required" data-id="${attr.productAttributeId}" ${isRequired ? 'checked' : ''} ${!isChecked ? 'disabled' : ''} />
+                        <input type="checkbox" class="form-check-input attr-required" data-id="${attr.productAttributeId}" ${isRequired ? 'checked' : ''} ${!isChecked || isCapacityAttribute ? 'disabled' : ''} />
                     </td>
                     <td>
                         <input type="number" class="form-control form-control-sm text-center attr-order" data-id="${attr.productAttributeId}" value="${displayOrder}" min="0" ${!isChecked ? 'disabled' : ''} style="font-size: 12px;" />
@@ -688,7 +689,8 @@
                 const enabled = tr.querySelector('.attr-enabled');
                 if (enabled && enabled.checked) {
                     const attrId = parseInt(enabled.getAttribute('data-id'));
-                    const required = tr.querySelector('.attr-required').checked;
+                    const isCapacityAttribute = allSystemAttributes.find(attr => attr.productAttributeId === attrId)?.attributeCode === 'STORAGE_VOLUME_M3_PER_BASE_UOM';
+                    const required = isCapacityAttribute || tr.querySelector('.attr-required').checked;
                     const order = parseInt(tr.querySelector('.attr-order').value) || 0;
                     const defVal = tr.querySelector('.attr-default').value;
 

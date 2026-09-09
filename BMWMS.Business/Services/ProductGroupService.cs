@@ -1,5 +1,6 @@
 ﻿using BMWMS.Business.Common;
 using BMWMS.Business.DTOs.Audit;
+using BMWMS.Business.Services;
 using BMWMS.Business.DTOs.ProductGroup;
 using BMWMS.Business.Interfaces;
 using BMWMS.Repository.Interfaces;
@@ -13,6 +14,8 @@ namespace BMWMS.Business.Services
 {
     public class ProductGroupService : IProductGroupService
     {
+        private const string StorageVolumeAttributeCode = "STORAGE_VOLUME_M3_PER_BASE_UOM";
+
         private readonly IProductGroupRepository _productGroupRepository;
         private readonly IAuditLogService _auditLogService;
 
@@ -179,19 +182,10 @@ namespace BMWMS.Business.Services
 
             var id = await _productGroupRepository.AddAsync(group);
 
-            if (dto.Attributes != null && dto.Attributes.Any())
-            {
-                var attrs = dto.Attributes.Select(a => new ProductGroupAttribute
-                {
-                    ProductGroupId = id,
-                    ProductAttributeId = a.ProductAttributeId,
-                    IsRequired = a.IsRequired,
-                    DisplayOrder = a.DisplayOrder,
-                    DefaultValue = a.DefaultValue
-                }).ToList();
-
-                await _productGroupRepository.UpdateGroupAttributesAsync(id, attrs);
-            }
+            var attrs = await BuildValidatedGroupAttributesAsync(
+                id,
+                dto.Attributes ?? new List<GroupAttributeAssignmentDto>());
+            await _productGroupRepository.UpdateGroupAttributesAsync(id, attrs);
 
             await _auditLogService.RecordAsync(new AuditEventDto
             {
@@ -222,15 +216,7 @@ namespace BMWMS.Business.Services
 
             if (dto.Attributes != null)
             {
-                var attrs = dto.Attributes.Select(a => new ProductGroupAttribute
-                {
-                    ProductGroupId = productGroupId,
-                    ProductAttributeId = a.ProductAttributeId,
-                    IsRequired = a.IsRequired,
-                    DisplayOrder = a.DisplayOrder,
-                    DefaultValue = a.DefaultValue
-                }).ToList();
-
+                var attrs = await BuildValidatedGroupAttributesAsync(productGroupId, dto.Attributes);
                 await _productGroupRepository.UpdateGroupAttributesAsync(productGroupId, attrs);
             }
 
@@ -298,14 +284,7 @@ namespace BMWMS.Business.Services
             if (group == null)
                 throw new KeyNotFoundException($"Khong tim thay nhom san pham voi ID: {productGroupId}");
 
-            var attrs = attributes.Select(a => new ProductGroupAttribute
-            {
-                ProductGroupId = productGroupId,
-                ProductAttributeId = a.ProductAttributeId,
-                IsRequired = a.IsRequired,
-                DisplayOrder = a.DisplayOrder,
-                DefaultValue = a.DefaultValue
-            }).ToList();
+            var attrs = await BuildValidatedGroupAttributesAsync(productGroupId, attributes);
 
             await _productGroupRepository.UpdateGroupAttributesAsync(productGroupId, attrs);
 
@@ -322,6 +301,59 @@ namespace BMWMS.Business.Services
                     AttributeCount = attributes.Count
                 }
             });
+        }
+
+        private async Task<List<ProductGroupAttribute>> BuildValidatedGroupAttributesAsync(
+            long productGroupId,
+            IEnumerable<GroupAttributeAssignmentDto> assignments)
+        {
+            var allAttributes = await _productGroupRepository.GetAllAttributesAsync();
+            var storageVolumeAttribute = allAttributes.FirstOrDefault(attribute =>
+                string.Equals(attribute.AttributeCode, StorageVolumeAttributeCode, StringComparison.OrdinalIgnoreCase));
+            if (storageVolumeAttribute == null)
+            {
+                throw new InvalidOperationException(
+                    "System attribute STORAGE_VOLUME_M3_PER_BASE_UOM is missing. Run the capacity schema patch first.");
+            }
+
+            var submitted = assignments.ToList();
+            var capacityAssignment = submitted.FirstOrDefault(attribute =>
+                attribute.ProductAttributeId == storageVolumeAttribute.ProductAttributeId);
+            if (capacityAssignment == null)
+            {
+                submitted.Add(new GroupAttributeAssignmentDto
+                {
+                    ProductAttributeId = storageVolumeAttribute.ProductAttributeId,
+                    IsRequired = true,
+                    DisplayOrder = submitted.Count == 0
+                        ? 1
+                        : submitted.Max(attribute => attribute.DisplayOrder) + 1
+                });
+            }
+            else
+            {
+                capacityAssignment.IsRequired = true;
+                capacityAssignment.DefaultValue = null;
+            }
+
+            return submitted
+                .GroupBy(attribute => attribute.ProductAttributeId)
+                .Select(group =>
+                {
+                    var assignment = group.First();
+                    return new ProductGroupAttribute
+                    {
+                        ProductGroupId = productGroupId,
+                        ProductAttributeId = assignment.ProductAttributeId,
+                        IsRequired = assignment.ProductAttributeId == storageVolumeAttribute.ProductAttributeId
+                            || assignment.IsRequired,
+                        DisplayOrder = assignment.DisplayOrder,
+                        DefaultValue = assignment.ProductAttributeId == storageVolumeAttribute.ProductAttributeId
+                            ? null
+                            : assignment.DefaultValue
+                    };
+                })
+                .ToList();
         }
     }
 }

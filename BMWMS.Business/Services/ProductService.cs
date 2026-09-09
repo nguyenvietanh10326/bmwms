@@ -161,7 +161,7 @@ namespace BMWMS.Business.Services
 
         public async Task<long> CreateAsync(CreateProductDto dto, long currentUserId)
         {
-            await NormalizeAndValidateAttributeValuesAsync(dto.AttributeValues);
+            await NormalizeAndValidateAttributeValuesAsync(dto.ProductGroupId, dto.AttributeValues);
             string cleanCode = dto.ProductCode.Trim().ToUpper();
 
             if (await _productRepository.IsCodeExistsAsync(cleanCode))
@@ -233,7 +233,7 @@ namespace BMWMS.Business.Services
 
         public async Task UpdateAsync(long productId, UpdateProductDto dto, long currentUserId)
         {
-            await NormalizeAndValidateAttributeValuesAsync(dto.AttributeValues);
+            await NormalizeAndValidateAttributeValuesAsync(dto.ProductGroupId, dto.AttributeValues);
             var product = await _productRepository.GetByIdAsync(productId);
             if (product == null)
             {
@@ -317,15 +317,41 @@ namespace BMWMS.Business.Services
             });
         }
 
-        private async Task NormalizeAndValidateAttributeValuesAsync(List<ProductAttributeValueDto>? values)
+        private async Task NormalizeAndValidateAttributeValuesAsync(
+            long productGroupId,
+            List<ProductAttributeValueDto>? values)
         {
             var submitted = values?
                 .Where(value => !string.IsNullOrWhiteSpace(value.AttributeValue))
                 .ToList() ?? new List<ProductAttributeValueDto>();
-            if (submitted.Count == 0)
-                return;
             if (submitted.GroupBy(value => value.ProductAttributeId).Any(group => group.Count() > 1))
                 throw new InvalidOperationException("Không được gửi lặp cùng một thuộc tính sản phẩm.");
+
+            var productGroup = await _productGroupRepository.GetByIdAsync(productGroupId, includeAttributes: true);
+            if (productGroup == null)
+                throw new InvalidOperationException("Product group does not exist or is inactive.");
+
+            var configuredAttributes = productGroup.ProductGroupAttributes
+                .Where(groupAttribute => groupAttribute.ProductAttribute.Status == "ACTIVE")
+                .ToDictionary(
+                    groupAttribute => groupAttribute.ProductAttribute.AttributeCode,
+                    StringComparer.OrdinalIgnoreCase);
+
+            if (!configuredAttributes.TryGetValue(
+                    CapacityEvaluationService.StorageVolumeAttributeCode,
+                    out var storageVolumeAttribute))
+            {
+                throw new InvalidOperationException(
+                    "The product group must configure STORAGE_VOLUME_M3_PER_BASE_UOM before products can be saved.");
+            }
+
+            var storageVolumeValue = submitted.FirstOrDefault(value =>
+                value.ProductAttributeId == storageVolumeAttribute.ProductAttributeId);
+            if (storageVolumeValue == null)
+            {
+                throw new InvalidOperationException(
+                    "Storage volume conversion (m3 per base unit) is required for capacity calculation.");
+            }
 
             var attributes = await _productRepository.GetProductAttributesByIdsAsync(
                 submitted.Select(value => value.ProductAttributeId));
