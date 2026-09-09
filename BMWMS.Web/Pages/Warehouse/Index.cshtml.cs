@@ -24,40 +24,6 @@ namespace BMWMS.Web.Pages.Warehouse
 
         public string? ErrorMessage { get; set; }
 
-        public async Task OnGetAsync()
-        {
-            if (Filter.PageIndex < 1) Filter.PageIndex = 1;
-            if (Filter.PageSize < 1) Filter.PageSize = 10;
-
-            var client = _httpClientFactory.CreateClient("ApiClient");
-
-            var queryParams = new List<string>
-            {
-                $"pageIndex={Filter.PageIndex}",
-                $"pageSize={Filter.PageSize}"
-            };
-
-            if (!string.IsNullOrWhiteSpace(Filter.Keyword))
-                queryParams.Add($"keyword={Uri.EscapeDataString(Filter.Keyword)}");
-
-            if (!string.IsNullOrWhiteSpace(Filter.Status))
-                queryParams.Add($"status={Uri.EscapeDataString(Filter.Status)}");
-
-            if (Filter.IsPrimary.HasValue)
-                queryParams.Add($"isPrimary={Filter.IsPrimary.Value}");
-
-            var url = $"api/warehouses?{string.Join("&", queryParams)}";
-
-            var response = await client.GetAsync(url);
-
-            if (response.IsSuccessStatusCode)
-            {
-                var content = await response.Content.ReadAsStringAsync();
-                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-
-                WarehousesResult = JsonSerializer.Deserialize<PagedResultDto<WarehouseResponseDto>>(content, options)
-                                   ?? new PagedResultDto<WarehouseResponseDto>();
-            }
-        }
+        public IActionResult OnGet() => RedirectToPage("/StorageLocations/Index");
     }
 }

@@ -51,6 +51,12 @@ namespace BMWMS.Business.DTOs.Inventory
 
         public decimal? MaxWeightKg { get; set; }
         public decimal? MaxVolumeM3 { get; set; }
+        public decimal? CurrentWeightKg { get; set; }
+        public decimal? CurrentVolumeM3 { get; set; }
+        public string WeightCapacityStatus { get; set; } = "NOT_CONFIGURED";
+        public string VolumeCapacityStatus { get; set; } = "NOT_CONFIGURED";
+        public string CapacityStatus { get; set; } = "NOT_CONFIGURED";
+        public bool HasMissingCapacityData { get; set; }
         public bool IsPutawayAllowed { get; set; } = true;
         public bool IsPickable { get; set; } = true;
 
@@ -61,8 +67,13 @@ namespace BMWMS.Business.DTOs.Inventory
         public int StoredLotCount { get; set; }
         public decimal TotalOnHandQuantity { get; set; }
         public string OccupancyStatus => Status.Equals("Blocked", StringComparison.OrdinalIgnoreCase) || Status.Equals("Inactive", StringComparison.OrdinalIgnoreCase)
-            ? "Blocked" 
-            : TotalOnHandQuantity > 0 ? "Occupied" : "Available";
+            ? "Blocked"
+            : CapacityStatus.Equals("EXCEEDED", StringComparison.OrdinalIgnoreCase) ||
+              (MaxWeightKg.HasValue && CurrentWeightKg.HasValue && CurrentWeightKg >= MaxWeightKg) ||
+              (MaxVolumeM3.HasValue && CurrentVolumeM3.HasValue && CurrentVolumeM3 >= MaxVolumeM3)
+                ? "Full"
+                : HasMissingCapacityData ? "Unknown"
+                : TotalOnHandQuantity > 0 ? "Occupied" : "Available";
     }
 
     public class CreateUpdateStorageLocationDto
@@ -165,9 +176,10 @@ namespace BMWMS.Business.DTOs.Inventory
     {
         public WarehouseHeaderInfoDto WarehouseInfo { get; set; } = new();
         public List<WarehouseZoneStructureDto> Zones { get; set; } = new();
-        public List<StorageLocationItemDto> UnassignedLocations { get; set; } = new();
         public int TotalAvailableBins { get; set; }
         public int TotalOccupiedBins { get; set; }
+        public int TotalFullBins { get; set; }
+        public int TotalUnknownBins { get; set; }
         public int TotalBlockedBins { get; set; }
     }
 
