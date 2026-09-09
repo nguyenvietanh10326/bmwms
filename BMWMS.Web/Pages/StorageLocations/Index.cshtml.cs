@@ -141,6 +141,27 @@ namespace BMWMS.Web.Pages.StorageLocations
             return await ProxyResponseAsync(response);
         }
 
+        public Task<IActionResult> OnPostChangeStatusAsync(string nodeType, long id, [FromBody] ChangeStorageNodeStatusRequest request) =>
+            ProxyPatchAsync($"api/storagelocations/{GetStatusPath(nodeType, id)}", request);
+
+        private static string GetStatusPath(string nodeType, long id) => nodeType.ToLowerInvariant() switch
+        {
+            "zone" => $"zones/{id}/status",
+            "rack" => $"racks/{id}/status",
+            _ => $"{id}/status"
+        };
+
+        private async Task<IActionResult> ProxyPatchAsync(string requestUri, object body)
+        {
+            var client = _httpClientFactory.CreateClient("ApiClient");
+            return await ProxyResponseAsync(await client.PatchAsJsonAsync(requestUri, body));
+        }
+
+        public sealed class ChangeStorageNodeStatusRequest
+        {
+            public bool Active { get; set; }
+        }
+
         private async Task<IActionResult> ProxyGetAsync(string requestUri)
         {
             var client = _httpClientFactory.CreateClient("ApiClient");

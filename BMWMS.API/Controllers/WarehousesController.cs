@@ -56,26 +56,9 @@ namespace BMWMS.API.Controllers
         [ProducesResponseType(typeof(object), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
-        public async Task<IActionResult> Create([FromBody] CreateWarehouseDto dto)
+        public IActionResult Create([FromBody] CreateWarehouseDto dto)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            try
-            {
-                var id = await _warehouseService.CreateAsync(dto);
-                return CreatedAtAction(nameof(GetById), new { id }, new { id, message = "Tạo kho mới thành công." });
-            }
-            catch (InvalidOperationException ex)
-            {
-                return Conflict(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Lỗi hệ thống.", detail = ex.Message });
-            }
+            return Conflict(new { message = "Hệ thống vận hành theo mô hình một kho; không hỗ trợ tạo thêm kho." });
         }
 
         /// <summary>
@@ -87,30 +70,9 @@ namespace BMWMS.API.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
-        public async Task<IActionResult> Update(long id, [FromBody] UpdateWarehouseDto dto)
+        public IActionResult Update(long id, [FromBody] UpdateWarehouseDto dto)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            try
-            {
-                await _warehouseService.UpdateAsync(id, dto);
-                return Ok(new { message = "Cập nhật thông tin kho thành công." });
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
-            catch (InvalidOperationException ex)
-            {
-                return Conflict(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Lỗi hệ thống.", detail = ex.Message });
-            }
+            return Conflict(new { message = "Thông tin kho là cấu hình hệ thống dùng chung và không chỉnh sửa tại module vị trí." });
         }
 
         /// <summary>
@@ -121,25 +83,9 @@ namespace BMWMS.API.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<IActionResult> Delete(long id)
+        public IActionResult Delete(long id)
         {
-            try
-            {
-                await _warehouseService.DeleteAsync(id);
-                return Ok(new { message = "Xóa kho thành công." });
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Lỗi hệ thống.", detail = ex.Message });
-            }
+            return Conflict(new { message = "Kho duy nhất là dữ liệu hệ thống và không thể xóa." });
         }
     }
 }

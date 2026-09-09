@@ -55,5 +55,7 @@ namespace BMWMS.Repository.Interfaces.Inventory
         Task<bool> ExistsZoneCodeAsync(long warehouseId, string zoneCode, long? excludeId = null);
 
         Task<bool> ExistsRackCodeAsync(long warehouseId, string rackCode, long? excludeId = null);
+
+        Task<List<string>> GetLocationDeactivationBlockersAsync(long locationId);
     }
 }

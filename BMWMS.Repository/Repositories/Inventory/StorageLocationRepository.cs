@@ -251,5 +251,33 @@ namespace BMWMS.Repository.Repositories.Inventory
                 .AnyAsync(r => r.WarehouseId == warehouseId && r.RackCode.ToUpper() == codeUpper &&
                                (!excludeId.HasValue || r.RackId != excludeId.Value));
         }
+
+        public async Task<List<string>> GetLocationDeactivationBlockersAsync(long locationId)
+        {
+            var reasons = new List<string>();
+
+            if (await _context.Inventories.AnyAsync(inventory =>
+                    inventory.StorageLocationId == locationId &&
+                    (inventory.OnHandQuantity > 0 || inventory.ReservedQuantity > 0)))
+                reasons.Add("vẫn còn tồn kho hoặc số lượng đã giữ chỗ");
+
+            if (await _context.ProductFixedLocations.AnyAsync(mapping => mapping.StorageLocationId == locationId))
+                reasons.Add("đang được cấu hình làm vị trí ưu tiên cho sản phẩm");
+
+            if (await _context.TransferOrderDetails.AnyAsync(detail =>
+                    (detail.SourceLocationId == locationId || detail.DestinationLocationId == locationId) &&
+                    detail.TransferOrder.Status != "COMPLETED" &&
+                    detail.TransferOrder.Status != "CANCELLED"))
+                reasons.Add("đang thuộc lệnh điều chuyển chưa hoàn tất");
+
+            if (await _context.StocktakeItems.AnyAsync(item =>
+                    item.StorageLocationId == locationId &&
+                    item.StocktakeSession.Status != "COMPLETED" &&
+                    item.StocktakeSession.Status != "APPROVED" &&
+                    item.StocktakeSession.Status != "CANCELLED"))
+                reasons.Add("đang thuộc phiên kiểm kê chưa kết thúc");
+
+            return reasons;
+        }
     }
 }
