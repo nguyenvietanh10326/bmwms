@@ -69,11 +69,14 @@ public class DetailModel : PageModel
         return RedirectToPage(new { id = Id });
     }
 
-    public async Task<IActionResult> OnPostContinuePartialAsync()
+    public async Task<IActionResult> OnPostContinuePartialAsync(DateOnly requestedDeliveryDate, string? note)
     {
         if (!User.IsInRole("SYSTEM_ADMIN") && !User.IsInRole("WAREHOUSE_MANAGER"))
             return Forbid();
-        var (isSuccess, message) = await _apiService.ContinuePartiallyReceivedOrderAsync(Id);
+        var (isSuccess, message) = await _apiService.ContinuePartiallyReceivedOrderAsync(
+            Id,
+            requestedDeliveryDate,
+            note);
         TempData[isSuccess ? "SuccessMessage" : "ErrorMessage"] = message;
         return RedirectToPage(new { id = Id });
     }
@@ -84,9 +87,11 @@ public class DetailModel : PageModel
         "PENDING_CONFIRMATION" => "Chờ NCC phản hồi",
         "CONFIRMED" => "Đã xác nhận",
         "PENDING_RECEIPT_REVIEW" => "Chờ duyệt nhận tiếp",
+        "PENDING_REMAINDER_CONFIRMATION" => "Chờ NCC xác nhận giao tiếp",
         "PARTIALLY_RECEIVED" => "Đã nhận một phần",
-        "RECEIVED" => "Đã nhận đủ",
+        "COMPLETED" or "RECEIVED" => "Hoàn tất nhận đủ",
         "CLOSED" => "Đã kết thúc nhận",
+        "REJECTED" => "NCC từ chối",
         "CANCELLED" => "Đã hủy",
         _ => "Không xác định"
     };
@@ -105,9 +110,9 @@ public class DetailModel : PageModel
     public string GetStatusClass(string? status) => (status ?? string.Empty).ToUpperInvariant() switch
     {
         "CONFIRMED" or "READY" => "bg-primary-subtle text-primary",
-        "PENDING_CONFIRMATION" or "PENDING_RECEIPT_REVIEW" or "PARTIALLY_RECEIVED" or "RECEIVING" => "bg-warning-subtle text-warning-emphasis",
-        "RECEIVED" or "PUTAWAY_COMPLETED" or "CLOSED" => "bg-success-subtle text-success",
-        "CANCELLED" => "bg-danger-subtle text-danger",
+        "PENDING_CONFIRMATION" or "PENDING_RECEIPT_REVIEW" or "PENDING_REMAINDER_CONFIRMATION" or "PARTIALLY_RECEIVED" or "RECEIVING" => "bg-warning-subtle text-warning-emphasis",
+        "RECEIVED" or "COMPLETED" or "PUTAWAY_COMPLETED" or "CLOSED" => "bg-success-subtle text-success",
+        "REJECTED" or "CANCELLED" => "bg-danger-subtle text-danger",
         _ => "bg-secondary-subtle text-secondary"
     };
 }

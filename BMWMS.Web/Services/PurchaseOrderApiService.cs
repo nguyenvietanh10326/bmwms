@@ -157,13 +157,19 @@ namespace BMWMS.Web.Services
             }
         }
 
-        public async Task<(bool IsSuccess, string? Message)> ContinuePartiallyReceivedOrderAsync(long id)
+        public async Task<(bool IsSuccess, string? Message)> ContinuePartiallyReceivedOrderAsync(
+            long id,
+            DateOnly requestedDeliveryDate,
+            string? note)
         {
             try
             {
-                var response = await _httpClient.PostAsync($"api/PurchaseOrders/{id}/continue-partial", null);
+                var query = $"?requestedDeliveryDate={requestedDeliveryDate:yyyy-MM-dd}";
+                if (!string.IsNullOrWhiteSpace(note))
+                    query += $"&note={Uri.EscapeDataString(note.Trim())}";
+                var response = await _httpClient.PostAsync($"api/PurchaseOrders/{id}/continue-partial{query}", null);
                 var content = await response.Content.ReadAsStringAsync();
-                var message = response.IsSuccessStatusCode ? "Đã duyệt nhận tiếp." : "Không thể duyệt nhận tiếp.";
+                var message = response.IsSuccessStatusCode ? "Đã gửi đề nghị giao tiếp." : "Không thể gửi đề nghị giao tiếp.";
                 try
                 {
                     var json = JsonNode.Parse(content);

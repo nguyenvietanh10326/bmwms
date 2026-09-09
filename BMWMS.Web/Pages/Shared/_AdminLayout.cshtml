@@ -41,25 +41,10 @@
             <div class="nav-section">
                 <div class="nav-section-label">DANH MỤC CƠ SỞ</div>
 
-                <!-- Kho & Vị trí -->
-                @{
-                    var isWhActive = Context.Request.Path.StartsWithSegments("/Warehouse") || Context.Request.Path.StartsWithSegments("/StorageLocations");
-                }
-                <div class="nav-item nav-item-has-sub @(isWhActive ? "expanded active" : "")" onclick="toggleSubmenu(this)">
-                    <div class="nav-item-main">
-                        <i class="ri-store-2-line nav-item-icon"></i>
-                        Kho & Vị trí
-                    </div>
-                    <i class="ri-arrow-right-s-line nav-item-arrow"></i>
-                </div>
-                <div class="nav-submenu @(isWhActive ? "expanded" : "")">
-                    <a href="/Warehouse/Index" class="nav-sub-item @(Context.Request.Path == "/Warehouse/Index" || Context.Request.Path == "/Warehouse" ? "active" : "")">Danh sách kho hàng</a>
-                    <a href="/StorageLocations/Index" class="nav-sub-item @(Context.Request.Path.StartsWithSegments("/StorageLocations") ? "active" : "")">Vị trí lưu trữ</a>
-                    @if (isSysAdmin || isWhManager)
-                    {
-                        <a href="/Warehouse/Create" class="nav-sub-item @(Context.Request.Path == "/Warehouse/Create" ? "active" : "")">Thêm kho mới</a>
-                    }
-                </div>
+                <a href="/StorageLocations/Index" class="nav-item @(Context.Request.Path.StartsWithSegments("/StorageLocations") ? "active" : "")">
+                    <i class="ri-store-2-line nav-item-icon"></i>
+                    Sơ đồ vị trí kho
+                </a>
 
                 <!-- Sản phẩm & Danh mục -->
                 @{

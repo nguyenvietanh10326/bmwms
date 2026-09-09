@@ -15,7 +15,8 @@
     var canProcessSupplierEmail = User.IsInRole("SYSTEM_ADMIN") || User.IsInRole("PURCHASING_STAFF");
     var canSendToSupplier = Model.Order?.CanSendToSupplier == true && canProcessSupplierEmail;
     var canDecidePartial = (User.IsInRole("SYSTEM_ADMIN") || User.IsInRole("WAREHOUSE_MANAGER")) &&
-        Model.Order?.Status == "PENDING_RECEIPT_REVIEW" && remainingLineCount > 0 && plannedLineCount == 0;
+        (Model.Order?.Status is "PENDING_RECEIPT_REVIEW" or "PENDING_REMAINDER_CONFIRMATION") &&
+        remainingLineCount > 0 && plannedLineCount == 0;
     var canCloseLegacyPartial = (User.IsInRole("SYSTEM_ADMIN") || User.IsInRole("WAREHOUSE_MANAGER")) &&
         Model.Order?.Status == "PARTIALLY_RECEIVED" &&
         remainingLineCount > 0 && plannedLineCount == 0;
@@ -84,7 +85,7 @@
                         </button>
                     </form>
                 }
-                @if (Model.Order.CanCancel)
+                @if (Model.Order.CanCancel && canProcessSupplierEmail)
                 {
                     <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#cancelPoModal">
                         <i class="bi bi-x-circle me-1"></i>Hủy PO
@@ -92,12 +93,9 @@
                 }
                 @if (canDecidePartial)
                 {
-                    <form method="post" asp-page-handler="ContinuePartial" asp-route-id="@Model.Id"
-                          onsubmit="return confirm('Duyệt cho phép nhân viên kho lập phiếu nhập đợt tiếp theo?');">
-                        <button type="submit" class="btn btn-outline-primary">
-                            <i class="bi bi-arrow-repeat me-1"></i>Duyệt nhận đợt tiếp
-                        </button>
-                    </form>
+                    <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#continuePartialModal">
+                        <i class="bi bi-envelope-arrow-up me-1"></i>@(Model.Order.Status == "PENDING_REMAINDER_CONFIRMATION" ? "Gửi lại đề nghị" : "Đề nghị NCC giao tiếp")
+                    </button>
                 }
                 @if (canDecidePartial || canCloseLegacyPartial)
                 {
@@ -133,6 +131,14 @@
             <div class="alert alert-warning d-flex gap-2 align-items-start">
                 <i class="bi bi-person-check mt-1"></i>
                 <div>Đợt gần nhất nhận thiếu. Quản lý kho phải quyết định nhận tiếp hoặc kết thúc PO; nhân viên kho chưa thể lập phiếu nhập mới.</div>
+            </div>
+        }
+
+        @if (Model.Order.Status == "PENDING_REMAINDER_CONFIRMATION")
+        {
+            <div class="alert alert-warning d-flex gap-2 align-items-start">
+                <i class="bi bi-hourglass-split mt-1"></i>
+                <div>Quản lý kho đã gửi đối chiếu phần còn thiếu. PO chỉ mở cho đợt nhập tiếp theo sau khi NCC xác nhận tiếp tục giao.</div>
             </div>
         }
 
@@ -210,6 +216,11 @@
                         {
                             <div class="po-value text-warning">Đã gửi · Chờ NCC phản hồi</div>
                             <div class="text-muted small">Email NCC hiện tại: @(string.IsNullOrWhiteSpace(Model.Order.SupplierEmail) ? "Chưa có" : Model.Order.SupplierEmail)</div>
+                        }
+                        else if (Model.Order.Status == "PENDING_REMAINDER_CONFIRMATION")
+                        {
+                            <div class="po-value text-warning">Đã gửi phần còn lại · Chờ NCC phản hồi</div>
+                            <div class="text-muted small">Ngày giao đề nghị: @(Model.Order.ExpectedDeliveryDate?.ToString("dd/MM/yyyy") ?? "Chưa xác định")</div>
                         }
                         else if (Model.Order.ConfirmedAt.HasValue)
                         {
@@ -335,7 +346,7 @@
             </div>
         </div>
 
-        @if (Model.Order.CanCancel)
+        @if (Model.Order.CanCancel && canProcessSupplierEmail)
         {
             <div class="modal fade no-print" id="cancelPoModal" tabindex="-1" aria-labelledby="cancelPoModalLabel" aria-hidden="true">
                 <div class="modal-dialog">
@@ -358,6 +369,35 @@
                     </div>
                 </div>
             </div>
+        }
+
+        @if (canDecidePartial)
+        {
+            <div class="modal fade no-print" id="continuePartialModal" tabindex="-1" aria-labelledby="continuePartialModalLabel" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <form method="post" asp-page-handler="ContinuePartial" asp-route-id="@Model.Id">
+                            <div class="modal-header">
+                                <h2 class="modal-title h5" id="continuePartialModalLabel">Đề nghị giao phần còn lại</h2>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                            </div>
+                            <div class="modal-body">
+                                <p class="text-muted">Email sẽ nêu từng vật tư: số đặt, đã nhận đạt, không đạt và số còn cần giao. PO vẫn khóa tạo phiếu nhập cho đến khi NCC xác nhận.</p>
+                                <label for="requestedDeliveryDate" class="form-label fw-semibold">Ngày đề nghị giao tiếp <span class="text-danger">*</span></label>
+                                <input id="requestedDeliveryDate" name="requestedDeliveryDate" type="date" class="form-control mb-3"
+                                       min="@DateTime.Today.ToString("yyyy-MM-dd")" required />
+                                <label for="continueNote" class="form-label fw-semibold">Ghi chú cho NCC</label>
+                                <textarea id="continueNote" name="note" class="form-control" rows="3" maxlength="500"></textarea>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Đóng</button>
+                                <button type="submit" class="btn btn-primary">Gửi đề nghị</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        }
     }
 }
 
