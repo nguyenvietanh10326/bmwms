@@ -22,12 +22,16 @@ namespace BMWMS.Business.Interfaces.Inventory
         // Xác nhận PO
         Task<(bool Success, string Message)> ConfirmOrderAsync(long purchaseOrderId, long currentUserId);
 
-        // Gửi nội dung PO cho nhà cung cấp nhưng vẫn giữ trạng thái DRAFT
+        // Gửi nội dung PO và chuyển sang chờ phản hồi của nhà cung cấp.
         Task<(bool Success, string Message)> SendOrderToSupplierAsync(long purchaseOrderId, long currentUserId);
+
+        // Phản hồi công khai bằng token ký trong email; không yêu cầu tài khoản hệ thống.
+        Task<(bool Success, string Message)> HandleSupplierResponseAsync(long purchaseOrderId, string action, string token);
 
         // Hủy PO
         Task<(bool Success, string Message)> CancelOrderAsync(long purchaseOrderId, long currentUserId, string? reason);
         Task<(bool Success, string Message)> ClosePartiallyReceivedOrderAsync(long purchaseOrderId, long currentUserId, string reason);
+        Task<(bool Success, string Message)> ContinuePartiallyReceivedOrderAsync(long purchaseOrderId, long currentUserId);
 
         Task<IEnumerable<SupplierLookupDto>> GetLookupListAsync();
         Task<IEnumerable<WarehouseLookupDto>> GetLookListAsync();

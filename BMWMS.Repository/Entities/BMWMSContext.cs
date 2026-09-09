@@ -1265,6 +1265,7 @@ public partial class BMWMSContext : DbContext
 
         modelBuilder.Entity<StorageLocation>(entity =>
         {
+            entity.ToTable(tb => tb.HasTrigger("trg_StorageLocations_HierarchicalCapacity"));
             entity.HasIndex(e => new { e.WarehouseId, e.LocationCode }, "UQ_StorageLocations_Code").IsUnique();
 
             entity.HasIndex(e => new { e.StorageLocationId, e.WarehouseId }, "UQ_StorageLocations_LocationWarehouse").IsUnique();
@@ -1307,7 +1308,12 @@ public partial class BMWMSContext : DbContext
 
         modelBuilder.Entity<StorageRack>(entity =>
         {
+            entity.ToTable(tb => tb.HasTrigger("trg_StorageRacks_HierarchicalCapacity"));
             entity.HasKey(e => e.RackId);
+
+            entity.Property(e => e.AreaSquareMeter).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.MaxVolumeM3).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.MaxWeightKg).HasColumnType("decimal(18, 4)");
 
             entity.HasIndex(e => new { e.WarehouseId, e.RackCode }, "UQ_StorageRacks_Code").IsUnique();
 
@@ -1929,6 +1935,7 @@ public partial class BMWMSContext : DbContext
 
         modelBuilder.Entity<WarehouseZone>(entity =>
         {
+            entity.ToTable(tb => tb.HasTrigger("trg_WarehouseZones_HierarchicalCapacity"));
             entity.HasKey(e => e.ZoneId);
 
             entity.HasIndex(e => new { e.WarehouseId, e.ZoneCode }, "UQ_WarehouseZones_Code").IsUnique();
@@ -1936,7 +1943,10 @@ public partial class BMWMSContext : DbContext
             entity.HasIndex(e => new { e.ZoneId, e.WarehouseId }, "UQ_WarehouseZones_ZoneWarehouse").IsUnique();
 
             entity.Property(e => e.ZoneId).HasColumnName("ZoneID");
+            entity.Property(e => e.AreaSquareMeter).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.Description).HasMaxLength(500);
+            entity.Property(e => e.MaxVolumeM3).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.MaxWeightKg).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.Status)
                 .HasMaxLength(20)
                 .IsUnicode(false)

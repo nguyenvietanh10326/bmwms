@@ -37,6 +37,7 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
     });
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
 // AutoMapper
 builder.Services.AddAutoMapper(cfg =>
@@ -110,6 +111,13 @@ builder.Services.AddScoped<IEmailService, SmtpEmailService>();
 builder.Services.AddScoped<IPurchaseOrderEmailComposer, PurchaseOrderEmailComposer>();
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 
+var supplierResponseOptions = new PurchaseOrderSupplierResponseOptions();
+builder.Configuration.GetSection("SupplierResponse").Bind(supplierResponseOptions);
+supplierResponseOptions.SigningKey = string.IsNullOrWhiteSpace(supplierResponseOptions.SigningKey)
+    ? $"{jwtKey}:supplier-response"
+    : supplierResponseOptions.SigningKey;
+builder.Services.AddSingleton(supplierResponseOptions);
+
 var warehouseCapacityOptions = new WarehouseCapacityOptions();
 builder.Configuration.GetSection("WarehouseCapacity").Bind(warehouseCapacityOptions);
 builder.Services.AddSingleton(warehouseCapacityOptions);
@@ -140,6 +148,11 @@ var app = builder.Build();
 
 app.UseCors("AllowAll");
 
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 
 app.UseAuthentication();
 app.UseAuthorization();

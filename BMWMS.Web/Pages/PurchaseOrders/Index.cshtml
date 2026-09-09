@@ -46,8 +46,11 @@
   .status-badge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; }
   .status-draft { background: var(--gy-bg); color: var(--gy-tx); } .status-draft::before { background: var(--gy-dot); }
   .status-confirmed { background: var(--b-bg); color: var(--b-tx); } .status-confirmed::before { background: var(--b-dot); }
+  .status-pending_confirmation, .status-pending_receipt_review { background: var(--y-bg); color: var(--y-tx); }
+  .status-pending_confirmation::before, .status-pending_receipt_review::before { background: var(--y-dot); }
   .status-partially_received { background: var(--y-bg); color: var(--y-tx); } .status-partially_received::before { background: var(--y-dot); }
-  .status-received { background: var(--g-bg); color: var(--g-tx); } .status-received::before { background: var(--g-dot); }
+  .status-received, .status-completed { background: var(--g-bg); color: var(--g-tx); }
+  .status-received::before, .status-completed::before { background: var(--g-dot); }
   .status-closed { background: var(--g-bg); color: var(--g-tx); } .status-closed::before { background: var(--g-dot); }
   .status-cancelled { background: var(--r-bg); color: var(--r-tx); } .status-cancelled::before { background: var(--r-dot); }
 </style>
@@ -70,9 +73,11 @@
             <select name="status" style="padding:9px 12px; border:1px solid var(--line); border-radius:6px; font-size:13px; background:#fff; min-width:180px;">
                 <option value="">Tất cả</option>
                 <option value="DRAFT" selected="@(Model.Status == "DRAFT")">Nháp</option>
+                <option value="PENDING_CONFIRMATION" selected="@(Model.Status == "PENDING_CONFIRMATION")">Chờ NCC phản hồi</option>
                 <option value="CONFIRMED" selected="@(Model.Status == "CONFIRMED")">Đã xác nhận</option>
+                <option value="PENDING_RECEIPT_REVIEW" selected="@(Model.Status == "PENDING_RECEIPT_REVIEW")">Chờ duyệt nhận tiếp</option>
                 <option value="PARTIALLY_RECEIVED" selected="@(Model.Status == "PARTIALLY_RECEIVED")">Đã nhận một phần</option>
-                <option value="RECEIVED" selected="@(Model.Status == "RECEIVED")">Đã nhận đủ</option>
+                <option value="COMPLETED" selected="@(Model.Status == "COMPLETED")">Đã nhận đủ</option>
                 <option value="CLOSED" selected="@(Model.Status == "CLOSED")">Đã kết thúc nhận</option>
                 <option value="CANCELLED" selected="@(Model.Status == "CANCELLED")">Đã hủy</option>
             </select>
@@ -147,9 +152,12 @@
     string StatusLabel(string status) => status switch
     {
         "DRAFT" => "Nháp",
+        "PENDING_CONFIRMATION" => "Chờ NCC phản hồi",
         "CONFIRMED" => "Đã xác nhận",
+        "PENDING_RECEIPT_REVIEW" => "Chờ duyệt nhận tiếp",
         "PARTIALLY_RECEIVED" => "Đã nhận một phần",
         "RECEIVED" => "Đã nhận đủ",
+        "COMPLETED" => "Đã nhận đủ",
         "CLOSED" => "Đã kết thúc nhận",
         "CANCELLED" => "Đã hủy",
         _ => status
