@@ -3,6 +3,7 @@ using BMWMS.Business.Interfaces.Inventory;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace BMWMS.API.Controllers.Inventory
 {
@@ -105,7 +106,7 @@ namespace BMWMS.API.Controllers.Inventory
         [Authorize(Roles = "SYSTEM_ADMIN")]
         public async Task<IActionResult> Create([FromBody] CreateUpdateStorageLocationDto dto)
         {
-            var (success, message) = await _locationService.CreateLocationAsync(dto);
+            var (success, message) = await _locationService.CreateLocationAsync(dto, CurrentUserId());
             if (!success) return BadRequest(new { message });
             return Ok(new { message });
         }
@@ -119,7 +120,7 @@ namespace BMWMS.API.Controllers.Inventory
         public async Task<IActionResult> Update(long id, [FromBody] CreateUpdateStorageLocationDto dto)
         {
             dto.StorageLocationId = id;
-            var (success, message) = await _locationService.UpdateLocationAsync(dto);
+            var (success, message) = await _locationService.UpdateLocationAsync(dto, CurrentUserId());
             if (!success) return BadRequest(new { message });
             return Ok(new { message });
         }
@@ -132,7 +133,7 @@ namespace BMWMS.API.Controllers.Inventory
         [Authorize(Roles = "SYSTEM_ADMIN")]
         public async Task<IActionResult> CreateZone([FromBody] CreateUpdateZoneDto dto)
         {
-            var (success, message) = await _locationService.CreateZoneAsync(dto);
+            var (success, message) = await _locationService.CreateZoneAsync(dto, CurrentUserId());
             if (!success) return BadRequest(new { message });
             return Ok(new { message });
         }
@@ -142,7 +143,7 @@ namespace BMWMS.API.Controllers.Inventory
         public async Task<IActionResult> UpdateZone(long id, [FromBody] CreateUpdateZoneDto dto)
         {
             dto.ZoneId = id;
-            var (success, message) = await _locationService.UpdateZoneAsync(dto);
+            var (success, message) = await _locationService.UpdateZoneAsync(dto, CurrentUserId());
             if (!success) return BadRequest(new { message });
             return Ok(new { message });
         }
@@ -155,7 +156,7 @@ namespace BMWMS.API.Controllers.Inventory
         [Authorize(Roles = "SYSTEM_ADMIN")]
         public async Task<IActionResult> CreateRack([FromBody] CreateUpdateRackDto dto)
         {
-            var (success, message) = await _locationService.CreateRackAsync(dto);
+            var (success, message) = await _locationService.CreateRackAsync(dto, CurrentUserId());
             if (!success) return BadRequest(new { message });
             return Ok(new { message });
         }
@@ -165,9 +166,44 @@ namespace BMWMS.API.Controllers.Inventory
         public async Task<IActionResult> UpdateRack(long id, [FromBody] CreateUpdateRackDto dto)
         {
             dto.RackId = id;
-            var (success, message) = await _locationService.UpdateRackAsync(dto);
+            var (success, message) = await _locationService.UpdateRackAsync(dto, CurrentUserId());
             if (!success) return BadRequest(new { message });
             return Ok(new { message });
         }
+
+        [HttpPatch("{id}/status")]
+        [Authorize(Roles = "SYSTEM_ADMIN")]
+        public async Task<IActionResult> ChangeLocationStatus(long id, [FromBody] ChangeStorageNodeStatusRequest request)
+        {
+            var (success, message) = await _locationService.ChangeLocationStatusAsync(id, request.Active, CurrentUserId());
+            if (!success) return BadRequest(new { message });
+            return Ok(new { message });
+        }
+
+        [HttpPatch("racks/{id}/status")]
+        [Authorize(Roles = "SYSTEM_ADMIN")]
+        public async Task<IActionResult> ChangeRackStatus(long id, [FromBody] ChangeStorageNodeStatusRequest request)
+        {
+            var (success, message) = await _locationService.ChangeRackStatusAsync(id, request.Active, CurrentUserId());
+            if (!success) return BadRequest(new { message });
+            return Ok(new { message });
+        }
+
+        [HttpPatch("zones/{id}/status")]
+        [Authorize(Roles = "SYSTEM_ADMIN")]
+        public async Task<IActionResult> ChangeZoneStatus(long id, [FromBody] ChangeStorageNodeStatusRequest request)
+        {
+            var (success, message) = await _locationService.ChangeZoneStatusAsync(id, request.Active, CurrentUserId());
+            if (!success) return BadRequest(new { message });
+            return Ok(new { message });
+        }
+
+        public sealed class ChangeStorageNodeStatusRequest
+        {
+            public bool Active { get; set; }
+        }
+
+        private long CurrentUserId() =>
+            long.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId) ? userId : 0;
     }
 }
