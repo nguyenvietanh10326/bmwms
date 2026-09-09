@@ -117,16 +117,38 @@ namespace BMWMS.Repository.Repositories
                 (!excludeId.HasValue || g.ProductGroupId != excludeId.Value));
         }
 
-        public async Task<long> AddAsync(ProductGroup group)
+        public async Task<long> AddAsync(ProductGroup group, List<ProductGroupAttribute>? attributes = null)
         {
+            if (attributes != null)
+            {
+                foreach (var attribute in attributes)
+                    group.ProductGroupAttributes.Add(attribute);
+            }
+
             await _context.ProductGroups.AddAsync(group);
             await _context.SaveChangesAsync();
             return group.ProductGroupId;
         }
 
-        public async Task UpdateAsync(ProductGroup group)
+        public async Task UpdateAsync(ProductGroup group, List<ProductGroupAttribute>? attributes = null)
         {
-            _context.ProductGroups.Update(group);
+            _context.ProductGroups.Attach(group);
+            _context.Entry(group).State = EntityState.Modified;
+
+            if (attributes != null)
+            {
+                var existing = await _context.ProductGroupAttributes
+                    .Where(pga => pga.ProductGroupId == group.ProductGroupId)
+                    .ToListAsync();
+                _context.ProductGroupAttributes.RemoveRange(existing);
+
+                foreach (var attribute in attributes)
+                {
+                    attribute.ProductGroupId = group.ProductGroupId;
+                    await _context.ProductGroupAttributes.AddAsync(attribute);
+                }
+            }
+
             await _context.SaveChangesAsync();
         }
 

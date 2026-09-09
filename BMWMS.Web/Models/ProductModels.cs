@@ -127,6 +127,9 @@ namespace BMWMS.Web.Models
         [Required(ErrorMessage = "Trạng thái không được để trống.")]
         [RegularExpression(@"^(ACTIVE|INACTIVE)$", ErrorMessage = "Trạng thái chỉ nhận giá trị ACTIVE hoặc INACTIVE.")]
         public new string Status { get; set; } = "ACTIVE";
+
+        [StringLength(500, ErrorMessage = "Lý do điều chỉnh sức chứa tối đa 500 ký tự.")]
+        public string? CapacityChangeReason { get; set; }
     }
 
     public class UnitOfMeasureModel

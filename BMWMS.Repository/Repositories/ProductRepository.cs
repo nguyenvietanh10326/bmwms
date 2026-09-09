@@ -168,26 +168,30 @@ namespace BMWMS.Repository.Repositories
 
         public async Task<long> AddAsync(Product product, List<ProductAttributeValue>? attributeValues = null)
         {
-            await _context.Products.AddAsync(product);
-            await _context.SaveChangesAsync();
-
             if (attributeValues != null && attributeValues.Any())
             {
                 foreach (var pav in attributeValues)
                 {
-                    pav.ProductId = product.ProductId;
                     pav.UpdatedAt = DateTime.UtcNow;
-                    await _context.ProductAttributeValues.AddAsync(pav);
+                    product.ProductAttributeValues.Add(pav);
                 }
-                await _context.SaveChangesAsync();
             }
+
+            // Product va toan bo gia tri thuoc tinh phai duoc ghi trong mot SaveChanges
+            // de khong tao ra san pham mo coi neu mot gia tri EAV bi loi.
+            await _context.Products.AddAsync(product);
+            await _context.SaveChangesAsync();
 
             return product.ProductId;
         }
 
         public async Task UpdateAsync(Product product, List<ProductAttributeValue>? attributeValues = null)
         {
-            _context.Products.Update(product);
+            // GetByIdAsync nap EAV de hien thi/audit. Khong attach cac instance cu
+            // vi ngay sau do chung se duoc thay the theo payload da validate.
+            product.ProductAttributeValues.Clear();
+            _context.Products.Attach(product);
+            _context.Entry(product).State = EntityState.Modified;
 
             if (attributeValues != null)
             {

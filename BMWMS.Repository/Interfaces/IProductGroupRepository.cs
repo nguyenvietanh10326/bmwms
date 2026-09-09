@@ -13,8 +13,8 @@ namespace BMWMS.Repository.Interfaces
         Task<List<ProductGroupAttribute>> GetAttributesByGroupIdAsync(long productGroupId);
         Task<List<ProductAttribute>> GetAllAttributesAsync();
         Task<bool> IsGroupCodeExistsAsync(string groupCode, long? excludeId = null);
-        Task<long> AddAsync(ProductGroup group);
-        Task UpdateAsync(ProductGroup group);
+        Task<long> AddAsync(ProductGroup group, List<ProductGroupAttribute>? attributes = null);
+        Task UpdateAsync(ProductGroup group, List<ProductGroupAttribute>? attributes = null);
         Task DeleteAsync(long productGroupId);
         Task<bool> HasProductsAsync(long productGroupId);
         Task UpdateGroupAttributesAsync(long productGroupId, List<ProductGroupAttribute> attributes);
