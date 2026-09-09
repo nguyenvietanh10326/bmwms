@@ -40,13 +40,13 @@
     </div>
 
     <form method="post" id="editProductForm">
-        <div style="display: grid; grid-template-columns: 1.3fr 1fr; gap: 24px;">
+        <div style="display: flex; flex-direction: column; gap: 20px;">
             
             <!-- LEFT COLUMN: THÔNG TIN CƠ BẢN & THUỘC TÍNH ĐẶC TRƯNG -->
-            <div style="display: flex; flex-direction: column; gap: 20px;">
+            <div style="display: contents;">
                 
                 <!-- CARD 1: THÔNG TIN CƠ BẢN -->
-                <div style="background: #ffffff; border-radius: 10px; border: 1px solid #e2e8f0; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+                <div id="productBasicCard" style="order: 1; background: #ffffff; border-radius: 10px; border: 1px solid #e2e8f0; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
                     <div style="font-size: 16px; font-weight: 600; color: #0f172a; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px; margin-bottom: 20px; display: flex; align-items: center; gap: 8px;">
                         <i class="ri-file-list-3-line" style="color: #2563b8;"></i> Thông Tin Cơ Bản & Phân Loại
                     </div>
@@ -106,7 +106,7 @@
                 </div>
 
                 <!-- CARD 2: THUỘC TÍNH KỸ THUẬT ĐẶC TRƯNG (EAV DYNAMIC ATTRIBUTES) -->
-                <div style="background: #ffffff; border-radius: 10px; border: 1px solid #e2e8f0; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+                <div id="productAttributesCard" style="order: 3; background: #ffffff; border-radius: 10px; border: 1px solid #e2e8f0; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
                     <div style="font-size: 16px; font-weight: 600; color: #0f172a; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between;">
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <i class="bi bi-sliders text-primary"></i> Thông Số Kỹ Thuật Đặc Trưng (EAV)
@@ -136,9 +136,9 @@
             </div>
 
             <!-- RIGHT COLUMN: QUY TẮC KHO & THEO DÕI -->
-            <div style="display: flex; flex-direction: column; gap: 20px;">
+            <div style="display: contents;">
                 
-                <div style="background: #ffffff; border-radius: 10px; border: 1px solid #e2e8f0; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+                <div id="productWarehouseCard" style="order: 2; background: #ffffff; border-radius: 10px; border: 1px solid #e2e8f0; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
                     <div style="font-size: 16px; font-weight: 600; color: #0f172a; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px; margin-bottom: 20px; display: flex; align-items: center; gap: 8px;">
                         <i class="ri-settings-4-line" style="color: #2563b8;"></i> Luân Chuyển & Quản Lý Kho
                     </div>
@@ -198,7 +198,7 @@
                 </div>
 
                 <!-- SUBMIT ACTIONS -->
-                <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                <div style="order: 4; display: flex; gap: 12px; justify-content: flex-end;">
                     <a href="/Products/Index" style="padding: 10px 20px; border-radius: 8px; border: 1px solid #cbd5e1; background: #fff; color: #475569; font-weight: 600; font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
                         <i class="ri-close-line"></i> Hủy Bỏ
                     </a>
