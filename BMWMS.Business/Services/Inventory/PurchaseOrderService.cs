@@ -1,5 +1,6 @@
 using BMWMS.Business.DTOs.Inventory;
 using BMWMS.Business.DTOs.Audit;
+using BMWMS.Business.Configuration;
 using BMWMS.Business.Interfaces;
 using BMWMS.Business.Interfaces.Inventory;
 using BMWMS.Repository.Interfaces.Inventory;
@@ -7,6 +8,9 @@ using BMWMS.Repository.Models;
 using QuantityRules = BMWMS.Business.Common.QuantityRules;
 using PurchaseOrderReceiptRules = BMWMS.Business.Common.PurchaseOrderReceiptRules;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -22,19 +26,22 @@ namespace BMWMS.Business.Services.Inventory
         private readonly IPurchaseOrderEmailComposer _emailComposer;
         private readonly BmwmsContext _context;
         private readonly IAuditLogService _auditLogService;
+        private readonly PurchaseOrderSupplierResponseOptions _supplierResponseOptions;
 
         public PurchaseOrderService(
             IPurchaseOrderRepository poRepository,
             IEmailService emailService,
             IPurchaseOrderEmailComposer emailComposer,
             BmwmsContext context,
-            IAuditLogService auditLogService)
+            IAuditLogService auditLogService,
+            PurchaseOrderSupplierResponseOptions supplierResponseOptions)
         {
             _poRepository = poRepository;
             _emailService = emailService;
             _emailComposer = emailComposer;
             _context = context;
             _auditLogService = auditLogService;
+            _supplierResponseOptions = supplierResponseOptions;
         }
 
         public async Task<PagedResultDto<PurchaseOrderListDto>> GetPagedOrdersAsync(PurchaseOrderFilterDto filter)
@@ -140,7 +147,7 @@ namespace BMWMS.Business.Services.Inventory
                 ConfirmedByUserId = po.ConfirmedByUserId,
                 ConfirmedByUserName = po.ConfirmedByUser?.FullName,
                 ConfirmedAt = po.ConfirmedAt,
-                CanSendToSupplier = status == "DRAFT",
+                CanSendToSupplier = status is "DRAFT" or "PENDING_CONFIRMATION",
                 CanCancel = status == "DRAFT" && !hasActiveInbound,
                 CanCreateInbound = (status == "CONFIRMED" || status == "PARTIALLY_RECEIVED") && hasQuantityToPlan,
                 Items = items,
@@ -203,10 +210,71 @@ namespace BMWMS.Business.Services.Inventory
                 : "RECEIVED";
         }
 
+        private string CreateSupplierResponseToken(PurchaseOrder order, string action)
+        {
+            var now = DateTime.UtcNow;
+            var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_supplierResponseOptions.SigningKey));
+            var token = new JwtSecurityToken(
+                issuer: _supplierResponseOptions.Issuer,
+                audience: _supplierResponseOptions.Audience,
+                claims:
+                [
+                    new Claim("po_id", order.PurchaseOrderId.ToString()),
+                    new Claim("po_number", order.PurchaseOrderNumber),
+                    new Claim("response_action", action),
+                    new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N"))
+                ],
+                notBefore: now,
+                expires: now.AddHours(Math.Clamp(_supplierResponseOptions.ExpireHours, 1, 720)),
+                signingCredentials: new SigningCredentials(signingKey, SecurityAlgorithms.HmacSha256));
+            return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+
+        private (bool Success, string Message) ValidateSupplierResponseToken(
+            long purchaseOrderId,
+            string action,
+            string token)
+        {
+            if (string.IsNullOrWhiteSpace(token))
+                return (false, "Liên kết phản hồi không có token xác thực.");
+
+            try
+            {
+                var handler = new JwtSecurityTokenHandler();
+                var principal = handler.ValidateToken(token, new TokenValidationParameters
+                {
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_supplierResponseOptions.SigningKey)),
+                    ValidateIssuer = true,
+                    ValidIssuer = _supplierResponseOptions.Issuer,
+                    ValidateAudience = true,
+                    ValidAudience = _supplierResponseOptions.Audience,
+                    ValidateLifetime = true,
+                    ClockSkew = TimeSpan.FromMinutes(1)
+                }, out _);
+
+                var tokenPoId = principal.FindFirst("po_id")?.Value;
+                var tokenAction = principal.FindFirst("response_action")?.Value;
+                if (!long.TryParse(tokenPoId, out var parsedPoId) || parsedPoId != purchaseOrderId ||
+                    !string.Equals(tokenAction, action, StringComparison.Ordinal))
+                    return (false, "Liên kết phản hồi không khớp với đơn mua hàng hoặc lựa chọn hiện tại.");
+
+                return (true, string.Empty);
+            }
+            catch (SecurityTokenExpiredException)
+            {
+                return (false, "Liên kết phản hồi đã hết hạn. Vui lòng liên hệ bộ phận mua hàng.");
+            }
+            catch (Exception exception) when (exception is SecurityTokenException or ArgumentException)
+            {
+                return (false, "Liên kết phản hồi không hợp lệ hoặc đã bị thay đổi.");
+            }
+        }
+
         public async Task<(bool Success, string Message)> ConfirmOrderAsync(long purchaseOrderId, long currentUserId)
         {
             await Task.CompletedTask;
-            return (false, "PO được hệ thống tự động xác nhận sau khi gửi email thành công; không có bước xác nhận thủ công.");
+            return (false, "PO chỉ được xác nhận bằng phản hồi hợp lệ của nhà cung cấp trong email.");
         }
 
         public async Task<(bool Success, string Message)> SendOrderToSupplierAsync(long purchaseOrderId, long currentUserId)
@@ -216,9 +284,9 @@ namespace BMWMS.Business.Services.Inventory
 
             var status = NormalizePurchaseOrderStatus(po.Status);
             if (status == "CONFIRMED")
-                return (true, "PO đã được xác nhận trước đó; hệ thống không gửi lại email.");
-            if (status != "DRAFT")
-                return (false, "Chỉ được gửi email cho nhà cung cấp khi PO đang ở trạng thái Nháp.");
+                return (true, "PO đã được nhà cung cấp xác nhận trước đó; hệ thống không gửi lại email.");
+            if (status is not ("DRAFT" or "PENDING_CONFIRMATION"))
+                return (false, "Chỉ được gửi email khi PO đang ở trạng thái Nháp hoặc Chờ nhà cung cấp phản hồi.");
 
             var supplierEmail = po.Supplier?.Email?.Trim();
             if (string.IsNullOrWhiteSpace(supplierEmail))
@@ -226,7 +294,13 @@ namespace BMWMS.Business.Services.Inventory
 
             try
             {
-                var message = _emailComposer.Compose(po);
+                var confirmToken = CreateSupplierResponseToken(po, "confirm");
+                var cancelToken = CreateSupplierResponseToken(po, "cancel");
+                var baseUrl = _supplierResponseOptions.PublicBaseUrl.TrimEnd('/');
+                var responsePath = $"{baseUrl}/api/PurchaseOrders/{po.PurchaseOrderId}/supplier-response";
+                var confirmUrl = $"{responsePath}?action=confirm&token={Uri.EscapeDataString(confirmToken)}";
+                var cancelUrl = $"{responsePath}?action=cancel&token={Uri.EscapeDataString(cancelToken)}";
+                var message = _emailComposer.Compose(po, confirmUrl, cancelUrl);
                 await _emailService.SendEmailAsync(message);
             }
             catch (Exception exception)
@@ -235,9 +309,9 @@ namespace BMWMS.Business.Services.Inventory
             }
 
             var sentAt = DateTime.UtcNow;
-            po.Status = "CONFIRMED";
-            po.ConfirmedByUserId = currentUserId;
-            po.ConfirmedAt = sentAt;
+            po.Status = "PENDING_CONFIRMATION";
+            po.ConfirmedByUserId = null;
+            po.ConfirmedAt = null;
             po.UpdatedAt = sentAt;
 
             await _auditLogService.StageAsync(new AuditEventDto
@@ -248,16 +322,79 @@ namespace BMWMS.Business.Services.Inventory
                 EntityId = po.PurchaseOrderId.ToString(),
                 NewValues = new
                 {
-                    PreviousStatus = "DRAFT",
-                    Status = "CONFIRMED",
+                    PreviousStatus = status,
+                    Status = "PENDING_CONFIRMATION",
                     RecipientEmail = supplierEmail,
-                    EmailSentAt = sentAt,
-                    po.ConfirmedAt
+                    EmailSentAt = sentAt
                 }
             });
 
             await _poRepository.UpdateAsync(po);
-            return (true, "Đã gửi email kèm file Excel cho nhà cung cấp và xác nhận PO thành công.");
+            return (true, "Đã gửi email kèm file Excel; PO đang chờ nhà cung cấp xác nhận hoặc từ chối.");
+        }
+
+        public async Task<(bool Success, string Message)> HandleSupplierResponseAsync(
+            long purchaseOrderId,
+            string action,
+            string token)
+        {
+            action = action?.Trim().ToLowerInvariant() ?? string.Empty;
+            if (action is not ("confirm" or "cancel"))
+                return (false, "Phản hồi không hợp lệ.");
+
+            var tokenValidation = ValidateSupplierResponseToken(purchaseOrderId, action, token);
+            if (!tokenValidation.Success)
+                return tokenValidation;
+
+            await using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
+            try
+            {
+                var po = await _context.PurchaseOrders
+                    .FirstOrDefaultAsync(order => order.PurchaseOrderId == purchaseOrderId);
+                if (po == null)
+                    return (false, "Không tìm thấy đơn mua hàng.");
+
+                var currentStatus = NormalizePurchaseOrderStatus(po.Status);
+                if (currentStatus != "PENDING_CONFIRMATION")
+                {
+                    await transaction.RollbackAsync();
+                    return currentStatus switch
+                    {
+                        "CONFIRMED" => (false, "PO đã được xác nhận trước đó; phản hồi này không còn hiệu lực."),
+                        "CANCELLED" => (false, "PO đã bị từ chối hoặc hủy trước đó; phản hồi này không còn hiệu lực."),
+                        _ => (false, $"PO hiện ở trạng thái {currentStatus}; không thể tiếp nhận phản hồi NCC.")
+                    };
+                }
+
+                var changedAt = DateTime.UtcNow;
+                po.Status = action == "confirm" ? "CONFIRMED" : "CANCELLED";
+                po.ConfirmedAt = action == "confirm" ? changedAt : null;
+                po.ConfirmedByUserId = null;
+                po.UpdatedAt = changedAt;
+
+                await _auditLogService.StageAsync(new AuditEventDto
+                {
+                    UserId = null,
+                    ActionType = action == "confirm"
+                        ? "SUPPLIER_CONFIRM_PURCHASE_ORDER"
+                        : "SUPPLIER_REJECT_PURCHASE_ORDER",
+                    EntityName = AuditEntities.PurchaseOrder,
+                    EntityId = po.PurchaseOrderId.ToString(),
+                    OldValues = new { Status = "PENDING_CONFIRMATION" },
+                    NewValues = new { po.Status, ResponseAt = changedAt, Actor = "SUPPLIER" }
+                });
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return action == "confirm"
+                    ? (true, $"Đã xác nhận đơn đặt hàng {po.PurchaseOrderNumber}.")
+                    : (true, $"Đã từ chối đơn đặt hàng {po.PurchaseOrderNumber}.");
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
         }
 
         public async Task<(bool Success, string Message)> CancelOrderAsync(long purchaseOrderId, long currentUserId, string? reason)
@@ -306,8 +443,9 @@ namespace BMWMS.Business.Services.Inventory
                 return (false, "Lý do kết thúc sớm phải có từ 10 đến 500 ký tự.");
             var po = await _poRepository.GetByIdWithDetailsAsync(purchaseOrderId);
             if (po == null) return (false, "Không tìm thấy đơn mua hàng.");
-            if (NormalizePurchaseOrderStatus(po.Status) != "PARTIALLY_RECEIVED")
-                return (false, "Chỉ được kết thúc sớm PO đã nhận một phần.");
+            var currentStatus = NormalizePurchaseOrderStatus(po.Status);
+            if (currentStatus is not ("PENDING_RECEIPT_REVIEW" or "PARTIALLY_RECEIVED"))
+                return (false, "Chỉ được kết thúc sớm PO đã nhận một phần và đang chờ quyết định.");
             if (po.InboundOrders.Any(order => order.Status is "DRAFT" or "ASSIGNED" or "IN_PROGRESS"))
                 return (false, "Còn phiếu nhập đang xử lý; phải hoàn tất hoặc hủy phiếu đó trước.");
 
@@ -331,11 +469,37 @@ namespace BMWMS.Business.Services.Inventory
                 ActionType = "CLOSE_PARTIAL_PURCHASE_ORDER",
                 EntityName = AuditEntities.PurchaseOrder,
                 EntityId = po.PurchaseOrderId.ToString(),
-                OldValues = new { Status = "PARTIALLY_RECEIVED" },
+                OldValues = new { Status = currentStatus },
                 NewValues = new { Status = "CLOSED", Reason = reason }
             });
             await _poRepository.UpdateAsync(po);
             return (true, "Đã kết thúc PO theo số lượng thực nhận; không thể tạo thêm phiếu nhập cho phần còn lại.");
+        }
+
+        public async Task<(bool Success, string Message)> ContinuePartiallyReceivedOrderAsync(
+            long purchaseOrderId,
+            long currentUserId)
+        {
+            var po = await _poRepository.GetByIdWithDetailsAsync(purchaseOrderId);
+            if (po == null) return (false, "Không tìm thấy đơn mua hàng.");
+            if (NormalizePurchaseOrderStatus(po.Status) != "PENDING_RECEIPT_REVIEW")
+                return (false, "PO không ở trạng thái chờ Quản lý kho quyết định nhận tiếp.");
+            if (po.InboundOrders.Any(order => PurchaseOrderReceiptRules.IsActiveInbound(order.Status)))
+                return (false, "PO vẫn còn phiếu nhập đang xử lý.");
+
+            po.Status = "PARTIALLY_RECEIVED";
+            po.UpdatedAt = DateTime.UtcNow;
+            await _auditLogService.StageAsync(new AuditEventDto
+            {
+                UserId = currentUserId,
+                ActionType = "APPROVE_CONTINUE_PURCHASE_RECEIPT",
+                EntityName = AuditEntities.PurchaseOrder,
+                EntityId = po.PurchaseOrderId.ToString(),
+                OldValues = new { Status = "PENDING_RECEIPT_REVIEW" },
+                NewValues = new { Status = "PARTIALLY_RECEIVED" }
+            });
+            await _poRepository.UpdateAsync(po);
+            return (true, "Đã duyệt nhận tiếp. PO hiện được phép lập phiếu nhập cho đợt tiếp theo.");
         }
 
         public async Task<IEnumerable<ProductLookupDto>> GetUpListAsync()

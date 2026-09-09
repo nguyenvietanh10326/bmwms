@@ -156,5 +156,26 @@ namespace BMWMS.Web.Services
                 return (false, $"Lỗi kết nối hoặc timeout: {ex.Message}");
             }
         }
+
+        public async Task<(bool IsSuccess, string? Message)> ContinuePartiallyReceivedOrderAsync(long id)
+        {
+            try
+            {
+                var response = await _httpClient.PostAsync($"api/PurchaseOrders/{id}/continue-partial", null);
+                var content = await response.Content.ReadAsStringAsync();
+                var message = response.IsSuccessStatusCode ? "Đã duyệt nhận tiếp." : "Không thể duyệt nhận tiếp.";
+                try
+                {
+                    var json = JsonNode.Parse(content);
+                    message = json?["message"]?.ToString() ?? message;
+                }
+                catch { }
+                return (response.IsSuccessStatusCode, message);
+            }
+            catch (Exception ex)
+            {
+                return (false, $"Lỗi kết nối hoặc timeout: {ex.Message}");
+            }
+        }
     }
 }

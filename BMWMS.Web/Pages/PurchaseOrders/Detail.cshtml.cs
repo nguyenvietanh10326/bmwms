@@ -62,9 +62,18 @@ public class DetailModel : PageModel
 
     public async Task<IActionResult> OnPostClosePartialAsync(string reason)
     {
-        if (!User.IsInRole("SYSTEM_ADMIN") && !User.IsInRole("PURCHASING_STAFF"))
+        if (!User.IsInRole("SYSTEM_ADMIN") && !User.IsInRole("WAREHOUSE_MANAGER"))
             return Forbid();
         var (isSuccess, message) = await _apiService.ClosePartiallyReceivedOrderAsync(Id, reason);
+        TempData[isSuccess ? "SuccessMessage" : "ErrorMessage"] = message;
+        return RedirectToPage(new { id = Id });
+    }
+
+    public async Task<IActionResult> OnPostContinuePartialAsync()
+    {
+        if (!User.IsInRole("SYSTEM_ADMIN") && !User.IsInRole("WAREHOUSE_MANAGER"))
+            return Forbid();
+        var (isSuccess, message) = await _apiService.ContinuePartiallyReceivedOrderAsync(Id);
         TempData[isSuccess ? "SuccessMessage" : "ErrorMessage"] = message;
         return RedirectToPage(new { id = Id });
     }
@@ -72,7 +81,9 @@ public class DetailModel : PageModel
     public string GetPurchaseOrderStatusLabel(string? status) => (status ?? string.Empty).ToUpperInvariant() switch
     {
         "DRAFT" => "Nháp",
+        "PENDING_CONFIRMATION" => "Chờ NCC phản hồi",
         "CONFIRMED" => "Đã xác nhận",
+        "PENDING_RECEIPT_REVIEW" => "Chờ duyệt nhận tiếp",
         "PARTIALLY_RECEIVED" => "Đã nhận một phần",
         "RECEIVED" => "Đã nhận đủ",
         "CLOSED" => "Đã kết thúc nhận",
@@ -94,7 +105,7 @@ public class DetailModel : PageModel
     public string GetStatusClass(string? status) => (status ?? string.Empty).ToUpperInvariant() switch
     {
         "CONFIRMED" or "READY" => "bg-primary-subtle text-primary",
-        "PARTIALLY_RECEIVED" or "RECEIVING" => "bg-warning-subtle text-warning-emphasis",
+        "PENDING_CONFIRMATION" or "PENDING_RECEIPT_REVIEW" or "PARTIALLY_RECEIVED" or "RECEIVING" => "bg-warning-subtle text-warning-emphasis",
         "RECEIVED" or "PUTAWAY_COMPLETED" or "CLOSED" => "bg-success-subtle text-success",
         "CANCELLED" => "bg-danger-subtle text-danger",
         _ => "bg-secondary-subtle text-secondary"
