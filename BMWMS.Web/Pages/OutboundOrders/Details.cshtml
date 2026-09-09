@@ -1,5 +1,6 @@
 @page "{id:long}"
 @model BMWMS.Web.Pages.OutboundOrders.DetailsModel
+@using BMWMS.Web.Helpers
 @{
     Layout = "_AdminLayout";
     ViewData["Title"] = $"Chi tiết phiếu xuất {Model.Order.OutboundOrderNumber}";
@@ -71,5 +72,5 @@
 
 @functions {
     string StatusLabel(string status) => status switch { "DRAFT" => "Nháp", "READY" => "Sẵn sàng xuất", "ISSUING" => "Đang xuất hàng", "ISSUED" => "Đã xuất", "CANCELLED" => "Đã hủy", _ => status };
-    string FormatQuantity(decimal value, byte scale) => value.ToString(scale == 0 ? "N0" : $"N{scale}");
+    string FormatQuantity(decimal value, byte scale) => FormatHelper.FormatQuantity(value, scale);
 }

@@ -1,5 +1,6 @@
 @page "/sales-orders/details/{id:int}"
 @model BMWMS.Web.Pages.SaleOrder.DetailsModel
+@using BMWMS.Web.Helpers
 @{
     Layout = "_AdminLayout";
     ViewData["Title"] = $"Chi tiết đơn bán hàng - {Model.SalesOrder?.SalesOrderNumber}";
@@ -98,5 +99,5 @@
         "CANCELLED" => "bg-danger",
         _ => "bg-light text-dark"
     };
-    string FormatQuantity(decimal value, byte scale) => value.ToString(scale == 0 ? "N0" : $"N{scale}");
+    string FormatQuantity(decimal value, byte scale) => FormatHelper.FormatQuantity(value, scale);
 }

@@ -1,6 +1,7 @@
 @page "{id:int}"
 @using System.Text.Json
 @model BMWMS.Web.Pages.OutboundOrders.ProcessModel
+@using BMWMS.Web.Helpers
 @{
     Layout = "_AdminLayout";
     ViewData["Title"] = $"Thực hiện xuất kho - {Model.Order.OutboundOrderNumber}";
@@ -106,7 +107,7 @@
 @functions {
     string StatusLabel(string status) => status switch { "READY" => "Sẵn sàng xuất", "ISSUING" => "Đang xuất hàng", "ISSUED" => "Đã xuất", "CANCELLED" => "Đã hủy", _ => "Nháp" };
     string QuantityStep(byte scale) => scale == 0 ? "1" : "0." + new string('0', scale - 1) + "1";
-    string FormatQuantity(decimal value, byte scale) => value.ToString(scale == 0 ? "N0" : $"N{scale}");
+    string FormatQuantity(decimal value, byte scale) => FormatHelper.FormatQuantity(value, scale);
 }
 
 @section Scripts {
