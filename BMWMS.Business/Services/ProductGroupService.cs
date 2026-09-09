@@ -169,7 +169,7 @@ namespace BMWMS.Business.Services
         {
             var isCodeExists = await _productGroupRepository.IsGroupCodeExistsAsync(dto.GroupCode.Trim());
             if (isCodeExists)
-                throw new InvalidOperationException($"Ma nhom san pham '{dto.GroupCode}' da ton tai trong he thong.");
+                throw new InvalidOperationException($"Mã nhóm sản phẩm '{dto.GroupCode}' đã tồn tại trong hệ thống.");
 
             var group = new ProductGroup
             {
@@ -180,12 +180,10 @@ namespace BMWMS.Business.Services
                 CreatedAt = DateTime.UtcNow
             };
 
-            var id = await _productGroupRepository.AddAsync(group);
-
             var attrs = await BuildValidatedGroupAttributesAsync(
-                id,
+                0,
                 dto.Attributes ?? new List<GroupAttributeAssignmentDto>());
-            await _productGroupRepository.UpdateGroupAttributesAsync(id, attrs);
+            var id = await _productGroupRepository.AddAsync(group, attrs);
 
             await _auditLogService.RecordAsync(new AuditEventDto
             {
@@ -203,7 +201,7 @@ namespace BMWMS.Business.Services
         {
             var group = await _productGroupRepository.GetByIdAsync(productGroupId);
             if (group == null)
-                throw new KeyNotFoundException($"Khong tim thay nhom san pham voi ID: {productGroupId}");
+                throw new KeyNotFoundException($"Không tìm thấy nhóm sản phẩm với ID: {productGroupId}");
 
             var oldValues = new { group.GroupName, group.Description, group.Status };
 
@@ -212,13 +210,22 @@ namespace BMWMS.Business.Services
             group.Status = dto.Status;
             group.UpdatedAt = DateTime.UtcNow;
 
-            await _productGroupRepository.UpdateAsync(group);
-
+            List<ProductGroupAttribute>? attrs = null;
             if (dto.Attributes != null)
             {
-                var attrs = await BuildValidatedGroupAttributesAsync(productGroupId, dto.Attributes);
-                await _productGroupRepository.UpdateGroupAttributesAsync(productGroupId, attrs);
+                attrs = await BuildValidatedGroupAttributesAsync(productGroupId, dto.Attributes);
             }
+            else if (string.Equals(dto.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase))
+            {
+                var existingAttributes = await _productGroupRepository.GetAttributesByGroupIdAsync(productGroupId);
+                attrs = await BuildValidatedGroupAttributesAsync(
+                    productGroupId,
+                    existingAttributes
+                        .Where(attribute => attribute.ProductAttribute.Status == "ACTIVE")
+                        .Select(ToAssignmentDto));
+            }
+
+            await _productGroupRepository.UpdateAsync(group, attrs);
 
             await _auditLogService.RecordAsync(new AuditEventDto
             {
@@ -235,13 +242,24 @@ namespace BMWMS.Business.Services
         {
             var group = await _productGroupRepository.GetByIdAsync(productGroupId);
             if (group == null)
-                throw new KeyNotFoundException($"Khong tim thay nhom san pham voi ID: {productGroupId}");
+                throw new KeyNotFoundException($"Không tìm thấy nhóm sản phẩm với ID: {productGroupId}");
 
             var oldStatus = group.Status;
             group.Status = group.Status == "ACTIVE" ? "INACTIVE" : "ACTIVE";
             group.UpdatedAt = DateTime.UtcNow;
 
-            await _productGroupRepository.UpdateAsync(group);
+            List<ProductGroupAttribute>? attrs = null;
+            if (string.Equals(group.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase))
+            {
+                var existingAttributes = await _productGroupRepository.GetAttributesByGroupIdAsync(productGroupId);
+                attrs = await BuildValidatedGroupAttributesAsync(
+                    productGroupId,
+                    existingAttributes
+                        .Where(attribute => attribute.ProductAttribute.Status == "ACTIVE")
+                        .Select(ToAssignmentDto));
+            }
+
+            await _productGroupRepository.UpdateAsync(group, attrs);
 
             await _auditLogService.RecordAsync(new AuditEventDto
             {
@@ -258,11 +276,11 @@ namespace BMWMS.Business.Services
         {
             var group = await _productGroupRepository.GetByIdAsync(productGroupId);
             if (group == null)
-                throw new KeyNotFoundException($"Khong tim thay nhom san pham voi ID: {productGroupId}");
+                throw new KeyNotFoundException($"Không tìm thấy nhóm sản phẩm với ID: {productGroupId}");
 
             var hasProducts = await _productGroupRepository.HasProductsAsync(productGroupId);
             if (hasProducts)
-                throw new InvalidOperationException("Khong the xoa nhom san pham nay vi dang co san pham/vat tu lien ket.");
+                throw new InvalidOperationException("Không thể xóa nhóm sản phẩm này vì đang có sản phẩm/vật tư liên kết.");
 
             var snapshot = new { group.GroupCode, group.GroupName, group.Description, group.Status };
 
@@ -282,7 +300,7 @@ namespace BMWMS.Business.Services
         {
             var group = await _productGroupRepository.GetByIdAsync(productGroupId);
             if (group == null)
-                throw new KeyNotFoundException($"Khong tim thay nhom san pham voi ID: {productGroupId}");
+                throw new KeyNotFoundException($"Không tìm thấy nhóm sản phẩm với ID: {productGroupId}");
 
             var attrs = await BuildValidatedGroupAttributesAsync(productGroupId, attributes);
 
@@ -308,15 +326,27 @@ namespace BMWMS.Business.Services
             IEnumerable<GroupAttributeAssignmentDto> assignments)
         {
             var allAttributes = await _productGroupRepository.GetAllAttributesAsync();
+            var activeAttributeIds = allAttributes
+                .Select(attribute => attribute.ProductAttributeId)
+                .ToHashSet();
             var storageVolumeAttribute = allAttributes.FirstOrDefault(attribute =>
                 string.Equals(attribute.AttributeCode, StorageVolumeAttributeCode, StringComparison.OrdinalIgnoreCase));
             if (storageVolumeAttribute == null)
             {
                 throw new InvalidOperationException(
-                    "System attribute STORAGE_VOLUME_M3_PER_BASE_UOM is missing. Run the capacity schema patch first.");
+                    "Thiếu thuộc tính hệ thống STORAGE_VOLUME_M3_PER_BASE_UOM. Hãy chạy bản cập nhật dữ liệu sức chứa trước.");
             }
 
             var submitted = assignments.ToList();
+            if (submitted.GroupBy(attribute => attribute.ProductAttributeId).Any(group => group.Count() > 1))
+                throw new InvalidOperationException("Không được cấu hình lặp cùng một thuộc tính cho nhóm sản phẩm.");
+            if (submitted.Any(attribute => attribute.ProductAttributeId <= 0 ||
+                                           !activeAttributeIds.Contains(attribute.ProductAttributeId)))
+                throw new InvalidOperationException(
+                    "Một hoặc nhiều thuộc tính không tồn tại hoặc đang ngừng hoạt động.");
+            if (submitted.Any(attribute => attribute.DisplayOrder < 0))
+                throw new InvalidOperationException("Thứ tự hiển thị thuộc tính không được là số âm.");
+
             var capacityAssignment = submitted.FirstOrDefault(attribute =>
                 attribute.ProductAttributeId == storageVolumeAttribute.ProductAttributeId);
             if (capacityAssignment == null)
@@ -355,5 +385,13 @@ namespace BMWMS.Business.Services
                 })
                 .ToList();
         }
+
+        private static GroupAttributeAssignmentDto ToAssignmentDto(ProductGroupAttribute attribute) => new()
+        {
+            ProductAttributeId = attribute.ProductAttributeId,
+            IsRequired = attribute.IsRequired,
+            DisplayOrder = attribute.DisplayOrder,
+            DefaultValue = attribute.DefaultValue
+        };
     }
 }

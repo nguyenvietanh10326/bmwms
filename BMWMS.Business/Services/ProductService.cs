@@ -14,6 +14,9 @@ namespace BMWMS.Business.Services
 {
     public class ProductService : IProductService
     {
+        private const decimal MaximumStorageFactor = 1_000_000m;
+        private const int MaximumStorageFactorDecimalPlaces = 8;
+
         private readonly IProductRepository _productRepository;
         private readonly IProductGroupRepository _productGroupRepository;
         private readonly IAuditLogService _auditLogService;
@@ -161,7 +164,11 @@ namespace BMWMS.Business.Services
 
         public async Task<long> CreateAsync(CreateProductDto dto, long currentUserId)
         {
+            dto.AttributeValues ??= new List<ProductAttributeValueDto>();
             await NormalizeAndValidateAttributeValuesAsync(dto.ProductGroupId, dto.AttributeValues);
+            if (!(await _productRepository.GetUnitsOfMeasureAsync())
+                .Any(unit => unit.UnitOfMeasureId == dto.UnitOfMeasureId))
+                throw new InvalidOperationException("Đơn vị tính cơ sở không tồn tại hoặc đang ngừng hoạt động.");
             string cleanCode = dto.ProductCode.Trim().ToUpper();
 
             if (await _productRepository.IsCodeExistsAsync(cleanCode))
@@ -172,17 +179,6 @@ namespace BMWMS.Business.Services
             if (!string.IsNullOrWhiteSpace(dto.Barcode) && await _productRepository.IsBarcodeExistsAsync(dto.Barcode.Trim()))
             {
                 throw new InvalidOperationException($"Mã vạch '{dto.Barcode.Trim()}' đã được sử dụng bởi sản phẩm khác.");
-            }
-
-            // Kiểm tra quy tắc nhóm hàng (PG06, PG07, PG08 -> FEFO & Lô/Hạn)
-            var group = await _productGroupRepository.GetByIdAsync(dto.ProductGroupId);
-            if (group != null)
-            {
-                if (group.GroupCode == "PG06" || group.GroupCode == "PG07" || group.GroupCode == "PG08")
-                {
-                    dto.RotationMethod = "FEFO";
-                    dto.TrackExpiry = true;
-                }
             }
 
             // Ràng buộc: FEFO bắt buộc TrackExpiry
@@ -224,7 +220,18 @@ namespace BMWMS.Business.Services
                 ActionType = AuditActions.Create,
                 EntityName = AuditEntities.Product,
                 EntityId = id.ToString(),
-                NewValues = new { product.ProductCode, product.ProductName, product.RotationMethod, product.Status }
+                NewValues = new
+                {
+                    product.ProductCode,
+                    product.ProductName,
+                    product.ProductGroupId,
+                    product.UnitOfMeasureId,
+                    product.RotationMethod,
+                    product.Status,
+                    StorageVolumeM3PerBaseUom = GetAttributeValue(
+                        dto.AttributeValues,
+                        CapacityEvaluationService.StorageVolumeAttributeCode)
+                }
             });
 
             return id;
@@ -232,14 +239,56 @@ namespace BMWMS.Business.Services
 
         public async Task UpdateAsync(long productId, UpdateProductDto dto, long currentUserId)
         {
-            await NormalizeAndValidateAttributeValuesAsync(dto.ProductGroupId, dto.AttributeValues);
             var product = await _productRepository.GetByIdAsync(productId);
             if (product == null)
             {
                 throw new KeyNotFoundException($"Không tìm thấy sản phẩm với ID = {productId}.");
             }
 
-            var oldValues = new { product.ProductCode, product.ProductName, product.RotationMethod, product.Status };
+            dto.AttributeValues ??= new List<ProductAttributeValueDto>();
+            await NormalizeAndValidateAttributeValuesAsync(dto.ProductGroupId, dto.AttributeValues);
+            if (!(await _productRepository.GetUnitsOfMeasureAsync())
+                .Any(unit => unit.UnitOfMeasureId == dto.UnitOfMeasureId))
+                throw new InvalidOperationException("Đơn vị tính cơ sở không tồn tại hoặc đang ngừng hoạt động.");
+
+            var oldStorageVolume = GetAttributeValue(
+                product.ProductAttributeValues.Select(value => new ProductAttributeValueDto
+                {
+                    ProductAttributeId = value.ProductAttributeId,
+                    AttributeCode = value.ProductAttribute?.AttributeCode,
+                    AttributeValue = value.AttributeValue
+                }),
+                CapacityEvaluationService.StorageVolumeAttributeCode);
+            var newStorageVolume = GetAttributeValue(
+                dto.AttributeValues,
+                CapacityEvaluationService.StorageVolumeAttributeCode);
+            var hasHistory = await _productRepository.HasTransactionsOrInventoryAsync(productId);
+
+            if (hasHistory && product.UnitOfMeasureId != dto.UnitOfMeasureId)
+                throw new InvalidOperationException(
+                    "Không thể đổi đơn vị tính cơ sở của sản phẩm đã phát sinh tồn kho hoặc giao dịch.");
+            if (hasHistory && product.ProductGroupId != dto.ProductGroupId)
+                throw new InvalidOperationException(
+                    "Không thể đổi nhóm của sản phẩm đã phát sinh tồn kho hoặc giao dịch. Hãy tạo sản phẩm mới nếu thay đổi bản chất vật tư.");
+
+            var capacityFactorChanged = !string.Equals(
+                oldStorageVolume,
+                newStorageVolume,
+                StringComparison.Ordinal);
+            if (hasHistory && capacityFactorChanged && string.IsNullOrWhiteSpace(dto.CapacityChangeReason))
+                throw new InvalidOperationException(
+                    "Sản phẩm đã phát sinh tồn kho hoặc giao dịch. Phải nhập lý do khi điều chỉnh hệ số thể tích lưu kho.");
+
+            var oldValues = new
+            {
+                product.ProductCode,
+                product.ProductName,
+                product.ProductGroupId,
+                product.UnitOfMeasureId,
+                product.RotationMethod,
+                product.Status,
+                StorageVolumeM3PerBaseUom = oldStorageVolume
+            };
 
             string cleanCode = dto.ProductCode.Trim().ToUpper();
             if (await _productRepository.IsCodeExistsAsync(cleanCode, productId))
@@ -250,17 +299,6 @@ namespace BMWMS.Business.Services
             if (!string.IsNullOrWhiteSpace(dto.Barcode) && await _productRepository.IsBarcodeExistsAsync(dto.Barcode.Trim(), productId))
             {
                 throw new InvalidOperationException($"Mã vạch '{dto.Barcode.Trim()}' đã được sử dụng bởi sản phẩm khác.");
-            }
-
-            // Kiểm tra quy tắc nhóm hàng
-            var group = await _productGroupRepository.GetByIdAsync(dto.ProductGroupId);
-            if (group != null)
-            {
-                if (group.GroupCode == "PG06" || group.GroupCode == "PG07" || group.GroupCode == "PG08")
-                {
-                    dto.RotationMethod = "FEFO";
-                    dto.TrackExpiry = true;
-                }
             }
 
             // Ràng buộc: FEFO bắt buộc TrackExpiry
@@ -302,57 +340,119 @@ namespace BMWMS.Business.Services
                 EntityName = AuditEntities.Product,
                 EntityId = productId.ToString(),
                 OldValues = oldValues,
-                NewValues = new { product.ProductCode, product.ProductName, product.RotationMethod, product.Status }
+                NewValues = new
+                {
+                    product.ProductCode,
+                    product.ProductName,
+                    product.ProductGroupId,
+                    product.UnitOfMeasureId,
+                    product.RotationMethod,
+                    product.Status,
+                    StorageVolumeM3PerBaseUom = newStorageVolume,
+                    CapacityChangeReason = capacityFactorChanged
+                        ? dto.CapacityChangeReason?.Trim()
+                        : null
+                }
             });
         }
 
         private async Task NormalizeAndValidateAttributeValuesAsync(
             long productGroupId,
-            List<ProductAttributeValueDto>? values)
+            List<ProductAttributeValueDto> values)
         {
-            var submitted = values?
-                .Where(value => !string.IsNullOrWhiteSpace(value.AttributeValue))
-                .ToList() ?? new List<ProductAttributeValueDto>();
-            if (submitted.GroupBy(value => value.ProductAttributeId).Any(group => group.Count() > 1))
+            if (values.Where(value => value.ProductAttributeId > 0)
+                .GroupBy(value => value.ProductAttributeId)
+                .Any(group => group.Count() > 1))
                 throw new InvalidOperationException("Không được gửi lặp cùng một thuộc tính sản phẩm.");
 
             var productGroup = await _productGroupRepository.GetByIdAsync(productGroupId, includeAttributes: true);
             if (productGroup == null)
-                throw new InvalidOperationException("Product group does not exist or is inactive.");
+                throw new InvalidOperationException("Nhóm sản phẩm không tồn tại.");
+            if (!string.Equals(productGroup.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("Không thể lưu sản phẩm vào nhóm đang ngừng hoạt động.");
 
-            var configuredAttributes = productGroup.ProductGroupAttributes
+            var configuredAttributesById = productGroup.ProductGroupAttributes
                 .Where(groupAttribute => groupAttribute.ProductAttribute.Status == "ACTIVE")
                 .ToDictionary(
-                    groupAttribute => groupAttribute.ProductAttribute.AttributeCode,
-                    StringComparer.OrdinalIgnoreCase);
+                    groupAttribute => groupAttribute.ProductAttributeId);
+            var configuredAttributesByCode = configuredAttributesById.Values.ToDictionary(
+                groupAttribute => groupAttribute.ProductAttribute.AttributeCode,
+                StringComparer.OrdinalIgnoreCase);
 
-            if (!configuredAttributes.TryGetValue(
+            if (!configuredAttributesByCode.TryGetValue(
                     CapacityEvaluationService.StorageVolumeAttributeCode,
                     out var storageVolumeAttribute))
             {
                 throw new InvalidOperationException(
-                    "The product group must configure STORAGE_VOLUME_M3_PER_BASE_UOM before products can be saved.");
+                    "Nhóm sản phẩm chưa cấu hình hệ số thể tích lưu kho. Hãy chạy bản cập nhật dữ liệu sức chứa trước.");
             }
 
-            var storageVolumeValue = submitted.FirstOrDefault(value =>
-                value.ProductAttributeId == storageVolumeAttribute.ProductAttributeId);
-            if (storageVolumeValue == null)
+            foreach (var value in values.Where(value => !string.IsNullOrWhiteSpace(value.AttributeValue)))
             {
-                throw new InvalidOperationException(
-                    "Storage volume conversion (m3 per base unit) is required for capacity calculation.");
+                if (!configuredAttributesById.ContainsKey(value.ProductAttributeId))
+                    throw new InvalidOperationException(
+                        "Một hoặc nhiều thuộc tính gửi lên không thuộc cấu hình của nhóm sản phẩm đã chọn.");
             }
 
-            var attributes = await _productRepository.GetProductAttributesByIdsAsync(
-                submitted.Select(value => value.ProductAttributeId));
-            var attributesById = attributes.ToDictionary(attribute => attribute.ProductAttributeId);
-            if (attributesById.Count != submitted.Count)
-                throw new InvalidOperationException("Một hoặc nhiều thuộc tính sản phẩm không tồn tại.");
+            foreach (var requiredAttribute in configuredAttributesById.Values.Where(attribute => attribute.IsRequired))
+            {
+                var value = values.FirstOrDefault(item => item.ProductAttributeId == requiredAttribute.ProductAttributeId);
+                if (value != null && !string.IsNullOrWhiteSpace(value.AttributeValue))
+                    continue;
+
+                if (string.IsNullOrWhiteSpace(requiredAttribute.DefaultValue))
+                    throw new InvalidOperationException(
+                        $"Thuộc tính '{requiredAttribute.ProductAttribute.AttributeName}' là bắt buộc.");
+
+                if (value == null)
+                {
+                    values.Add(new ProductAttributeValueDto
+                    {
+                        ProductAttributeId = requiredAttribute.ProductAttributeId,
+                        AttributeCode = requiredAttribute.ProductAttribute.AttributeCode,
+                        AttributeName = requiredAttribute.ProductAttribute.AttributeName,
+                        AttributeValue = requiredAttribute.DefaultValue
+                    });
+                }
+                else
+                {
+                    value.AttributeValue = requiredAttribute.DefaultValue;
+                }
+            }
+
+            var submitted = values
+                .Where(value => !string.IsNullOrWhiteSpace(value.AttributeValue))
+                .ToList();
 
             foreach (var submittedValue in submitted)
             {
-                var attribute = attributesById[submittedValue.ProductAttributeId];
-                if (!string.Equals(attribute.DataType, "NUMBER", StringComparison.OrdinalIgnoreCase))
+                var groupAttribute = configuredAttributesById[submittedValue.ProductAttributeId];
+                var attribute = groupAttribute.ProductAttribute;
+                submittedValue.AttributeCode = attribute.AttributeCode;
+                submittedValue.AttributeName = attribute.AttributeName;
+                submittedValue.DataType = attribute.DataType;
+                submittedValue.UnitLabel = attribute.UnitLabel;
+
+                if (string.Equals(attribute.DataType, "OPTION", StringComparison.OrdinalIgnoreCase))
+                {
+                    var option = attribute.ProductAttributeOptions.FirstOrDefault(candidate =>
+                        candidate.IsActive &&
+                        (string.Equals(candidate.OptionCode, submittedValue.AttributeValue.Trim(), StringComparison.OrdinalIgnoreCase) ||
+                         string.Equals(candidate.OptionValue, submittedValue.AttributeValue.Trim(), StringComparison.OrdinalIgnoreCase)));
+                    if (option == null)
+                        throw new InvalidOperationException(
+                            $"Giá trị của thuộc tính '{attribute.AttributeName}' không nằm trong danh sách cho phép.");
+
+                    // Luu ma option on dinh; giao dien chi dung OptionValue de hien thi.
+                    submittedValue.AttributeValue = option.OptionCode;
                     continue;
+                }
+
+                if (!string.Equals(attribute.DataType, "NUMBER", StringComparison.OrdinalIgnoreCase))
+                {
+                    submittedValue.AttributeValue = submittedValue.AttributeValue.Trim();
+                    continue;
+                }
 
                 var normalized = submittedValue.AttributeValue.Trim().Replace(',', '.');
                 if (!decimal.TryParse(
@@ -367,9 +467,41 @@ namespace BMWMS.Business.Services
                     CapacityEvaluationService.StorageVolumeAttributeCode;
                 if (isCapacityAttribute && number <= 0)
                     throw new InvalidOperationException($"Thuộc tính '{attribute.AttributeName}' phải lớn hơn 0.");
+                if (isCapacityAttribute && number > MaximumStorageFactor)
+                    throw new InvalidOperationException(
+                        $"Thuộc tính '{attribute.AttributeName}' không được vượt quá {MaximumStorageFactor.ToString(CultureInfo.InvariantCulture)}.");
+                if (isCapacityAttribute && CountSignificantDecimalPlaces(normalized) > MaximumStorageFactorDecimalPlaces)
+                    throw new InvalidOperationException(
+                        $"Thuộc tính '{attribute.AttributeName}' chỉ được có tối đa {MaximumStorageFactorDecimalPlaces} chữ số thập phân.");
 
                 submittedValue.AttributeValue = number.ToString(CultureInfo.InvariantCulture);
             }
+        }
+
+        private static int CountSignificantDecimalPlaces(string value)
+        {
+            var separatorIndex = value.IndexOf('.');
+            return separatorIndex < 0
+                ? 0
+                : value[(separatorIndex + 1)..].TrimEnd('0').Length;
+        }
+
+        private static string? GetAttributeValue(
+            IEnumerable<ProductAttributeValueDto>? values,
+            string attributeCode)
+        {
+            if (values == null)
+                return null;
+
+            var value = values.FirstOrDefault(item =>
+                string.Equals(item.AttributeCode, attributeCode, StringComparison.OrdinalIgnoreCase));
+            if (string.IsNullOrWhiteSpace(value?.AttributeValue))
+                return null;
+
+            var normalized = value.AttributeValue.Trim().Replace(',', '.');
+            return decimal.TryParse(normalized, NumberStyles.Number, CultureInfo.InvariantCulture, out var number)
+                ? number.ToString(CultureInfo.InvariantCulture)
+                : normalized;
         }
 
         public async Task ToggleStatusAsync(long productId, long currentUserId)
