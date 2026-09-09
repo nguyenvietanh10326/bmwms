@@ -202,15 +202,18 @@ public class PutawayLocationOption
         "EXCEEDED" => $"Không đủ chỗ{FormatUsage()}",
         "UNKNOWN" => "Chưa đủ dữ liệu tính sức chứa",
         "NOT_CONFIGURED" => "Chưa cấu hình giới hạn",
-        _ => $"Đang có {CurrentProductQuantity:0.####} của sản phẩm"
+        _ => $"Đang có {FormatNumber(CurrentProductQuantity, 4)} của sản phẩm"
     };
 
     private string FormatUsage()
     {
         if (ProjectedWeightKg.HasValue && MaxWeightKg.HasValue)
-            return $" · {ProjectedWeightKg:0.##}/{MaxWeightKg:0.##} kg";
+            return $" · {FormatNumber(ProjectedWeightKg.Value, 2)}/{FormatNumber(MaxWeightKg.Value, 2)} kg";
         if (ProjectedVolumeM3.HasValue && MaxVolumeM3.HasValue)
-            return $" · {ProjectedVolumeM3:0.####}/{MaxVolumeM3:0.####} m³";
+            return $" · {FormatNumber(ProjectedVolumeM3.Value, 4)}/{FormatNumber(MaxVolumeM3.Value, 4)} m³";
         return string.Empty;
     }
+
+    private static string FormatNumber(decimal value, int scale) =>
+        value.ToString(scale == 0 ? "0" : $"0.{new string('#', scale)}", CultureInfo.InvariantCulture);
 }

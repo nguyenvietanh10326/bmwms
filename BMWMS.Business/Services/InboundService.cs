@@ -1186,7 +1186,7 @@ public class InboundService : IInboundService
                     .ThenInclude(item => item.InboundOrderDetails)
             .FirstOrDefaultAsync(po => po.PurchaseOrderId == purchaseOrderId.Value);
 
-        if (purchaseOrder == null || NormalizePurchaseOrderStatus(purchaseOrder.Status) == "CANCELLED")
+        if (purchaseOrder == null || NormalizePurchaseOrderStatus(purchaseOrder.Status) is "CANCELLED" or "CLOSED")
             return;
 
         var activeInboundItems = purchaseOrder.InboundOrders
@@ -1207,7 +1207,7 @@ public class InboundService : IInboundService
         purchaseOrder.Status = isFullyReceived
             ? "COMPLETED"
             : hasReceivedQuantity
-                ? "PARTIALLY_RECEIVED"
+                ? "PENDING_RECEIPT_REVIEW"
                 : "CONFIRMED";
         purchaseOrder.UpdatedAt = DateTime.UtcNow;
     }
@@ -1690,7 +1690,11 @@ public class InboundService : IInboundService
 
                 var exceeded = capacityEvaluations.Values
                     .Where(value => value.OverallStatus == CapacityEvaluationStatuses.Exceeded)
-                    .Select(value => value.LocationCode)
+                    .SelectMany(value => value.Scopes
+                        .Where(scope => scope.OverallStatus == CapacityEvaluationStatuses.Exceeded)
+                        .Select(scope => $"{scope.ScopeType} {scope.ScopeCode}")
+                        .DefaultIfEmpty($"BIN {value.LocationCode}"))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
                     .OrderBy(code => code)
                     .ToList();
                 if (exceeded.Count > 0)
@@ -1699,7 +1703,11 @@ public class InboundService : IInboundService
 
                 var incomplete = capacityEvaluations.Values
                     .Where(value => value.OverallStatus is CapacityEvaluationStatuses.Unknown or CapacityEvaluationStatuses.NotConfigured)
-                    .Select(value => value.LocationCode)
+                    .SelectMany(value => value.Scopes
+                        .Where(scope => scope.OverallStatus is CapacityEvaluationStatuses.Unknown or CapacityEvaluationStatuses.NotConfigured)
+                        .Select(scope => $"{scope.ScopeType} {scope.ScopeCode}")
+                        .DefaultIfEmpty($"BIN {value.LocationCode}"))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
                     .OrderBy(code => code)
                     .ToList();
                 if (_capacityOptions.IsStrict && incomplete.Count > 0)
@@ -1998,17 +2006,30 @@ public class InboundService : IInboundService
         if (capacity == null)
             return "Kiểm tra sức chứa đang tắt.";
         if (capacity.OverallStatus == CapacityEvaluationStatuses.Exceeded)
-            return "Số lượng dự kiến vượt giới hạn tải trọng hoặc thể tích của vị trí.";
+        {
+            var exceededScopes = capacity.Scopes
+                .Where(scope => scope.OverallStatus == CapacityEvaluationStatuses.Exceeded)
+                .Select(scope => $"{scope.ScopeType} {scope.ScopeCode}");
+            return $"Số lượng dự kiến vượt sức chứa tại: {string.Join(", ", exceededScopes)}.";
+        }
         if (capacity.OverallStatus == CapacityEvaluationStatuses.Unknown)
         {
             var missing = capacity.MissingWeightProductCodes
                 .Concat(capacity.MissingVolumeProductCodes)
                 .Distinct(StringComparer.OrdinalIgnoreCase);
-            return $"Chưa đủ hệ số lưu kho để tính sức chứa cho: {string.Join(", ", missing)}.";
+            var unconfiguredScopes = capacity.Scopes
+                .Where(scope => scope.OverallStatus == CapacityEvaluationStatuses.NotConfigured)
+                .Select(scope => $"{scope.ScopeType} {scope.ScopeCode}")
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            var unconfiguredMessage = unconfiguredScopes.Count == 0
+                ? string.Empty
+                : $" Chưa cấu hình giới hạn cho: {string.Join(", ", unconfiguredScopes)}.";
+            return $"Chưa đủ hệ số lưu kho để tính sức chứa cho: {string.Join(", ", missing)}.{unconfiguredMessage}";
         }
         if (capacity.OverallStatus == CapacityEvaluationStatuses.NotConfigured)
-            return "Vị trí chưa cấu hình giới hạn tải trọng hoặc thể tích.";
-        return "Vị trí còn đủ sức chứa theo dữ liệu đã cấu hình.";
+            return "Bin, Rack và Zone chưa cấu hình giới hạn tải trọng hoặc thể tích.";
+        return "Bin, Rack và Zone còn đủ sức chứa theo dữ liệu đã cấu hình.";
     }
 
     private static bool IsActive(string? status)

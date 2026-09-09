@@ -365,6 +365,13 @@
         }
 
         function renderInboundDetail(data) {
+            const formatQuantity = (value) => {
+                if (value === null || value === undefined || value === '') return '—';
+                const number = Number(value);
+                if (!Number.isFinite(number)) return '—';
+                return number.toLocaleString('en-US', { useGrouping: false, maximumFractionDigits: 4 });
+            };
+
             const getStatusBadge = (status) => {
                 if (status === "COMPLETED") return `<span class="badge-premium badge-success-premium"><span class="status-dot bg-green-500"></span> Đã nhận</span>`;
                 if (status === "IN_PROGRESS") return `<span class="badge-premium badge-warning-premium"><span class="status-dot bg-yellow-500"></span> Đang kiểm nhận</span>`;
@@ -390,8 +397,8 @@
                             </td>
                             <td style="font-weight: 500; color: #0f172a;">${item.productName}</td>
                             <td><span class="badge bg-light text-dark border">${item.unitName}</span></td>
-                            <td class="text-end font-monospace">${item.expectedQuantity.toLocaleString()}</td>
-                            <td class="text-end font-monospace fw-bold text-primary">${item.receivedQuantity.toLocaleString()}</td>
+                            <td class="text-end font-monospace">${formatQuantity(item.expectedQuantity)}</td>
+                            <td class="text-end font-monospace fw-bold text-primary">${formatQuantity(item.receivedQuantity)}</td>
                         </tr>
                     `;
                 });
