@@ -1,5 +1,6 @@
 @page
 @model BMWMS.Web.Pages.OutboundOrders.CreateModel
+@using BMWMS.Web.Helpers
 @{
     Layout = "_AdminLayout";
     ViewData["Title"] = "Tạo phiếu xuất kho";
@@ -132,7 +133,12 @@
 
     function escapeHtml(value) { const d = document.createElement('div'); d.textContent = value ?? ''; return d.innerHTML; }
     function quantityStep(scale) { return scale === 0 ? '1' : `0.${'0'.repeat(scale - 1)}1`; }
-    function formatQuantity(value, scale) { return Number(value).toLocaleString('vi-VN', { minimumFractionDigits: scale, maximumFractionDigits: scale }); }
+    function formatQuantity(value, scale) {
+        return Number(value).toLocaleString('en-US', {
+            useGrouping: false,
+            maximumFractionDigits: scale
+        });
+    }
     function renderItems(items) {
         document.getElementById('itemCount').textContent = `${items.length} mặt hàng`;
         if (!items.length) { body.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">Đơn không còn mặt hàng có thể xuất.</td></tr>'; return; }
@@ -152,5 +158,5 @@
 }
 @functions {
     string QuantityStep(byte scale) => scale == 0 ? "1" : "0." + new string('0', scale - 1) + "1";
-    string FormatQuantity(decimal value, byte scale) => value.ToString(scale == 0 ? "N0" : $"N{scale}");
+    string FormatQuantity(decimal value, byte scale) => FormatHelper.FormatQuantity(value, scale);
 }

@@ -1,5 +1,6 @@
 @page "/sales-orders/create"
 @model BMWMS.Web.Pages.SalesOrders.CreateModel
+@using BMWMS.Web.Helpers
 @{
     Layout = "_AdminLayout";
     ViewData["Title"] = "Tạo đơn bán hàng";
@@ -530,5 +531,5 @@
 }
 @functions {
     string QuantityStep(byte scale) => scale == 0 ? "1" : "0." + new string('0', scale - 1) + "1";
-    string FormatQuantity(decimal value, byte scale) => value.ToString(scale == 0 ? "N0" : $"N{scale}");
+    string FormatQuantity(decimal value, byte scale) => FormatHelper.FormatQuantity(value, scale);
 }
