@@ -280,6 +280,7 @@ namespace BMWMS.Business.Services.StockOperations
                     ProductCode = d.Product?.ProductCode ?? "N/A",
                     ProductName = d.Product?.ProductName ?? "N/A",
                     UnitName = d.Product?.UnitOfMeasure?.UnitName ?? "",
+                    QuantityScale = d.Product?.UnitOfMeasure?.QuantityScale ?? 0,
                     LotNumber = d.ProductLot?.LotNumber ?? "N/A",
                     SourceLocationId = d.SourceLocationId ?? 0,
                     SourceZoneId = d.SourceLocation?.StorageRack?.ZoneId,
@@ -710,7 +711,11 @@ namespace BMWMS.Business.Services.StockOperations
 
             var exceeded = destinations
                 .Where(value => value.OverallStatus == CapacityEvaluationStatuses.Exceeded)
-                .Select(value => value.LocationCode)
+                .SelectMany(value => value.Scopes
+                    .Where(scope => scope.OverallStatus == CapacityEvaluationStatuses.Exceeded)
+                    .Select(scope => $"{scope.ScopeType} {scope.ScopeCode}")
+                    .DefaultIfEmpty($"BIN {value.LocationCode}"))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(code => code)
                 .ToList();
             if (exceeded.Count > 0)
@@ -719,7 +724,11 @@ namespace BMWMS.Business.Services.StockOperations
 
             var incomplete = destinations
                 .Where(value => value.OverallStatus is CapacityEvaluationStatuses.Unknown or CapacityEvaluationStatuses.NotConfigured)
-                .Select(value => value.LocationCode)
+                .SelectMany(value => value.Scopes
+                    .Where(scope => scope.OverallStatus is CapacityEvaluationStatuses.Unknown or CapacityEvaluationStatuses.NotConfigured)
+                    .Select(scope => $"{scope.ScopeType} {scope.ScopeCode}")
+                    .DefaultIfEmpty($"BIN {value.LocationCode}"))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(code => code)
                 .ToList();
             if (_capacityOptions.IsStrict && incomplete.Count > 0)
