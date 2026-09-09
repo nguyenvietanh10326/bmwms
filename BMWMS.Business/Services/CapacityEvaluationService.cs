@@ -28,6 +28,26 @@ public sealed class CapacityEvaluationService : ICapacityEvaluationService
             throw new ArgumentException("Dữ liệu dùng để tính sức chứa không hợp lệ.", nameof(allocations));
 
         var locationIds = allocations.Select(item => item.StorageLocationId).Distinct().OrderBy(id => id).ToList();
+        return await EvaluateCoreAsync(locationIds, allocations, acquireLocationLocks);
+    }
+
+    public async Task<IReadOnlyDictionary<long, LocationCapacityEvaluationDto>> EvaluateCurrentAsync(
+        IReadOnlyCollection<long> storageLocationIds)
+    {
+        if (storageLocationIds == null)
+            throw new ArgumentNullException(nameof(storageLocationIds));
+        if (storageLocationIds.Any(id => id <= 0))
+            throw new ArgumentException("Danh sách vị trí dùng để tính sức chứa không hợp lệ.", nameof(storageLocationIds));
+
+        var locationIds = storageLocationIds.Distinct().OrderBy(id => id).ToList();
+        return await EvaluateCoreAsync(locationIds, Array.Empty<CapacityAllocationDto>(), false);
+    }
+
+    private async Task<IReadOnlyDictionary<long, LocationCapacityEvaluationDto>> EvaluateCoreAsync(
+        IReadOnlyCollection<long> locationIds,
+        IReadOnlyCollection<CapacityAllocationDto> allocations,
+        bool acquireLocationLocks)
+    {
         if (locationIds.Count == 0)
             return new Dictionary<long, LocationCapacityEvaluationDto>();
 
