@@ -137,6 +137,16 @@ namespace BMWMS.API.Controllers.Inventory
             return Ok(new { message });
         }
 
+        [HttpPut("zones/{id}")]
+        [Authorize(Roles = "SYSTEM_ADMIN")]
+        public async Task<IActionResult> UpdateZone(long id, [FromBody] CreateUpdateZoneDto dto)
+        {
+            dto.ZoneId = id;
+            var (success, message) = await _locationService.UpdateZoneAsync(dto);
+            if (!success) return BadRequest(new { message });
+            return Ok(new { message });
+        }
+
         /// <summary>
         /// Thêm mới Kệ chứa (Rack)
         /// POST: api/storagelocations/racks
@@ -146,6 +156,16 @@ namespace BMWMS.API.Controllers.Inventory
         public async Task<IActionResult> CreateRack([FromBody] CreateUpdateRackDto dto)
         {
             var (success, message) = await _locationService.CreateRackAsync(dto);
+            if (!success) return BadRequest(new { message });
+            return Ok(new { message });
+        }
+
+        [HttpPut("racks/{id}")]
+        [Authorize(Roles = "SYSTEM_ADMIN")]
+        public async Task<IActionResult> UpdateRack(long id, [FromBody] CreateUpdateRackDto dto)
+        {
+            dto.RackId = id;
+            var (success, message) = await _locationService.UpdateRackAsync(dto);
             if (!success) return BadRequest(new { message });
             return Ok(new { message });
         }

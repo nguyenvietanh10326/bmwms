@@ -123,18 +123,22 @@ namespace BMWMS.Web.Pages.StorageLocations
             return await ProxyResponseAsync(response);
         }
 
-        public async Task<IActionResult> OnPostCreateZoneAsync([FromBody] CreateUpdateZoneDto dto)
+        public async Task<IActionResult> OnPostSaveZoneAsync([FromBody] CreateUpdateZoneDto dto)
         {
             var client = _httpClientFactory.CreateClient("ApiClient");
-            return await ProxyResponseAsync(
-                await client.PostAsJsonAsync("api/storagelocations/zones", dto));
+            var response = dto.ZoneId > 0
+                ? await client.PutAsJsonAsync($"api/storagelocations/zones/{dto.ZoneId}", dto)
+                : await client.PostAsJsonAsync("api/storagelocations/zones", dto);
+            return await ProxyResponseAsync(response);
         }
 
-        public async Task<IActionResult> OnPostCreateRackAsync([FromBody] CreateUpdateRackDto dto)
+        public async Task<IActionResult> OnPostSaveRackAsync([FromBody] CreateUpdateRackDto dto)
         {
             var client = _httpClientFactory.CreateClient("ApiClient");
-            return await ProxyResponseAsync(
-                await client.PostAsJsonAsync("api/storagelocations/racks", dto));
+            var response = dto.RackId > 0
+                ? await client.PutAsJsonAsync($"api/storagelocations/racks/{dto.RackId}", dto)
+                : await client.PostAsJsonAsync("api/storagelocations/racks", dto);
+            return await ProxyResponseAsync(response);
         }
 
         private async Task<IActionResult> ProxyGetAsync(string requestUri)

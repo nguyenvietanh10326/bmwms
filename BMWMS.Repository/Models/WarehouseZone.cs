@@ -15,6 +15,12 @@ public partial class WarehouseZone
 
     public string? Description { get; set; }
 
+    public decimal? AreaSquareMeter { get; set; }
+
+    public decimal? MaxWeightKg { get; set; }
+
+    public decimal? MaxVolumeM3 { get; set; }
+
     public string Status { get; set; } = null!;
 
     public virtual ICollection<StorageRack> StorageRacks { get; set; } = new List<StorageRack>();

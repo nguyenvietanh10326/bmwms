@@ -33,6 +33,10 @@ namespace BMWMS.Business.Interfaces.Inventory
         // --- ZONE & RACK CREATION ---
         Task<(bool Success, string Message)> CreateZoneAsync(CreateUpdateZoneDto dto);
 
+        Task<(bool Success, string Message)> UpdateZoneAsync(CreateUpdateZoneDto dto);
+
         Task<(bool Success, string Message)> CreateRackAsync(CreateUpdateRackDto dto);
+
+        Task<(bool Success, string Message)> UpdateRackAsync(CreateUpdateRackDto dto);
     }
 }

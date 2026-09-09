@@ -42,10 +42,18 @@ namespace BMWMS.Repository.Interfaces.Inventory
 
         Task<WarehouseZone> AddZoneAsync(WarehouseZone zone);
 
+        Task<WarehouseZone?> GetZoneByIdAsync(long zoneId);
+
+        Task UpdateZoneAsync(WarehouseZone zone);
+
         Task<StorageRack> AddRackAsync(StorageRack rack);
 
-        Task<bool> ExistsZoneCodeAsync(long warehouseId, string zoneCode);
+        Task<StorageRack?> GetRackByIdAsync(long rackId);
 
-        Task<bool> ExistsRackCodeAsync(long warehouseId, string rackCode);
+        Task UpdateRackAsync(StorageRack rack);
+
+        Task<bool> ExistsZoneCodeAsync(long warehouseId, string zoneCode, long? excludeId = null);
+
+        Task<bool> ExistsRackCodeAsync(long warehouseId, string rackCode, long? excludeId = null);
     }
 }

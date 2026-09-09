@@ -15,6 +15,12 @@ public partial class StorageRack
 
     public string RackName { get; set; } = null!;
 
+    public decimal? AreaSquareMeter { get; set; }
+
+    public decimal? MaxWeightKg { get; set; }
+
+    public decimal? MaxVolumeM3 { get; set; }
+
     public string Status { get; set; } = null!;
 
     public virtual ICollection<StorageLocation> StorageLocations { get; set; } = new List<StorageLocation>();
