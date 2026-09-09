@@ -50,7 +50,6 @@ namespace BMWMS.Web.Pages.Products
                 Barcode = detail.Barcode,
                 Description = detail.Description,
                 RotationMethod = detail.RotationMethod,
-                TrackLot = detail.TrackLot,
                 TrackExpiry = detail.TrackExpiry,
                 DefaultShelfLifeDays = detail.DefaultShelfLifeDays,
                 Status = detail.Status,

@@ -69,16 +69,13 @@
             <div style="font-size: 12px; color: #64748b; font-weight: 500; text-transform: uppercase;">Quy Tắc Xuất Kho</div>
             <div style="font-size: 18px; font-weight: 600; color: #2563b8; margin-top: 8px;">
                 @Model.Product.RotationMethod
-                <span style="font-size: 12px; font-weight: normal; color: #64748b;">(@(Model.Product.RotationMethod == "FIFO" ? "Nhập trước Xuất trước" : Model.Product.RotationMethod == "FEFO" ? "Hạn trước Xuất trước" : "Nhập sau Xuất trước"))</span>
+                <span style="font-size: 12px; font-weight: normal; color: #64748b;">(@(Model.Product.RotationMethod == "FIFO" ? "Nhập trước Xuất trước" : "Hạn trước Xuất trước"))</span>
             </div>
         </div>
 
         <div style="background: #ffffff; padding: 16px 20px; border-radius: 10px; border: 1px solid #e2e8f0;">
-            <div style="font-size: 12px; color: #64748b; font-weight: 500; text-transform: uppercase;">Quản Lý Lô / Hạn</div>
+            <div style="font-size: 12px; color: #64748b; font-weight: 500; text-transform: uppercase;">Theo Dõi Hạn Sử Dụng</div>
             <div style="margin-top: 8px; display: flex; gap: 8px; align-items: center;">
-                <span style="background: @(Model.Product.TrackLot ? "#dbeafe" : "#f1f5f9"); color: @(Model.Product.TrackLot ? "#1e40af" : "#64748b"); font-size: 12px; font-weight: 600; padding: 3px 8px; border-radius: 4px;">
-                    Lô: @(Model.Product.TrackLot ? "BẬT" : "TẮT")
-                </span>
                 <span style="background: @(Model.Product.TrackExpiry ? "#f3e8ff" : "#f1f5f9"); color: @(Model.Product.TrackExpiry ? "#6b21a8" : "#64748b"); font-size: 12px; font-weight: 600; padding: 3px 8px; border-radius: 4px;">
                     Hạn: @(Model.Product.TrackExpiry ? (Model.Product.DefaultShelfLifeDays.HasValue ? $"{Model.Product.DefaultShelfLifeDays} ngày" : "BẬT") : "TẮT")
                 </span>

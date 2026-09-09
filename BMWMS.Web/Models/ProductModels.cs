@@ -109,10 +109,8 @@ namespace BMWMS.Web.Models
         public string? Description { get; set; }
 
         [Required(ErrorMessage = "Vui lòng chọn phương pháp xuất kho.")]
-        [RegularExpression(@"^(FIFO|FEFO|LIFO)$", ErrorMessage = "Phương pháp xuất kho phải là FIFO, FEFO hoặc LIFO.")]
+        [RegularExpression(@"^(FIFO|FEFO)$", ErrorMessage = "Phương pháp xuất kho phải là FIFO hoặc FEFO.")]
         public string RotationMethod { get; set; } = "FIFO";
-
-        public bool TrackLot { get; set; } = false;
 
         public bool TrackExpiry { get; set; } = false;
 
