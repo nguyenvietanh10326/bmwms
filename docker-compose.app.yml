@@ -1,0 +1,41 @@
+services:
+  api:
+    image: ${DOCKERHUB_NAMESPACE:?DOCKERHUB_NAMESPACE is required}/bmwms-api:${IMAGE_TAG:?IMAGE_TAG is required}
+    pull_policy: always
+    ports:
+      - "${API_PORT:?API_PORT is required}:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:?ASPNETCORE_ENVIRONMENT is required}
+      ConnectionStrings__DefaultConnection: "Server=db;Database=BMWMS;User Id=sa;Password=${MSSQL_SA_PASSWORD:?MSSQL_SA_PASSWORD is required};TrustServerCertificate=True"
+      SmtpSettings__Host: ${SmtpSettings__Host:?SmtpSettings__Host is required}
+      SmtpSettings__Port: ${SmtpSettings__Port:?SmtpSettings__Port is required}
+      SmtpSettings__Username: ${SmtpSettings__Username:?SmtpSettings__Username is required}
+      SmtpSettings__Password: ${SmtpSettings__Password:?SmtpSettings__Password is required}
+      SmtpSettings__EnableSsl: ${SmtpSettings__EnableSsl:?SmtpSettings__EnableSsl is required}
+      SmtpSettings__FromEmail: ${SmtpSettings__FromEmail:?SmtpSettings__FromEmail is required}
+      Jwt__Key: ${Jwt__Key:?Jwt__Key is required}
+      Jwt__Issuer: ${Jwt__Issuer:?Jwt__Issuer is required}
+      Jwt__Audience: ${Jwt__Audience:?Jwt__Audience is required}
+      Jwt__ExpireMinutes: ${Jwt__ExpireMinutes:?Jwt__ExpireMinutes is required}
+      WarehouseCapacity__Enabled: ${WarehouseCapacity__Enabled:?WarehouseCapacity__Enabled is required}
+      WarehouseCapacity__EnforcementMode: ${WarehouseCapacity__EnforcementMode:?WarehouseCapacity__EnforcementMode is required}
+    networks:
+      - bmwms
+
+  web:
+    image: ${DOCKERHUB_NAMESPACE:?DOCKERHUB_NAMESPACE is required}/bmwms-web:${IMAGE_TAG:?IMAGE_TAG is required}
+    pull_policy: always
+    depends_on:
+      - api
+    ports:
+      - "${WEB_PORT:?WEB_PORT is required}:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:?ASPNETCORE_ENVIRONMENT is required}
+      ApiSettings__BaseUrl: ${ApiSettings__BaseUrl:?ApiSettings__BaseUrl is required}
+    networks:
+      - bmwms
+
+networks:
+  bmwms:
+    name: ${BMWMS_NETWORK:?BMWMS_NETWORK is required}
+    external: true
