@@ -8,17 +8,19 @@ namespace BMWMS.Business.Services.Inventory;
 
 public interface IPurchaseOrderEmailComposer
 {
-    EmailMessage Compose(PurchaseOrder order);
+    EmailMessage Compose(PurchaseOrder order, string confirmUrl, string cancelUrl);
 }
 
 public sealed class PurchaseOrderEmailComposer : IPurchaseOrderEmailComposer
 {
-    public EmailMessage Compose(PurchaseOrder order)
+    public EmailMessage Compose(PurchaseOrder order, string confirmUrl, string cancelUrl)
     {
         ArgumentNullException.ThrowIfNull(order);
 
         var supplierName = Encode(order.Supplier?.SupplierName ?? "Quý Nhà cung cấp");
         var poNumber = Encode(order.PurchaseOrderNumber);
+        var safeConfirmUrl = Encode(confirmUrl);
+        var safeCancelUrl = Encode(cancelUrl);
         var rows = new StringBuilder();
         var lineNumber = 1;
 
@@ -62,6 +64,12 @@ public sealed class PurchaseOrderEmailComposer : IPurchaseOrderEmailComposer
                   </thead>
                   <tbody>{rows}</tbody>
                 </table>
+                <div style="margin:24px 0;padding:18px;background:#f8fafc;border:1px solid #d8dee9;border-radius:8px">
+                  <p style="margin:0 0 14px"><strong>Phản hồi đơn đặt hàng</strong></p>
+                  <p style="margin:0 0 16px;color:#526079">Vui lòng chọn một trong hai phương án. Hệ thống chỉ ghi nhận phản hồi khi PO vẫn đang chờ xác nhận.</p>
+                  <a href="{safeConfirmUrl}" style="display:inline-block;margin-right:10px;padding:10px 18px;border-radius:6px;background:#198754;color:#fff;text-decoration:none;font-weight:700">Xác nhận PO</a>
+                  <a href="{safeCancelUrl}" style="display:inline-block;padding:10px 18px;border-radius:6px;background:#dc3545;color:#fff;text-decoration:none;font-weight:700">Từ chối PO</a>
+                </div>
                 <p style="margin-top:18px">File Excel chi tiết được đính kèm trong email này.</p>
                 <p>Trân trọng,<br><strong>BMWMS</strong></p>
               </div>
@@ -129,7 +137,7 @@ public sealed class PurchaseOrderEmailComposer : IPurchaseOrderEmailComposer
             worksheet.Cell(row, 2).Value = product?.ProductCode ?? string.Empty;
             worksheet.Cell(row, 3).Value = product?.ProductName ?? string.Empty;
             worksheet.Cell(row, 4).Value = detail.OrderedQuantity;
-            worksheet.Cell(row, 4).Style.NumberFormat.Format = scale == 0 ? "#,##0" : $"#,##0.{new string('0', scale)}";
+            worksheet.Cell(row, 4).Style.NumberFormat.Format = scale == 0 ? "0" : $"0.{new string('#', scale)}";
             worksheet.Cell(row, 5).Value = product?.UnitOfMeasure?.UnitName ?? product?.UnitOfMeasure?.UnitCode ?? string.Empty;
             worksheet.Cell(row, 6).Value = detail.Notes ?? string.Empty;
             row++;
@@ -155,8 +163,11 @@ public sealed class PurchaseOrderEmailComposer : IPurchaseOrderEmailComposer
 
     private static string Encode(string value) => WebUtility.HtmlEncode(value);
 
-    private static string FormatQuantity(decimal quantity, byte scale) =>
-        quantity.ToString(scale == 0 ? "N0" : $"N{scale}", CultureInfo.GetCultureInfo("vi-VN"));
+    private static string FormatQuantity(decimal quantity, byte scale)
+    {
+        var format = scale == 0 ? "0" : $"0.{new string('#', scale)}";
+        return quantity.ToString(format, CultureInfo.InvariantCulture);
+    }
 
     private static string SanitizeFileName(string value)
     {
