@@ -1,5 +1,6 @@
 @page "{id:long}"
 @model BMWMS.Web.Pages.Admin.Inbound.PutawayModel
+@using BMWMS.Web.Helpers
 @{
     Layout = "_AdminLayout";
     ViewData["Title"] = "Xếp hàng vào vị trí kho";
@@ -227,7 +228,10 @@
         else if (new Set(selected).size !== selected.length) message = 'Một bin chỉ được chọn một lần cho cùng mặt hàng.';
 
         card.dataset.valid = message ? 'false' : 'true';
-        card.querySelector('.allocated-total').textContent = total.toLocaleString('vi-VN', { maximumFractionDigits: scale });
+        card.querySelector('.allocated-total').textContent = total.toLocaleString('en-US', {
+            useGrouping: false,
+            maximumFractionDigits: scale
+        });
         const error = card.querySelector('.allocation-error');
         error.textContent = message;
         error.classList.toggle('d-none', !message);
@@ -271,5 +275,5 @@
 
 @functions {
     string QuantityStep(byte scale) => scale == 0 ? "1" : "0." + new string('0', scale - 1) + "1";
-    string FormatQuantity(decimal value, byte scale) => value.ToString(scale == 0 ? "N0" : $"N{scale}");
+    string FormatQuantity(decimal value, byte scale) => FormatHelper.FormatQuantity(value, scale);
 }
