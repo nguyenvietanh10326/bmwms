@@ -39,4 +39,25 @@ public sealed class LocationCapacityEvaluationDto
     public string OverallStatus { get; set; } = CapacityEvaluationStatuses.NotConfigured;
     public List<string> MissingWeightProductCodes { get; set; } = new();
     public List<string> MissingVolumeProductCodes { get; set; } = new();
+    public List<CapacityScopeEvaluationDto> Scopes { get; set; } = new();
+}
+
+public sealed class CapacityScopeEvaluationDto
+{
+    public string ScopeType { get; set; } = string.Empty;
+    public long ScopeId { get; set; }
+    public string ScopeCode { get; set; } = string.Empty;
+    public decimal? MaxWeightKg { get; set; }
+    public decimal? CurrentWeightKg { get; set; }
+    public decimal? AddedWeightKg { get; set; }
+    public decimal? ProjectedWeightKg { get; set; }
+    public string WeightStatus { get; set; } = CapacityEvaluationStatuses.NotConfigured;
+    public decimal? MaxVolumeM3 { get; set; }
+    public decimal? CurrentVolumeM3 { get; set; }
+    public decimal? AddedVolumeM3 { get; set; }
+    public decimal? ProjectedVolumeM3 { get; set; }
+    public string VolumeStatus { get; set; } = CapacityEvaluationStatuses.NotConfigured;
+    public string OverallStatus { get; set; } = CapacityEvaluationStatuses.NotConfigured;
+    public List<string> MissingWeightProductCodes { get; set; } = new();
+    public List<string> MissingVolumeProductCodes { get; set; } = new();
 }

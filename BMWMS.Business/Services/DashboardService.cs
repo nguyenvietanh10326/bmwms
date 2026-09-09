@@ -45,7 +45,12 @@ public class DashboardService : IDashboardService
         }
 
         // 4. Order statuses
-        response.PendingPurchaseOrders = await _context.Set<PurchaseOrder>().CountAsync(po => po.Status == "DRAFT" || po.Status == "CONFIRMED");
+        response.PendingPurchaseOrders = await _context.Set<PurchaseOrder>().CountAsync(po =>
+            po.Status == "DRAFT" ||
+            po.Status == "PENDING_CONFIRMATION" ||
+            po.Status == "CONFIRMED" ||
+            po.Status == "PENDING_RECEIPT_REVIEW" ||
+            po.Status == "PARTIALLY_RECEIVED");
         response.PendingSalesOrders = await _context.Set<SalesOrder>().CountAsync(so => so.Status == "WAITING_STOCK");
         response.ProcessingInboundOrders = await _context.InboundOrders.CountAsync(io => io.Status == "IN_PROGRESS" || io.Status == "ASSIGNED");
         response.PickingOutboundOrders = await _context.OutboundOrders.CountAsync(oo => oo.Status == "PICKING");
