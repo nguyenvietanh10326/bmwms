@@ -1,5 +1,6 @@
 @page
 @model BMWMS.Web.Pages.Stocktake.DetailsModel
+@using BMWMS.Web.Helpers
 @{
     Layout = "_AdminLayout";
     var s = Model.SessionDetail;
@@ -225,7 +226,7 @@
                                     </td>
                                     <td style="text-align:center;">@loc.CountedItems / @loc.TotalItems</td>
                                     <td class="num @(loc.TotalDifferenceQuantity != 0 ? "text-danger" : "muted")" style="@(loc.TotalDifferenceQuantity != 0 ? "color:#dc2626; font-weight:700;" : "")">
-                                        @loc.TotalDifferenceQuantity.ToString("N2")
+                                        @FormatHelper.FormatQuantity(loc.TotalDifferenceQuantity, (byte)4)
                                     </td>
                                     <td style="text-align:center;">
                                         @if (loc.CountStatus == "COUNTED")
@@ -334,8 +335,8 @@
                                                 <span class="small muted" style="font-size:10px;">Lot: @item.LotNumber</span>
                                                 <input type="hidden" name="Resolutions[@i].StocktakeItemId" value="@item.StocktakeItemId" />
                                             </td>
-                                            <td class="num small">@item.BookQuantity?.ToString("N2")</td>
-                                            <td class="num small">@item.CountedQuantity?.ToString("N2")</td>
+                                            <td class="num small">@FormatHelper.FormatOptionalNumber(item.BookQuantity)</td>
+                                            <td class="num small">@FormatHelper.FormatOptionalNumber(item.CountedQuantity)</td>
                                             <td class="num" style="@(item.DifferenceQuantity != 0 ? "color:#dc2626; font-weight:700;" : "color:var(--ink-3);")">
                                                 @(item.DifferenceQuantity.HasValue ? item.DifferenceQuantity.Value.ToString("+0.##;-0.##;0") : "—")
                                             </td>
@@ -394,8 +395,8 @@
                                             <span class="small" style="color:var(--ink-2);">@item.ProductName</span><br/>
                                             <span class="small muted" style="font-size:10px;">Lot: @item.LotNumber</span>
                                         </td>
-                                        <td class="num small">@item.BookQuantity?.ToString("N2")</td>
-                                        <td class="num small">@item.CountedQuantity?.ToString("N2")</td>
+                                        <td class="num small">@FormatHelper.FormatOptionalNumber(item.BookQuantity)</td>
+                                        <td class="num small">@FormatHelper.FormatOptionalNumber(item.CountedQuantity)</td>
                                         <td class="num" style="@(item.DifferenceQuantity != 0 ? "color:#dc2626; font-weight:700;" : "color:var(--ink-3);")">
                                             @(item.DifferenceQuantity.HasValue ? item.DifferenceQuantity.Value.ToString("+0.##;-0.##;0") : "—")
                                         </td>

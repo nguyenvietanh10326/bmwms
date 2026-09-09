@@ -1,5 +1,6 @@
 @page
 @model BMWMS.Web.Pages.Stocktake.CountModel
+@using BMWMS.Web.Helpers
 @{
     Layout = "_AdminLayout";
     var task = Model.CountTask;
@@ -134,7 +135,7 @@
                                             <input type="hidden" name="Lines[@i].StorageLocationId" value="@line.StorageLocationId" />
                                             <input type="hidden" name="Lines[@i].ProductId" value="@line.ProductId" />
                                             <input type="hidden" name="Lines[@i].ProductLotId" value="@line.ProductLotId" />
-                                            <input type="hidden" name="Lines[@i].BookQuantity" value="@line.BookQuantity" />
+                                            <input type="hidden" name="Lines[@i].BookQuantity" value="@line.BookQuantity?.ToString(System.Globalization.CultureInfo.InvariantCulture)" />
                                         </td>
                                         <td>
                                             <div style="font-weight: 500;">@line.LotNumber</div>
@@ -149,13 +150,13 @@
                                                 <div class="field">
                                                     <input type="number" step="0.001" min="0" required
                                                            name="Lines[@i].CountedQuantity"
-                                                           value="@line.CountedQuantity"
+                                                           value="@line.CountedQuantity?.ToString(System.Globalization.CultureInfo.InvariantCulture)"
                                                            style="width: 140px; display: inline-block; padding: 12px; font-size: 16px; font-weight: 600;" />
                                                 </div>
                                             }
                                             else
                                             {
-                                                <span class="num" style="font-size: 16px; font-weight: 600;">@line.CountedQuantity?.ToString("N2")</span>
+                                                <span class="num" style="font-size: 16px; font-weight: 600;">@FormatHelper.FormatOptionalNumber(line.CountedQuantity)</span>
                                             }
                                         </td>
                                         <td>

@@ -1,5 +1,6 @@
 @page
 @model BMWMS.Web.Pages.Transfer.DetailsModel
+@using BMWMS.Web.Helpers
 @{
     Layout = "_AdminLayout";
     ViewData["Title"] = $"Chi tiết phiếu điều chuyển {Model.Order?.TransferOrderNumber}";
@@ -227,10 +228,10 @@
                                     <span style="background:#dbeafe; color:#1e40af; padding:3px 8px; border-radius:6px; font-weight:700; font-size:12px;">@d.DestLocationCode</span>
                                 </td>
                                 <td class="num">
-                                    <div style="font-weight:700;">@d.RequestedQuantity.ToString("N2") @d.UnitName</div>
+                                    <div style="font-weight:700;">@FormatHelper.FormatQuantity(d.RequestedQuantity, d.QuantityScale) @d.UnitName</div>
                                     @if (isInProgress || isDone)
                                     {
-                                        <div style="font-size: 11px; color: var(--ink-3); margin-top: 3px;">Đã chuyển: <span style="color: @(fullMoved ? "#16a34a" : "#64748b"); font-family:var(--font-mono);">@d.MovedQuantity.ToString("N2")</span></div>
+                                        <div style="font-size: 11px; color: var(--ink-3); margin-top: 3px;">Đã chuyển: <span style="color: @(fullMoved ? "#16a34a" : "#64748b"); font-family:var(--font-mono);">@FormatHelper.FormatQuantity(d.MovedQuantity, d.QuantityScale)</span></div>
                                     }
                                 </td>
                                 <td style="text-align:center;">
@@ -258,17 +259,16 @@
 
             @if (isInProgress || isDone)
             {
-                var sumRequested = Model.Order.Details.Sum(d => d.RequestedQuantity);
-                var sumMoved = Model.Order.Details.Sum(d => d.MovedQuantity);
+                var allLinesMoved = Model.Order.Details.All(d => d.MovedQuantity >= d.RequestedQuantity);
                 <div class="stat-strip">
-                    <span class="small muted">Tổng yêu cầu @sumRequested.ToString("N2") · đã thực hiện @sumMoved.ToString("N2")</span>
-                    @if (sumMoved >= sumRequested)
+                    <span class="small muted">@Model.Order.Details.Count dòng hàng · số lượng được theo dõi theo từng đơn vị ở bảng trên</span>
+                    @if (allLinesMoved)
                     {
                         <b style="color:var(--g-tx)">Đủ số lượng</b>
                     }
                     else
                     {
-                        <b style="color:var(--y-tx)">Thiếu: @((sumRequested - sumMoved).ToString("N2"))</b>
+                        <b style="color:var(--y-tx)">Còn dòng chưa chuyển đủ</b>
                     }
                 </div>
             }
@@ -378,7 +378,7 @@
                                                    value="@d.RequestedQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture)"
                                                    min="0.0001" max="@d.RequestedQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture)"
                                                    step="0.0001" required />
-                                            <span style="font-weight:700; color:#2563eb; white-space:nowrap;">/ @d.RequestedQuantity.ToString("N2") @d.UnitName</span>
+                                            <span style="font-weight:700; color:#2563eb; white-space:nowrap;">/ @FormatHelper.FormatQuantity(d.RequestedQuantity, d.QuantityScale) @d.UnitName</span>
                                         </div>
                                     </div>
                                 }
@@ -433,7 +433,7 @@
                                         <div class="d-flex align-items-center gap-2 mb-2">
                                             <span style="font-weight:700; color:#1e293b;">@d.ProductCode</span>
                                             <span style="color:#64748b;">@d.LotNumber</span>
-                                            <span style="margin-left:auto; font-weight:700; color:#0e7490;">@d.MovedQuantity.ToString("N2") @d.UnitName</span>
+                                            <span style="margin-left:auto; font-weight:700; color:#0e7490;">@FormatHelper.FormatQuantity(d.MovedQuantity, d.QuantityScale) @d.UnitName</span>
                                         </div>
                                         <input type="hidden" name="receiptDetailIds" value="@d.TransferOrderDetailId" />
                                         <label class="form-label mb-1">Vị trí nhận thực tế</label>

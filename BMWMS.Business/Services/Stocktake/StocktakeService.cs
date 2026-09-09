@@ -397,7 +397,11 @@ namespace BMWMS.Business.Services.Stocktake
             var values = evaluations.ToList();
             var exceeded = values
                 .Where(value => value.OverallStatus == CapacityEvaluationStatuses.Exceeded)
-                .Select(value => value.LocationCode)
+                .SelectMany(value => value.Scopes
+                    .Where(scope => scope.OverallStatus == CapacityEvaluationStatuses.Exceeded)
+                    .Select(scope => $"{scope.ScopeType} {scope.ScopeCode}")
+                    .DefaultIfEmpty($"BIN {value.LocationCode}"))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(code => code)
                 .ToList();
             if (exceeded.Count > 0)
@@ -406,7 +410,11 @@ namespace BMWMS.Business.Services.Stocktake
 
             var incomplete = values
                 .Where(value => value.OverallStatus is CapacityEvaluationStatuses.Unknown or CapacityEvaluationStatuses.NotConfigured)
-                .Select(value => value.LocationCode)
+                .SelectMany(value => value.Scopes
+                    .Where(scope => scope.OverallStatus is CapacityEvaluationStatuses.Unknown or CapacityEvaluationStatuses.NotConfigured)
+                    .Select(scope => $"{scope.ScopeType} {scope.ScopeCode}")
+                    .DefaultIfEmpty($"BIN {value.LocationCode}"))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(code => code)
                 .ToList();
             if (_capacityOptions.IsStrict && incomplete.Count > 0)

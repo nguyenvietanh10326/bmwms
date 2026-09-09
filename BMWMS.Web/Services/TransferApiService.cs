@@ -109,6 +109,7 @@ namespace BMWMS.Web.Services
             public string ProductCode { get; set; } = "";
             public string ProductName { get; set; } = "";
             public string UnitName { get; set; } = "";
+            public byte QuantityScale { get; set; }
             public string LotNumber { get; set; } = "";
             public long SourceLocationId { get; set; }
             public long? SourceZoneId { get; set; }
