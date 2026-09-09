@@ -159,7 +159,7 @@ public class PurchaseOrdersController : ControllerBase
     }
 
     [HttpPost("{id}/cancel")]
-    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF")]
+    [Authorize(Roles = "SYSTEM_ADMIN,PURCHASING_STAFF")]
     public async Task<IActionResult> Cancel(long id, [FromQuery] string? reason)
     {
         try
@@ -190,10 +190,17 @@ public class PurchaseOrdersController : ControllerBase
 
     [HttpPost("{id}/continue-partial")]
     [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
-    public async Task<IActionResult> ContinuePartial(long id)
+    public async Task<IActionResult> ContinuePartial(
+        long id,
+        [FromQuery] DateOnly requestedDeliveryDate,
+        [FromQuery] string? note)
     {
         if (!TryGetCurrentUserId(out var userId)) return Unauthorized();
-        var result = await _poService.ContinuePartiallyReceivedOrderAsync(id, userId);
+        var result = await _poService.ContinuePartiallyReceivedOrderAsync(
+            id,
+            userId,
+            requestedDeliveryDate,
+            note);
         return result.Success
             ? Ok(new { message = result.Message })
             : BadRequest(new { message = result.Message });
