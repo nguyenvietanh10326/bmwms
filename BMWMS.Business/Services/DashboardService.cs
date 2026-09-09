@@ -48,6 +48,7 @@ public class DashboardService : IDashboardService
         response.PendingPurchaseOrders = await _context.Set<PurchaseOrder>().CountAsync(po =>
             po.Status == "DRAFT" ||
             po.Status == "PENDING_CONFIRMATION" ||
+            po.Status == "PENDING_REMAINDER_CONFIRMATION" ||
             po.Status == "CONFIRMED" ||
             po.Status == "PENDING_RECEIPT_REVIEW" ||
             po.Status == "PARTIALLY_RECEIVED");

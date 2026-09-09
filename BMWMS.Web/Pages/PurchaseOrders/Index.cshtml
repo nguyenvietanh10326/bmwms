@@ -76,9 +76,11 @@
                 <option value="PENDING_CONFIRMATION" selected="@(Model.Status == "PENDING_CONFIRMATION")">Chờ NCC phản hồi</option>
                 <option value="CONFIRMED" selected="@(Model.Status == "CONFIRMED")">Đã xác nhận</option>
                 <option value="PENDING_RECEIPT_REVIEW" selected="@(Model.Status == "PENDING_RECEIPT_REVIEW")">Chờ duyệt nhận tiếp</option>
+                <option value="PENDING_REMAINDER_CONFIRMATION" selected="@(Model.Status == "PENDING_REMAINDER_CONFIRMATION")">Chờ NCC xác nhận giao tiếp</option>
                 <option value="PARTIALLY_RECEIVED" selected="@(Model.Status == "PARTIALLY_RECEIVED")">Đã nhận một phần</option>
-                <option value="COMPLETED" selected="@(Model.Status == "COMPLETED")">Đã nhận đủ</option>
+                <option value="COMPLETED" selected="@(Model.Status == "COMPLETED")">Hoàn tất nhận đủ</option>
                 <option value="CLOSED" selected="@(Model.Status == "CLOSED")">Đã kết thúc nhận</option>
+                <option value="REJECTED" selected="@(Model.Status == "REJECTED")">NCC từ chối</option>
                 <option value="CANCELLED" selected="@(Model.Status == "CANCELLED")">Đã hủy</option>
             </select>
         </div>
@@ -155,10 +157,11 @@
         "PENDING_CONFIRMATION" => "Chờ NCC phản hồi",
         "CONFIRMED" => "Đã xác nhận",
         "PENDING_RECEIPT_REVIEW" => "Chờ duyệt nhận tiếp",
+        "PENDING_REMAINDER_CONFIRMATION" => "Chờ NCC xác nhận giao tiếp",
         "PARTIALLY_RECEIVED" => "Đã nhận một phần",
-        "RECEIVED" => "Đã nhận đủ",
-        "COMPLETED" => "Đã nhận đủ",
+        "RECEIVED" or "COMPLETED" => "Hoàn tất nhận đủ",
         "CLOSED" => "Đã kết thúc nhận",
+        "REJECTED" => "NCC từ chối",
         "CANCELLED" => "Đã hủy",
         _ => status
     };

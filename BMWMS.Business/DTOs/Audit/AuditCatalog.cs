@@ -49,6 +49,8 @@ public static class AuditEntities
     public const string StocktakeSession = "StocktakeSession";
     public const string Inventory = "Inventory";
     public const string StorageLocation = "StorageLocation";
+    public const string WarehouseZone = "WarehouseZone";
+    public const string StorageRack = "StorageRack";
 }
 
 public static class AuditCatalog
@@ -151,6 +153,8 @@ public static class AuditCatalog
         "StocktakeSession" => "Phiên kiểm kê",
         "Inventory" => "Tồn kho",
         "StorageLocation" => "Vị trí kho",
+        "WarehouseZone" => "Khu vực kho",
+        "StorageRack" => "Kệ kho",
         _ => entityName
     };
 }
