@@ -1186,7 +1186,7 @@ public class InboundService : IInboundService
                     .ThenInclude(item => item.InboundOrderDetails)
             .FirstOrDefaultAsync(po => po.PurchaseOrderId == purchaseOrderId.Value);
 
-        if (purchaseOrder == null || NormalizePurchaseOrderStatus(purchaseOrder.Status) is "CANCELLED" or "CLOSED")
+        if (purchaseOrder == null || NormalizePurchaseOrderStatus(purchaseOrder.Status) is "CANCELLED" or "REJECTED" or "CLOSED" or "COMPLETED")
             return;
 
         var activeInboundItems = purchaseOrder.InboundOrders
@@ -1194,8 +1194,8 @@ public class InboundService : IInboundService
             .SelectMany(io => io.InboundOrderItems)
             .ToList();
 
-        var hasReceivedQuantity = activeInboundItems.Any(item =>
-            item.InboundOrderDetails.Any(receipt => receipt.ConditionStatus == "GOOD" && receipt.ReceivedQuantity > 0));
+        var hasCompletedDeliveryAttempt = purchaseOrder.InboundOrders.Any(order =>
+            PurchaseOrderReceiptRules.IsCompletedReceipt(order.Status));
         var isFullyReceived = purchaseOrder.PurchaseOrderDetails.Count > 0
             && purchaseOrder.PurchaseOrderDetails.All(detail =>
                 activeInboundItems
@@ -1206,7 +1206,7 @@ public class InboundService : IInboundService
 
         purchaseOrder.Status = isFullyReceived
             ? "COMPLETED"
-            : hasReceivedQuantity
+            : hasCompletedDeliveryAttempt
                 ? "PENDING_RECEIPT_REVIEW"
                 : "CONFIRMED";
         purchaseOrder.UpdatedAt = DateTime.UtcNow;
