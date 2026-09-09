@@ -202,6 +202,19 @@ namespace BMWMS.Repository.Repositories.Inventory
             return zone;
         }
 
+        public async Task<WarehouseZone?> GetZoneByIdAsync(long zoneId)
+        {
+            return await _context.WarehouseZones
+                .Include(zone => zone.StorageRacks)
+                    .ThenInclude(rack => rack.StorageLocations)
+                .FirstOrDefaultAsync(zone => zone.ZoneId == zoneId);
+        }
+
+        public async Task UpdateZoneAsync(WarehouseZone zone)
+        {
+            await _context.SaveChangesAsync();
+        }
+
         public async Task<StorageRack> AddRackAsync(StorageRack rack)
         {
             await _context.StorageRacks.AddAsync(rack);
@@ -209,18 +222,34 @@ namespace BMWMS.Repository.Repositories.Inventory
             return rack;
         }
 
-        public async Task<bool> ExistsZoneCodeAsync(long warehouseId, string zoneCode)
+        public async Task<StorageRack?> GetRackByIdAsync(long rackId)
+        {
+            return await _context.StorageRacks
+                .Include(rack => rack.StorageLocations)
+                .Include(rack => rack.WarehouseZone)
+                    .ThenInclude(zone => zone.StorageRacks)
+                .FirstOrDefaultAsync(rack => rack.RackId == rackId);
+        }
+
+        public async Task UpdateRackAsync(StorageRack rack)
+        {
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task<bool> ExistsZoneCodeAsync(long warehouseId, string zoneCode, long? excludeId = null)
         {
             var codeUpper = zoneCode.Trim().ToUpper();
             return await _context.WarehouseZones
-                .AnyAsync(z => z.WarehouseId == warehouseId && z.ZoneCode.ToUpper() == codeUpper);
+                .AnyAsync(z => z.WarehouseId == warehouseId && z.ZoneCode.ToUpper() == codeUpper &&
+                               (!excludeId.HasValue || z.ZoneId != excludeId.Value));
         }
 
-        public async Task<bool> ExistsRackCodeAsync(long warehouseId, string rackCode)
+        public async Task<bool> ExistsRackCodeAsync(long warehouseId, string rackCode, long? excludeId = null)
         {
             var codeUpper = rackCode.Trim().ToUpper();
             return await _context.StorageRacks
-                .AnyAsync(r => r.WarehouseId == warehouseId && r.RackCode.ToUpper() == codeUpper);
+                .AnyAsync(r => r.WarehouseId == warehouseId && r.RackCode.ToUpper() == codeUpper &&
+                               (!excludeId.HasValue || r.RackId != excludeId.Value));
         }
     }
 }

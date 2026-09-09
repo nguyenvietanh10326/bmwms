@@ -1,5 +1,6 @@
 @page
 @model BMWMS.Web.Pages.StorageLocations.IndexModel
+@using BMWMS.Web.Helpers
 @{
     Layout = "_AdminLayout";
     ViewData["Title"] = "Quản Lý Vị Trí Lưu Trữ & Lô Hàng";
@@ -8,6 +9,9 @@
     var available = Model.StructureData.TotalAvailableBins;
     var blocked = Model.StructureData.TotalBlockedBins;
     var occupancyRate = totalLocs > 0 ? (int)Math.Round((double)occupied / totalLocs * 100) : 0;
+    var jsonOptions = new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase };
+    var zoneCatalogJson = System.Text.Json.JsonSerializer.Serialize(Model.Zones, jsonOptions);
+    var rackCatalogJson = System.Text.Json.JsonSerializer.Serialize(Model.Racks, jsonOptions);
 }
 
 <style>
@@ -279,6 +283,7 @@
                                     @(string.IsNullOrWhiteSpace(zone.Description) ? "Khu vực lưu trữ hàng hóa" : zone.Description)
                                     · <strong style="color: #334155;">@zone.Racks.Count</strong> Kệ (Racks)
                                     · <strong style="color: #334155;">@totalZoneLocations</strong> Ô vị trí (Bins)
+                                    · Thể tích Rack: <strong>@FormatHelper.FormatQuantity(zone.AllocatedRackVolumeM3, (byte)4)/@FormatHelper.FormatOptionalNumber(zone.MaxVolumeM3) m³</strong>
                                 </div>
                             </div>
                         </div>
@@ -291,6 +296,10 @@
                                     <div style="width: @zoneRate%; height: 100%; background: #4f46e5; border-radius: 999px;"></div>
                                 </div>
                             </div>
+                            <button type="button" onclick="openEditZoneModal(@zone.ZoneId)" title="Sửa sức chứa Zone"
+                                    style="background:#fff;border:1px solid #cbd5e1;color:#334155;padding:6px 10px;border-radius:6px;cursor:pointer;">
+                                <i class="ri-edit-line"></i>
+                            </button>
                             <button type="button" onclick="openCreateRackForZone(@zone.ZoneId, '@zone.ZoneCode')" 
                                     style="background: #ffffff; border: 1px solid #cbd5e1; color: #334155; font-size: 12px; font-weight: 600; padding: 6px 12px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 4px;">
                                 <i class="ri-add-line"></i> + Thêm Kệ
@@ -323,11 +332,18 @@
                                                 <span style="font-size: 11px; background: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 4px; font-weight: 600;">
                                                     @rack.Locations.Count Ô
                                                 </span>
+                                                <button type="button" onclick="openEditRackModal(@rack.RackId)" title="Sửa sức chứa Rack"
+                                                        style="border:none;background:#e2e8f0;width:22px;height:22px;border-radius:4px;cursor:pointer;color:#334155;">
+                                                    <i class="ri-edit-line"></i>
+                                                </button>
                                                 <button type="button" onclick="openCreateLocationForRack(@rack.RackId, '@zone.ZoneCode', '@rack.RackCode')" title="Thêm ô vào kệ này"
                                                         style="border: none; background: #e2e8f0; width: 22px; height: 22px; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; color: #334155;">
                                                     +
                                                 </button>
                                             </div>
+                                        </div>
+                                        <div style="font-size:11px;color:#64748b;margin:-4px 0 10px;">
+                                            Thể tích Bin đã phân bổ: <strong>@FormatHelper.FormatQuantity(rack.AllocatedLocationVolumeM3, (byte)4)/@FormatHelper.FormatOptionalNumber(rack.MaxVolumeM3) m³</strong>
                                         </div>
 
                                         <!-- Rack Locations Grid (Matrix of Bins) -->
@@ -781,6 +797,8 @@
         </div>
 
         <form id="zoneForm">
+            <input type="hidden" id="zoneId" value="0" />
+            <input type="hidden" id="zoneStatus" value="Active" />
             <div style="margin-bottom: 12px;">
                 <label style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 4px;">Mã Khu Vực (Zone Code) *</label>
                 <input type="text" id="newZoneCode" placeholder="vd: ZA, ZB, ZC" required style="width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; box-sizing: border-box; text-transform: uppercase; font-weight: 600;" />
@@ -792,6 +810,11 @@
             <div style="margin-bottom: 16px;">
                 <label style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 4px;">Mô Tả</label>
                 <textarea id="newZoneDesc" placeholder="Mô tả chức năng khu vực..." rows="2" style="width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; box-sizing: border-box;"></textarea>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;">
+                <div><label style="display:block;font-size:12px;font-weight:600;color:#475569;margin-bottom:4px;">Diện tích (m²)</label><input type="number" min="0.0001" step="0.01" id="zoneArea" placeholder="—" style="width:100%;padding:8px;box-sizing:border-box;border:1px solid #cbd5e1;border-radius:6px;" /></div>
+                <div><label style="display:block;font-size:12px;font-weight:600;color:#475569;margin-bottom:4px;">Tải trọng max (kg)</label><input type="number" min="0.0001" step="0.0001" id="zoneWeight" placeholder="—" style="width:100%;padding:8px;box-sizing:border-box;border:1px solid #cbd5e1;border-radius:6px;" /></div>
+                <div><label style="display:block;font-size:12px;font-weight:600;color:#475569;margin-bottom:4px;">Thể tích max (m³)</label><input type="number" min="0.0001" step="0.0001" id="zoneVolume" placeholder="—" style="width:100%;padding:8px;box-sizing:border-box;border:1px solid #cbd5e1;border-radius:6px;" /></div>
             </div>
 
             <div style="display: flex; justify-content: flex-end; gap: 10px;">
@@ -819,6 +842,8 @@
         </div>
 
         <form id="rackForm">
+            <input type="hidden" id="rackId" value="0" />
+            <input type="hidden" id="rackStatus" value="Active" />
             <div style="margin-bottom: 12px;">
                 <label style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 4px;">Thuộc Khu Vực (Zone) *</label>
                 <select id="newRackZoneId" required style="width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; outline: none; background: #fff;">
@@ -835,6 +860,11 @@
             <div style="margin-bottom: 16px;">
                 <label style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 4px;">Tên Kệ (Rack Name) *</label>
                 <input type="text" id="newRackName" placeholder="vd: Kệ Dãy 1" required style="width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; box-sizing: border-box;" />
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;">
+                <div><label style="display:block;font-size:12px;font-weight:600;color:#475569;margin-bottom:4px;">Diện tích (m²)</label><input type="number" min="0.0001" step="0.01" id="rackArea" placeholder="—" style="width:100%;padding:8px;box-sizing:border-box;border:1px solid #cbd5e1;border-radius:6px;" /></div>
+                <div><label style="display:block;font-size:12px;font-weight:600;color:#475569;margin-bottom:4px;">Tải trọng max (kg)</label><input type="number" min="0.0001" step="0.0001" id="rackWeight" placeholder="—" style="width:100%;padding:8px;box-sizing:border-box;border:1px solid #cbd5e1;border-radius:6px;" /></div>
+                <div><label style="display:block;font-size:12px;font-weight:600;color:#475569;margin-bottom:4px;">Thể tích max (m³)</label><input type="number" min="0.0001" step="0.0001" id="rackVolume" placeholder="—" style="width:100%;padding:8px;box-sizing:border-box;border:1px solid #cbd5e1;border-radius:6px;" /></div>
             </div>
 
             <div style="display: flex; justify-content: flex-end; gap: 10px;">
@@ -857,11 +887,23 @@
     const storageLocationPageUrl = window.location.pathname;
     const requestVerificationToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
     const currentWarehouseId = @Model.Filter.WarehouseId;
+    const zoneCatalog = @Html.Raw(zoneCatalogJson);
+    const rackCatalog = @Html.Raw(rackCatalogJson);
     let lookupTimeout = null;
 
     function getVal(id) {
         const el = document.getElementById(id);
         return el ? el.value : '';
+    }
+
+    function formatQuantity(value, emptyValue = '—') {
+        if (value === null || value === undefined || value === '') return emptyValue;
+        const number = Number(value);
+        if (!Number.isFinite(number)) return emptyValue;
+        return number.toLocaleString('en-US', {
+            useGrouping: false,
+            maximumFractionDigits: 4
+        });
     }
 
     function switchView(mode) {
@@ -919,10 +961,10 @@
                             ${i.expiryDate || 'N/A'}
                         </td>
                         <td style="padding: 10px 12px; text-align: right; font-weight: 700; color: #0f172a;">
-                            ${i.onHandQuantity.toLocaleString()} ${i.unitOfMeasure}
+                            ${formatQuantity(i.onHandQuantity)} ${i.unitOfMeasure}
                         </td>
                         <td style="padding: 10px 12px; text-align: right; font-weight: 700; color: #16a34a;">
-                            ${i.availableQuantity.toLocaleString()} ${i.unitOfMeasure}
+                            ${formatQuantity(i.availableQuantity)} ${i.unitOfMeasure}
                         </td>
                     </tr>
                 `).join('');
@@ -991,8 +1033,8 @@
                         </div>
                     </div>
                     <div style="text-align: right;">
-                        <div style="font-size: 15px; font-weight: 700; color: #0f172a;">${item.onHandQuantity.toLocaleString()} ${item.unitOfMeasure}</div>
-                        <div style="font-size: 11px; color: #16a34a; font-weight: 500;">Khả dụng: ${item.availableQuantity.toLocaleString()}</div>
+                        <div style="font-size: 15px; font-weight: 700; color: #0f172a;">${formatQuantity(item.onHandQuantity)} ${item.unitOfMeasure}</div>
+                        <div style="font-size: 11px; color: #16a34a; font-weight: 500;">Khả dụng: ${formatQuantity(item.availableQuantity)}</div>
                         <button type="button" onclick="closeProductLookupModal(); openLocationLotDetailModal(${item.storageLocationId});" 
                                 style="margin-top: 6px; padding: 4px 10px; background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; border-radius: 4px; font-size: 11px; font-weight: 600; cursor: pointer;">
                             Xem Ô Này &rarr;
@@ -1146,9 +1188,28 @@
 
     // --- 4. CREATE ZONE MODAL ---
     function openCreateZoneModal() {
+        document.getElementById('zoneId').value = '0';
+        document.getElementById('zoneStatus').value = 'Active';
         document.getElementById('newZoneCode').value = '';
         document.getElementById('newZoneName').value = '';
         document.getElementById('newZoneDesc').value = '';
+        document.getElementById('zoneArea').value = '';
+        document.getElementById('zoneWeight').value = '';
+        document.getElementById('zoneVolume').value = '';
+        document.getElementById('zoneModal').style.display = 'flex';
+    }
+
+    function openEditZoneModal(zoneId) {
+        const zone = zoneCatalog.find(item => item.zoneId === zoneId);
+        if (!zone) return;
+        document.getElementById('zoneId').value = zone.zoneId;
+        document.getElementById('zoneStatus').value = zone.status || 'Active';
+        document.getElementById('newZoneCode').value = zone.zoneCode || '';
+        document.getElementById('newZoneName').value = zone.zoneName || '';
+        document.getElementById('newZoneDesc').value = zone.description || '';
+        document.getElementById('zoneArea').value = zone.areaSquareMeter ?? '';
+        document.getElementById('zoneWeight').value = zone.maxWeightKg ?? '';
+        document.getElementById('zoneVolume').value = zone.maxVolumeM3 ?? '';
         document.getElementById('zoneModal').style.display = 'flex';
     }
 
@@ -1157,6 +1218,7 @@
     }
 
     async function saveZone() {
+        const zoneId = parseInt(getVal('zoneId')) || 0;
         const code = getVal('newZoneCode').trim().toUpperCase();
         const name = getVal('newZoneName').trim();
 
@@ -1166,15 +1228,19 @@
         }
 
         const payload = {
+            zoneId: zoneId,
             warehouseId: currentWarehouseId,
             zoneCode: code,
             zoneName: name,
             description: getVal('newZoneDesc').trim() || null,
-            status: 'Active'
+            areaSquareMeter: getVal('zoneArea') ? parseFloat(getVal('zoneArea')) : null,
+            maxWeightKg: getVal('zoneWeight') ? parseFloat(getVal('zoneWeight')) : null,
+            maxVolumeM3: getVal('zoneVolume') ? parseFloat(getVal('zoneVolume')) : null,
+            status: getVal('zoneStatus') || 'Active'
         };
 
         try {
-            const res = await fetch(`${storageLocationPageUrl}?handler=CreateZone`, {
+            const res = await fetch(`${storageLocationPageUrl}?handler=SaveZone`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -1197,8 +1263,27 @@
 
     // --- 5. CREATE RACK MODAL ---
     function openCreateRackModal() {
+        document.getElementById('rackId').value = '0';
+        document.getElementById('rackStatus').value = 'Active';
         document.getElementById('newRackCode').value = '';
         document.getElementById('newRackName').value = '';
+        document.getElementById('rackArea').value = '';
+        document.getElementById('rackWeight').value = '';
+        document.getElementById('rackVolume').value = '';
+        document.getElementById('rackModal').style.display = 'flex';
+    }
+
+    function openEditRackModal(rackId) {
+        const rack = rackCatalog.find(item => item.rackId === rackId);
+        if (!rack) return;
+        document.getElementById('rackId').value = rack.rackId;
+        document.getElementById('rackStatus').value = rack.status || 'Active';
+        document.getElementById('newRackZoneId').value = rack.zoneId;
+        document.getElementById('newRackCode').value = rack.rackCode || '';
+        document.getElementById('newRackName').value = rack.rackName || '';
+        document.getElementById('rackArea').value = rack.areaSquareMeter ?? '';
+        document.getElementById('rackWeight').value = rack.maxWeightKg ?? '';
+        document.getElementById('rackVolume').value = rack.maxVolumeM3 ?? '';
         document.getElementById('rackModal').style.display = 'flex';
     }
 
@@ -1214,6 +1299,7 @@
     }
 
     async function saveRack() {
+        const rackId = parseInt(getVal('rackId')) || 0;
         const zoneId = parseInt(getVal('newRackZoneId'));
         const code = getVal('newRackCode').trim().toUpperCase();
         const name = getVal('newRackName').trim();
@@ -1224,15 +1310,19 @@
         }
 
         const payload = {
+            rackId: rackId,
             warehouseId: currentWarehouseId,
             zoneId: zoneId,
             rackCode: code,
             rackName: name,
-            status: 'Active'
+            areaSquareMeter: getVal('rackArea') ? parseFloat(getVal('rackArea')) : null,
+            maxWeightKg: getVal('rackWeight') ? parseFloat(getVal('rackWeight')) : null,
+            maxVolumeM3: getVal('rackVolume') ? parseFloat(getVal('rackVolume')) : null,
+            status: getVal('rackStatus') || 'Active'
         };
 
         try {
-            const res = await fetch(`${storageLocationPageUrl}?handler=CreateRack`, {
+            const res = await fetch(`${storageLocationPageUrl}?handler=SaveRack`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

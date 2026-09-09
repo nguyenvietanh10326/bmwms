@@ -103,6 +103,12 @@ namespace BMWMS.Business.DTOs.Inventory
         public string ZoneCode { get; set; } = string.Empty;
         public string ZoneName { get; set; } = string.Empty;
         public string? Description { get; set; }
+        public decimal? AreaSquareMeter { get; set; }
+        public decimal? MaxWeightKg { get; set; }
+        public decimal? MaxVolumeM3 { get; set; }
+        public decimal AllocatedRackAreaSquareMeter { get; set; }
+        public decimal AllocatedRackWeightKg { get; set; }
+        public decimal AllocatedRackVolumeM3 { get; set; }
         public string Status { get; set; } = "Active";
         public int RackCount { get; set; }
         public int LocationCount { get; set; }
@@ -115,6 +121,9 @@ namespace BMWMS.Business.DTOs.Inventory
         public string ZoneCode { get; set; } = string.Empty;
         public string ZoneName { get; set; } = string.Empty;
         public string? Description { get; set; }
+        public decimal? AreaSquareMeter { get; set; }
+        public decimal? MaxWeightKg { get; set; }
+        public decimal? MaxVolumeM3 { get; set; }
         public string Status { get; set; } = "Active";
     }
 
@@ -128,6 +137,12 @@ namespace BMWMS.Business.DTOs.Inventory
         public string ZoneName { get; set; } = string.Empty;
         public string RackCode { get; set; } = string.Empty;
         public string RackName { get; set; } = string.Empty;
+        public decimal? AreaSquareMeter { get; set; }
+        public decimal? MaxWeightKg { get; set; }
+        public decimal? MaxVolumeM3 { get; set; }
+        public decimal AllocatedLocationAreaSquareMeter { get; set; }
+        public decimal AllocatedLocationWeightKg { get; set; }
+        public decimal AllocatedLocationVolumeM3 { get; set; }
         public string Status { get; set; } = "Active";
         public int LocationCount { get; set; }
     }
@@ -139,6 +154,9 @@ namespace BMWMS.Business.DTOs.Inventory
         public long ZoneId { get; set; }
         public string RackCode { get; set; } = string.Empty;
         public string RackName { get; set; } = string.Empty;
+        public decimal? AreaSquareMeter { get; set; }
+        public decimal? MaxWeightKg { get; set; }
+        public decimal? MaxVolumeM3 { get; set; }
         public string Status { get; set; } = "Active";
     }
 
@@ -159,6 +177,12 @@ namespace BMWMS.Business.DTOs.Inventory
         public string ZoneCode { get; set; } = string.Empty;
         public string ZoneName { get; set; } = string.Empty;
         public string? Description { get; set; }
+        public decimal? AreaSquareMeter { get; set; }
+        public decimal? MaxWeightKg { get; set; }
+        public decimal? MaxVolumeM3 { get; set; }
+        public decimal AllocatedRackAreaSquareMeter { get; set; }
+        public decimal AllocatedRackWeightKg { get; set; }
+        public decimal AllocatedRackVolumeM3 { get; set; }
         public string Status { get; set; } = "Active";
         public List<StorageRackStructureDto> Racks { get; set; } = new();
     }
@@ -169,6 +193,12 @@ namespace BMWMS.Business.DTOs.Inventory
         public long ZoneId { get; set; }
         public string RackCode { get; set; } = string.Empty;
         public string RackName { get; set; } = string.Empty;
+        public decimal? AreaSquareMeter { get; set; }
+        public decimal? MaxWeightKg { get; set; }
+        public decimal? MaxVolumeM3 { get; set; }
+        public decimal AllocatedLocationAreaSquareMeter { get; set; }
+        public decimal AllocatedLocationWeightKg { get; set; }
+        public decimal AllocatedLocationVolumeM3 { get; set; }
         public string Status { get; set; } = "Active";
         public List<StorageLocationItemDto> Locations { get; set; } = new();
     }
