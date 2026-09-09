@@ -181,7 +181,6 @@ namespace BMWMS.Business.Services
                 if (group.GroupCode == "PG06" || group.GroupCode == "PG07" || group.GroupCode == "PG08")
                 {
                     dto.RotationMethod = "FEFO";
-                    dto.TrackLot = true;
                     dto.TrackExpiry = true;
                 }
             }
@@ -201,7 +200,7 @@ namespace BMWMS.Business.Services
                 Barcode = string.IsNullOrWhiteSpace(dto.Barcode) ? null : dto.Barcode.Trim(),
                 Description = string.IsNullOrWhiteSpace(dto.Description) ? null : dto.Description.Trim(),
                 RotationMethod = dto.RotationMethod,
-                TrackLot = dto.TrackLot,
+                TrackLot = dto.TrackExpiry,
                 TrackExpiry = dto.TrackExpiry,
                 DefaultShelfLifeDays = dto.DefaultShelfLifeDays,
                 Status = dto.Status ?? "ACTIVE",
@@ -253,16 +252,6 @@ namespace BMWMS.Business.Services
                 throw new InvalidOperationException($"Mã vạch '{dto.Barcode.Trim()}' đã được sử dụng bởi sản phẩm khác.");
             }
 
-            // Ràng buộc truy xuất nguồn gốc: nếu tắt TrackLot khi đang có tồn kho
-            if (product.TrackLot && !dto.TrackLot)
-            {
-                bool hasStock = await _productRepository.HasTransactionsOrInventoryAsync(productId);
-                if (hasStock)
-                {
-                    throw new InvalidOperationException("Không thể hủy theo dõi số Lô vì sản phẩm đang có số dư tồn kho hoặc lịch sử giao dịch.");
-                }
-            }
-
             // Kiểm tra quy tắc nhóm hàng
             var group = await _productGroupRepository.GetByIdAsync(dto.ProductGroupId);
             if (group != null)
@@ -270,7 +259,6 @@ namespace BMWMS.Business.Services
                 if (group.GroupCode == "PG06" || group.GroupCode == "PG07" || group.GroupCode == "PG08")
                 {
                     dto.RotationMethod = "FEFO";
-                    dto.TrackLot = true;
                     dto.TrackExpiry = true;
                 }
             }
@@ -288,7 +276,8 @@ namespace BMWMS.Business.Services
             product.Barcode = string.IsNullOrWhiteSpace(dto.Barcode) ? null : dto.Barcode.Trim();
             product.Description = string.IsNullOrWhiteSpace(dto.Description) ? null : dto.Description.Trim();
             product.RotationMethod = dto.RotationMethod;
-            product.TrackLot = dto.TrackLot;
+            // Lot tracking is managed internally by the inventory flow, not by product configuration.
+            product.TrackLot = product.TrackLot || dto.TrackExpiry;
             product.TrackExpiry = dto.TrackExpiry;
             product.DefaultShelfLifeDays = dto.DefaultShelfLifeDays;
             product.Status = dto.Status;

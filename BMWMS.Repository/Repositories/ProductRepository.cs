@@ -98,7 +98,7 @@ namespace BMWMS.Repository.Repositories
                 query = query.Where(p => p.Status == status);
             }
 
-            // 5. Filter by Rotation Method (FIFO / FEFO / LIFO)
+            // 5. Filter by Rotation Method (FIFO / FEFO)
             if (!string.IsNullOrWhiteSpace(rotationMethod))
             {
                 query = query.Where(p => p.RotationMethod == rotationMethod);

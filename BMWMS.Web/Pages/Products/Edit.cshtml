@@ -35,7 +35,7 @@
     <div id="fefoAlert" style="display: none; background: #fffbeb; border: 1px solid #fde68a; color: #92400e; padding: 12px 18px; border-radius: 8px; margin-bottom: 24px;">
         <div style="display: flex; align-items: center; gap: 10px; font-size: 13px;">
             <i class="bi bi-exclamation-triangle-fill" style="font-size: 18px; color: #d97706;"></i>
-            <span><strong>Quy định nghiệp vụ Nhóm Hóa chất / Sơn / Keo:</strong> Nhóm hàng này bắt buộc áp dụng xuất kho theo <strong>FEFO (Hạn trước - Xuất trước)</strong> và kích hoạt kiểm soát theo <strong>Số Lô & Hạn sử dụng</strong>.</span>
+            <span><strong>Quy định nghiệp vụ Nhóm Hóa chất / Sơn / Keo:</strong> Nhóm hàng này bắt buộc áp dụng xuất kho theo <strong>FEFO (Hạn trước - Xuất trước)</strong> và kích hoạt kiểm soát theo <strong>Hạn sử dụng</strong>.</span>
         </div>
     </div>
 
@@ -150,7 +150,6 @@
                         <select id="ddlRotationMethod" asp-for="Product.RotationMethod" style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; background: #fff;" required onchange="onRotationMethodChanged(this.value)">
                             <option value="FIFO">FIFO - Nhập trước Xuất trước (First In First Out)</option>
                             <option value="FEFO">FEFO - Hết hạn trước Xuất trước (First Expired First Out)</option>
-                            <option value="LIFO">LIFO - Nhập sau Xuất trước (Last In First Out)</option>
                         </select>
 
                         <!-- FEFO Required Notice -->
@@ -164,10 +163,6 @@
                         <div style="font-size: 13px; font-weight: 600; color: #1e293b; margin-bottom: 12px;">Tùy Chọn Theo Dõi Nguồn Gốc</div>
 
                         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
-                            <input type="checkbox" id="chkLot" asp-for="Product.TrackLot" style="width: 18px; height: 18px; cursor: pointer; accent-color: #2563b8;" />
-                            <label for="chkLot" style="font-size: 13px; font-weight: 500; color: #334155; cursor: pointer;">
-                                Quản lý theo Số Lô (Lot Tracking)
-                            </label>
                         </div>
 
                         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
@@ -293,7 +288,6 @@
                     const groupInfo = await groupRes.json();
                     if (groupInfo && (groupInfo.groupCode === 'PG06' || groupInfo.groupCode === 'PG07' || groupInfo.groupCode === 'PG08')) {
                         document.getElementById('ddlRotationMethod').value = 'FEFO';
-                        document.getElementById('chkLot').checked = true;
                         document.getElementById('chkExpiry').checked = true;
                         toggleShelfLife(true);
                         fefoAlert.style.display = 'block';

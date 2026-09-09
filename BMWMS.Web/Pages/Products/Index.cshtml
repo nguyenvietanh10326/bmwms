@@ -70,16 +70,6 @@
         </div>
 
         <div style="background: #ffffff; padding: 16px 20px; border-radius: 10px; border: 1px solid #e2e8f0; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
-            <div style="font-size: 12px; color: #64748b; font-weight: 500; text-transform: uppercase;">Quản lý theo Số Lô (Lot)</div>
-            <div style="font-size: 24px; font-weight: 700; color: #d97706; margin-top: 6px;">
-                @Model.ProductsResult.Items.Count(p => p.TrackLot)
-            </div>
-            <div style="font-size: 12px; color: #d97706; margin-top: 4px; display: flex; align-items: center; gap: 4px;">
-                <i class="ri-barcode-box-line"></i> Theo dõi truy xuất nguồn gốc
-            </div>
-        </div>
-
-        <div style="background: #ffffff; padding: 16px 20px; border-radius: 10px; border: 1px solid #e2e8f0; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
             <div style="font-size: 12px; color: #64748b; font-weight: 500; text-transform: uppercase;">Theo dõi Hạn sử dụng (Expiry)</div>
             <div style="font-size: 24px; font-weight: 700; color: #9333ea; margin-top: 6px;">
                 @Model.ProductsResult.Items.Count(p => p.TrackExpiry)
@@ -120,7 +110,6 @@
                     <option value="">-- Tất cả --</option>
                     <option value="FIFO">FIFO (Nhập trước)</option>
                     <option value="FEFO">FEFO (Hạn trước)</option>
-                    <option value="LIFO">LIFO (Nhập sau)</option>
                 </select>
             </div>
 
@@ -196,12 +185,6 @@
                                             <i class="ri-time-line"></i> FEFO
                                         </span>
                                     }
-                                    else if (p.RotationMethod == "LIFO")
-                                    {
-                                        <span style="display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; background: #f3e8ff; color: #6b21a8; border: 1px solid #e9d5ff;">
-                                            <i class="ri-history-line"></i> LIFO
-                                        </span>
-                                    }
                                     else
                                     {
                                         <span style="display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; background: #eff6ff; color: #1e40af; border: 1px solid #dbeafe;">
@@ -214,15 +197,11 @@
                                 </td>
                                 <td style="padding: 14px 18px; text-align: center;">
                                     <div style="display: inline-flex; gap: 4px;">
-                                        @if (p.TrackLot)
-                                        {
-                                            <span title="Quản lý theo Lô" style="display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 4px; background: #e0f2fe; color: #0284c7; font-size: 11px; font-weight: 600;">L</span>
-                                        }
                                         @if (p.TrackExpiry)
                                         {
                                             <span title="Quản lý theo Hạn sử dụng" style="display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 4px; background: #fef3c7; color: #d97706; font-size: 11px; font-weight: 600;">E</span>
                                         }
-                                        @if (!p.TrackLot && !p.TrackExpiry)
+                                        @if (!p.TrackExpiry)
                                         {
                                             <span style="color: #cbd5e1;">—</span>
                                         }
