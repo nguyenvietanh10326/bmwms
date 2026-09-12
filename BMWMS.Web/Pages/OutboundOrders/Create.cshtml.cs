@@ -16,7 +16,6 @@ public class CreateModel : PageModel
     [BindProperty] public OutboundOrderVM Input { get; set; } = new();
     public List<SelectListItem> SalesOrderOptions { get; set; } = new();
     public List<SelectListItem> PurchaseOrderOptions { get; set; } = new();
-    public List<SelectListItem> AssigneeOptions { get; set; } = new();
 
     public async Task OnGetAsync(long? selectedSalesOrderId, long? selectedPurchaseOrderId)
     {
@@ -50,8 +49,13 @@ public class CreateModel : PageModel
             ModelState.AddModelError(string.Empty, "Vui lòng chọn đơn mua hàng (PO) cần trả nhà cung cấp.");
         if (Input.Items == null || Input.Items.Count == 0)
             ModelState.AddModelError(string.Empty, "Đơn tham chiếu không còn mặt hàng có thể xuất.");
-        if (!Input.AssignedToUserId.HasValue)
-            ModelState.AddModelError(nameof(Input.AssignedToUserId), "Vui lòng chọn nhân viên kho phụ trách trước khi gửi phiếu.");
+        var selectedItems = (Input.Items ?? new List<OutboundOrderItemVM>())
+            .Where(item => item.RequestedQuantity > 0)
+            .ToList();
+        if (selectedItems.Count == 0)
+            ModelState.AddModelError(string.Empty, "Vui lòng nhập số lượng lớn hơn 0 cho ít nhất một mặt hàng.");
+        if (Input.SourceType == "PURCHASE_RETURN" && (Input.Notes?.Trim().Length ?? 0) < 10)
+            ModelState.AddModelError(nameof(Input.Notes), "Phiếu trả nhà cung cấp phải ghi rõ lý do (ít nhất 10 ký tự).");
         if (!ModelState.IsValid)
         {
             await LoadDropdownsAsync();
@@ -64,10 +68,10 @@ public class CreateModel : PageModel
             SalesOrderId = Input.SourceType == "SALES_ORDER" ? Input.SalesOrderId : null,
             PurchaseOrderId = Input.SourceType == "PURCHASE_RETURN" ? Input.PurchaseOrderId : null,
             ExpectedIssueDate = Input.ExpectedIssueDate.ToString("yyyy-MM-dd"),
-            AssignedToUserId = Input.AssignedToUserId,
+            AssignedToUserId = null,
             Notes = Input.Notes,
-            IsSubmit = true,
-            Items = (Input.Items ?? new List<OutboundOrderItemVM>()).Select(i => new OutboundOrderItemRequest
+            IsSubmit = false,
+            Items = selectedItems.Select(i => new OutboundOrderItemRequest
             {
                 ProductId = i.ProductId,
                 RequestedQuantity = i.RequestedQuantity,
@@ -80,15 +84,15 @@ public class CreateModel : PageModel
             var response = await _httpClientFactory.CreateClient("ApiClient").PostAsJsonAsync("api/OutboundOrders", payload);
             if (response.IsSuccessStatusCode)
             {
-                TempData["SuccessMessage"] = "Đã tạo phiếu xuất và giao tác nghiệp lấy, xuất hàng cho nhân viên kho.";
+                TempData["SuccessMessage"] = "Đã tạo phiếu xuất Nháp. Quản lý kho cần duyệt và phân công trước khi xử lý.";
                 return RedirectToPage("./Index");
             }
             var error = await response.Content.ReadFromJsonAsync<ApiErrorResponse>();
             ModelState.AddModelError(string.Empty, error?.Message ?? error?.Detail ?? "Không thể tạo phiếu xuất kho.");
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            ModelState.AddModelError(string.Empty, $"Không thể kết nối API: {ex.Message}");
+            ModelState.AddModelError(string.Empty, "Không thể kết nối đến hệ thống. Vui lòng thử lại.");
         }
         await LoadDropdownsAsync();
         return Page();
@@ -102,9 +106,9 @@ public class CreateModel : PageModel
             var json = await response.Content.ReadAsStringAsync();
             return new ContentResult { StatusCode = (int)response.StatusCode, ContentType = "application/json", Content = json };
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            return new JsonResult(new { message = $"Không thể kết nối API: {ex.Message}" }) { StatusCode = 500 };
+            return new JsonResult(new { message = "Không thể kết nối để tải đơn tham chiếu." }) { StatusCode = 500 };
         }
     }
 
@@ -131,18 +135,10 @@ public class CreateModel : PageModel
             catch { PurchaseOrderOptions = new(); }
         }
 
-        try
-        {
-            var users = await client.GetFromJsonAsync<List<UserOptionDto>>("api/OutboundOrders/staff") ?? new();
-            AssigneeOptions = users.Select(x => new SelectListItem(x.FullName ?? x.Username, x.UserId.ToString())).ToList();
-        }
-        catch { AssigneeOptions = new(); }
         SalesOrderOptions.Insert(0, new SelectListItem(
             SalesOrderOptions.Count == 0 ? "-- Không có SO đã xác nhận có thể xuất --" : "-- Chọn SO đã xác nhận --", ""));
         PurchaseOrderOptions.Insert(0, new SelectListItem(
-            PurchaseOrderOptions.Count == 0 ? "-- Không có PO đã putaway còn hàng để trả --" : "-- Chọn PO đã nhập kho --", ""));
-        AssigneeOptions.Insert(0, new SelectListItem(
-            AssigneeOptions.Count == 0 ? "-- Không có nhân viên kho đang rảnh --" : "-- Chọn nhân viên kho đang rảnh --", ""));
+            PurchaseOrderOptions.Count == 0 ? "-- Không có PO đã cất kho còn hàng để trả --" : "-- Chọn PO đã nhập kho --", ""));
     }
 
     private async Task LoadSalesOrderDetailAsync(long id)

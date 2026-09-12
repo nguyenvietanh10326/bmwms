@@ -1,0 +1,49 @@
+@page "{id:long}"
+@model BMWMS.Web.Pages.OutboundOrders.EditModel
+@using BMWMS.Web.Helpers
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = $"Chỉnh sửa {Model.Input.OutboundOrderNumber}";
+    var isReturn = Model.Input.SourceType == "PURCHASE_RETURN";
+}
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-start mb-3">
+        <div><div class="text-muted">Chỉ chỉnh sửa khi phiếu còn ở trạng thái Nháp</div><h3 class="mb-0">@Model.Input.OutboundOrderNumber</h3></div>
+        <a asp-page="./Details" asp-route-id="@Model.Input.OutboundOrderId" class="btn btn-outline-secondary">Chi tiết phiếu</a>
+    </div>
+    <form method="post">
+        <input type="hidden" asp-for="Input.OutboundOrderId" />
+        <input type="hidden" asp-for="Input.SourceType" />
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+        <div class="card border-0 shadow-sm mb-3"><div class="card-body row g-3">
+            <div class="col-md-4"><label class="form-label">Nghiệp vụ</label><input class="form-control" value="@(isReturn ? "Trả nhà cung cấp theo PO" : "Giao khách theo SO")" readonly /></div>
+            <div class="col-md-4"><label class="form-label">Đơn tham chiếu</label><input asp-for="Input.SourceReference" class="form-control" readonly /></div>
+            <div class="col-md-4"><label class="form-label">Đối tác</label><input asp-for="Input.PartnerName" class="form-control" readonly /></div>
+            <div class="col-md-4"><label class="form-label">Ngày dự kiến xuất</label><input asp-for="Input.ExpectedIssueDate" type="date" asp-format="{0:yyyy-MM-dd}" class="form-control" min="@DateTime.Today.ToString("yyyy-MM-dd")" /></div>
+            <div class="col-md-8"><label class="form-label">@(isReturn ? "Lý do trả nhà cung cấp" : "Ghi chú nghiệp vụ")</label><textarea asp-for="Input.Notes" class="form-control" rows="2"></textarea><span asp-validation-for="Input.Notes" class="text-danger"></span></div>
+        </div></div>
+
+        <div class="card border-0 shadow-sm"><div class="card-header bg-white fw-semibold">Số lượng của đợt xuất</div><div class="table-responsive"><table class="table align-middle mb-0">
+            <thead class="table-light"><tr><th>Mã hàng</th><th>Sản phẩm</th><th>Đơn vị</th><th class="text-end">Theo đơn</th><th class="text-end">Tối đa đợt này</th><th style="width:190px">Số lượng xuất</th></tr></thead>
+            <tbody>
+            @for (var i = 0; i < Model.Input.Items.Count; i++)
+            {
+                var item = Model.Input.Items[i];
+                <tr>
+                    <td><input type="hidden" asp-for="Input.Items[i].ProductId" /><input type="hidden" asp-for="Input.Items[i].ProductCode" />@item.ProductCode</td>
+                    <td><input type="hidden" asp-for="Input.Items[i].ProductName" />@item.ProductName</td>
+                    <td><input type="hidden" asp-for="Input.Items[i].UnitName" /><input type="hidden" asp-for="Input.Items[i].QuantityScale" />@item.UnitName</td>
+                    <td class="text-end"><input type="hidden" asp-for="Input.Items[i].ReferenceQuantity" />@FormatHelper.FormatQuantity(item.ReferenceQuantity, item.QuantityScale)</td>
+                    <td class="text-end"><input type="hidden" asp-for="Input.Items[i].MaximumQuantity" />@FormatHelper.FormatQuantity(item.MaximumQuantity, item.QuantityScale)</td>
+                    <td><input asp-for="Input.Items[i].RequestedQuantity" type="number" min="@QuantityStep(item.QuantityScale)" max="@item.MaximumQuantity" step="@QuantityStep(item.QuantityScale)" class="form-control text-end" required /></td>
+                </tr>
+            }
+            </tbody>
+        </table></div><div class="card-footer bg-white d-flex justify-content-end gap-2"><a asp-page="./Details" asp-route-id="@Model.Input.OutboundOrderId" class="btn btn-outline-secondary">Hủy thay đổi</a><button class="btn btn-primary">Lưu thay đổi</button></div></div>
+    </form>
+</div>
+
+@functions {
+    string QuantityStep(byte scale) => scale == 0 ? "1" : "0." + new string('0', scale - 1) + "1";
+}

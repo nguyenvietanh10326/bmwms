@@ -11,7 +11,7 @@
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
             <h3 class="mb-1">Tạo phiếu xuất kho</h3>
-            <div class="text-muted">Sau khi được phân công, nhân viên kho lấy hàng và xác nhận số lượng thực tế ngay trên phiếu xuất này.</div>
+            <div class="text-muted">Phiếu mới được lưu ở trạng thái Nháp; Quản lý kho duyệt và phân công ở bước tiếp theo.</div>
         </div>
         <a asp-page="./Index" class="btn btn-outline-secondary">Danh sách phiếu xuất</a>
     </div>
@@ -49,15 +49,10 @@
                         <label class="form-label">Ngày dự kiến xuất</label>
                         <input asp-for="Input.ExpectedIssueDate" type="date" class="form-control" asp-format="{0:yyyy-MM-dd}" />
                     </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Nhân viên phụ trách</label>
-                        <select asp-for="Input.AssignedToUserId" asp-items="Model.AssigneeOptions" class="form-select"></select>
-                        <span asp-validation-for="Input.AssignedToUserId" class="text-danger"></span>
-                        <div class="form-text">Chỉ hiển thị nhân viên kho đang hoạt động và chưa giữ phiếu nhập/xuất khác.</div>
-                    </div>
                     <div class="col-12">
-                        <label class="form-label">Ghi chú nghiệp vụ</label>
+                        <label class="form-label">@(isPurchaseReturn ? "Lý do trả nhà cung cấp" : "Ghi chú nghiệp vụ")</label>
                         <textarea asp-for="Input.Notes" class="form-control" rows="2" placeholder="Ví dụ: lý do trả NCC, yêu cầu giao hàng..."></textarea>
+                        <span asp-validation-for="Input.Notes" class="text-danger"></span>
                     </div>
                 </div>
             </div>
@@ -82,7 +77,7 @@
                             <td><input type="hidden" asp-for="Input.Items[i].UnitName" />@Model.Input.Items[i].UnitName</td>
                             <td class="text-end"><input type="hidden" asp-for="Input.Items[i].ReferenceQuantity" />@FormatQuantity(Model.Input.Items[i].ReferenceQuantity, Model.Input.Items[i].QuantityScale)</td>
                             <td class="text-end"><input type="hidden" asp-for="Input.Items[i].AvailableQuantity" />@FormatQuantity(Model.Input.Items[i].AvailableQuantity, Model.Input.Items[i].QuantityScale)</td>
-                            <td><input type="hidden" asp-for="Input.Items[i].QuantityScale" /><input type="hidden" asp-for="Input.Items[i].TrackLot" /><input asp-for="Input.Items[i].RequestedQuantity" type="number" min="@QuantityStep(Model.Input.Items[i].QuantityScale)" max="@Model.Input.Items[i].AvailableQuantity" step="@QuantityStep(Model.Input.Items[i].QuantityScale)" class="form-control text-end" /></td>
+                            <td><input type="hidden" asp-for="Input.Items[i].QuantityScale" /><input type="hidden" asp-for="Input.Items[i].TrackLot" /><input asp-for="Input.Items[i].RequestedQuantity" type="number" min="0" max="@Model.Input.Items[i].AvailableQuantity" step="@QuantityStep(Model.Input.Items[i].QuantityScale)" class="form-control text-end" /></td>
                         </tr>
                     }
                     @if (Model.Input.Items.Count == 0)
@@ -93,7 +88,7 @@
                 </table>
             </div>
             <div class="card-footer bg-white d-flex justify-content-end gap-2">
-                <button type="submit" class="btn btn-primary" @(Model.Input.Items.Count == 0 ? "disabled" : null)>Tạo phiếu và giao nhân viên kho</button>
+                <button type="submit" class="btn btn-primary" @(Model.Input.Items.Count == 0 ? "disabled" : null)>Lưu phiếu Nháp</button>
             </div>
         </div>
     </form>
@@ -148,7 +143,7 @@
             <td><input type="hidden" name="Input.Items[${i}].UnitName" value="${escapeHtml(x.unitName)}">${escapeHtml(x.unitName)}</td>
             <td class="text-end"><input type="hidden" name="Input.Items[${i}].ReferenceQuantity" value="${x.referenceQuantity}">${formatQuantity(x.referenceQuantity, x.quantityScale)}</td>
             <td class="text-end"><input type="hidden" name="Input.Items[${i}].AvailableQuantity" value="${x.availableQuantity}">${formatQuantity(x.availableQuantity, x.quantityScale)}</td>
-            <td><input type="hidden" name="Input.Items[${i}].QuantityScale" value="${x.quantityScale}"><input type="hidden" name="Input.Items[${i}].TrackLot" value="${x.trackLot}"><input type="number" name="Input.Items[${i}].RequestedQuantity" value="${x.availableQuantity}" min="${quantityStep(x.quantityScale)}" max="${x.availableQuantity}" step="${quantityStep(x.quantityScale)}" class="form-control text-end" required></td></tr>`).join('');
+            <td><input type="hidden" name="Input.Items[${i}].QuantityScale" value="${x.quantityScale}"><input type="hidden" name="Input.Items[${i}].TrackLot" value="${x.trackLot}"><input type="number" name="Input.Items[${i}].RequestedQuantity" value="${x.availableQuantity}" min="0" max="${x.availableQuantity}" step="${quantityStep(x.quantityScale)}" class="form-control text-end" required></td></tr>`).join('');
     }
 
     salesOrder.addEventListener('change', e => loadReference('sales', e.target.value));

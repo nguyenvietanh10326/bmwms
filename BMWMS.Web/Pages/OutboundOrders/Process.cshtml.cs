@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Authorization;
-using System.Text;
 using System.Text.Json;
 
 namespace BMWMS.Web.Pages.OutboundOrders
@@ -25,7 +24,7 @@ namespace BMWMS.Web.Pages.OutboundOrders
         [TempData]
         public string? ErrorMessage { get; set; }
 
-        public async Task<IActionResult> OnGetAsync(int id)
+        public async Task<IActionResult> OnGetAsync(long id)
         {
             if (id <= 0) return RedirectToPage("./Index");
 
@@ -45,28 +44,6 @@ namespace BMWMS.Web.Pages.OutboundOrders
             return Page();
         }
 
-        // Handler nhận AJAX Post từ Client để thực hiện Pick hàng
-        public async Task<IActionResult> OnPostPickAsync([FromBody] PickItemRequestDto request)
-        {
-            if (request == null || request.OutboundOrderId <= 0 || request.PickQuantity <= 0)
-            {
-                return new JsonResult(new { success = false, message = "Dữ liệu không hợp lệ!" });
-            }
-
-            var client = _httpClientFactory.CreateClient("ApiClient");
-            var content = new StringContent(JsonSerializer.Serialize(request), Encoding.UTF8, "application/json");
-
-            var response = await client.PostAsync("api/OutboundOrders/execute-pick", content);
-
-            if (response.IsSuccessStatusCode)
-            {
-                return new JsonResult(new { success = true, message = "Đã lấy hàng thành công!" });
-            }
-
-            var errorContent = await response.Content.ReadAsStringAsync();
-            return new JsonResult(new { success = false, message = $"Lỗi từ server: {errorContent}" });
-        }
-
         public async Task<IActionResult> OnPostPickBatchAsync([FromBody] List<PickItemRequestDto> requests)
         {
             if (requests == null || requests.Count == 0 || requests.Any(request =>
@@ -81,15 +58,17 @@ namespace BMWMS.Web.Pages.OutboundOrders
                 return new JsonResult(new { success = true, message = result?.Message ?? "Đã ghi nhận đợt xuất hàng." });
             }
 
-            var error = await response.Content.ReadFromJsonAsync<ApiMessageDto>();
+            ApiMessageDto? error = null;
+            try { error = await response.Content.ReadFromJsonAsync<ApiMessageDto>(); } catch { }
             return new JsonResult(new { success = false, message = error?.Message ?? "Không thể ghi nhận đợt xuất hàng." });
         }
 
-        public async Task<IActionResult> OnPostCompleteEarlyAsync(int id, string reason)
+        public async Task<IActionResult> OnPostCompleteAsync(long id, string reason)
         {
             var response = await _httpClientFactory.CreateClient("ApiClient")
-                .PostAsync($"api/OutboundOrders/{id}/complete-early?reason={Uri.EscapeDataString(reason ?? string.Empty)}", null);
-            var result = await response.Content.ReadFromJsonAsync<ApiMessageDto>();
+                .PostAsJsonAsync($"api/OutboundOrders/{id}/complete", new { reason });
+            ApiMessageDto? result = null;
+            try { result = await response.Content.ReadFromJsonAsync<ApiMessageDto>(); } catch { }
             if (response.IsSuccessStatusCode)
             {
                 SuccessMessage = result?.Message ?? "Đã kết thúc đợt giao hàng.";
@@ -104,7 +83,7 @@ namespace BMWMS.Web.Pages.OutboundOrders
     #region DTOs matching API
     public class OutboundOrderProcessDto
     {
-        public int OutboundOrderId { get; set; }
+        public long OutboundOrderId { get; set; }
         public string OutboundOrderNumber { get; set; } = string.Empty;
         public string SourceType { get; set; } = string.Empty;
         public string SalesOrderNumber { get; set; } = string.Empty;
@@ -112,7 +91,7 @@ namespace BMWMS.Web.Pages.OutboundOrders
         public string SourceReference { get; set; } = string.Empty;
         public string PartnerName { get; set; } = string.Empty;
         public string CustomerName { get; set; } = string.Empty;
-        public int WarehouseId { get; set; }
+        public long WarehouseId { get; set; }
         public string WarehouseName { get; set; } = string.Empty;
         public long? AssignedToUserId { get; set; }
         public string Status { get; set; } = string.Empty;
@@ -123,8 +102,8 @@ namespace BMWMS.Web.Pages.OutboundOrders
 
     public class OutboundOrderItemProcessDto
     {
-        public int OutboundOrderItemId { get; set; }
-        public int ProductId { get; set; }
+        public long OutboundOrderItemId { get; set; }
+        public long ProductId { get; set; }
         public string ProductCode { get; set; } = string.Empty;
         public string ProductName { get; set; } = string.Empty;
         public string UnitName { get; set; } = string.Empty;
@@ -139,9 +118,9 @@ namespace BMWMS.Web.Pages.OutboundOrders
 
     public class PickedDetailDto
     {
-        public int StorageLocationId { get; set; }
+        public long StorageLocationId { get; set; }
         public string LocationCode { get; set; } = string.Empty;
-        public int ProductLotId { get; set; }
+        public long ProductLotId { get; set; }
         public string LotNumber { get; set; } = string.Empty;
         public DateTime? FirstReceivedDate { get; set; }
         public DateTime? ExpiryDate { get; set; }
@@ -150,26 +129,27 @@ namespace BMWMS.Web.Pages.OutboundOrders
 
     public class AvailableLocationDto
     {
-        public int StorageLocationId { get; set; }
+        public long StorageLocationId { get; set; }
         public string LocationCode { get; set; } = string.Empty;
         public string LocationPath { get; set; } = string.Empty;
-        public int ProductLotId { get; set; }
+        public long ProductLotId { get; set; }
         public string LotNumber { get; set; } = string.Empty;
         public DateTime? FirstReceivedDate { get; set; }
         public DateTime? ExpiryDate { get; set; }
-        public int? InventoryReservationId { get; set; }
+        public long? InventoryReservationId { get; set; }
         public decimal AvailableQuantity { get; set; }
     }
 
     public class PickItemRequestDto
     {
-        public int OutboundOrderId { get; set; }
-        public int OutboundOrderItemId { get; set; }
-        public int StorageLocationId { get; set; }
-        public int ProductLotId { get; set; }
-        public int? InventoryReservationId { get; set; }
+        public long OutboundOrderId { get; set; }
+        public long OutboundOrderItemId { get; set; }
+        public long StorageLocationId { get; set; }
+        public long ProductLotId { get; set; }
+        public long? InventoryReservationId { get; set; }
         public decimal PickQuantity { get; set; }
         public string Notes { get; set; } = string.Empty;
+        public string? DeviationReason { get; set; }
     }
     public class ApiMessageDto { public string Message { get; set; } = string.Empty; }
     #endregion
