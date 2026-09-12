@@ -60,10 +60,11 @@
 
                     <div>
                         <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">
-                            Đơn Vị Tính Cơ Sở (UOM) <span style="color: #dc2626;">*</span>
+                            Đơn vị tồn kho cơ sở (UOM) <span style="color: #dc2626;">*</span>
                         </label>
                         <select asp-for="Product.UnitOfMeasureId" asp-items="Model.UomOptions" style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; background: #fff;" required></select>
                         <span asp-validation-for="Product.UnitOfMeasureId" style="color: #dc2626; font-size: 12px;"></span>
+                        <div style="font-size: 11px; color: #64748b; margin-top: 4px;">Mọi số lượng tồn và giao dịch của SKU được lưu theo đơn vị này. Hệ số kg/m³ không làm thay đổi đơn vị giao dịch.</div>
                     </div>
                 </div>
 
@@ -296,7 +297,9 @@
 
                 const reqStar = attr.isRequired ? '<span style="color: #dc2626;">*</span>' : '';
                 const unitHint = attr.unitLabel ? ` (${attr.unitLabel})` : '';
-                const isStorageCapacityFactor = attr.attributeCode === 'STORAGE_WEIGHT_KG_PER_BASE_UOM'
+                const isStorageWeightFactor = attr.attributeCode === 'STORAGE_WEIGHT_KG_PER_BASE_UOM';
+                const isStorageVolumeFactor = attr.attributeCode === 'STORAGE_VOLUME_M3_PER_BASE_UOM';
+                const isStorageCapacityFactor = isStorageWeightFactor
                     || attr.attributeCode === 'STORAGE_VOLUME_M3_PER_BASE_UOM';
 
                 let inputHtml = '';
@@ -311,7 +314,7 @@
                 } else if (attr.dataType === 'NUMBER') {
                     inputHtml = `
                         <div style="position: relative;">
-                            <input type="number" ${isStorageCapacityFactor ? 'step="0.00000001" min="0.00000001" max="1000000"' : 'step="any"'} name="Product.AttributeValues[${idx}].AttributeValue" value="${attr.defaultValue || ''}" placeholder="${isStorageCapacityFactor ? 'Ví dụ: 0.035 m³/bao' : 'Nhập số lượng/kích thước...'}" style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px;" ${attr.isRequired ? 'required' : ''} />
+                            <input type="number" ${isStorageCapacityFactor ? 'step="0.00000001" min="0.00000001" max="1000000"' : 'step="any"'} name="Product.AttributeValues[${idx}].AttributeValue" value="${attr.defaultValue || ''}" placeholder="${isStorageWeightFactor ? 'Ví dụ: 50 kg/bao' : (isStorageVolumeFactor ? 'Ví dụ: 0.035 m³/bao' : 'Nhập số lượng/kích thước...')}" style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px;" ${attr.isRequired ? 'required' : ''} />
                             ${attr.unitLabel ? `<span style="position: absolute; right: 10px; top: 8px; font-size: 12px; color: #94a3b8; font-weight: 500;">${attr.unitLabel}</span>` : ''}
                         </div>
                     `;
@@ -329,7 +332,7 @@
                         ${attr.attributeName}${unitHint} ${reqStar}
                     </label>
                     ${inputHtml}
-                    ${isStorageCapacityFactor ? '<small style="color: #64748b; margin-top: 5px;">Nhập thể tích chiếm chỗ ước tính của một đơn vị tồn kho cơ sở, gồm cả bao bì và khoảng trống xếp hàng.</small>' : (attr.description ? `<small style="color: #64748b; margin-top: 5px;">${attr.description}</small>` : '')}
+                    ${isStorageCapacityFactor ? `<small style="color: #64748b; margin-top: 5px;">${isStorageWeightFactor ? 'Khối lượng của một đơn vị tồn kho cơ sở.' : 'Thể tích chiếm chỗ hiệu dụng của một đơn vị tồn kho cơ sở, gồm bao bì và khoảng trống xếp thông thường.'} Đây là hồ sơ lưu kho, không phải quy đổi số lượng giao dịch.</small>` : (attr.description ? `<small style="color: #64748b; margin-top: 5px;">${attr.description}</small>` : '')}
                 `;
                 container.appendChild(wrapper);
             });
