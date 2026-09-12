@@ -10,6 +10,7 @@ public sealed class CapacityEvaluationService : ICapacityEvaluationService
 {
     public const string StorageWeightAttributeCode = "STORAGE_WEIGHT_KG_PER_BASE_UOM";
     public const string StorageVolumeAttributeCode = "STORAGE_VOLUME_M3_PER_BASE_UOM";
+    public const string StorageFactorBasisAttributeCode = "STORAGE_FACTOR_BASIS";
 
     private readonly BmwmsContext _context;
 
@@ -127,15 +128,21 @@ public sealed class CapacityEvaluationService : ICapacityEvaluationService
             .Concat(allocations.Select(item => item.ProductId))
             .Distinct()
             .ToList();
-        var productCodes = await _context.Products
+        var productCodeRows = await _context.Products
             .AsNoTracking()
             .Where(product => productIds.Contains(product.ProductId))
-            .ToDictionaryAsync(product => product.ProductId, product => product.ProductCode);
+            .Select(product => new { product.ProductId, product.ProductCode })
+            .ToListAsync();
+        var productCodes = productCodeRows.ToDictionary(product => product.ProductId, product => product.ProductCode);
         var attributeRows = await _context.ProductAttributeValues
             .AsNoTracking()
             .Where(value => productIds.Contains(value.ProductId) &&
                             (value.ProductAttribute.AttributeCode == StorageWeightAttributeCode ||
-                             value.ProductAttribute.AttributeCode == StorageVolumeAttributeCode))
+                             value.ProductAttribute.AttributeCode == StorageVolumeAttributeCode ||
+                             value.ProductAttribute.AttributeCode == StorageFactorBasisAttributeCode) &&
+                            _context.ProductGroupAttributes.Any(mapping =>
+                                mapping.ProductGroupId == value.Product.ProductGroupId &&
+                                mapping.ProductAttributeId == value.ProductAttributeId))
             .Select(value => new
             {
                 value.ProductId,
@@ -147,6 +154,15 @@ public sealed class CapacityEvaluationService : ICapacityEvaluationService
         var profiles = productIds.ToDictionary(productId => productId, _ => new ProductStorageProfile());
         foreach (var row in attributeRows)
         {
+            if (row.AttributeCode == StorageFactorBasisAttributeCode)
+            {
+                profiles[row.ProductId].IsProvisional = string.Equals(
+                    row.AttributeValue?.Trim(),
+                    "PROVISIONAL",
+                    StringComparison.OrdinalIgnoreCase);
+                continue;
+            }
+
             if (!TryParsePositiveDecimal(row.AttributeValue, out var value))
                 continue;
             if (row.AttributeCode == StorageWeightAttributeCode)
@@ -168,6 +184,36 @@ public sealed class CapacityEvaluationService : ICapacityEvaluationService
             })
             .GroupBy(row => row.StorageLocationId)
             .ToDictionary(group => group.Key, group => group.ToList());
+
+        var rackScopes = destinations
+            .Where(row => row.RackId.HasValue)
+            .GroupBy(row => row.RackId!.Value)
+            .ToDictionary(group => group.Key, group =>
+            {
+                var sample = group.First();
+                var memberIds = hierarchyLocations.Where(row => row.RackId == group.Key)
+                    .Select(row => row.StorageLocationId).ToHashSet();
+                return EvaluateScope("RACK", group.Key, sample.RackCode ?? group.Key.ToString(),
+                    sample.RackMaxWeightKg, sample.RackMaxVolumeM3,
+                    stockRows.Where(row => memberIds.Contains(row.StorageLocationId)).ToList(),
+                    incomingByLocation.Where(pair => memberIds.Contains(pair.Key)).SelectMany(pair => pair.Value).ToList(),
+                    profiles, productCodes);
+            });
+
+        var zoneScopes = destinations
+            .Where(row => row.ZoneId.HasValue)
+            .GroupBy(row => row.ZoneId!.Value)
+            .ToDictionary(group => group.Key, group =>
+            {
+                var sample = group.First();
+                var memberIds = hierarchyLocations.Where(row => row.ZoneId == group.Key)
+                    .Select(row => row.StorageLocationId).ToHashSet();
+                return EvaluateScope("ZONE", group.Key, sample.ZoneCode ?? group.Key.ToString(),
+                    sample.ZoneMaxWeightKg, sample.ZoneMaxVolumeM3,
+                    stockRows.Where(row => memberIds.Contains(row.StorageLocationId)).ToList(),
+                    incomingByLocation.Where(pair => memberIds.Contains(pair.Key)).SelectMany(pair => pair.Value).ToList(),
+                    profiles, productCodes);
+            });
 
         var result = new Dictionary<long, LocationCapacityEvaluationDto>();
         foreach (var location in destinations)
@@ -195,28 +241,12 @@ public sealed class CapacityEvaluationService : ICapacityEvaluationService
 
             if (location.RackId.HasValue)
             {
-                var rackLocationIds = hierarchyLocations
-                    .Where(row => row.RackId == location.RackId)
-                    .Select(row => row.StorageLocationId).ToHashSet();
-                var rackScope = EvaluateScope("RACK", location.RackId.Value, location.RackCode ?? location.RackId.Value.ToString(),
-                    location.RackMaxWeightKg, location.RackMaxVolumeM3,
-                    stockRows.Where(row => rackLocationIds.Contains(row.StorageLocationId)).ToList(),
-                    incomingByLocation.Where(pair => rackLocationIds.Contains(pair.Key)).SelectMany(pair => pair.Value).ToList(),
-                    profiles, productCodes);
-                evaluation.Scopes.Add(rackScope);
+                evaluation.Scopes.Add(rackScopes[location.RackId.Value]);
             }
 
             if (location.ZoneId.HasValue)
             {
-                var zoneLocationIds = hierarchyLocations
-                    .Where(row => row.ZoneId == location.ZoneId)
-                    .Select(row => row.StorageLocationId).ToHashSet();
-                var zoneScope = EvaluateScope("ZONE", location.ZoneId.Value, location.ZoneCode ?? location.ZoneId.Value.ToString(),
-                    location.ZoneMaxWeightKg, location.ZoneMaxVolumeM3,
-                    stockRows.Where(row => zoneLocationIds.Contains(row.StorageLocationId)).ToList(),
-                    incomingByLocation.Where(pair => zoneLocationIds.Contains(pair.Key)).SelectMany(pair => pair.Value).ToList(),
-                    profiles, productCodes);
-                evaluation.Scopes.Add(zoneScope);
+                evaluation.Scopes.Add(zoneScopes[location.ZoneId.Value]);
             }
 
             evaluation.OverallStatus = ResolveOverallStatus(evaluation.Scopes.Select(scope => scope.OverallStatus));
@@ -250,112 +280,48 @@ public sealed class CapacityEvaluationService : ICapacityEvaluationService
             MaxVolumeM3 = maxVolumeM3
         };
 
-        if (maxWeightKg.HasValue)
+        scope.MissingWeightProductCodes = currentRows.Concat(incomingRows)
+            .Where(row => profiles.GetValueOrDefault(row.ProductId) is not { IsProvisional: false, UnitWeightKg: not null })
+            .Select(row => productCodes.GetValueOrDefault(row.ProductId) ?? $"ID {row.ProductId}")
+            .Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(code => code).ToList();
+        if (scope.MissingWeightProductCodes.Count > 0)
         {
-            scope.MissingWeightProductCodes = currentRows.Concat(incomingRows)
-                .Where(row => !profiles.GetValueOrDefault(row.ProductId)?.UnitWeightKg.HasValue ?? true)
-                .Select(row => productCodes.GetValueOrDefault(row.ProductId) ?? $"ID {row.ProductId}")
-                .Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(code => code).ToList();
-            if (scope.MissingWeightProductCodes.Count > 0)
+            if (maxWeightKg.HasValue)
                 scope.WeightStatus = CapacityEvaluationStatuses.Unknown;
-            else
-            {
-                scope.CurrentWeightKg = currentRows.Sum(row => row.Quantity * profiles[row.ProductId].UnitWeightKg!.Value);
-                scope.AddedWeightKg = incomingRows.Sum(row => row.Quantity * profiles[row.ProductId].UnitWeightKg!.Value);
-                scope.ProjectedWeightKg = scope.CurrentWeightKg + scope.AddedWeightKg;
+        }
+        else
+        {
+            scope.CurrentWeightKg = currentRows.Sum(row => row.Quantity * profiles[row.ProductId].UnitWeightKg!.Value);
+            scope.AddedWeightKg = incomingRows.Sum(row => row.Quantity * profiles[row.ProductId].UnitWeightKg!.Value);
+            scope.ProjectedWeightKg = scope.CurrentWeightKg + scope.AddedWeightKg;
+            if (maxWeightKg.HasValue)
                 scope.WeightStatus = scope.ProjectedWeightKg > maxWeightKg.Value
                     ? CapacityEvaluationStatuses.Exceeded
                     : CapacityEvaluationStatuses.Available;
-            }
         }
 
-        if (maxVolumeM3.HasValue)
+        scope.MissingVolumeProductCodes = currentRows.Concat(incomingRows)
+            .Where(row => profiles.GetValueOrDefault(row.ProductId) is not { IsProvisional: false, UnitVolumeM3: not null })
+            .Select(row => productCodes.GetValueOrDefault(row.ProductId) ?? $"ID {row.ProductId}")
+            .Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(code => code).ToList();
+        if (scope.MissingVolumeProductCodes.Count > 0)
         {
-            scope.MissingVolumeProductCodes = currentRows.Concat(incomingRows)
-                .Where(row => !profiles.GetValueOrDefault(row.ProductId)?.UnitVolumeM3.HasValue ?? true)
-                .Select(row => productCodes.GetValueOrDefault(row.ProductId) ?? $"ID {row.ProductId}")
-                .Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(code => code).ToList();
-            if (scope.MissingVolumeProductCodes.Count > 0)
+            if (maxVolumeM3.HasValue)
                 scope.VolumeStatus = CapacityEvaluationStatuses.Unknown;
-            else
-            {
-                scope.CurrentVolumeM3 = currentRows.Sum(row => row.Quantity * profiles[row.ProductId].UnitVolumeM3!.Value);
-                scope.AddedVolumeM3 = incomingRows.Sum(row => row.Quantity * profiles[row.ProductId].UnitVolumeM3!.Value);
-                scope.ProjectedVolumeM3 = scope.CurrentVolumeM3 + scope.AddedVolumeM3;
+        }
+        else
+        {
+            scope.CurrentVolumeM3 = currentRows.Sum(row => row.Quantity * profiles[row.ProductId].UnitVolumeM3!.Value);
+            scope.AddedVolumeM3 = incomingRows.Sum(row => row.Quantity * profiles[row.ProductId].UnitVolumeM3!.Value);
+            scope.ProjectedVolumeM3 = scope.CurrentVolumeM3 + scope.AddedVolumeM3;
+            if (maxVolumeM3.HasValue)
                 scope.VolumeStatus = scope.ProjectedVolumeM3 > maxVolumeM3.Value
                     ? CapacityEvaluationStatuses.Exceeded
                     : CapacityEvaluationStatuses.Available;
-            }
         }
 
         scope.OverallStatus = ResolveOverallStatus(scope.WeightStatus, scope.VolumeStatus);
         return scope;
-    }
-
-    private static void EvaluateWeight(
-        LocationCapacityEvaluationDto evaluation,
-        IReadOnlyCollection<StockRow> currentRows,
-        IReadOnlyCollection<StockRow> incomingRows,
-        IReadOnlyDictionary<long, ProductStorageProfile> profiles,
-        IReadOnlyDictionary<long, string> productCodes)
-    {
-        if (!evaluation.MaxWeightKg.HasValue)
-        {
-            evaluation.WeightStatus = CapacityEvaluationStatuses.NotConfigured;
-            return;
-        }
-
-        evaluation.MissingWeightProductCodes = currentRows.Concat(incomingRows)
-            .Where(row => !profiles.GetValueOrDefault(row.ProductId)?.UnitWeightKg.HasValue ?? true)
-            .Select(row => productCodes.GetValueOrDefault(row.ProductId) ?? $"ID {row.ProductId}")
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(code => code)
-            .ToList();
-        if (evaluation.MissingWeightProductCodes.Count > 0)
-        {
-            evaluation.WeightStatus = CapacityEvaluationStatuses.Unknown;
-            return;
-        }
-
-        evaluation.CurrentWeightKg = currentRows.Sum(row => row.Quantity * profiles[row.ProductId].UnitWeightKg!.Value);
-        evaluation.AddedWeightKg = incomingRows.Sum(row => row.Quantity * profiles[row.ProductId].UnitWeightKg!.Value);
-        evaluation.ProjectedWeightKg = evaluation.CurrentWeightKg + evaluation.AddedWeightKg;
-        evaluation.WeightStatus = evaluation.ProjectedWeightKg > evaluation.MaxWeightKg
-            ? CapacityEvaluationStatuses.Exceeded
-            : CapacityEvaluationStatuses.Available;
-    }
-
-    private static void EvaluateVolume(
-        LocationCapacityEvaluationDto evaluation,
-        IReadOnlyCollection<StockRow> currentRows,
-        IReadOnlyCollection<StockRow> incomingRows,
-        IReadOnlyDictionary<long, ProductStorageProfile> profiles,
-        IReadOnlyDictionary<long, string> productCodes)
-    {
-        if (!evaluation.MaxVolumeM3.HasValue)
-        {
-            evaluation.VolumeStatus = CapacityEvaluationStatuses.NotConfigured;
-            return;
-        }
-
-        evaluation.MissingVolumeProductCodes = currentRows.Concat(incomingRows)
-            .Where(row => !profiles.GetValueOrDefault(row.ProductId)?.UnitVolumeM3.HasValue ?? true)
-            .Select(row => productCodes.GetValueOrDefault(row.ProductId) ?? $"ID {row.ProductId}")
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(code => code)
-            .ToList();
-        if (evaluation.MissingVolumeProductCodes.Count > 0)
-        {
-            evaluation.VolumeStatus = CapacityEvaluationStatuses.Unknown;
-            return;
-        }
-
-        evaluation.CurrentVolumeM3 = currentRows.Sum(row => row.Quantity * profiles[row.ProductId].UnitVolumeM3!.Value);
-        evaluation.AddedVolumeM3 = incomingRows.Sum(row => row.Quantity * profiles[row.ProductId].UnitVolumeM3!.Value);
-        evaluation.ProjectedVolumeM3 = evaluation.CurrentVolumeM3 + evaluation.AddedVolumeM3;
-        evaluation.VolumeStatus = evaluation.ProjectedVolumeM3 > evaluation.MaxVolumeM3
-            ? CapacityEvaluationStatuses.Exceeded
-            : CapacityEvaluationStatuses.Available;
     }
 
     private static string ResolveOverallStatus(string weightStatus, string volumeStatus)
@@ -408,6 +374,7 @@ public sealed class CapacityEvaluationService : ICapacityEvaluationService
     {
         public decimal? UnitWeightKg { get; set; }
         public decimal? UnitVolumeM3 { get; set; }
+        public bool IsProvisional { get; set; }
     }
 
     private sealed class LocationHierarchyRow

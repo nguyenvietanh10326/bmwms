@@ -598,7 +598,9 @@ public class InboundService : IInboundService
                 .ThenInclude(order => order.InboundOrderItems)
                     .ThenInclude(item => item.InboundOrderDetails)
             .Where(po => po.Status == "CONFIRMED" || po.Status == "PARTIALLY_RECEIVED" ||
-                         po.Status == "PARTIALLYRECEIVED")
+                         po.Status == "PARTIALLYRECEIVED" ||
+                         po.Status == "PENDING_CONFIRMATION" ||
+                         po.Status == "PENDING_REMAINDER_CONFIRMATION")
             .Where(po => po.Supplier != null &&
                          (po.Supplier.Status == "ACTIVE" || po.Supplier.Status == "AVAILABLE"))
             .ToListAsync();
@@ -824,7 +826,8 @@ public class InboundService : IInboundService
     {
         return (status ?? string.Empty).Trim().ToUpperInvariant() switch
         {
-            "PARTIALLYRECEIVED" => "PARTIALLY_RECEIVED",
+            "PARTIALLYRECEIVED" or "PENDING_REMAINDER_CONFIRMATION" => "PARTIALLY_RECEIVED",
+            "PENDING_CONFIRMATION" => "CONFIRMED",
             "COMPLETED" or "CLOSED" => "RECEIVED",
             var value => value
         };
