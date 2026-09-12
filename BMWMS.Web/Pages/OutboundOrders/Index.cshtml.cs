@@ -68,55 +68,15 @@ namespace BMWMS.Web.Pages.OutboundOrders
                 }
                 else
                 {
-                    ErrorMessage = "Không thể lấy dữ liệu từ hệ thống Backend API!";
+                    ErrorMessage = "Không thể tải danh sách phiếu xuất kho.";
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                ErrorMessage = $"Lỗi kết nối API Backend: {ex.Message}";
+                ErrorMessage = "Không thể kết nối đến hệ thống. Vui lòng thử lại.";
             }
 
             return Page();
         }
-
-
-
-        // POST: Gọi API Backend để hủy lệnh xuất kho
-        public async Task<IActionResult> OnPostCancelOrderAsync(long id, int pageIndex)
-        {
-            var client = _httpClientFactory.CreateClient("ApiClient");
-
-            try
-            {
-                var response = await client.PostAsync($"api/OutboundOrders/{id}/cancel", null);
-
-                if (response.IsSuccessStatusCode)
-                {
-                    SuccessMessage = "Hủy phiếu xuất kho thành công!";
-                }
-                else
-                {
-                    var errorData = await response.Content.ReadFromJsonAsync<ErrorResponse>();
-                    ErrorMessage = errorData?.Message ?? "Lỗi từ server khi thực hiện hủy phiếu!";
-                }
-            }
-            catch (Exception ex)
-            {
-                ErrorMessage = $"Lỗi kết nối API Backend: {ex.Message}";
-            }
-
-            // Redirect reload lại trang kèm giữ nguyên bộ lọc & trang hiện tại
-            return RedirectToPage("./Index", new
-            {
-                Search = Filter.Search,
-                Status = Filter.Status,
-                PageIndex = pageIndex
-            });
-        }
-    }
-
-    public class ErrorResponse
-    {
-        public string? Message { get; set; }
     }
 }

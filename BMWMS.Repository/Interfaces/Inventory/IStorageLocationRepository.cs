@@ -23,6 +23,8 @@ namespace BMWMS.Repository.Interfaces.Inventory
 
         Task<StorageLocation?> GetByIdAsync(long locationId);
 
+        Task<StorageLocation?> GetForUpdateAsync(long locationId);
+
         Task<StorageLocation> AddAsync(StorageLocation entity);
 
         Task UpdateAsync(StorageLocation entity);
