@@ -5,6 +5,8 @@
     Layout = "_AdminLayout";
     ViewData["Title"] = "Báo cáo tồn kho";
     ViewData["HeaderTitle"] = "Báo cáo tồn kho";
+    string FormatQuantity(decimal value) =>
+        value.ToString("0.########", System.Globalization.CultureInfo.InvariantCulture);
     ViewData["FooterVersion"] = "Database aligned v3.0";
 }
 
@@ -433,25 +435,9 @@
         <div class="premium-stat-card stat-blue">
             <div class="stat-header">
                 <div class="stat-icon"><i class="ri-database-2-line"></i></div>
-                <div class="stat-title">Hệ thống</div>
+                <div class="stat-title">Số dòng tồn kho</div>
             </div>
-            <div class="stat-value">@Model.ReportData.TotalOnHand.ToString("N0")</div>
-        </div>
-        
-        <div class="premium-stat-card stat-green">
-            <div class="stat-header">
-                <div class="stat-icon"><i class="ri-checkbox-circle-line"></i></div>
-                <div class="stat-title">Khả dụng</div>
-            </div>
-            <div class="stat-value">@Model.ReportData.TotalAvailable.ToString("N0")</div>
-        </div>
-        
-        <div class="premium-stat-card stat-orange">
-            <div class="stat-header">
-                <div class="stat-icon"><i class="ri-lock-2-line"></i></div>
-                <div class="stat-title">Đang giữ chỗ</div>
-            </div>
-            <div class="stat-value">@Model.ReportData.TotalReserved.ToString("N0")</div>
+            <div class="stat-value">@Model.ReportData.Data.TotalCount</div>
         </div>
     </div>
 
@@ -531,7 +517,7 @@
                                 <td class="text-center">
                                     @if(item.OnHandQuantity > 0)
                                     {
-                                        <span class="badge-vibrant badge-neutral">@item.OnHandQuantity.ToString("N0")</span>
+                                        <span class="badge-vibrant badge-neutral">@FormatQuantity(item.OnHandQuantity) @item.UnitCode</span>
                                     }
                                     else
                                     {
@@ -541,7 +527,7 @@
                                 <td class="text-center">
                                     @if(item.ReservedQuantity > 0)
                                     {
-                                        <span class="badge-vibrant badge-warning">@item.ReservedQuantity.ToString("N0")</span>
+                                        <span class="badge-vibrant badge-warning">@FormatQuantity(item.ReservedQuantity) @item.UnitCode</span>
                                     }
                                     else
                                     {
@@ -551,7 +537,7 @@
                                 <td class="text-center">
                                     @if(item.AvailableQuantity > 0)
                                     {
-                                        <span class="badge-vibrant badge-positive">@item.AvailableQuantity.ToString("N0")</span>
+                                        <span class="badge-vibrant badge-positive">@FormatQuantity(item.AvailableQuantity) @item.UnitCode</span>
                                     }
                                     else
                                     {

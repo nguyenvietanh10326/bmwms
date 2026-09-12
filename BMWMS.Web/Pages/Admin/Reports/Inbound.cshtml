@@ -4,6 +4,8 @@
     Layout = "_AdminLayout";
     ViewData["Title"] = "Báo cáo nhập kho";
     ViewData["HeaderTitle"] = "Báo cáo nhập kho";
+    string FormatQuantity(decimal value) =>
+        value.ToString("0.########", System.Globalization.CultureInfo.InvariantCulture);
 }
 
 <style>
@@ -428,33 +430,9 @@
         <div class="premium-stat-card stat-blue">
             <div class="stat-header">
                 <div class="stat-icon"><i class="ri-file-list-3-line"></i></div>
-                <div class="stat-title">Kế hoạch</div>
+                <div class="stat-title">Số dòng hàng</div>
             </div>
-            <div class="stat-value">@Model.ReportData?.TotalExpected.ToString("N0")</div>
-        </div>
-        
-        <div class="premium-stat-card stat-green">
-            <div class="stat-header">
-                <div class="stat-icon"><i class="ri-checkbox-circle-line"></i></div>
-                <div class="stat-title">Thực nhận</div>
-            </div>
-            <div class="stat-value">@Model.ReportData?.TotalReceived.ToString("N0")</div>
-        </div>
-        
-        <div class="premium-stat-card stat-red">
-            <div class="stat-header">
-                <div class="stat-icon"><i class="ri-error-warning-line"></i></div>
-                <div class="stat-title">Đã từ chối khi nhận</div>
-            </div>
-            <div class="stat-value">@Model.ReportData?.TotalDamaged.ToString("N0")</div>
-        </div>
-
-        <div class="premium-stat-card stat-orange">
-            <div class="stat-header">
-                <div class="stat-icon"><i class="ri-alert-line"></i></div>
-                <div class="stat-title">Thiếu hụt</div>
-            </div>
-            <div class="stat-value">@Model.ReportData?.TotalShortage.ToString("N0")</div>
+            <div class="stat-value">@(Model.ReportData?.TotalCount ?? 0)</div>
         </div>
     </div>
 
@@ -537,28 +515,28 @@
                                 <td class="text-center">
                                     @if(item.ExpectedQuantity > 0)
                                     {
-                                        <span class="badge-vibrant badge-neutral">@item.ExpectedQuantity.ToString("N0")</span>
+                                        <span class="badge-vibrant badge-neutral">@FormatQuantity(item.ExpectedQuantity) @item.UnitCode</span>
                                     }
                                     else { <span class="badge-zero">-</span> }
                                 </td>
                                 <td class="text-center">
                                     @if(item.ReceivedQuantity > 0)
                                     {
-                                        <span class="badge-vibrant badge-positive">@item.ReceivedQuantity.ToString("N0")</span>
+                                        <span class="badge-vibrant badge-positive">@FormatQuantity(item.ReceivedQuantity) @item.UnitCode</span>
                                     }
                                     else { <span class="badge-zero">-</span> }
                                 </td>
                                 <td class="text-center">
                                     @if(item.DamagedQuantity > 0)
                                     {
-                                        <span class="badge-vibrant badge-negative">@item.DamagedQuantity.ToString("N0")</span>
+                                        <span class="badge-vibrant badge-negative">@FormatQuantity(item.DamagedQuantity) @item.UnitCode</span>
                                     }
                                     else { <span class="badge-zero">-</span> }
                                 </td>
                                 <td class="text-center">
                                     @if(item.ShortageQuantity > 0)
                                     {
-                                        <span class="badge-vibrant badge-warning">@item.ShortageQuantity.ToString("N0")</span>
+                                        <span class="badge-vibrant badge-warning">@FormatQuantity(item.ShortageQuantity) @item.UnitCode</span>
                                     }
                                     else { <span class="badge-zero">-</span> }
                                 </td>
@@ -579,15 +557,6 @@
                             </tr>
                         }
                         
-                        <!-- Totals Row -->
-                        <tr style="background-color: #f8fafc;">
-                            <td colspan="3" class="text-right" style="font-weight: 700; color: #334155; text-transform: uppercase;">Tổng cộng:</td>
-                            <td class="text-center"><span class="badge-vibrant badge-neutral" style="font-size: 15px;">@Model.ReportData.TotalExpected.ToString("N0")</span></td>
-                            <td class="text-center"><span class="badge-vibrant badge-positive" style="font-size: 15px;">@Model.ReportData.TotalReceived.ToString("N0")</span></td>
-                            <td class="text-center"><span class="badge-vibrant badge-negative" style="font-size: 15px;">@Model.ReportData.TotalDamaged.ToString("N0")</span></td>
-                            <td class="text-center"><span class="badge-vibrant badge-warning" style="font-size: 15px;">@Model.ReportData.TotalShortage.ToString("N0")</span></td>
-                            <td></td>
-                        </tr>
                     }
                     else
                     {
