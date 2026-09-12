@@ -431,7 +431,7 @@
                 <div id="attrContent" class="d-none">
                     <div style="background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; padding: 10px 14px; border-radius: 8px; font-size: 12px; display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
                         <i class="ri-information-line" style="font-size: 16px;"></i>
-                        <span>Các thuộc tính được tick chọn sẽ tự động hiển thị trong form <strong>Tạo / Sửa Sản phẩm</strong> của nhóm này.</span>
+                        <span>Các thuộc tính được bật sẽ hiển thị trong form <strong>Tạo / Sửa sản phẩm</strong>. Chỉ bật hệ số khối lượng/thể tích khi nhóm hàng có căn cứ đo phù hợp; không bắt buộc mọi nhóm phải dùng m³.</span>
                     </div>
 
                     <div class="table-responsive">
@@ -616,9 +616,10 @@
             // Merge all system attributes
             allSystemAttributes.forEach((attr, idx) => {
                 const assigned = assignedMap.get(attr.productAttributeId);
-                const isCapacityAttribute = attr.attributeCode === 'STORAGE_VOLUME_M3_PER_BASE_UOM';
-                const isChecked = isCapacityAttribute || !!assigned;
-                const isRequired = isCapacityAttribute || (assigned ? assigned.isRequired : false);
+                const isCapacityAttribute = attr.attributeCode === 'STORAGE_VOLUME_M3_PER_BASE_UOM'
+                    || attr.attributeCode === 'STORAGE_WEIGHT_KG_PER_BASE_UOM';
+                const isChecked = !!assigned;
+                const isRequired = assigned ? assigned.isRequired : false;
                 const displayOrder = assigned ? assigned.displayOrder : (idx + 1);
                 const defaultValue = assigned ? (assigned.defaultValue || '') : '';
 
@@ -635,10 +636,11 @@
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td class="text-center">
-                        <input type="checkbox" class="form-check-input attr-enabled" data-id="${attr.productAttributeId}" ${isChecked ? 'checked' : ''} ${isCapacityAttribute ? 'disabled' : ''} onchange="toggleRowInputs(this)" />
+                        <input type="checkbox" class="form-check-input attr-enabled" data-id="${attr.productAttributeId}" data-code="${attr.attributeCode}" ${isChecked ? 'checked' : ''} onchange="toggleRowInputs(this)" />
                     </td>
                     <td>
                         <div class="fw-bold text-dark">${attr.attributeName}</div>
+                        ${isCapacityAttribute ? '<div class="text-warning-emphasis small mt-1">Hồ sơ lưu kho tùy chọn theo nhóm</div>' : ''}
                         ${optionsHint}
                     </td>
                     <td>
@@ -646,7 +648,7 @@
                         <div class="mt-1">${typeBadge}</div>
                     </td>
                     <td class="text-center">
-                        <input type="checkbox" class="form-check-input attr-required" data-id="${attr.productAttributeId}" ${isRequired ? 'checked' : ''} ${!isChecked || isCapacityAttribute ? 'disabled' : ''} />
+                        <input type="checkbox" class="form-check-input attr-required" data-id="${attr.productAttributeId}" ${isRequired ? 'checked' : ''} ${!isChecked ? 'disabled' : ''} />
                     </td>
                     <td>
                         <input type="number" class="form-control form-control-sm text-center attr-order" data-id="${attr.productAttributeId}" value="${displayOrder}" min="0" ${!isChecked ? 'disabled' : ''} style="font-size: 12px;" />
@@ -679,6 +681,16 @@
 
         async function saveGroupAttributes() {
             const btn = document.getElementById('btnSaveAttributes');
+            const enabledCodes = new Set(Array.from(document.querySelectorAll('#groupAttrTableBody .attr-enabled:checked'))
+                .map(input => input.getAttribute('data-code')));
+            const usesPhysicalFactor = enabledCodes.has('STORAGE_VOLUME_M3_PER_BASE_UOM')
+                || enabledCodes.has('STORAGE_WEIGHT_KG_PER_BASE_UOM');
+            if (usesPhysicalFactor &&
+                (!enabledCodes.has('STORAGE_FACTOR_BASIS') || !enabledCodes.has('STORAGE_FACTOR_REFERENCE'))) {
+                alert('Khi bật hệ số kg/m³, cần bật cả Cơ sở xác định và Nguồn tham chiếu hệ số lưu kho.');
+                return;
+            }
+
             btn.disabled = true;
             btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Đang lưu...';
 
@@ -689,8 +701,7 @@
                 const enabled = tr.querySelector('.attr-enabled');
                 if (enabled && enabled.checked) {
                     const attrId = parseInt(enabled.getAttribute('data-id'));
-                    const isCapacityAttribute = allSystemAttributes.find(attr => attr.productAttributeId === attrId)?.attributeCode === 'STORAGE_VOLUME_M3_PER_BASE_UOM';
-                    const required = isCapacityAttribute || tr.querySelector('.attr-required').checked;
+                    const required = tr.querySelector('.attr-required').checked;
                     const order = parseInt(tr.querySelector('.attr-order').value) || 0;
                     const defVal = tr.querySelector('.attr-default').value;
 
