@@ -65,29 +65,6 @@ namespace BMWMS.Web.Services
             }
         }
 
-        public async Task<(bool IsSuccess, string? Message)> ConfirmPurchaseOrderAsync(long id)
-        {
-            try 
-            {
-                var response = await _httpClient.PostAsync($"api/PurchaseOrders/{id}/confirm", null);
-                if (response.IsSuccessStatusCode)
-                {
-                    return (true, "Xác nhận thành công");
-                }
-                var errorContent = await response.Content.ReadAsStringAsync();
-                string errorMessage = "Lỗi xác nhận Purchase Order";
-                try {
-                    var json = JsonNode.Parse(errorContent);
-                    errorMessage = json?["message"]?.ToString() ?? json?["title"]?.ToString() ?? errorMessage;
-                } catch { }
-                return (false, errorMessage);
-            }
-            catch (Exception ex)
-            {
-                return (false, $"Lỗi kết nối hoặc timeout: {ex.Message}");
-            }
-        }
-
         public async Task<(bool IsSuccess, string? Message)> SendPurchaseOrderToSupplierAsync(long id)
         {
             try
@@ -95,7 +72,7 @@ namespace BMWMS.Web.Services
                 var response = await _httpClient.PostAsync($"api/PurchaseOrders/{id}/send-to-supplier", null);
                 var content = await response.Content.ReadAsStringAsync();
                 var fallback = response.IsSuccessStatusCode
-                    ? "Đã gửi email PO cho nhà cung cấp."
+                    ? "Đã gửi email và xác nhận PO."
                     : "Gửi email PO cho nhà cung cấp thất bại.";
                 try
                 {
@@ -169,7 +146,7 @@ namespace BMWMS.Web.Services
                     query += $"&note={Uri.EscapeDataString(note.Trim())}";
                 var response = await _httpClient.PostAsync($"api/PurchaseOrders/{id}/continue-partial{query}", null);
                 var content = await response.Content.ReadAsStringAsync();
-                var message = response.IsSuccessStatusCode ? "Đã gửi đề nghị giao tiếp." : "Không thể gửi đề nghị giao tiếp.";
+                var message = response.IsSuccessStatusCode ? "Đã gửi email và mở đợt nhận tiếp." : "Không thể gửi đề nghị giao tiếp.";
                 try
                 {
                     var json = JsonNode.Parse(content);

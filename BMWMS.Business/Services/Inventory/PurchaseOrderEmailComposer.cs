@@ -8,14 +8,12 @@ namespace BMWMS.Business.Services.Inventory;
 
 public interface IPurchaseOrderEmailComposer
 {
-    EmailMessage Compose(PurchaseOrder order, string confirmUrl, string cancelUrl);
+    EmailMessage Compose(PurchaseOrder order);
     EmailMessage ComposeRemainderRequest(
         PurchaseOrder order,
         IReadOnlyCollection<PurchaseOrderRemainderLine> lines,
         DateOnly requestedDeliveryDate,
-        string? managerNote,
-        string confirmUrl,
-        string cancelUrl);
+        string? managerNote);
     EmailMessage ComposePartialClosureNotice(
         PurchaseOrder order,
         IReadOnlyCollection<PurchaseOrderRemainderLine> lines,
@@ -35,14 +33,12 @@ public sealed record PurchaseOrderRemainderLine(
 
 public sealed class PurchaseOrderEmailComposer : IPurchaseOrderEmailComposer
 {
-    public EmailMessage Compose(PurchaseOrder order, string confirmUrl, string cancelUrl)
+    public EmailMessage Compose(PurchaseOrder order)
     {
         ArgumentNullException.ThrowIfNull(order);
 
         var supplierName = Encode(order.Supplier?.SupplierName ?? "Quý Nhà cung cấp");
         var poNumber = Encode(order.PurchaseOrderNumber);
-        var safeConfirmUrl = Encode(confirmUrl);
-        var safeCancelUrl = Encode(cancelUrl);
         var rows = new StringBuilder();
         var lineNumber = 1;
 
@@ -67,7 +63,7 @@ public sealed class PurchaseOrderEmailComposer : IPurchaseOrderEmailComposer
               <div style="max-width:900px;margin:0 auto">
                 <h2 style="color:#233a6b">Đơn đặt hàng {poNumber}</h2>
                 <p>Kính gửi <strong>{supplierName}</strong>,</p>
-                <p>BMWMS gửi thông tin đơn đặt hàng để Nhà cung cấp kiểm tra và phối hợp giao vật tư.</p>
+                <p>BMWMS gửi thông tin đơn đặt hàng đã được xác nhận trên hệ thống để Nhà cung cấp phối hợp giao vật tư.</p>
                 <table style="margin:16px 0;border-collapse:collapse">
                   <tr><td style="padding:4px 18px 4px 0;color:#687086">Ngày đặt hàng</td><td><strong>{order.OrderDate:dd/MM/yyyy}</strong></td></tr>
                   <tr><td style="padding:4px 18px 4px 0;color:#687086">Ngày giao dự kiến</td><td><strong>{order.ExpectedDeliveryDate?.ToString("dd/MM/yyyy") ?? "Chưa xác định"}</strong></td></tr>
@@ -86,13 +82,8 @@ public sealed class PurchaseOrderEmailComposer : IPurchaseOrderEmailComposer
                   </thead>
                   <tbody>{rows}</tbody>
                 </table>
-                <div style="margin:24px 0;padding:18px;background:#f8fafc;border:1px solid #d8dee9;border-radius:8px">
-                  <p style="margin:0 0 14px"><strong>Phản hồi đơn đặt hàng</strong></p>
-                  <p style="margin:0 0 16px;color:#526079">Vui lòng chọn một trong hai phương án. Hệ thống chỉ ghi nhận phản hồi khi PO vẫn đang chờ xác nhận.</p>
-                  <a href="{safeConfirmUrl}" style="display:inline-block;margin-right:10px;padding:10px 18px;border-radius:6px;background:#198754;color:#fff;text-decoration:none;font-weight:700">Xác nhận PO</a>
-                  <a href="{safeCancelUrl}" style="display:inline-block;padding:10px 18px;border-radius:6px;background:#dc3545;color:#fff;text-decoration:none;font-weight:700">Từ chối PO</a>
-                </div>
                 <p style="margin-top:18px">File Excel chi tiết được đính kèm trong email này.</p>
+                <p>Đây là email thông báo nghiệp vụ; Nhà cung cấp không cần thao tác xác nhận trên hệ thống.</p>
                 <p>Trân trọng,<br><strong>BMWMS</strong></p>
               </div>
             </body>
@@ -118,9 +109,7 @@ public sealed class PurchaseOrderEmailComposer : IPurchaseOrderEmailComposer
         PurchaseOrder order,
         IReadOnlyCollection<PurchaseOrderRemainderLine> lines,
         DateOnly requestedDeliveryDate,
-        string? managerNote,
-        string confirmUrl,
-        string cancelUrl)
+        string? managerNote)
     {
         ArgumentNullException.ThrowIfNull(order);
         ArgumentNullException.ThrowIfNull(lines);
@@ -151,13 +140,8 @@ public sealed class PurchaseOrderEmailComposer : IPurchaseOrderEmailComposer
                   </tr></thead>
                   <tbody>{rows}</tbody>
                 </table>
-                <div style="margin:24px 0;padding:18px;background:#f8fafc;border:1px solid #d8dee9;border-radius:8px">
-                  <p style="margin:0 0 14px"><strong>Phản hồi phần còn lại của PO</strong></p>
-                  <p style="margin:0 0 16px;color:#526079">Vui lòng xác nhận khả năng tiếp tục giao đúng phần số lượng còn lại, hoặc thông báo không thể tiếp tục giao.</p>
-                  <a href="{Encode(confirmUrl)}" style="display:inline-block;margin-right:10px;padding:10px 18px;border-radius:6px;background:#198754;color:#fff;text-decoration:none;font-weight:700">Xác nhận tiếp tục giao</a>
-                  <a href="{Encode(cancelUrl)}" style="display:inline-block;padding:10px 18px;border-radius:6px;background:#dc3545;color:#fff;text-decoration:none;font-weight:700">Không thể tiếp tục giao</a>
-                </div>
                 <p>File Excel đối chiếu được đính kèm trong email này.</p>
+                <p>Đây là email thông báo nghiệp vụ; Nhà cung cấp không cần thao tác xác nhận trên hệ thống.</p>
                 <p>Trân trọng,<br><strong>BMWMS</strong></p>
               </div>
             </body>

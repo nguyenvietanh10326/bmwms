@@ -84,10 +84,10 @@ public class DetailModel : PageModel
     public string GetPurchaseOrderStatusLabel(string? status) => (status ?? string.Empty).ToUpperInvariant() switch
     {
         "DRAFT" => "Nháp",
-        "PENDING_CONFIRMATION" => "Chờ NCC phản hồi",
+        "PENDING_CONFIRMATION" => "Đã xác nhận",
         "CONFIRMED" => "Đã xác nhận",
         "PENDING_RECEIPT_REVIEW" => "Chờ duyệt nhận tiếp",
-        "PENDING_REMAINDER_CONFIRMATION" => "Chờ NCC xác nhận giao tiếp",
+        "PENDING_REMAINDER_CONFIRMATION" => "Đã nhận một phần",
         "PARTIALLY_RECEIVED" => "Đã nhận một phần",
         "COMPLETED" or "RECEIVED" => "Hoàn tất nhận đủ",
         "CLOSED" => "Đã kết thúc nhận",
@@ -110,7 +110,7 @@ public class DetailModel : PageModel
     public string GetStatusClass(string? status) => (status ?? string.Empty).ToUpperInvariant() switch
     {
         "CONFIRMED" or "READY" => "bg-primary-subtle text-primary",
-        "PENDING_CONFIRMATION" or "PENDING_RECEIPT_REVIEW" or "PENDING_REMAINDER_CONFIRMATION" or "PARTIALLY_RECEIVED" or "RECEIVING" => "bg-warning-subtle text-warning-emphasis",
+        "PENDING_RECEIPT_REVIEW" or "PARTIALLY_RECEIVED" or "RECEIVING" => "bg-warning-subtle text-warning-emphasis",
         "RECEIVED" or "COMPLETED" or "PUTAWAY_COMPLETED" or "CLOSED" => "bg-success-subtle text-success",
         "REJECTED" or "CANCELLED" => "bg-danger-subtle text-danger",
         _ => "bg-secondary-subtle text-secondary"
