@@ -7,6 +7,7 @@ namespace BMWMS.Business.DTOs.Report
         public string OutboundOrderNumber { get; set; } = string.Empty;
         public string ProductCode { get; set; } = string.Empty;
         public string ProductName { get; set; } = string.Empty;
+        public string UnitCode { get; set; } = string.Empty;
         public string SourceType { get; set; } = string.Empty;
         public DateTime ExpectedIssueDate { get; set; }
         public decimal RequestedQuantity { get; set; }
