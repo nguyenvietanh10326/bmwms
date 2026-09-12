@@ -73,10 +73,8 @@
             <select name="status" style="padding:9px 12px; border:1px solid var(--line); border-radius:6px; font-size:13px; background:#fff; min-width:180px;">
                 <option value="">Tất cả</option>
                 <option value="DRAFT" selected="@(Model.Status == "DRAFT")">Nháp</option>
-                <option value="PENDING_CONFIRMATION" selected="@(Model.Status == "PENDING_CONFIRMATION")">Chờ NCC phản hồi</option>
                 <option value="CONFIRMED" selected="@(Model.Status == "CONFIRMED")">Đã xác nhận</option>
                 <option value="PENDING_RECEIPT_REVIEW" selected="@(Model.Status == "PENDING_RECEIPT_REVIEW")">Chờ duyệt nhận tiếp</option>
-                <option value="PENDING_REMAINDER_CONFIRMATION" selected="@(Model.Status == "PENDING_REMAINDER_CONFIRMATION")">Chờ NCC xác nhận giao tiếp</option>
                 <option value="PARTIALLY_RECEIVED" selected="@(Model.Status == "PARTIALLY_RECEIVED")">Đã nhận một phần</option>
                 <option value="COMPLETED" selected="@(Model.Status == "COMPLETED")">Hoàn tất nhận đủ</option>
                 <option value="CLOSED" selected="@(Model.Status == "CLOSED")">Đã kết thúc nhận</option>
@@ -154,10 +152,10 @@
     string StatusLabel(string status) => status switch
     {
         "DRAFT" => "Nháp",
-        "PENDING_CONFIRMATION" => "Chờ NCC phản hồi",
+        "PENDING_CONFIRMATION" => "Đã xác nhận",
         "CONFIRMED" => "Đã xác nhận",
         "PENDING_RECEIPT_REVIEW" => "Chờ duyệt nhận tiếp",
-        "PENDING_REMAINDER_CONFIRMATION" => "Chờ NCC xác nhận giao tiếp",
+        "PENDING_REMAINDER_CONFIRMATION" => "Đã nhận một phần",
         "PARTIALLY_RECEIVED" => "Đã nhận một phần",
         "RECEIVED" or "COMPLETED" => "Hoàn tất nhận đủ",
         "CLOSED" => "Đã kết thúc nhận",

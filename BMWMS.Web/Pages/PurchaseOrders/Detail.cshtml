@@ -15,7 +15,7 @@
     var canProcessSupplierEmail = User.IsInRole("SYSTEM_ADMIN") || User.IsInRole("PURCHASING_STAFF");
     var canSendToSupplier = Model.Order?.CanSendToSupplier == true && canProcessSupplierEmail;
     var canDecidePartial = (User.IsInRole("SYSTEM_ADMIN") || User.IsInRole("WAREHOUSE_MANAGER")) &&
-        (Model.Order?.Status is "PENDING_RECEIPT_REVIEW" or "PENDING_REMAINDER_CONFIRMATION") &&
+        Model.Order?.Status == "PENDING_RECEIPT_REVIEW" &&
         remainingLineCount > 0 && plannedLineCount == 0;
     var canCloseLegacyPartial = (User.IsInRole("SYSTEM_ADMIN") || User.IsInRole("WAREHOUSE_MANAGER")) &&
         Model.Order?.Status == "PARTIALLY_RECEIVED" &&
@@ -79,9 +79,9 @@
                 @if (canSendToSupplier)
                 {
                     <form method="post" asp-page-handler="SendToSupplier" asp-route-id="@Model.Id"
-                          onsubmit="return confirm('Gửi nội dung PO, file Excel và hai nút phản hồi tới email của nhà cung cấp?');">
+                          onsubmit="return confirm('Gửi nội dung PO và file Excel tới nhà cung cấp? Gửi thành công sẽ xác nhận PO và không thể hủy.');">
                         <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-envelope-arrow-up me-1"></i>@(Model.Order.Status == "PENDING_CONFIRMATION" ? "Gửi lại mail cho NCC" : "Gửi mail cho NCC")
+                            <i class="bi bi-envelope-arrow-up me-1"></i>Gửi mail và xác nhận PO
                         </button>
                     </form>
                 }
@@ -94,7 +94,7 @@
                 @if (canDecidePartial)
                 {
                     <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#continuePartialModal">
-                        <i class="bi bi-envelope-arrow-up me-1"></i>@(Model.Order.Status == "PENDING_REMAINDER_CONFIRMATION" ? "Gửi lại đề nghị" : "Đề nghị NCC giao tiếp")
+                        <i class="bi bi-envelope-arrow-up me-1"></i>Gửi yêu cầu giao phần còn lại
                     </button>
                 }
                 @if (canDecidePartial || canCloseLegacyPartial)
@@ -114,15 +114,7 @@
         {
             <div class="alert alert-info d-flex gap-2 align-items-start">
                 <i class="bi bi-envelope mt-1"></i>
-                <div>PO đang ở trạng thái Nháp. Gửi email thành công chỉ chuyển PO sang chờ phản hồi; nhà cung cấp phải xác nhận thì PO mới có hiệu lực.</div>
-            </div>
-        }
-
-        @if (Model.Order.Status == "PENDING_CONFIRMATION")
-        {
-            <div class="alert alert-warning d-flex gap-2 align-items-start">
-                <i class="bi bi-hourglass-split mt-1"></i>
-                <div>Email đã được gửi. PO đang chờ nhà cung cấp xác nhận hoặc từ chối qua liên kết bảo mật.</div>
+                <div>PO đang ở trạng thái Nháp. Khi email gửi thành công, hệ thống sẽ xác nhận PO và không còn cho phép hủy.</div>
             </div>
         }
 
@@ -134,19 +126,11 @@
             </div>
         }
 
-        @if (Model.Order.Status == "PENDING_REMAINDER_CONFIRMATION")
-        {
-            <div class="alert alert-warning d-flex gap-2 align-items-start">
-                <i class="bi bi-hourglass-split mt-1"></i>
-                <div>Quản lý kho đã gửi đối chiếu phần còn thiếu. PO chỉ mở cho đợt nhập tiếp theo sau khi NCC xác nhận tiếp tục giao.</div>
-            </div>
-        }
-
         @if (Model.Order.Status == "CONFIRMED")
         {
             <div class="alert alert-primary d-flex gap-2 align-items-start">
                 <i class="bi bi-lock mt-1"></i>
-                <div>PO đã được xác nhận và không còn được phép hủy. Nhân viên kho sẽ chọn PO này khi hàng thực tế đến kho.</div>
+                <div>Email PO đã được gửi thành công, hệ thống đã xác nhận đơn và không còn cho phép hủy. Nhân viên kho có thể chọn PO khi hàng đến.</div>
             </div>
         }
 
@@ -212,23 +196,18 @@
                     </div>
                     <div class="col-md-6">
                         <div class="po-label">Trạng thái gửi NCC</div>
-                        @if (Model.Order.Status == "PENDING_CONFIRMATION")
+                        @if (Model.Order.ConfirmedAt.HasValue)
                         {
-                            <div class="po-value text-warning">Đã gửi · Chờ NCC phản hồi</div>
-                            <div class="text-muted small">Email NCC hiện tại: @(string.IsNullOrWhiteSpace(Model.Order.SupplierEmail) ? "Chưa có" : Model.Order.SupplierEmail)</div>
-                        }
-                        else if (Model.Order.Status == "PENDING_REMAINDER_CONFIRMATION")
-                        {
-                            <div class="po-value text-warning">Đã gửi phần còn lại · Chờ NCC phản hồi</div>
-                            <div class="text-muted small">Ngày giao đề nghị: @(Model.Order.ExpectedDeliveryDate?.ToString("dd/MM/yyyy") ?? "Chưa xác định")</div>
-                        }
-                        else if (Model.Order.ConfirmedAt.HasValue)
-                        {
-                            <div class="po-value text-success">NCC đã xác nhận</div>
+                            <div class="po-value text-success">Đã gửi email và xác nhận trên hệ thống</div>
                             <div class="text-muted small">
-                                Xác nhận @Model.Order.ConfirmedAt.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                                Gửi lúc @Model.Order.ConfirmedAt.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
                                 · Email NCC hiện tại: @(string.IsNullOrWhiteSpace(Model.Order.SupplierEmail) ? "Chưa có" : Model.Order.SupplierEmail)
                             </div>
+                        }
+                        else if (Model.Order.Status is "CONFIRMED" or "PARTIALLY_RECEIVED")
+                        {
+                            <div class="po-value text-success">Đã xác nhận theo luồng gửi email</div>
+                            <div class="text-muted small">Dữ liệu cũ không lưu thời điểm gửi email.</div>
                         }
                         else
                         {
@@ -382,7 +361,7 @@
                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
                             </div>
                             <div class="modal-body">
-                                <p class="text-muted">Email sẽ nêu từng vật tư: số đặt, đã nhận đạt, không đạt và số còn cần giao. PO vẫn khóa tạo phiếu nhập cho đến khi NCC xác nhận.</p>
+                                <p class="text-muted">Email sẽ nêu từng vật tư: số đặt, đã nhận đạt, không đạt và số còn cần giao. Gửi thành công sẽ mở PO để nhân viên kho tạo phiếu nhập đợt tiếp theo.</p>
                                 <label for="requestedDeliveryDate" class="form-label fw-semibold">Ngày đề nghị giao tiếp <span class="text-danger">*</span></label>
                                 <input id="requestedDeliveryDate" name="requestedDeliveryDate" type="date" class="form-control mb-3"
                                        min="@DateTime.Today.ToString("yyyy-MM-dd")" required />
