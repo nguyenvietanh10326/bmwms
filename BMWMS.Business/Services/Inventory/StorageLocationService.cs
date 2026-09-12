@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Text.RegularExpressions;
 
 namespace BMWMS.Business.Services.Inventory
 {
@@ -74,7 +75,7 @@ namespace BMWMS.Business.Services.Inventory
                     RackId = l.RackId,
                     ZoneId = l.StorageRack?.ZoneId,
                     LocationCode = l.LocationCode,
-                    LocationName = l.LocationName ?? "N/A",
+                    LocationName = l.LocationName ?? string.Empty,
                     LocationType = l.LocationType,
 
                     ZoneCode = l.StorageRack?.WarehouseZone?.ZoneCode ?? "N/A",
@@ -148,6 +149,12 @@ namespace BMWMS.Business.Services.Inventory
 
         public async Task<(bool Success, string Message)> CreateLocationAsync(CreateUpdateStorageLocationDto dto, long currentUserId = 0)
         {
+            var warehouseValidation = await ValidateOperationalWarehouseAsync(dto.WarehouseId);
+            if (warehouseValidation != null)
+                return (false, warehouseValidation);
+            var identityValidation = ValidateLocationIdentity(dto);
+            if (identityValidation != null)
+                return (false, identityValidation);
             var capacityValidation = ValidatePhysicalLimits(dto);
             if (capacityValidation != null)
                 return (false, capacityValidation);
@@ -185,14 +192,20 @@ namespace BMWMS.Business.Services.Inventory
 
         public async Task<(bool Success, string Message)> UpdateLocationAsync(CreateUpdateStorageLocationDto dto, long currentUserId = 0)
         {
+            var warehouseValidation = await ValidateOperationalWarehouseAsync(dto.WarehouseId);
+            if (warehouseValidation != null)
+                return (false, warehouseValidation);
+            var identityValidation = ValidateLocationIdentity(dto);
+            if (identityValidation != null)
+                return (false, identityValidation);
             var capacityValidation = ValidatePhysicalLimits(dto);
             if (capacityValidation != null)
                 return (false, capacityValidation);
 
-            var entity = await _locationRepository.GetByIdAsync(dto.StorageLocationId);
-            if (entity == null)
+            var entity = await _locationRepository.GetForUpdateAsync(dto.StorageLocationId);
+            if (entity == null || entity.WarehouseId != dto.WarehouseId)
             {
-                return (false, "Không tìm thấy vị trí lưu kho.");
+                return (false, "Không tìm thấy Bin trong kho hiện tại.");
             }
             if (!entity.LocationType.Equals("BIN", StringComparison.OrdinalIgnoreCase))
                 return (false, "Đây là vị trí kỹ thuật của luồng kho và không được sửa trên màn sơ đồ Bin.");
@@ -206,8 +219,12 @@ namespace BMWMS.Business.Services.Inventory
             if (capacityReductionError != null)
                 return (false, capacityReductionError);
 
-            if (entity.RackId != dto.RackId && entity.Inventories.Any(inv => inv.OnHandQuantity > 0 || inv.ReservedQuantity > 0))
-                return (false, "Không thể chuyển Bin sang Rack khác khi vẫn còn tồn kho hoặc hàng đã giữ chỗ. Hãy điều chuyển hết hàng trước.");
+            if (entity.RackId != dto.RackId)
+            {
+                var moveBlockers = await _locationRepository.GetLocationDeactivationBlockersAsync(entity.StorageLocationId);
+                if (moveBlockers.Count > 0)
+                    return (false, $"Không thể chuyển Bin sang Rack khác vì {string.Join(", ", moveBlockers)}.");
+            }
             var hierarchyValidation = await ValidateLocationHierarchyAsync(dto, dto.StorageLocationId);
             if (hierarchyValidation != null)
                 return (false, hierarchyValidation);
@@ -244,6 +261,17 @@ namespace BMWMS.Business.Services.Inventory
                 "vị trí");
         }
 
+        private static string? ValidateLocationIdentity(CreateUpdateStorageLocationDto dto)
+        {
+            if (string.IsNullOrWhiteSpace(dto.LocationCode))
+                return "Mã Bin không được để trống.";
+            if (dto.LocationCode.Trim().Length > 80)
+                return "Mã Bin không được vượt quá 80 ký tự.";
+            if (dto.LocationName?.Trim().Length > 200)
+                return "Tên Bin không được vượt quá 200 ký tự.";
+            return null;
+        }
+
         private async Task<string?> ValidateLocationHierarchyAsync(
             CreateUpdateStorageLocationDto dto,
             long? excludeLocationId = null)
@@ -255,6 +283,8 @@ namespace BMWMS.Business.Services.Inventory
                 .FirstOrDefault(item => item.RackId == dto.RackId.Value);
             if (rack == null || rack.WarehouseId != dto.WarehouseId)
                 return "Rack đã chọn không thuộc kho hiện tại.";
+            if (!IsUsableNodeStatus(rack.Status) || !IsUsableNodeStatus(rack.WarehouseZone?.Status))
+                return "Chỉ được đặt Bin trong Rack và Zone đang hoạt động.";
 
             var siblings = rack.StorageLocations
                 .Where(location => !excludeLocationId.HasValue || location.StorageLocationId != excludeLocationId.Value)
@@ -277,7 +307,7 @@ namespace BMWMS.Business.Services.Inventory
         public async Task<List<WarehouseZoneDto>> GetZonesAsync(long warehouseId)
         {
             var zones = await _locationRepository.GetZonesByWarehouseAsync(warehouseId);
-            return zones.Select(z => new WarehouseZoneDto
+            return zones.Where(z => !IsTechnicalZone(z.ZoneCode)).Select(z => new WarehouseZoneDto
             {
                 ZoneId = z.ZoneId,
                 WarehouseId = z.WarehouseId,
@@ -299,7 +329,7 @@ namespace BMWMS.Business.Services.Inventory
         public async Task<List<StorageRackDto>> GetRacksAsync(long warehouseId, long? zoneId = null)
         {
             var racks = await _locationRepository.GetRacksByWarehouseAsync(warehouseId, zoneId);
-            return racks.Select(r => new StorageRackDto
+            return racks.Where(r => !IsTechnicalZone(r.WarehouseZone?.ZoneCode)).Select(r => new StorageRackDto
             {
                 RackId = r.RackId,
                 WarehouseId = r.WarehouseId,
@@ -322,8 +352,11 @@ namespace BMWMS.Business.Services.Inventory
         public async Task<WarehouseStructureDto> GetWarehouseStructureAsync(long warehouseId)
         {
             var warehouse = await _locationRepository.GetWarehouseByIdAsync(warehouseId);
-            var zones = await _locationRepository.GetZonesByWarehouseAsync(warehouseId);
+            var zones = (await _locationRepository.GetZonesByWarehouseAsync(warehouseId))
+                .Where(zone => !IsTechnicalZone(zone.ZoneCode)).ToList();
             var allLocations = await _locationRepository.GetAllLocationsWithHierarchyAndInventoryAsync(warehouseId);
+            var hierarchyIssueCount = allLocations.Count(location =>
+                location.LocationType.Equals("BIN", StringComparison.OrdinalIgnoreCase) && !location.RackId.HasValue);
 
             var mappedLocations = allLocations
                 .Where(l => l.RackId.HasValue && l.LocationType.Equals("BIN", StringComparison.OrdinalIgnoreCase))
@@ -340,7 +373,7 @@ namespace BMWMS.Business.Services.Inventory
                     RackId = l.RackId,
                     ZoneId = l.StorageRack?.ZoneId,
                     LocationCode = l.LocationCode,
-                    LocationName = l.LocationName ?? "N/A",
+                    LocationName = l.LocationName ?? string.Empty,
                     LocationType = l.LocationType,
                     ZoneCode = l.StorageRack?.WarehouseZone?.ZoneCode ?? "N/A",
                     ZoneName = l.StorageRack?.WarehouseZone?.ZoneName ?? "N/A",
@@ -369,7 +402,8 @@ namespace BMWMS.Business.Services.Inventory
                 .GroupBy(l => l.RackId!.Value)
                 .ToDictionary(g => g.Key, g => g.ToList());
 
-            var zoneStructures = zones.Select(z => new WarehouseZoneStructureDto
+            var zoneStructures = zones.OrderBy(z => NaturalSortKey(z.ZoneCode), StringComparer.OrdinalIgnoreCase)
+            .Select(z => new WarehouseZoneStructureDto
             {
                 ZoneId = z.ZoneId,
                 ZoneCode = z.ZoneCode,
@@ -382,7 +416,8 @@ namespace BMWMS.Business.Services.Inventory
                 AllocatedRackWeightKg = z.StorageRacks.Sum(r => r.MaxWeightKg ?? 0),
                 AllocatedRackVolumeM3 = z.StorageRacks.Sum(r => r.MaxVolumeM3 ?? 0),
                 Status = z.Status,
-                Racks = z.StorageRacks.Select(r => new StorageRackStructureDto
+                Racks = z.StorageRacks.OrderBy(r => NaturalSortKey(r.RackCode), StringComparer.OrdinalIgnoreCase)
+                .Select(r => new StorageRackStructureDto
                 {
                     RackId = r.RackId,
                     ZoneId = r.ZoneId,
@@ -395,9 +430,24 @@ namespace BMWMS.Business.Services.Inventory
                     AllocatedLocationWeightKg = r.StorageLocations.Sum(l => l.MaxWeightKg ?? 0),
                     AllocatedLocationVolumeM3 = r.StorageLocations.Sum(l => l.MaxVolumeM3 ?? 0),
                     Status = r.Status,
-                    Locations = locationByRack.TryGetValue(r.RackId, out var locs) ? locs : new List<StorageLocationItemDto>()
+                    Locations = locationByRack.TryGetValue(r.RackId, out var locs)
+                        ? locs.OrderBy(location => NaturalSortKey(location.LocationCode), StringComparer.OrdinalIgnoreCase).ToList()
+                        : new List<StorageLocationItemDto>()
                 }).ToList()
             }).ToList();
+
+            foreach (var zone in zoneStructures)
+            {
+                var zoneScope = capacityEvaluations.Values.SelectMany(item => item.Scopes)
+                    .FirstOrDefault(scope => scope.ScopeType == "ZONE" && scope.ScopeId == zone.ZoneId);
+                ApplyScopeCapacity(zone, zoneScope);
+                foreach (var rack in zone.Racks)
+                {
+                    var rackScope = capacityEvaluations.Values.SelectMany(item => item.Scopes)
+                        .FirstOrDefault(scope => scope.ScopeType == "RACK" && scope.ScopeId == rack.RackId);
+                    ApplyScopeCapacity(rack, rackScope);
+                }
+            }
 
             int available = mappedLocations.Count(l => l.OccupancyStatus == "Available");
             int occupied = mappedLocations.Count(l => l.OccupancyStatus == "Occupied");
@@ -422,7 +472,8 @@ namespace BMWMS.Business.Services.Inventory
                 TotalOccupiedBins = occupied,
                 TotalFullBins = full,
                 TotalUnknownBins = unknown,
-                TotalBlockedBins = blocked
+                TotalBlockedBins = blocked,
+                HierarchyIssueCount = hierarchyIssueCount
             };
         }
 
@@ -433,11 +484,13 @@ namespace BMWMS.Business.Services.Inventory
             decimal? oldMaxVolumeM3,
             decimal? newMaxVolumeM3)
         {
-            var weightReduced = oldMaxWeightKg.HasValue &&
-                (!newMaxWeightKg.HasValue || newMaxWeightKg.Value < oldMaxWeightKg.Value);
-            var volumeReduced = oldMaxVolumeM3.HasValue &&
-                (!newMaxVolumeM3.HasValue || newMaxVolumeM3.Value < oldMaxVolumeM3.Value);
-            if (!weightReduced && !volumeReduced)
+            var weightRequiresValidation = newMaxWeightKg.HasValue
+                ? !oldMaxWeightKg.HasValue || newMaxWeightKg.Value < oldMaxWeightKg.Value
+                : oldMaxWeightKg.HasValue;
+            var volumeRequiresValidation = newMaxVolumeM3.HasValue
+                ? !oldMaxVolumeM3.HasValue || newMaxVolumeM3.Value < oldMaxVolumeM3.Value
+                : oldMaxVolumeM3.HasValue;
+            if (!weightRequiresValidation && !volumeRequiresValidation)
                 return null;
 
             var evaluations = await _capacityEvaluationService.EvaluateCurrentAsync([locationId]);
@@ -445,17 +498,21 @@ namespace BMWMS.Business.Services.Inventory
             if (evaluation == null)
                 return "Không thể xác minh mức sử dụng hiện tại của Bin.";
 
-            if (weightReduced)
+            if (weightRequiresValidation)
             {
                 if (evaluation.CurrentWeightKg == null && evaluation.MissingWeightProductCodes.Count > 0)
                     return "Không thể giảm tải trọng vì còn sản phẩm chưa cấu hình quy đổi khối lượng lưu kho.";
+                if (!newMaxWeightKg.HasValue && evaluation.CurrentWeightKg > 0)
+                    return "Không thể xóa giới hạn tải trọng khi Bin vẫn còn hàng.";
                 if (newMaxWeightKg.HasValue && evaluation.CurrentWeightKg > newMaxWeightKg.Value)
                     return $"Tải trọng mới nhỏ hơn mức đang sử dụng ({evaluation.CurrentWeightKg:0.###} kg).";
             }
-            if (volumeReduced)
+            if (volumeRequiresValidation)
             {
                 if (evaluation.CurrentVolumeM3 == null && evaluation.MissingVolumeProductCodes.Count > 0)
-                    return "Không thể giảm thể tích vì còn sản phẩm chưa cấu hình quy đổi thể tích lưu kho.";
+                    return "Không thể giảm thể tích vì còn sản phẩm chưa có hồ sơ thể tích lưu kho.";
+                if (!newMaxVolumeM3.HasValue && evaluation.CurrentVolumeM3 > 0)
+                    return "Không thể xóa giới hạn thể tích khi Bin vẫn còn hàng.";
                 if (newMaxVolumeM3.HasValue && evaluation.CurrentVolumeM3 > newMaxVolumeM3.Value)
                     return $"Thể tích mới nhỏ hơn mức đang sử dụng ({evaluation.CurrentVolumeM3:0.###} m³).";
             }
@@ -474,8 +531,31 @@ namespace BMWMS.Business.Services.Inventory
             location.WeightCapacityStatus = evaluation.WeightStatus;
             location.VolumeCapacityStatus = evaluation.VolumeStatus;
             location.CapacityStatus = evaluation.OverallStatus;
-            location.HasMissingCapacityData = evaluation.MissingWeightProductCodes.Count > 0 ||
-                                              evaluation.MissingVolumeProductCodes.Count > 0;
+            location.HasMissingCapacityData = evaluation.OverallStatus.Equals(
+                CapacityEvaluationStatuses.Unknown,
+                StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static void ApplyScopeCapacity(WarehouseZoneStructureDto zone, CapacityScopeEvaluationDto? scope)
+        {
+            if (scope == null) return;
+            zone.CurrentWeightKg = scope.CurrentWeightKg;
+            zone.CurrentVolumeM3 = scope.CurrentVolumeM3;
+            zone.CapacityStatus = scope.OverallStatus;
+            zone.HasMissingCapacityData = scope.OverallStatus.Equals(
+                CapacityEvaluationStatuses.Unknown,
+                StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static void ApplyScopeCapacity(StorageRackStructureDto rack, CapacityScopeEvaluationDto? scope)
+        {
+            if (scope == null) return;
+            rack.CurrentWeightKg = scope.CurrentWeightKg;
+            rack.CurrentVolumeM3 = scope.CurrentVolumeM3;
+            rack.CapacityStatus = scope.OverallStatus;
+            rack.HasMissingCapacityData = scope.OverallStatus.Equals(
+                CapacityEvaluationStatuses.Unknown,
+                StringComparison.OrdinalIgnoreCase);
         }
 
         public async Task<LocationDetailWithInventoryDto?> GetLocationInventoryAsync(long locationId)
@@ -490,8 +570,9 @@ namespace BMWMS.Business.Services.Inventory
                 ProductId = inv.ProductId,
                 ProductCode = inv.Product.ProductCode,
                 ProductName = inv.Product.ProductName,
-                UnitOfMeasure = inv.Product.UnitOfMeasure?.UnitName ?? inv.Product.UnitOfMeasure?.UnitCode ?? "N/A",
-                ProductGroupName = inv.Product.ProductGroup?.GroupName ?? "N/A",
+                UnitOfMeasure = inv.Product.UnitOfMeasure?.UnitName ?? inv.Product.UnitOfMeasure?.UnitCode ?? "Chưa cấu hình",
+                QuantityScale = inv.Product.UnitOfMeasure?.QuantityScale ?? 0,
+                ProductGroupName = inv.Product.ProductGroup?.GroupName ?? "Chưa cấu hình",
                 ProductLotId = inv.ProductLotId,
                 LotNumber = inv.ProductLot?.LotNumber ?? "N/A",
                 ManufactureDate = inv.ProductLot?.ManufactureDate,
@@ -536,10 +617,12 @@ namespace BMWMS.Business.Services.Inventory
 
         public async Task<(bool Success, string Message)> CreateZoneAsync(CreateUpdateZoneDto dto, long currentUserId = 0)
         {
-            if (string.IsNullOrWhiteSpace(dto.ZoneCode) || string.IsNullOrWhiteSpace(dto.ZoneName))
-            {
-                return (false, "Mã khu vực và tên khu vực không được để trống.");
-            }
+            var warehouseValidation = await ValidateOperationalWarehouseAsync(dto.WarehouseId);
+            if (warehouseValidation != null)
+                return (false, warehouseValidation);
+            var identityValidation = ValidateZoneIdentity(dto);
+            if (identityValidation != null)
+                return (false, identityValidation);
             var capacityValidation = ValidatePhysicalLimits(
                 dto.AreaSquareMeter, dto.MaxWeightKg, dto.MaxVolumeM3, "khu vực");
             if (capacityValidation != null)
@@ -571,8 +654,12 @@ namespace BMWMS.Business.Services.Inventory
 
         public async Task<(bool Success, string Message)> UpdateZoneAsync(CreateUpdateZoneDto dto, long currentUserId = 0)
         {
-            if (string.IsNullOrWhiteSpace(dto.ZoneCode) || string.IsNullOrWhiteSpace(dto.ZoneName))
-                return (false, "Mã khu vực và tên khu vực không được để trống.");
+            var warehouseValidation = await ValidateOperationalWarehouseAsync(dto.WarehouseId);
+            if (warehouseValidation != null)
+                return (false, warehouseValidation);
+            var identityValidation = ValidateZoneIdentity(dto);
+            if (identityValidation != null)
+                return (false, identityValidation);
             var capacityValidation = ValidatePhysicalLimits(
                 dto.AreaSquareMeter, dto.MaxWeightKg, dto.MaxVolumeM3, "khu vực");
             if (capacityValidation != null)
@@ -597,7 +684,10 @@ namespace BMWMS.Business.Services.Inventory
 
             var actualCapacityValidation = await ValidateScopeCapacityReductionAsync(
                 zone.StorageRacks.SelectMany(rack => rack.StorageLocations).Select(location => location.StorageLocationId),
-                "ZONE", zone.ZoneId, dto.MaxWeightKg, dto.MaxVolumeM3, "Zone");
+                "ZONE", zone.ZoneId,
+                zone.MaxWeightKg, dto.MaxWeightKg,
+                zone.MaxVolumeM3, dto.MaxVolumeM3,
+                "Zone");
             if (actualCapacityValidation != null)
                 return (false, actualCapacityValidation);
 
@@ -615,10 +705,12 @@ namespace BMWMS.Business.Services.Inventory
 
         public async Task<(bool Success, string Message)> CreateRackAsync(CreateUpdateRackDto dto, long currentUserId = 0)
         {
-            if (string.IsNullOrWhiteSpace(dto.RackCode) || string.IsNullOrWhiteSpace(dto.RackName))
-            {
-                return (false, "Mã kệ và tên kệ không được để trống.");
-            }
+            var warehouseValidation = await ValidateOperationalWarehouseAsync(dto.WarehouseId);
+            if (warehouseValidation != null)
+                return (false, warehouseValidation);
+            var identityValidation = ValidateRackIdentity(dto);
+            if (identityValidation != null)
+                return (false, identityValidation);
 
             if (dto.ZoneId <= 0)
             {
@@ -632,6 +724,8 @@ namespace BMWMS.Business.Services.Inventory
             var zone = await _locationRepository.GetZoneByIdAsync(dto.ZoneId);
             if (zone == null || zone.WarehouseId != dto.WarehouseId)
                 return (false, "Khu vực đã chọn không thuộc kho hiện tại.");
+            if (!IsUsableNodeStatus(zone.Status))
+                return (false, "Chỉ được tạo Rack trong Zone đang hoạt động.");
             var hierarchyValidation = ValidateChildBudget(
                 "Tổng giới hạn các Rack",
                 $"Zone {zone.ZoneCode}",
@@ -673,8 +767,12 @@ namespace BMWMS.Business.Services.Inventory
 
         public async Task<(bool Success, string Message)> UpdateRackAsync(CreateUpdateRackDto dto, long currentUserId = 0)
         {
-            if (string.IsNullOrWhiteSpace(dto.RackCode) || string.IsNullOrWhiteSpace(dto.RackName))
-                return (false, "Mã kệ và tên kệ không được để trống.");
+            var warehouseValidation = await ValidateOperationalWarehouseAsync(dto.WarehouseId);
+            if (warehouseValidation != null)
+                return (false, warehouseValidation);
+            var identityValidation = ValidateRackIdentity(dto);
+            if (identityValidation != null)
+                return (false, identityValidation);
             var capacityValidation = ValidatePhysicalLimits(
                 dto.AreaSquareMeter, dto.MaxWeightKg, dto.MaxVolumeM3, "kệ");
             if (capacityValidation != null)
@@ -699,13 +797,27 @@ namespace BMWMS.Business.Services.Inventory
 
             var actualCapacityValidation = await ValidateScopeCapacityReductionAsync(
                 rack.StorageLocations.Select(location => location.StorageLocationId),
-                "RACK", rack.RackId, dto.MaxWeightKg, dto.MaxVolumeM3, "Rack");
+                "RACK", rack.RackId,
+                rack.MaxWeightKg, dto.MaxWeightKg,
+                rack.MaxVolumeM3, dto.MaxVolumeM3,
+                "Rack");
             if (actualCapacityValidation != null)
                 return (false, actualCapacityValidation);
 
             var zone = await _locationRepository.GetZoneByIdAsync(dto.ZoneId);
             if (zone == null || zone.WarehouseId != dto.WarehouseId)
                 return (false, "Khu vực đã chọn không thuộc kho hiện tại.");
+            if (rack.ZoneId != dto.ZoneId && !IsUsableNodeStatus(zone.Status))
+                return (false, "Không thể chuyển Rack vào Zone đang ngừng hoạt động hoặc bị khóa.");
+            if (rack.ZoneId != dto.ZoneId)
+            {
+                foreach (var location in rack.StorageLocations)
+                {
+                    var blockers = await _locationRepository.GetLocationDeactivationBlockersAsync(location.StorageLocationId);
+                    if (blockers.Count > 0)
+                        return (false, $"Không thể chuyển Rack vì Bin {location.LocationCode} {string.Join(", ", blockers)}.");
+                }
+            }
             var siblingRacks = zone.StorageRacks.Where(item => item.RackId != dto.RackId).ToList();
             var hierarchyValidation = ValidateChildBudget(
                 "Tổng giới hạn các Rack",
@@ -736,11 +848,18 @@ namespace BMWMS.Business.Services.Inventory
 
         public async Task<(bool Success, string Message)> ChangeLocationStatusAsync(long locationId, bool active, long currentUserId = 0)
         {
-            var location = await _locationRepository.GetByIdAsync(locationId);
+            var location = await _locationRepository.GetForUpdateAsync(locationId);
             if (location == null)
                 return (false, "Không tìm thấy Bin.");
             if (!location.LocationType.Equals("BIN", StringComparison.OrdinalIgnoreCase))
                 return (false, "Vị trí kỹ thuật không được thay đổi trên màn quản lý Bin.");
+            var warehouseValidation = await ValidateOperationalWarehouseAsync(location.WarehouseId);
+            if (warehouseValidation != null)
+                return (false, warehouseValidation);
+            if (location.Status.Equals("BLOCKED", StringComparison.OrdinalIgnoreCase))
+                return (false, "Bin đang bị khóa bởi nghiệp vụ kỹ thuật; không được đổi trạng thái tại màn cấu hình.");
+            if (active == !IsInactive(location.Status))
+                return (true, active ? "Bin đã ở trạng thái hoạt động." : "Bin đã ngừng sử dụng.");
 
             var oldStatus = location.Status;
             if (!active)
@@ -756,7 +875,7 @@ namespace BMWMS.Business.Services.Inventory
                     return (false, "Bin chưa thuộc Rack nên không thể kích hoạt.");
                 var rack = (await _locationRepository.GetRacksByWarehouseAsync(location.WarehouseId))
                     .FirstOrDefault(item => item.RackId == location.RackId.Value);
-                if (rack == null || IsInactive(rack.Status) || IsInactive(rack.WarehouseZone?.Status))
+                if (rack == null || !IsUsableNodeStatus(rack.Status) || !IsUsableNodeStatus(rack.WarehouseZone?.Status))
                     return (false, "Hãy kích hoạt Zone và Rack cha trước khi kích hoạt Bin.");
                 location.Status = "ACTIVE";
             }
@@ -773,6 +892,13 @@ namespace BMWMS.Business.Services.Inventory
             var rack = await _locationRepository.GetRackByIdAsync(rackId);
             if (rack == null)
                 return (false, "Không tìm thấy Rack.");
+            var warehouseValidation = await ValidateOperationalWarehouseAsync(rack.WarehouseId);
+            if (warehouseValidation != null)
+                return (false, warehouseValidation);
+            if (rack.Status.Equals("BLOCKED", StringComparison.OrdinalIgnoreCase))
+                return (false, "Rack đang bị khóa bởi nghiệp vụ kỹ thuật; không được đổi trạng thái tại màn cấu hình.");
+            if (active == !IsInactive(rack.Status))
+                return (true, active ? "Rack đã ở trạng thái hoạt động." : "Rack đã ngừng sử dụng.");
 
             var oldStatus = rack.Status;
             if (!active)
@@ -783,7 +909,7 @@ namespace BMWMS.Business.Services.Inventory
             }
             else
             {
-                if (rack.WarehouseZone == null || IsInactive(rack.WarehouseZone.Status))
+                if (rack.WarehouseZone == null || !IsUsableNodeStatus(rack.WarehouseZone.Status))
                     return (false, "Hãy kích hoạt Zone cha trước khi kích hoạt Rack.");
                 rack.Status = "ACTIVE";
             }
@@ -799,6 +925,13 @@ namespace BMWMS.Business.Services.Inventory
             var zone = await _locationRepository.GetZoneByIdAsync(zoneId);
             if (zone == null)
                 return (false, "Không tìm thấy Zone.");
+            var warehouseValidation = await ValidateOperationalWarehouseAsync(zone.WarehouseId);
+            if (warehouseValidation != null)
+                return (false, warehouseValidation);
+            if (zone.Status.Equals("BLOCKED", StringComparison.OrdinalIgnoreCase))
+                return (false, "Zone đang bị khóa bởi nghiệp vụ kỹ thuật; không được đổi trạng thái tại màn cấu hình.");
+            if (active == !IsInactive(zone.Status))
+                return (true, active ? "Zone đã ở trạng thái hoạt động." : "Zone đã ngừng sử dụng.");
 
             var oldStatus = zone.Status;
             if (!active)
@@ -821,6 +954,28 @@ namespace BMWMS.Business.Services.Inventory
         private static bool IsInactive(string? status) =>
             status?.Equals("INACTIVE", StringComparison.OrdinalIgnoreCase) == true;
 
+        private static bool IsUsableNodeStatus(string? status) =>
+            !string.IsNullOrWhiteSpace(status) &&
+            !status.Equals("INACTIVE", StringComparison.OrdinalIgnoreCase) &&
+            !status.Equals("BLOCKED", StringComparison.OrdinalIgnoreCase);
+
+        private static bool IsTechnicalZone(string? zoneCode) =>
+            zoneCode?.Equals("ZONE-RECV", StringComparison.OrdinalIgnoreCase) == true ||
+            zoneCode?.Equals("ZONE-DISP", StringComparison.OrdinalIgnoreCase) == true;
+
+        private static string NaturalSortKey(string value) =>
+            Regex.Replace(value ?? string.Empty, @"\d+", match => match.Value.PadLeft(12, '0'));
+
+        private async Task<string?> ValidateOperationalWarehouseAsync(long warehouseId)
+        {
+            var warehouse = await _locationRepository.GetWarehouseByIdAsync(warehouseId);
+            if (warehouse == null)
+                return "Không tìm thấy kho hiện tại.";
+            if (!warehouse.IsPrimary || !IsUsableNodeStatus(warehouse.Status))
+                return "Chỉ được cấu hình vị trí cho kho chính đang hoạt động của hệ thống một kho.";
+            return null;
+        }
+
         private Task RecordAuditAsync(long userId, string action, string entity, long entityId, object? oldValue, object? newValue) =>
             _auditLogService.RecordAsync(new AuditEventDto
             {
@@ -836,10 +991,21 @@ namespace BMWMS.Business.Services.Inventory
             IEnumerable<long> descendantLocationIds,
             string scopeType,
             long scopeId,
+            decimal? oldMaxWeightKg,
             decimal? newMaxWeightKg,
+            decimal? oldMaxVolumeM3,
             decimal? newMaxVolumeM3,
             string displayName)
         {
+            var weightRequiresValidation = newMaxWeightKg.HasValue
+                ? !oldMaxWeightKg.HasValue || newMaxWeightKg.Value < oldMaxWeightKg.Value
+                : oldMaxWeightKg.HasValue;
+            var volumeRequiresValidation = newMaxVolumeM3.HasValue
+                ? !oldMaxVolumeM3.HasValue || newMaxVolumeM3.Value < oldMaxVolumeM3.Value
+                : oldMaxVolumeM3.HasValue;
+            if (!weightRequiresValidation && !volumeRequiresValidation)
+                return null;
+
             var ids = descendantLocationIds.Distinct().ToList();
             if (ids.Count == 0)
                 return null;
@@ -850,18 +1016,22 @@ namespace BMWMS.Business.Services.Inventory
             if (scope == null)
                 return null;
 
-            if (newMaxWeightKg.HasValue)
+            if (weightRequiresValidation)
             {
                 if (scope.MissingWeightProductCodes.Count > 0)
                     return $"Không thể giảm tải trọng {displayName}: còn sản phẩm chưa cấu hình quy đổi khối lượng.";
-                if (scope.CurrentWeightKg > newMaxWeightKg.Value)
+                if (!newMaxWeightKg.HasValue && scope.CurrentWeightKg > 0)
+                    return $"Không thể xóa giới hạn tải trọng {displayName} khi vẫn còn hàng.";
+                if (newMaxWeightKg.HasValue && scope.CurrentWeightKg > newMaxWeightKg.Value)
                     return $"Tải trọng {displayName} mới nhỏ hơn mức đang sử dụng ({scope.CurrentWeightKg:0.###} kg).";
             }
-            if (newMaxVolumeM3.HasValue)
+            if (volumeRequiresValidation)
             {
                 if (scope.MissingVolumeProductCodes.Count > 0)
-                    return $"Không thể giảm thể tích {displayName}: còn sản phẩm chưa cấu hình quy đổi thể tích.";
-                if (scope.CurrentVolumeM3 > newMaxVolumeM3.Value)
+                    return $"Không thể giảm thể tích {displayName}: còn sản phẩm chưa có hồ sơ thể tích lưu kho.";
+                if (!newMaxVolumeM3.HasValue && scope.CurrentVolumeM3 > 0)
+                    return $"Không thể xóa giới hạn thể tích {displayName} khi vẫn còn hàng.";
+                if (newMaxVolumeM3.HasValue && scope.CurrentVolumeM3 > newMaxVolumeM3.Value)
                     return $"Thể tích {displayName} mới nhỏ hơn mức đang sử dụng ({scope.CurrentVolumeM3:0.###} m³).";
             }
             return null;
@@ -879,6 +1049,30 @@ namespace BMWMS.Business.Services.Inventory
                 return $"Tải trọng tối đa của {subject} phải lớn hơn 0 hoặc để trống.";
             if (maxVolumeM3.HasValue && maxVolumeM3 <= 0)
                 return $"Thể tích tối đa của {subject} phải lớn hơn 0 hoặc để trống.";
+            return null;
+        }
+
+        private static string? ValidateZoneIdentity(CreateUpdateZoneDto dto)
+        {
+            if (string.IsNullOrWhiteSpace(dto.ZoneCode) || string.IsNullOrWhiteSpace(dto.ZoneName))
+                return "Mã Zone và tên Zone không được để trống.";
+            if (dto.ZoneCode.Trim().Length > 50)
+                return "Mã Zone không được vượt quá 50 ký tự.";
+            if (dto.ZoneName.Trim().Length > 200)
+                return "Tên Zone không được vượt quá 200 ký tự.";
+            if (dto.Description?.Trim().Length > 500)
+                return "Mô tả Zone không được vượt quá 500 ký tự.";
+            return null;
+        }
+
+        private static string? ValidateRackIdentity(CreateUpdateRackDto dto)
+        {
+            if (string.IsNullOrWhiteSpace(dto.RackCode) || string.IsNullOrWhiteSpace(dto.RackName))
+                return "Mã Rack và tên Rack không được để trống.";
+            if (dto.RackCode.Trim().Length > 50)
+                return "Mã Rack không được vượt quá 50 ký tự.";
+            if (dto.RackName.Trim().Length > 200)
+                return "Tên Rack không được vượt quá 200 ký tự.";
             return null;
         }
 
