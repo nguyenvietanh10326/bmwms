@@ -15,6 +15,9 @@ namespace BMWMS.Business.Services
     public class ProductGroupService : IProductGroupService
     {
         private const string StorageVolumeAttributeCode = "STORAGE_VOLUME_M3_PER_BASE_UOM";
+        private const string StorageWeightAttributeCode = "STORAGE_WEIGHT_KG_PER_BASE_UOM";
+        private const string StorageFactorBasisAttributeCode = "STORAGE_FACTOR_BASIS";
+        private const string StorageFactorReferenceAttributeCode = "STORAGE_FACTOR_REFERENCE";
 
         private readonly IProductGroupRepository _productGroupRepository;
         private readonly IAuditLogService _auditLogService;
@@ -329,14 +332,6 @@ namespace BMWMS.Business.Services
             var activeAttributeIds = allAttributes
                 .Select(attribute => attribute.ProductAttributeId)
                 .ToHashSet();
-            var storageVolumeAttribute = allAttributes.FirstOrDefault(attribute =>
-                string.Equals(attribute.AttributeCode, StorageVolumeAttributeCode, StringComparison.OrdinalIgnoreCase));
-            if (storageVolumeAttribute == null)
-            {
-                throw new InvalidOperationException(
-                    "Thiếu thuộc tính hệ thống STORAGE_VOLUME_M3_PER_BASE_UOM. Hãy chạy bản cập nhật dữ liệu sức chứa trước.");
-            }
-
             var submitted = assignments.ToList();
             if (submitted.GroupBy(attribute => attribute.ProductAttributeId).Any(group => group.Count() > 1))
                 throw new InvalidOperationException("Không được cấu hình lặp cùng một thuộc tính cho nhóm sản phẩm.");
@@ -347,24 +342,19 @@ namespace BMWMS.Business.Services
             if (submitted.Any(attribute => attribute.DisplayOrder < 0))
                 throw new InvalidOperationException("Thứ tự hiển thị thuộc tính không được là số âm.");
 
-            var capacityAssignment = submitted.FirstOrDefault(attribute =>
-                attribute.ProductAttributeId == storageVolumeAttribute.ProductAttributeId);
-            if (capacityAssignment == null)
-            {
-                submitted.Add(new GroupAttributeAssignmentDto
-                {
-                    ProductAttributeId = storageVolumeAttribute.ProductAttributeId,
-                    IsRequired = true,
-                    DisplayOrder = submitted.Count == 0
-                        ? 1
-                        : submitted.Max(attribute => attribute.DisplayOrder) + 1
-                });
-            }
-            else
-            {
-                capacityAssignment.IsRequired = true;
-                capacityAssignment.DefaultValue = null;
-            }
+            var attributeCodesById = allAttributes.ToDictionary(
+                attribute => attribute.ProductAttributeId,
+                attribute => attribute.AttributeCode);
+            var enabledCodes = submitted
+                .Select(assignment => attributeCodesById[assignment.ProductAttributeId])
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var usesPhysicalStorageFactor = enabledCodes.Contains(StorageVolumeAttributeCode) ||
+                                            enabledCodes.Contains(StorageWeightAttributeCode);
+            if (usesPhysicalStorageFactor &&
+                (!enabledCodes.Contains(StorageFactorBasisAttributeCode) ||
+                 !enabledCodes.Contains(StorageFactorReferenceAttributeCode)))
+                throw new InvalidOperationException(
+                    "Khi bật hệ số kg/m³, phải bật cả 'Cơ sở xác định hệ số lưu kho' và 'Nguồn tham chiếu hệ số lưu kho'.");
 
             return submitted
                 .GroupBy(attribute => attribute.ProductAttributeId)
@@ -375,12 +365,9 @@ namespace BMWMS.Business.Services
                     {
                         ProductGroupId = productGroupId,
                         ProductAttributeId = assignment.ProductAttributeId,
-                        IsRequired = assignment.ProductAttributeId == storageVolumeAttribute.ProductAttributeId
-                            || assignment.IsRequired,
+                        IsRequired = assignment.IsRequired,
                         DisplayOrder = assignment.DisplayOrder,
-                        DefaultValue = assignment.ProductAttributeId == storageVolumeAttribute.ProductAttributeId
-                            ? null
-                            : assignment.DefaultValue
+                        DefaultValue = assignment.DefaultValue
                     };
                 })
                 .ToList();
