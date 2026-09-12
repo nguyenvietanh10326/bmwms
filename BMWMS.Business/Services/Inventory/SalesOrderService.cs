@@ -162,8 +162,6 @@ namespace BMWMS.Business.Services.Inventory
                 OrderDate = x.OrderDate,
                 ExpectedIssueDate = x.ExpectedIssueDate,
                 Status = NormalizeSalesOrderStatus(x.Status),
-                TotalQuantity = x.SalesOrderDetails.Sum(d => d.OrderedQuantity),
-                PrimaryUnitName = x.SalesOrderDetails.Select(d => d.Product?.UnitOfMeasure?.UnitName).FirstOrDefault() ?? "",
                 ItemCount = x.SalesOrderDetails.Count,
                 CreatedByName = x.CreatedByUser?.FullName ?? string.Empty,
                 CreatedAt = x.CreatedAt
@@ -463,7 +461,7 @@ namespace BMWMS.Business.Services.Inventory
         {
             var reservations = await _context.InventoryReservations
                 .Include(r => r.SalesOrderDetail)
-                .Where(r => r.SalesOrderDetail.SalesOrderId == salesOrderId &&
+                .Where(r => r.SalesOrderDetail != null && r.SalesOrderDetail.SalesOrderId == salesOrderId &&
                             (r.Status == "ACTIVE" || r.Status == "PARTIALLY_CONSUMED"))
                 .ToListAsync();
 
@@ -488,7 +486,7 @@ namespace BMWMS.Business.Services.Inventory
                 }
                 reservation.Status = "RELEASED";
                 reservation.ReleasedAt = DateTime.UtcNow;
-                reservation.SalesOrderDetail.ReservedQuantity = 0;
+                reservation.SalesOrderDetail!.ReservedQuantity = 0;
             }
 
             await _context.SaveChangesAsync();

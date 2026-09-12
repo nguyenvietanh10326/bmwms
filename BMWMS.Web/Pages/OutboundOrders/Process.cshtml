@@ -9,6 +9,8 @@
 }
 
 <div class="container-fluid py-4">
+    @if (!string.IsNullOrWhiteSpace(Model.SuccessMessage)) { <div class="alert alert-success">@Model.SuccessMessage</div> }
+    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage)) { <div class="alert alert-danger">@Model.ErrorMessage</div> }
     <div class="d-flex justify-content-between align-items-start mb-3">
         <div>
             <div class="text-muted mb-1">Thực hiện lấy hàng và xác nhận xuất kho</div>
@@ -34,6 +36,7 @@
     @foreach (var item in Model.Order.Items)
     {
         var progress = item.RequestedQuantity > 0 ? Math.Min(100, (int)(item.IssuedQuantity * 100 / item.RequestedQuantity)) : 0;
+        var suggestedRemaining = item.RemainingQuantity;
         <div class="card border-0 shadow-sm mb-3">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start mb-3">
@@ -60,10 +63,11 @@
                         <tbody>
                         @foreach (var location in item.AvailableLocations)
                         {
-                            var suggested = Math.Min(item.RemainingQuantity, location.AvailableQuantity);
+                            var suggested = Math.Min(suggestedRemaining, location.AvailableQuantity);
+                            suggestedRemaining -= suggested;
                             <tr class="pick-row" data-item-id="@item.OutboundOrderItemId" data-item-remaining="@item.RemainingQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture)">
-                                <td><input type="checkbox" class="form-check-input pick-check" aria-label="Chọn vị trí @location.LocationCode" /></td>
-                                <td>@(string.IsNullOrWhiteSpace(location.LocationPath) ? location.LocationCode : location.LocationPath)</td>
+                                <td><input type="checkbox" class="form-check-input pick-check" aria-label="Chọn vị trí @location.LocationCode" @(suggested > 0 ? "checked" : null) /></td>
+                                <td>@(string.IsNullOrWhiteSpace(location.LocationPath) ? location.LocationCode : location.LocationPath) @if (suggested > 0) { <span class="badge bg-info-subtle text-info-emphasis">Đề xuất</span> }</td>
                                 <td><div>@(location.FirstReceivedDate?.ToString("dd/MM/yyyy") ?? "Không xác định")</div><div class="text-muted small">HSD: @(location.ExpiryDate?.ToString("dd/MM/yyyy") ?? "Không áp dụng")</div></td>
                                 <td class="text-end">@FormatQuantity(location.AvailableQuantity, item.QuantityScale) @item.UnitName</td>
                                 <td>
@@ -74,7 +78,7 @@
                                            data-order-id="@Model.Order.OutboundOrderId"
                                            data-location-id="@location.StorageLocationId"
                                            data-lot-id="@location.ProductLotId"
-                                           data-reservation-id="@location.InventoryReservationId" disabled />
+                                           data-reservation-id="@location.InventoryReservationId" disabled="@(suggested <= 0)" />
                                 </td>
                             </tr>
                         }
@@ -85,23 +89,30 @@
         </div>
     }
 
-    @if (Model.Order.Status is "READY" or "ISSUING")
+    @if (Model.Order.Status == "ISSUING")
     {
         <div class="sticky-bottom bg-body border-top py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
             <div>
                 <div id="batchError" class="text-danger small"></div>
-                @if (isSale && Model.Order.Status == "ISSUING")
+                <div class="mt-2"><label for="deviationReason" class="form-label small mb-1">Lý do lấy khác đề xuất (chỉ nhập khi có)</label><input id="deviationReason" class="form-control form-control-sm" minlength="10" maxlength="500" placeholder="Ví dụ: vị trí đề xuất tạm thời khó tiếp cận" /></div>
+                @if (Model.Order.Items.Any(item => item.IssuedQuantity > 0 && item.RemainingQuantity > 0))
                 {
-                    <form method="post" asp-page-handler="CompleteEarly" asp-route-id="@Model.Order.OutboundOrderId"
-                          class="mt-2 close-early-form">
-                        <input type="hidden" name="reason" />
-                        <button class="btn btn-outline-warning">Kết thúc SO theo số thực giao</button>
+                    <form method="post" asp-page-handler="Complete" asp-route-id="@Model.Order.OutboundOrderId" class="mt-2" onsubmit="return confirm('Hoàn tất đợt xuất theo số lượng thực tế đã ghi nhận? Phần còn lại của đơn tham chiếu vẫn được giữ để xử lý sau.');">
+                        <div class="input-group"><input name="reason" class="form-control" minlength="10" maxlength="500" placeholder="Lý do kết thúc đợt khi còn thiếu" required /><button class="btn btn-outline-warning">Hoàn tất đợt giao một phần</button></div>
                     </form>
                 }
             </div>
-            <button type="button" id="submitBatch" class="btn btn-primary" disabled>Xác nhận các dòng đã chọn và trừ tồn</button>
+            <button type="button" id="reviewBatch" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#confirmPickModal" disabled>Xem lại và xác nhận xuất</button>
         </div>
     }
+</div>
+
+<div class="modal fade" id="confirmPickModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Xác nhận trừ tồn kho</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body"><p class="mb-2">Hệ thống sẽ ghi nhận đồng thời tất cả các dòng đã chọn. Nếu một dòng không còn hợp lệ, toàn bộ lần ghi nhận sẽ bị hủy.</p><div id="batchSummary" class="small"></div></div>
+        <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Kiểm tra lại</button><button type="button" id="submitBatch" class="btn btn-primary">Xác nhận xuất và trừ tồn</button></div>
+    </div></div>
 </div>
 
 @functions {
@@ -114,24 +125,20 @@
 @Html.AntiForgeryToken()
 <script>
     const checks = [...document.querySelectorAll('.pick-check')];
+    const reviewButton = document.getElementById('reviewBatch');
     const submitButton = document.getElementById('submitBatch');
     const batchError = document.getElementById('batchError');
 
-    checks.forEach(check => check.addEventListener('change', () => {
+    checks.forEach(check => {
         check.closest('.pick-row').querySelector('.pick-quantity').disabled = !check.checked;
-        validateBatch();
-    }));
-    document.querySelectorAll('.pick-quantity').forEach(input => input.addEventListener('input', validateBatch));
-    submitButton?.addEventListener('click', submitBatch);
-    document.querySelector('.close-early-form')?.addEventListener('submit', event => {
-        const reason = prompt('Nhập lý do khách không nhận phần hàng còn lại (10-500 ký tự):');
-        if (!reason || reason.trim().length < 10 || reason.trim().length > 500 ||
-            !confirm('SO sẽ đóng và phần tồn đang giữ sẽ được giải phóng. Tiếp tục?')) {
-            event.preventDefault();
-            return;
-        }
-        event.currentTarget.querySelector('input[name="reason"]').value = reason.trim();
+        check.addEventListener('change', () => {
+            check.closest('.pick-row').querySelector('.pick-quantity').disabled = !check.checked;
+            validateBatch();
+        });
     });
+    document.querySelectorAll('.pick-quantity').forEach(input => input.addEventListener('input', validateBatch));
+    reviewButton?.addEventListener('click', renderBatchSummary);
+    submitButton?.addEventListener('click', submitBatch);
 
     function validateBatch() {
         const selectedRows = checks.filter(check => check.checked).map(check => check.closest('.pick-row'));
@@ -147,8 +154,17 @@
                 message = 'Tổng số lượng chọn của một mặt hàng vượt số lượng còn phải giao trong phiếu.';
         });
         if (batchError) batchError.textContent = message;
-        if (submitButton) submitButton.disabled = !!message;
+        if (reviewButton) reviewButton.disabled = !!message;
         return !message;
+    }
+
+    function renderBatchSummary() {
+        const rows = checks.filter(check => check.checked).map(check => check.closest('.pick-row'));
+        document.getElementById('batchSummary').innerHTML = rows.map(row => {
+            const input = row.querySelector('.pick-quantity');
+            const location = row.children[1].innerText.trim();
+            return `<div class="d-flex justify-content-between border-bottom py-2"><span>${location}</span><strong>${input.value}</strong></div>`;
+        }).join('');
     }
 
     async function submitBatch() {
@@ -162,18 +178,25 @@
                 storageLocationId: Number(input.dataset.locationId),
                 productLotId: Number(input.dataset.lotId),
                 inventoryReservationId: input.dataset.reservationId ? Number(input.dataset.reservationId) : null,
-                pickQuantity: Number(input.value), notes: 'Ghi nhận theo đợt xuất hàng.'
+                pickQuantity: Number(input.value), notes: 'Ghi nhận theo đợt xuất hàng.',
+                deviationReason: document.getElementById('deviationReason')?.value?.trim() || null
             };
         });
         submitButton.disabled = true;
-        const response = await fetch('?handler=PickBatch', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value },
-            body: JSON.stringify(payload)
-        });
-        const result = await response.json();
-        if (result.success) location.reload();
-        else { batchError.textContent = result.message || 'Không thể ghi nhận đợt xuất hàng.'; submitButton.disabled = false; }
+        try {
+            const response = await fetch('?handler=PickBatch', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value },
+                body: JSON.stringify(payload)
+            });
+            const contentType = response.headers.get('content-type') || '';
+            const result = contentType.includes('application/json') ? await response.json() : { success: false, message: 'Máy chủ trả về phản hồi không hợp lệ.' };
+            if (result.success) location.reload();
+            else { batchError.textContent = result.message || 'Không thể ghi nhận đợt xuất hàng.'; submitButton.disabled = false; }
+        } catch {
+            batchError.textContent = 'Mất kết nối khi ghi nhận. Hãy tải lại phiếu để kiểm tra trước khi thử lại.';
+            submitButton.disabled = false;
+        }
     }
 
     validateBatch();
