@@ -16,6 +16,8 @@ namespace BMWMS.Business.Services
     {
         private const decimal MaximumStorageFactor = 1_000_000m;
         private const int MaximumStorageFactorDecimalPlaces = 8;
+        private const string StorageFactorBasisAttributeCode = "STORAGE_FACTOR_BASIS";
+        private const string StorageFactorReferenceAttributeCode = "STORAGE_FACTOR_REFERENCE";
 
         private readonly IProductRepository _productRepository;
         private readonly IProductGroupRepository _productGroupRepository;
@@ -230,7 +232,12 @@ namespace BMWMS.Business.Services
                     product.Status,
                     StorageVolumeM3PerBaseUom = GetAttributeValue(
                         dto.AttributeValues,
-                        CapacityEvaluationService.StorageVolumeAttributeCode)
+                        CapacityEvaluationService.StorageVolumeAttributeCode),
+                    StorageWeightKgPerBaseUom = GetAttributeValue(
+                        dto.AttributeValues,
+                        CapacityEvaluationService.StorageWeightAttributeCode),
+                    StorageFactorBasis = GetAttributeValue(dto.AttributeValues, StorageFactorBasisAttributeCode),
+                    StorageFactorReference = GetAttributeValue(dto.AttributeValues, StorageFactorReferenceAttributeCode)
                 }
             });
 
@@ -262,6 +269,17 @@ namespace BMWMS.Business.Services
             var newStorageVolume = GetAttributeValue(
                 dto.AttributeValues,
                 CapacityEvaluationService.StorageVolumeAttributeCode);
+            var oldStorageWeight = GetAttributeValue(
+                product.ProductAttributeValues.Select(value => new ProductAttributeValueDto
+                {
+                    ProductAttributeId = value.ProductAttributeId,
+                    AttributeCode = value.ProductAttribute?.AttributeCode,
+                    AttributeValue = value.AttributeValue
+                }),
+                CapacityEvaluationService.StorageWeightAttributeCode);
+            var newStorageWeight = GetAttributeValue(
+                dto.AttributeValues,
+                CapacityEvaluationService.StorageWeightAttributeCode);
             var hasHistory = await _productRepository.HasTransactionsOrInventoryAsync(productId);
 
             if (hasHistory && product.UnitOfMeasureId != dto.UnitOfMeasureId)
@@ -271,13 +289,12 @@ namespace BMWMS.Business.Services
                 throw new InvalidOperationException(
                     "Không thể đổi nhóm của sản phẩm đã phát sinh tồn kho hoặc giao dịch. Hãy tạo sản phẩm mới nếu thay đổi bản chất vật tư.");
 
-            var capacityFactorChanged = !string.Equals(
-                oldStorageVolume,
-                newStorageVolume,
-                StringComparison.Ordinal);
+            var capacityFactorChanged =
+                !string.Equals(oldStorageVolume, newStorageVolume, StringComparison.Ordinal) ||
+                !string.Equals(oldStorageWeight, newStorageWeight, StringComparison.Ordinal);
             if (hasHistory && capacityFactorChanged && string.IsNullOrWhiteSpace(dto.CapacityChangeReason))
                 throw new InvalidOperationException(
-                    "Sản phẩm đã phát sinh tồn kho hoặc giao dịch. Phải nhập lý do khi điều chỉnh hệ số thể tích lưu kho.");
+                    "Sản phẩm đã phát sinh tồn kho hoặc giao dịch. Phải nhập lý do khi điều chỉnh hệ số lưu kho.");
 
             var oldValues = new
             {
@@ -287,7 +304,22 @@ namespace BMWMS.Business.Services
                 product.UnitOfMeasureId,
                 product.RotationMethod,
                 product.Status,
-                StorageVolumeM3PerBaseUom = oldStorageVolume
+                StorageVolumeM3PerBaseUom = oldStorageVolume,
+                StorageWeightKgPerBaseUom = oldStorageWeight,
+                StorageFactorBasis = GetAttributeValue(
+                    product.ProductAttributeValues.Select(value => new ProductAttributeValueDto
+                    {
+                        AttributeCode = value.ProductAttribute?.AttributeCode,
+                        AttributeValue = value.AttributeValue
+                    }),
+                    StorageFactorBasisAttributeCode),
+                StorageFactorReference = GetAttributeValue(
+                    product.ProductAttributeValues.Select(value => new ProductAttributeValueDto
+                    {
+                        AttributeCode = value.ProductAttribute?.AttributeCode,
+                        AttributeValue = value.AttributeValue
+                    }),
+                    StorageFactorReferenceAttributeCode)
             };
 
             string cleanCode = dto.ProductCode.Trim().ToUpper();
@@ -349,6 +381,9 @@ namespace BMWMS.Business.Services
                     product.RotationMethod,
                     product.Status,
                     StorageVolumeM3PerBaseUom = newStorageVolume,
+                    StorageWeightKgPerBaseUom = newStorageWeight,
+                    StorageFactorBasis = GetAttributeValue(dto.AttributeValues, StorageFactorBasisAttributeCode),
+                    StorageFactorReference = GetAttributeValue(dto.AttributeValues, StorageFactorReferenceAttributeCode),
                     CapacityChangeReason = capacityFactorChanged
                         ? dto.CapacityChangeReason?.Trim()
                         : null
@@ -378,14 +413,6 @@ namespace BMWMS.Business.Services
             var configuredAttributesByCode = configuredAttributesById.Values.ToDictionary(
                 groupAttribute => groupAttribute.ProductAttribute.AttributeCode,
                 StringComparer.OrdinalIgnoreCase);
-
-            if (!configuredAttributesByCode.TryGetValue(
-                    CapacityEvaluationService.StorageVolumeAttributeCode,
-                    out var storageVolumeAttribute))
-            {
-                throw new InvalidOperationException(
-                    "Nhóm sản phẩm chưa cấu hình hệ số thể tích lưu kho. Hãy chạy bản cập nhật dữ liệu sức chứa trước.");
-            }
 
             foreach (var value in values.Where(value => !string.IsNullOrWhiteSpace(value.AttributeValue)))
             {
@@ -475,6 +502,34 @@ namespace BMWMS.Business.Services
                         $"Thuộc tính '{attribute.AttributeName}' chỉ được có tối đa {MaximumStorageFactorDecimalPlaces} chữ số thập phân.");
 
                 submittedValue.AttributeValue = number.ToString(CultureInfo.InvariantCulture);
+            }
+
+            var submittedByCode = submitted
+                .Where(value => !string.IsNullOrWhiteSpace(value.AttributeCode))
+                .ToDictionary(value => value.AttributeCode!, StringComparer.OrdinalIgnoreCase);
+            var hasStorageFactor =
+                submittedByCode.ContainsKey(CapacityEvaluationService.StorageWeightAttributeCode) ||
+                submittedByCode.ContainsKey(CapacityEvaluationService.StorageVolumeAttributeCode);
+
+            if (hasStorageFactor)
+            {
+                if (!configuredAttributesByCode.ContainsKey(StorageFactorBasisAttributeCode) ||
+                    !configuredAttributesByCode.ContainsKey(StorageFactorReferenceAttributeCode))
+                    throw new InvalidOperationException(
+                        "Nhóm sản phẩm phải bật 'Cơ sở xác định hệ số lưu kho' và 'Nguồn tham chiếu hệ số lưu kho' trước khi khai báo hệ số kg/m³.");
+
+                if (!submittedByCode.TryGetValue(StorageFactorBasisAttributeCode, out var basis) ||
+                    string.IsNullOrWhiteSpace(basis.AttributeValue))
+                    throw new InvalidOperationException("Phải chọn cơ sở xác định cho hệ số lưu kho.");
+
+                if (!submittedByCode.TryGetValue(StorageFactorReferenceAttributeCode, out var reference) ||
+                    string.IsNullOrWhiteSpace(reference.AttributeValue))
+                    throw new InvalidOperationException(
+                        "Phải nhập nguồn tham chiếu hoặc biên bản đo cho hệ số lưu kho.");
+
+                if (reference.AttributeValue.Trim().Length > 500)
+                    throw new InvalidOperationException(
+                        "Nguồn tham chiếu hệ số lưu kho không được vượt quá 500 ký tự.");
             }
         }
 
