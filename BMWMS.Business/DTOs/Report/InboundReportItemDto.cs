@@ -7,6 +7,7 @@ namespace BMWMS.Business.DTOs.Report
         public string InboundOrderNumber { get; set; } = null!;
         public string ProductCode { get; set; } = null!;
         public string ProductName { get; set; } = null!;
+        public string UnitCode { get; set; } = string.Empty;
         public string SourceType { get; set; } = null!;
         public DateOnly ExpectedReceiptDate { get; set; }
         public string Status { get; set; } = null!;

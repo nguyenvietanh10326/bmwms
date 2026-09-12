@@ -55,6 +55,8 @@ public partial class User
 
     public virtual ICollection<OutboundOrder> OutboundOrderAssignedToUsers { get; set; } = new List<OutboundOrder>();
 
+    public virtual ICollection<OutboundOrder> OutboundOrderApprovedByUsers { get; set; } = new List<OutboundOrder>();
+
     public virtual ICollection<OutboundOrder> OutboundOrderCancelledByUsers { get; set; } = new List<OutboundOrder>();
 
     public virtual ICollection<OutboundOrder> OutboundOrderConfirmedByUsers { get; set; } = new List<OutboundOrder>();

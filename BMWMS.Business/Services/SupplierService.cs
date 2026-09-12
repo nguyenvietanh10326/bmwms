@@ -264,8 +264,7 @@ public class SupplierService : ISupplierService
             WarehouseName = io.Warehouse?.WarehouseName,
             Status = io.Status,
             CreatedAt = io.CreatedAt,
-            TotalQuantity = (int)io.InboundOrderItems.Sum(d => 
-                io.Status == "COMPLETED" ? d.ReceivedQuantity : d.ExpectedQuantity)
+            LineCount = io.InboundOrderItems.Count
         }).ToList();
 
         return new PagedResultDto<SupplierInboundHistoryResponseDto>
@@ -300,8 +299,8 @@ public class SupplierService : ISupplierService
                 ProductCode = d.Product.ProductCode,
                 ProductName = d.Product.ProductName,
                 UnitName = d.Product.UnitOfMeasure.UnitName,
-                ExpectedQuantity = (int)d.ExpectedQuantity,
-                ReceivedQuantity = (int)d.ReceivedQuantity
+                ExpectedQuantity = d.ExpectedQuantity,
+                ReceivedQuantity = d.ReceivedQuantity
             }).ToList()
         };
     }
