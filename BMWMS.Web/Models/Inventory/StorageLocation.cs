@@ -179,6 +179,7 @@ namespace BMWMS.Web.Models.Inventory
         public int TotalFullBins { get; set; }
         public int TotalUnknownBins { get; set; }
         public int TotalBlockedBins { get; set; }
+        public int HierarchyIssueCount { get; set; }
     }
 
     public class WarehouseZoneStructureDto
@@ -190,6 +191,10 @@ namespace BMWMS.Web.Models.Inventory
         public decimal? AreaSquareMeter { get; set; }
         public decimal? MaxWeightKg { get; set; }
         public decimal? MaxVolumeM3 { get; set; }
+        public decimal? CurrentWeightKg { get; set; }
+        public decimal? CurrentVolumeM3 { get; set; }
+        public string CapacityStatus { get; set; } = "NOT_CONFIGURED";
+        public bool HasMissingCapacityData { get; set; }
         public decimal AllocatedRackAreaSquareMeter { get; set; }
         public decimal AllocatedRackWeightKg { get; set; }
         public decimal AllocatedRackVolumeM3 { get; set; }
@@ -206,6 +211,10 @@ namespace BMWMS.Web.Models.Inventory
         public decimal? AreaSquareMeter { get; set; }
         public decimal? MaxWeightKg { get; set; }
         public decimal? MaxVolumeM3 { get; set; }
+        public decimal? CurrentWeightKg { get; set; }
+        public decimal? CurrentVolumeM3 { get; set; }
+        public string CapacityStatus { get; set; } = "NOT_CONFIGURED";
+        public bool HasMissingCapacityData { get; set; }
         public decimal AllocatedLocationAreaSquareMeter { get; set; }
         public decimal AllocatedLocationWeightKg { get; set; }
         public decimal AllocatedLocationVolumeM3 { get; set; }
@@ -221,6 +230,7 @@ namespace BMWMS.Web.Models.Inventory
         public string ProductCode { get; set; } = string.Empty;
         public string ProductName { get; set; } = string.Empty;
         public string UnitOfMeasure { get; set; } = string.Empty;
+        public byte QuantityScale { get; set; }
         public string ProductGroupName { get; set; } = string.Empty;
 
         public long ProductLotId { get; set; }

@@ -96,7 +96,14 @@ namespace BMWMS.Repository.Repositories.Inventory
                     .ThenInclude(inv => inv.Product)
                 .Include(l => l.Inventories)
                     .ThenInclude(inv => inv.ProductLot)
+                .AsSplitQuery()
                 .FirstOrDefaultAsync(l => l.StorageLocationId == locationId);
+        }
+
+        public async Task<StorageLocation?> GetForUpdateAsync(long locationId)
+        {
+            return await _context.StorageLocations
+                .FirstOrDefaultAsync(location => location.StorageLocationId == locationId);
         }
 
         public async Task<StorageLocation> AddAsync(StorageLocation entity)
@@ -108,7 +115,6 @@ namespace BMWMS.Repository.Repositories.Inventory
 
         public async Task UpdateAsync(StorageLocation entity)
         {
-            _context.StorageLocations.Update(entity);
             await _context.SaveChangesAsync();
         }
 
@@ -128,6 +134,7 @@ namespace BMWMS.Repository.Repositories.Inventory
                 .AsNoTracking()
                 .Include(z => z.StorageRacks)
                     .ThenInclude(r => r.StorageLocations)
+                .AsSplitQuery()
                 .Where(z => z.WarehouseId == warehouseId)
                 .OrderBy(z => z.ZoneCode)
                 .ToListAsync();
@@ -161,6 +168,7 @@ namespace BMWMS.Repository.Repositories.Inventory
                     .ThenInclude(inv => inv.Product)
                 .Include(l => l.Inventories)
                     .ThenInclude(inv => inv.ProductLot)
+                .AsSplitQuery()
                 .Where(l => l.WarehouseId == warehouseId)
                 .OrderBy(l => l.LocationCode)
                 .ToListAsync();
@@ -228,6 +236,7 @@ namespace BMWMS.Repository.Repositories.Inventory
                 .Include(rack => rack.StorageLocations)
                 .Include(rack => rack.WarehouseZone)
                     .ThenInclude(zone => zone.StorageRacks)
+                .AsSplitQuery()
                 .FirstOrDefaultAsync(rack => rack.RackId == rackId);
         }
 
@@ -263,6 +272,27 @@ namespace BMWMS.Repository.Repositories.Inventory
 
             if (await _context.ProductFixedLocations.AnyAsync(mapping => mapping.StorageLocationId == locationId))
                 reasons.Add("đang được cấu hình làm vị trí ưu tiên cho sản phẩm");
+
+            if (await _context.InventoryReservations.AnyAsync(reservation =>
+                    reservation.StorageLocationId == locationId &&
+                    reservation.Status != "RELEASED" &&
+                    reservation.Status != "CONSUMED" &&
+                    reservation.ReservedQuantity > reservation.ConsumedQuantity))
+                reasons.Add("đang có phiếu giữ hàng chưa giải phóng");
+
+            if (await _context.InboundOrderDetails.AnyAsync(detail =>
+                    detail.StorageLocationId == locationId &&
+                    _context.InboundOrders.Any(order =>
+                        order.InboundOrderId == detail.InboundOrderId &&
+                        order.Status != "COMPLETED" && order.Status != "CANCELLED")))
+                reasons.Add("đang thuộc phiếu nhập chưa hoàn tất");
+
+            if (await _context.OutboundOrderDetails.AnyAsync(detail =>
+                    detail.StorageLocationId == locationId &&
+                    _context.OutboundOrders.Any(order =>
+                        order.OutboundOrderId == detail.OutboundOrderId &&
+                        order.Status != "COMPLETED" && order.Status != "CANCELLED")))
+                reasons.Add("đang thuộc phiếu xuất chưa hoàn tất");
 
             if (await _context.TransferOrderDetails.AnyAsync(detail =>
                     (detail.SourceLocationId == locationId || detail.DestinationLocationId == locationId) &&

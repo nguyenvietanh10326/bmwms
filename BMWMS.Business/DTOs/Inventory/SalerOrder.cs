@@ -40,8 +40,6 @@ namespace BMWMS.Business.DTOs.Inventory
         public DateOnly OrderDate { get; set; }
         public DateOnly? ExpectedIssueDate { get; set; }
         public string Status { get; set; } = null!;
-        public decimal TotalQuantity { get; set; }
-        public string PrimaryUnitName { get; set; } = string.Empty;
         public int ItemCount { get; set; }
         public string CreatedByName { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }

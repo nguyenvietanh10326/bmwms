@@ -5,11 +5,25 @@
     Layout = "_AdminLayout";
     ViewData["Title"] = $"Chi tiết phiếu xuất {Model.Order.OutboundOrderNumber}";
     var isManager = User.IsInRole("SYSTEM_ADMIN") || User.IsInRole("WAREHOUSE_MANAGER");
+    var isSales = User.IsInRole("SALES_STAFF");
+    var isPurchasing = User.IsInRole("PURCHASING_STAFF");
     var isAssignedStaff = User.IsInRole("WAREHOUSE_STAFF") &&
         long.TryParse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var currentUserId) &&
         Model.Order.AssignedToUserId == currentUserId;
-    var canCancel = isManager && (Model.Order.Status is "DRAFT" or "READY");
-    var canProcess = isAssignedStaff && (Model.Order.Status is "READY" or "ISSUING");
+    var canApprove = isManager && Model.Order.Status == "DRAFT";
+    var canEdit = Model.Order.Status == "DRAFT" &&
+                  long.TryParse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var editorUserId) &&
+                  Model.Order.CreatedByUserId == editorUserId &&
+                  ((Model.Order.SourceType == "SALES_ORDER" && isSales) ||
+                   (Model.Order.SourceType == "PURCHASE_RETURN" && isPurchasing));
+    var canCancel = (Model.Order.Status == "DRAFT" && canEdit &&
+                    ((Model.Order.SourceType == "SALES_ORDER" && isSales) ||
+                     (Model.Order.SourceType == "PURCHASE_RETURN" && isPurchasing))) ||
+                    (Model.Order.Status == "READY" && isManager);
+    var canStart = isAssignedStaff && Model.Order.Status == "READY";
+    var canProcess = isAssignedStaff && Model.Order.Status == "ISSUING";
+    var canCloseSalesRemainder = isSales && Model.Order.SourceType == "SALES_ORDER" &&
+                                Model.Order.Status == "ISSUED" && Model.Order.CompletionType == "PARTIAL";
     var sourceLabel = Model.Order.SourceType == "PURCHASE_RETURN" ? "Trả nhà cung cấp theo PO" : "Bán hàng theo SO";
 }
 
@@ -19,8 +33,10 @@
     <div class="d-flex justify-content-between align-items-start mb-3">
         <div><div class="text-muted">Chi tiết phiếu xuất kho</div><h3>@Model.Order.OutboundOrderNumber</h3></div>
         <div class="d-flex gap-2">
-            @if (canProcess) { <a asp-page="./Process" asp-route-id="@Model.Order.OutboundOrderId" class="btn btn-primary">Lấy hàng và xác nhận xuất</a> }
-            @if (canCancel) { <form method="post" asp-page-handler="CancelOrder" asp-route-id="@Model.Order.OutboundOrderId" onsubmit="return confirm('Hủy phiếu xuất và giải phóng phần giữ tồn liên quan?')"><button class="btn btn-outline-danger">Hủy phiếu</button></form> }
+            @if (canEdit) { <a asp-page="./Edit" asp-route-id="@Model.Order.OutboundOrderId" class="btn btn-outline-primary">Chỉnh sửa phiếu Nháp</a> }
+            @if (canStart) { <form method="post" asp-page-handler="Start" asp-route-id="@Model.Order.OutboundOrderId"><button class="btn btn-primary">Bắt đầu xử lý</button></form> }
+            @if (canProcess) { <a asp-page="./Process" asp-route-id="@Model.Order.OutboundOrderId" class="btn btn-primary">Tiếp tục lấy hàng</a> }
+            @if (isManager) { <a href="/Admin/AuditLogs?Filter.EntityName=OutboundOrder&amp;Filter.EntityId=@Model.Order.OutboundOrderNumber" class="btn btn-outline-secondary">Nhật ký phiếu</a> }
             <a asp-page="./Index" class="btn btn-outline-secondary">Danh sách phiếu xuất</a>
         </div>
     </div>
@@ -33,10 +49,55 @@
             <div class="col-md-3"><div class="text-muted small">Đối tác</div><strong>@Model.Order.PartnerName</strong></div>
             <div class="col-md-3"><div class="text-muted small">Ngày xuất dự kiến</div><span>@Model.Order.ExpectedIssueDate?.ToString("dd/MM/yyyy")</span></div>
             <div class="col-md-3"><div class="text-muted small">Nhân viên phụ trách</div><span>@(Model.Order.AssignedToUserName ?? "Chưa phân công")</span></div>
+            <div class="col-md-3"><div class="text-muted small">Người tạo phiếu</div><span>@(Model.Order.CreatedByUserName ?? "Không xác định")</span></div>
             <div class="col-md-3"><div class="text-muted small">Ngày tạo phiếu</div><span>@Model.Order.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span></div>
+            <div class="col-md-3"><div class="text-muted small">Người duyệt</div><span>@(Model.Order.ApprovedByUserName ?? "—")</span></div>
+            <div class="col-md-3"><div class="text-muted small">Thời điểm duyệt</div><span>@(Model.Order.ApprovedAt?.ToString("dd/MM/yyyy HH:mm") ?? "—")</span></div>
+            @if (Model.Order.Status == "ISSUED")
+            {
+                <div class="col-md-3"><div class="text-muted small">Kết quả đợt xuất</div><span>@(Model.Order.CompletionType == "PARTIAL" ? "Giao một phần" : "Giao đủ")</span></div>
+                <div class="col-md-3"><div class="text-muted small">Hoàn tất lúc</div><span>@(Model.Order.CompletedAt?.ToString("dd/MM/yyyy HH:mm") ?? "—")</span></div>
+            }
             <div class="col-12"><div class="text-muted small">Ghi chú</div><span>@(string.IsNullOrWhiteSpace(Model.Order.Notes) ? "Không có" : Model.Order.Notes)</span></div>
+            @if (!string.IsNullOrWhiteSpace(Model.Order.CompletionReason)) { <div class="col-12"><div class="text-muted small">Lý do hoàn tất khi còn thiếu</div><span>@Model.Order.CompletionReason</span></div> }
+            @if (!string.IsNullOrWhiteSpace(Model.Order.CancellationReason)) { <div class="col-12"><div class="text-muted small">Lý do hủy</div><span>@Model.Order.CancellationReason</span></div> }
         </div>
     </div></div>
+
+    @if (canApprove)
+    {
+        <div class="card border-primary shadow-sm mb-3">
+            <div class="card-header bg-primary-subtle fw-semibold">Duyệt và phân công</div>
+            <div class="card-body">
+                <form method="post" asp-page-handler="Approve" asp-route-id="@Model.Order.OutboundOrderId" class="row g-2 align-items-end">
+                    <div class="col-md-8"><label class="form-label">Nhân viên kho đang rảnh</label><select name="assignedToUserId" asp-items="Model.AssigneeOptions" class="form-select" required></select><div class="form-text">Khi duyệt, hệ thống kiểm tra lại nguồn hàng và giữ tồn cho phiếu trả NCC.</div></div>
+                    <div class="col-md-4"><button class="btn btn-primary w-100" @(Model.AssigneeOptions.All(option => string.IsNullOrWhiteSpace(option.Value)) ? "disabled" : null)>Duyệt và phân công</button></div>
+                </form>
+            </div>
+        </div>
+    }
+
+    @if (canCancel)
+    {
+        <div class="card border-danger shadow-sm mb-3"><div class="card-body">
+            <form method="post" asp-page-handler="CancelOrder" asp-route-id="@Model.Order.OutboundOrderId" class="row g-2 align-items-end" onsubmit="return confirm('Xác nhận hủy phiếu xuất này?');">
+                <div class="col-md-9"><label class="form-label">Lý do hủy</label><input name="reason" class="form-control" minlength="5" maxlength="500" required /></div>
+                <div class="col-md-3"><button class="btn btn-outline-danger w-100">Hủy phiếu</button></div>
+            </form>
+        </div></div>
+    }
+
+    @if (canCloseSalesRemainder)
+    {
+        <div class="card border-warning shadow-sm mb-3"><div class="card-body">
+            <div class="fw-semibold mb-1">Khách không nhận phần còn lại</div>
+            <div class="text-muted small mb-3">Đây là quyết định của Sales sau khi đợt giao thiếu đã hoàn tất. Thao tác sẽ đóng SO và giải phóng tồn còn giữ.</div>
+            <form method="post" asp-page-handler="CloseSalesRemainder" asp-route-id="@Model.Order.OutboundOrderId" class="row g-2 align-items-end" onsubmit="return confirm('Đóng phần nhu cầu còn lại của SO? Thao tác này không thể tiếp tục giao bằng SO hiện tại.');">
+                <div class="col-md-9"><label class="form-label">Lý do khách không nhận tiếp</label><input name="reason" class="form-control" minlength="10" maxlength="500" required /></div>
+                <div class="col-md-3"><button class="btn btn-warning w-100">Đóng phần còn lại</button></div>
+            </form>
+        </div></div>
+    }
 
     <div class="card shadow-sm border-0"><div class="card-header bg-white"><div class="fw-semibold">Tác nghiệp lấy và xuất hàng</div><div class="text-muted small">Theo dõi số lượng yêu cầu, thực xuất và phần còn phải xử lý ngay trên phiếu xuất.</div></div>
         <div class="table-responsive"><table class="table align-middle mb-0">

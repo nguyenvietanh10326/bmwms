@@ -46,6 +46,15 @@ namespace BMWMS.Business.DTOs.Inventory
         public DateOnly ExpectedIssueDate { get; set; }
         public long? AssignedToUserId { get; set; }
         public string? AssignedToUserName { get; set; }
+        public long CreatedByUserId { get; set; }
+        public string? CreatedByUserName { get; set; }
+        public long? ApprovedByUserId { get; set; }
+        public string? ApprovedByUserName { get; set; }
+        public DateTime? ApprovedAt { get; set; }
+        public string? CompletionType { get; set; }
+        public string? CompletionReason { get; set; }
+        public DateTime? CompletedAt { get; set; }
+        public string? CancellationReason { get; set; }
         public string Status { get; set; } = null!;
         public string? Notes { get; set; }
         public DateTime CreatedAt { get; set; }
@@ -96,6 +105,28 @@ namespace BMWMS.Business.DTOs.Inventory
         public long OutboundOrderId { get; set; }
         public string Status { get; set; } = null!; // "Nháp", "Chờ xử lý", "Đang picking", "Đã xuất", "Đã hủy"
     }
+
+    public class UpdateOutboundOrderRequest
+    {
+        public DateOnly ExpectedIssueDate { get; set; }
+        public string? Notes { get; set; }
+        public List<CreateOutboundOrderItemRequest> Items { get; set; } = new();
+    }
+
+    public class ApproveOutboundOrderRequest
+    {
+        public long AssignedToUserId { get; set; }
+    }
+
+    public class CompleteOutboundOrderRequest
+    {
+        public string? Reason { get; set; }
+    }
+
+    public class CancelOutboundOrderRequest
+    {
+        public string? Reason { get; set; }
+    }
     // Request chứa các tham số lọc + phân trang
     public class OutboundOrderQueryFilter
     {
@@ -103,6 +134,7 @@ namespace BMWMS.Business.DTOs.Inventory
         public string? Status { get; set; }
         public long? WarehouseId { get; set; }
         public long? AssignedToUserId { get; set; }
+        public string? SourceType { get; set; }
 
         // Cấu hình phân trang
         public int PageIndex { get; set; } = 1;
@@ -249,6 +281,7 @@ namespace BMWMS.Business.DTOs.Inventory
             public long? InventoryReservationId { get; set; }
             public decimal PickQuantity { get; set; }
             public string? Notes { get; set; }
+            public string? DeviationReason { get; set; }
         }
     
 }

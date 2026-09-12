@@ -22,6 +22,8 @@ namespace BMWMS.Repository.Repositories.Inventory
             var query = _context.OutboundOrders
                 .Include(o => o.Warehouse)
                 .Include(o => o.AssignedToUser)
+                .Include(o => o.CreatedByUser)
+                .Include(o => o.ApprovedByUser)
                 .Include(o => o.SalesOrder)
                     .ThenInclude(s => s!.Customer)
                 .Include(o => o.PurchaseOrder)
@@ -65,6 +67,8 @@ namespace BMWMS.Repository.Repositories.Inventory
             return await _context.OutboundOrders
                 .Include(o => o.Warehouse)
                 .Include(o => o.AssignedToUser)
+                .Include(o => o.CreatedByUser)
+                .Include(o => o.ApprovedByUser)
                 .Include(o => o.SalesOrder)
                     .ThenInclude(s => s!.Customer)
                 .Include(o => o.PurchaseOrder)
@@ -158,7 +162,8 @@ namespace BMWMS.Repository.Repositories.Inventory
         public async Task<List<AvailableLocationModel>> GetAvailableLocationsAsync(long warehouseId, long productId)
         {
             var availableItems = await _context.InventoryReservations
-                .Where(r => r.StorageLocation.WarehouseId == warehouseId
+                .Where(r => r.SalesOrderDetailId != null
+                         && r.StorageLocation.WarehouseId == warehouseId
                          && r.ProductId == productId
                          && (r.Status == "ACTIVE" || r.Status == "PARTIALLY_CONSUMED"))
                 .Select(r => new AvailableLocationModel

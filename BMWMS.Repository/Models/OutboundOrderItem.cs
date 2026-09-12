@@ -21,5 +21,7 @@ public partial class OutboundOrderItem
 
     public virtual ICollection<OutboundOrderDetail> OutboundOrderDetails { get; set; } = new List<OutboundOrderDetail>();
 
+    public virtual ICollection<InventoryReservation> InventoryReservations { get; set; } = new List<InventoryReservation>();
+
     public virtual Product Product { get; set; } = null!;
 }
