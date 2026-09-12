@@ -54,7 +54,7 @@ public class DashboardService : IDashboardService
             po.Status == "PARTIALLY_RECEIVED");
         response.PendingSalesOrders = await _context.Set<SalesOrder>().CountAsync(so => so.Status == "WAITING_STOCK");
         response.ProcessingInboundOrders = await _context.InboundOrders.CountAsync(io => io.Status == "IN_PROGRESS" || io.Status == "ASSIGNED");
-        response.PickingOutboundOrders = await _context.OutboundOrders.CountAsync(oo => oo.Status == "PICKING");
+        response.PickingOutboundOrders = await _context.OutboundOrders.CountAsync(oo => oo.Status == "IN_PROGRESS");
 
         // 5. Recent Activities
         var activities = await _context.Set<VwProductTransactionHistory>()

@@ -21,7 +21,7 @@ public class SupplierInboundHistoryResponseDto
     public string SupplierName { get; set; } = null!;
     public string? WarehouseName { get; set; }
     public string Status { get; set; } = null!;
-    public int TotalQuantity { get; set; }
+    public int LineCount { get; set; }
     public DateTime CreatedAt { get; set; }
 }
 
@@ -44,6 +44,6 @@ public class SupplierInboundHistoryItemDto
     public string ProductCode { get; set; } = null!;
     public string ProductName { get; set; } = null!;
     public string UnitName { get; set; } = null!;
-    public int ExpectedQuantity { get; set; }
-    public int ReceivedQuantity { get; set; }
+    public decimal ExpectedQuantity { get; set; }
+    public decimal ReceivedQuantity { get; set; }
 }

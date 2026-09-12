@@ -205,7 +205,7 @@
                     <th>Nhà cung cấp</th>
                     <th>Kho nhận</th>
                     <th style="text-align: center;">Trạng thái</th>
-                    <th style="text-align: right;">Tổng SL</th>
+                    <th style="text-align: right;">Số dòng hàng</th>
                     <th style="text-align: center;">Thao tác</th>
                 </tr>
             </thead>
@@ -249,7 +249,7 @@
                                 }
                             </td>
                             <td style="text-align: right; font-weight: 600; font-variant-numeric: tabular-nums;">
-                                @item.TotalQuantity.ToString("N0")
+                                @item.LineCount.ToString("N0")
                             </td>
                             <td style="text-align: center;">
                                 <a href="javascript:void(0)" onclick="viewInboundDetail('@item.InboundOrderNumber')" class="action-link d-inline-flex align-items-center">
