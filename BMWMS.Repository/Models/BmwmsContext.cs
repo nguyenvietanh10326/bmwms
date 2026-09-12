@@ -399,6 +399,7 @@ public partial class BmwmsContext : DbContext
             entity.Property(e => e.ReservedByUserId).HasColumnName("ReservedByUserID");
             entity.Property(e => e.ReservedQuantity).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.SalesOrderDetailId).HasColumnName("SalesOrderDetailID");
+            entity.Property(e => e.OutboundOrderItemId).HasColumnName("OutboundOrderItemID");
             entity.Property(e => e.Status)
                 .HasMaxLength(20)
                 .IsUnicode(false)
@@ -426,6 +427,11 @@ public partial class BmwmsContext : DbContext
                 .HasForeignKey(d => new { d.SalesOrderDetailId, d.ProductId })
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_InventoryReservations_DetailProduct");
+
+            entity.HasOne(d => d.OutboundOrderItem).WithMany(p => p.InventoryReservations)
+                .HasPrincipalKey(p => new { p.OutboundOrderItemId, p.ProductId })
+                .HasForeignKey(d => new { d.OutboundOrderItemId, d.ProductId })
+                .HasConstraintName("FK_InventoryReservations_OutboundItemProduct");
         });
 
         modelBuilder.Entity<InventoryTransaction>(entity =>
@@ -552,11 +558,17 @@ public partial class BmwmsContext : DbContext
 
             entity.Property(e => e.OutboundOrderId).HasColumnName("OutboundOrderID");
             entity.Property(e => e.AssignedToUserId).HasColumnName("AssignedToUserID");
+            entity.Property(e => e.ApprovedAt).HasPrecision(0);
+            entity.Property(e => e.ApprovedByUserId).HasColumnName("ApprovedByUserID");
             entity.Property(e => e.CancellationReason).HasMaxLength(1000);
             entity.Property(e => e.CancelledAt).HasPrecision(0);
             entity.Property(e => e.CancelledByUserId).HasColumnName("CancelledByUserID");
             entity.Property(e => e.ConfirmedAt).HasPrecision(0);
             entity.Property(e => e.ConfirmedByUserId).HasColumnName("ConfirmedByUserID");
+            entity.Property(e => e.CompletionReason).HasMaxLength(1000);
+            entity.Property(e => e.CompletionType)
+                .HasMaxLength(20)
+                .IsUnicode(false);
             entity.Property(e => e.CreatedAt)
                 .HasPrecision(0)
                 .HasDefaultValueSql("(sysutcdatetime())");
@@ -580,6 +592,10 @@ public partial class BmwmsContext : DbContext
             entity.HasOne(d => d.AssignedToUser).WithMany(p => p.OutboundOrderAssignedToUsers)
                 .HasForeignKey(d => d.AssignedToUserId)
                 .HasConstraintName("FK_OutboundOrders_AssignedTo");
+
+            entity.HasOne(d => d.ApprovedByUser).WithMany(p => p.OutboundOrderApprovedByUsers)
+                .HasForeignKey(d => d.ApprovedByUserId)
+                .HasConstraintName("FK_OutboundOrders_ApprovedBy");
 
             entity.HasOne(d => d.CancelledByUser).WithMany(p => p.OutboundOrderCancelledByUsers)
                 .HasForeignKey(d => d.CancelledByUserId)

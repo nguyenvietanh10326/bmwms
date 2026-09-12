@@ -13,7 +13,7 @@ public class ReportRepository : IReportRepository
         _context = context;
     }
 
-    public async Task<(List<VwInventoryAvailability> Items, int TotalCount, decimal TotalOnHand, decimal TotalReserved, decimal TotalAvailable)> 
+    public async Task<(List<VwInventoryAvailability> Items, int TotalCount)>
         GetInventoryReportAsync(string? keyword, string? locationCode, string? lotNumber, bool positiveStockOnly, int pageIndex, int pageSize)
     {
         var query = _context.Set<VwInventoryAvailability>().AsQueryable();
@@ -41,11 +41,6 @@ public class ReportRepository : IReportRepository
 
         int totalCount = await query.CountAsync();
         
-        // Sums need to be calculated on the filtered query
-        decimal totalOnHand = await query.SumAsync(v => v.OnHandQuantity);
-        decimal totalReserved = await query.SumAsync(v => v.ReservedQuantity);
-        decimal totalAvailable = await query.SumAsync(v => v.AvailableQuantity ?? 0);
-
         var items = await query
             .OrderBy(v => v.ProductCode)
             .ThenBy(v => v.LotNumber)
@@ -54,10 +49,10 @@ public class ReportRepository : IReportRepository
             .Take(pageSize)
             .ToListAsync();
 
-        return (items, totalCount, totalOnHand, totalReserved, totalAvailable);
+        return (items, totalCount);
     }
 
-    public async Task<(int TotalCount, decimal TotalExpected, decimal TotalReceived, decimal TotalDamaged, decimal TotalShortage, List<VwInboundReport> Items)> GetInboundReportAsync(
+    public async Task<(int TotalCount, List<VwInboundReport> Items)> GetInboundReportAsync(
         DateTime? fromDate, DateTime? toDate, string? productSearch, string? status, int pageNumber, int pageSize)
     {
         var query = _context.VwInboundReports.AsQueryable();
@@ -87,11 +82,6 @@ public class ReportRepository : IReportRepository
         }
 
         var totalCount = await query.CountAsync();
-        var totalExpected = await query.SumAsync(x => (decimal?)x.ExpectedQuantity) ?? 0;
-        var totalReceived = await query.SumAsync(x => (decimal?)x.ReceivedQuantity) ?? 0;
-        var totalDamaged = await query.SumAsync(x => (decimal?)x.DamagedQuantity) ?? 0;
-        var totalShortage = await query.SumAsync(x => (decimal?)x.ShortageQuantity) ?? 0;
-
         var items = await query
             .OrderByDescending(x => x.ExpectedReceiptDate)
             .ThenBy(x => x.InboundOrderNumber)
@@ -99,10 +89,11 @@ public class ReportRepository : IReportRepository
             .Take(pageSize)
             .ToListAsync();
 
-        return (totalCount, totalExpected, totalReceived, totalDamaged, totalShortage, items);
+        await AttachUnitMetadataAsync(items);
+        return (totalCount, items);
     }
 
-    public async Task<(int TotalCount, decimal TotalRequested, decimal TotalIssued, List<VwOutboundReport> Items)> GetOutboundReportAsync(
+    public async Task<(int TotalCount, List<VwOutboundReport> Items)> GetOutboundReportAsync(
         DateTime? fromDate, DateTime? toDate, string? productSearch, string? status, int pageNumber, int pageSize)
     {
         var query = _context.VwOutboundReports.AsQueryable();
@@ -132,9 +123,6 @@ public class ReportRepository : IReportRepository
         }
 
         var totalCount = await query.CountAsync();
-        var totalRequested = await query.SumAsync(x => (decimal?)x.RequestedQuantity) ?? 0;
-        var totalIssued = await query.SumAsync(x => (decimal?)x.IssuedQuantity) ?? 0;
-
         var items = await query
             .OrderByDescending(x => x.ExpectedIssueDate)
             .ThenBy(x => x.OutboundOrderNumber)
@@ -142,7 +130,56 @@ public class ReportRepository : IReportRepository
             .Take(pageSize)
             .ToListAsync();
 
-        return (totalCount, totalRequested, totalIssued, items);
+        await AttachUnitMetadataAsync(items);
+        return (totalCount, items);
+    }
+
+    private async Task AttachUnitMetadataAsync(List<VwInboundReport> items)
+    {
+        var productIds = items.Select(item => item.ProductId).Distinct().ToList();
+        if (productIds.Count == 0)
+            return;
+
+        var units = await _context.Products
+            .AsNoTracking()
+            .Where(product => productIds.Contains(product.ProductId))
+            .Select(product => new
+            {
+                product.ProductId,
+                product.UnitOfMeasure.UnitCode
+            })
+            .ToDictionaryAsync(row => row.ProductId);
+
+        foreach (var item in items)
+        {
+            if (!units.TryGetValue(item.ProductId, out var unit))
+                continue;
+            item.UnitCode = unit.UnitCode;
+        }
+    }
+
+    private async Task AttachUnitMetadataAsync(List<VwOutboundReport> items)
+    {
+        var productIds = items.Select(item => item.ProductId).Distinct().ToList();
+        if (productIds.Count == 0)
+            return;
+
+        var units = await _context.Products
+            .AsNoTracking()
+            .Where(product => productIds.Contains(product.ProductId))
+            .Select(product => new
+            {
+                product.ProductId,
+                product.UnitOfMeasure.UnitCode
+            })
+            .ToDictionaryAsync(row => row.ProductId);
+
+        foreach (var item in items)
+        {
+            if (!units.TryGetValue(item.ProductId, out var unit))
+                continue;
+            item.UnitCode = unit.UnitCode;
+        }
     }
 
     public async Task<(int TotalCount, List<(string ProductCode, string ProductName, decimal OpeningBalance, decimal InboundQuantity, decimal OutboundQuantity, decimal AdjustmentQuantity, decimal ClosingBalance)> Items)> GetInOutStockReportAsync(

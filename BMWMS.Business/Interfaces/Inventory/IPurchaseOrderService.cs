@@ -19,14 +19,8 @@ namespace BMWMS.Business.Interfaces.Inventory
         // Lấy danh sách PO phân trang
         Task<PagedResultDto<PurchaseOrderListDto>> GetPagedOrdersAsync(PurchaseOrderFilterDto filter);
 
-        // Xác nhận PO
-        Task<(bool Success, string Message)> ConfirmOrderAsync(long purchaseOrderId, long currentUserId);
-
-        // Gửi nội dung PO và chuyển sang chờ phản hồi của nhà cung cấp.
+        // Gửi nội dung PO; gửi thành công đồng thời xác nhận PO trên hệ thống.
         Task<(bool Success, string Message)> SendOrderToSupplierAsync(long purchaseOrderId, long currentUserId);
-
-        // Phản hồi công khai bằng token ký trong email; không yêu cầu tài khoản hệ thống.
-        Task<(bool Success, string Message)> HandleSupplierResponseAsync(long purchaseOrderId, string action, string token);
 
         // Hủy PO
         Task<(bool Success, string Message)> CancelOrderAsync(long purchaseOrderId, long currentUserId, string? reason);

@@ -117,6 +117,9 @@ public static class AuditCatalog
         if (action.Contains("LOGIN_LOCKED")) return "Tài khoản bị khóa do đăng nhập sai";
         if (action.Contains("LOGOUT")) return "Đăng xuất";
         if (action.Contains("PASSWORD")) return "Thay đổi mật khẩu";
+        if (action == "START_OUTBOUND") return "Bắt đầu xử lý phiếu xuất";
+        if (action == "COMPLETE_OUTBOUND") return "Hoàn tất đợt xuất";
+        if (action == "CLOSE_SALES_REMAINDER") return "Đóng phần còn lại của SO";
         if (action.Contains("ASSIGN")) return "Phân công / gán";
         if (action.Contains("UNLOCK")) return "Mở khóa";
         if (action.Contains("LOCK")) return "Khóa";
