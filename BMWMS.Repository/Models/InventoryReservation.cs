@@ -7,7 +7,9 @@ public partial class InventoryReservation
 {
     public long InventoryReservationId { get; set; }
 
-    public long SalesOrderDetailId { get; set; }
+    public long? SalesOrderDetailId { get; set; }
+
+    public long? OutboundOrderItemId { get; set; }
 
     public long ProductId { get; set; }
 
@@ -35,7 +37,9 @@ public partial class InventoryReservation
 
     public virtual User ReservedByUser { get; set; } = null!;
 
-    public virtual SalesOrderDetail SalesOrderDetail { get; set; } = null!;
+    public virtual SalesOrderDetail? SalesOrderDetail { get; set; }
+
+    public virtual OutboundOrderItem? OutboundOrderItem { get; set; }
 
     public virtual StorageLocation StorageLocation { get; set; } = null!;
 }

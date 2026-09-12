@@ -31,11 +31,19 @@ public partial class OutboundOrder
 
     public long? AssignedToUserId { get; set; }
 
+    public long? ApprovedByUserId { get; set; }
+
+    public DateTime? ApprovedAt { get; set; }
+
     public DateTime CreatedAt { get; set; }
 
     public long? ConfirmedByUserId { get; set; }
 
     public DateTime? ConfirmedAt { get; set; }
+
+    public string? CompletionType { get; set; }
+
+    public string? CompletionReason { get; set; }
 
     public long? CancelledByUserId { get; set; }
 
@@ -44,6 +52,8 @@ public partial class OutboundOrder
     public string? CancellationReason { get; set; }
 
     public virtual User? AssignedToUser { get; set; }
+
+    public virtual User? ApprovedByUser { get; set; }
 
     public virtual User? CancelledByUser { get; set; }
 
