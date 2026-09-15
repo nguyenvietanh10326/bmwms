@@ -16,7 +16,7 @@
                 <span style="color: #2563b8; font-weight: 500;">Hàng hóa & Vật tư VLXD</span>
             </div>
             <h1 style="font-size: 22px; font-weight: 700; color: #0f172a; margin: 0;">Danh Sách Hàng Hóa & Vật Tư</h1>
-            <p style="font-size: 13px; color: #64748b; margin-top: 4px; margin-bottom: 0;">Quản lý mã SKU, đơn vị tính, quy cách luân chuyển kho (FIFO/FEFO) và định mức tồn.</p>
+            <p style="font-size: 13px; color: #64748b; margin-top: 4px; margin-bottom: 0;">Quản lý mã sản phẩm, nhóm vật tư, hạn sử dụng và quy tắc luân chuyển kho.</p>
         </div>
 
         <div style="display: flex; gap: 10px;">
@@ -82,7 +82,7 @@
 
     <!-- FILTER BAR -->
     <div style="background: #ffffff; padding: 18px 20px; border-radius: 10px; border: 1px solid #e2e8f0; margin-bottom: 20px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
-        <form method="get" id="productFilterForm" style="display: grid; grid-template-columns: 2fr 1.2fr 1fr 1fr 1fr auto; gap: 12px; align-items: flex-end;">
+        <form method="get" id="productFilterForm" style="display: grid; grid-template-columns: 2fr 1.2fr 1fr 1fr auto; gap: 12px; align-items: flex-end;">
             <input type="hidden" name="Filter.PageIndex" value="1" />
             <input type="hidden" name="Filter.PageSize" value="@(Model.Filter.PageSize > 0 ? Model.Filter.PageSize : 10)" id="pageSizeInput" />
 
@@ -90,18 +90,13 @@
                 <label style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 6px;">Tìm kiếm từ khóa</label>
                 <div style="position: relative;">
                     <i class="ri-search-line" style="position: absolute; left: 10px; top: 9px; color: #94a3b8; font-size: 16px;"></i>
-                    <input type="text" asp-for="Filter.Keyword" placeholder="Mã SKU, tên vật tư, barcode..." style="width: 100%; padding: 8px 12px 8px 34px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; outline: none; transition: border-color 0.2s;" />
+                    <input type="text" asp-for="Filter.Keyword" placeholder="Mã hoặc tên vật tư..." style="width: 100%; padding: 8px 12px 8px 34px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; outline: none; transition: border-color 0.2s;" />
                 </div>
             </div>
 
             <div>
                 <label style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 6px;">Nhóm danh mục</label>
                 <select asp-for="Filter.ProductGroupId" asp-items="Model.GroupOptions" style="width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; outline: none; background: #fff;"></select>
-            </div>
-
-            <div>
-                <label style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 6px;">Đơn vị tính</label>
-                <select asp-for="Filter.UnitOfMeasureId" asp-items="Model.UomOptions" style="width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; outline: none; background: #fff;"></select>
             </div>
 
             <div>
@@ -142,10 +137,8 @@
                         <th style="padding: 14px 18px;">Mã SKU</th>
                         <th style="padding: 14px 18px;">Tên sản phẩm</th>
                         <th style="padding: 14px 18px;">Nhóm danh mục</th>
-                        <th style="padding: 14px 18px;">ĐVT</th>
                         <th style="padding: 14px 18px; text-align: center;">Luân chuyển</th>
-                        <th style="padding: 14px 18px; text-align: right;">Tồn khả dụng</th>
-                        <th style="padding: 14px 18px; text-align: center;">Theo dõi</th>
+                        <th style="padding: 14px 18px; text-align: center;">HSD</th>
                         <th style="padding: 14px 18px; text-align: center;">Trạng thái</th>
                         <th style="padding: 14px 18px; text-align: right;">Thao tác</th>
                     </tr>
@@ -163,20 +156,11 @@
                                 </td>
                                 <td style="padding: 14px 18px;">
                                     <div style="font-weight: 600; color: #0f172a; font-size: 13.5px;">@p.ProductName</div>
-                                    @if (!string.IsNullOrWhiteSpace(p.Barcode))
-                                    {
-                                        <div style="font-size: 11px; color: #94a3b8; display: flex; align-items: center; gap: 4px; margin-top: 2px;">
-                                            <i class="ri-barcode-line"></i> @p.Barcode
-                                        </div>
-                                    }
                                 </td>
                                 <td style="padding: 14px 18px; color: #334155;">
                                     <span style="display: inline-block; padding: 2px 8px; border-radius: 4px; background: #f1f5f9; font-size: 12px; font-weight: 500;">
                                         @p.GroupName
                                     </span>
-                                </td>
-                                <td style="padding: 14px 18px; color: #475569; font-weight: 500;">
-                                    @p.UnitName
                                 </td>
                                 <td style="padding: 14px 18px; text-align: center;">
                                     @if (p.RotationMethod == "FEFO")
@@ -192,14 +176,11 @@
                                         </span>
                                     }
                                 </td>
-                                <td style="padding: 14px 18px; text-align: right; font-weight: 600; color: #0f172a;">
-                                    @p.TotalStockOnHand.ToString("N0")
-                                </td>
                                 <td style="padding: 14px 18px; text-align: center;">
                                     <div style="display: inline-flex; gap: 4px;">
                                         @if (p.TrackExpiry)
                                         {
-                                            <span title="Quản lý theo Hạn sử dụng" style="display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 4px; background: #fef3c7; color: #d97706; font-size: 11px; font-weight: 600;">E</span>
+                                            <span title="Có theo dõi hạn sử dụng" style="display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 4px; background: #fef3c7; color: #92400e; font-size: 11px; font-weight: 600;">Có</span>
                                         }
                                         @if (!p.TrackExpiry)
                                         {
@@ -242,7 +223,7 @@
                     else
                     {
                         <tr>
-                            <td colspan="9" style="text-align: center; padding: 48px 18px; color: #64748b;">
+                            <td colspan="7" style="text-align: center; padding: 48px 18px; color: #64748b;">
                                 <i class="ri-inbox-line" style="font-size: 36px; color: #cbd5e1; display: block; margin-bottom: 8px;"></i>
                                 <span style="font-size: 14px; font-weight: 500;">Không tìm thấy vật tư hàng hóa nào phù hợp với bộ lọc.</span>
                             </td>
