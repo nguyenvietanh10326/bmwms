@@ -55,25 +55,25 @@ public class ProductAttributeService : IProductAttributeService
 
     public async Task UpdateAsync(long id, UpdateProductAttributeDto dto)
     {
-        var existing = await _repository.GetByIdAsync(id);
-        if (existing == null) throw new KeyNotFoundException("Thuộc tính không tồn tại.");
-
-        existing.AttributeCode = dto.AttributeCode.ToUpper();
-        existing.AttributeName = dto.AttributeName;
-        existing.DataType = dto.DataType;
-        existing.UnitLabel = dto.UnitLabel;
-        existing.Description = dto.Description;
-        existing.Status = dto.Status;
-
-        existing.ProductAttributeOptions = dto.Options.Select(o => new ProductAttributeOption
+        var attribute = new BMWMS.Repository.Models.ProductAttribute
         {
-            OptionCode = o.OptionCode,
-            OptionValue = o.OptionValue,
-            DisplayOrder = o.DisplayOrder,
-            IsActive = o.IsActive
-        }).ToList();
+            ProductAttributeId = id,
+            AttributeCode = dto.AttributeCode.ToUpper(),
+            AttributeName = dto.AttributeName,
+            DataType = dto.DataType,
+            UnitLabel = dto.UnitLabel,
+            Description = dto.Description,
+            Status = dto.Status,
+            ProductAttributeOptions = dto.Options.Select(o => new ProductAttributeOption
+            {
+                OptionCode = o.OptionCode,
+                OptionValue = o.OptionValue,
+                DisplayOrder = o.DisplayOrder,
+                IsActive = o.IsActive
+            }).ToList()
+        };
 
-        await _repository.UpdateAsync(existing);
+        await _repository.UpdateAsync(attribute);
     }
 
     public async Task<bool> DeleteAsync(long id)

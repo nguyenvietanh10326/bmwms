@@ -44,7 +44,7 @@ public class ProductAttributeRepository : IProductAttributeRepository
             .Include(a => a.ProductAttributeOptions)
             .FirstOrDefaultAsync(a => a.ProductAttributeId == attribute.ProductAttributeId);
 
-        if (existing == null) return;
+        if (existing == null) throw new KeyNotFoundException("Thuộc tính không tồn tại.");
 
         existing.AttributeCode = attribute.AttributeCode;
         existing.AttributeName = attribute.AttributeName;
@@ -53,8 +53,11 @@ public class ProductAttributeRepository : IProductAttributeRepository
         existing.Description = attribute.Description;
         existing.Status = attribute.Status;
 
-        // Update Options
+        // Delete old options from database
         _context.ProductAttributeOptions.RemoveRange(existing.ProductAttributeOptions);
+        existing.ProductAttributeOptions.Clear();
+
+        // Add new options
         if (attribute.ProductAttributeOptions != null && attribute.ProductAttributeOptions.Any())
         {
             foreach (var option in attribute.ProductAttributeOptions)
