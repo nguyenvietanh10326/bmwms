@@ -131,6 +131,8 @@ public class SupplierRepository : ISupplierRepository
             .Include(x => x.PurchaseOrder)
                 .ThenInclude(po => po.Supplier)
             .Include(x => x.Warehouse)
+            .Include(x => x.AssignedToUser)
+            .Include(x => x.CreatedByUser)
             .Include(x => x.InboundOrderItems)
             .Where(x => x.PurchaseOrder != null && x.PurchaseOrder.SupplierId == supplierId)
             .AsQueryable();
@@ -178,6 +180,8 @@ public class SupplierRepository : ISupplierRepository
             .Include(x => x.PurchaseOrder)
                 .ThenInclude(po => po.Supplier)
             .Include(x => x.Warehouse)
+            .Include(x => x.AssignedToUser)
+            .Include(x => x.CreatedByUser)
             .Include(x => x.InboundOrderItems)
                 .ThenInclude(d => d.Product)
                     .ThenInclude(p => p.UnitOfMeasure)

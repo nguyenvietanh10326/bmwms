@@ -23,6 +23,8 @@ public class SupplierInboundHistoryResponseDto
     public string Status { get; set; } = null!;
     public int LineCount { get; set; }
     public DateTime CreatedAt { get; set; }
+    public DateTime? ReceiptDate { get; set; }
+    public string? ResponsibleStaffName { get; set; }
 }
 
 public class SupplierInboundHistoryDetailDto
@@ -35,6 +37,7 @@ public class SupplierInboundHistoryDetailDto
     public DateTime CreatedAt { get; set; }
     public DateTime? ExpectedDate { get; set; }
     public DateTime? ReceiptDate { get; set; }
+    public string? ResponsibleStaffName { get; set; }
     
     public List<SupplierInboundHistoryItemDto> Items { get; set; } = new();
 }
