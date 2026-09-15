@@ -255,7 +255,7 @@
                                     <td>@(string.IsNullOrEmpty(sup.SupplierProductCode) ? "-" : sup.SupplierProductCode)</td>
                                     <td class="text-center">@(sup.LeadTimeDays.HasValue ? $"{sup.LeadTimeDays} ngày" : "-")</td>
                                     <td class="text-center">
-                                        <a href="/Admin/Suppliers/Detail?supplierCode=@sup.SupplierCode"
+                                        <a href="/Admin/Suppliers/Detail/@sup.SupplierCode"
                                            class="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1"
                                            title="Xem chi tiết nhà cung cấp">
                                             <i class="ri-external-link-line"></i> Chi tiết
