@@ -19,7 +19,7 @@ public partial class Supplier
 
     public string RepresentativeName { get; set; } = null!;
 
-    public string TaxCode { get; set; } = null!;
+    public string? TaxCode { get; set; }
 
     public string Status { get; set; } = null!;
 
