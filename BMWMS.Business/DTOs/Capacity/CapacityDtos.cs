@@ -24,6 +24,13 @@ public sealed class LocationCapacityEvaluationDto
     public long StorageLocationId { get; set; }
     public string LocationCode { get; set; } = string.Empty;
 
+    public decimal? MaxCapacityQuantity { get; set; }
+    public decimal? CurrentQuantity { get; set; }
+    public decimal? AddedQuantity { get; set; }
+    public decimal? ProjectedQuantity { get; set; }
+    public string? UnitName { get; set; }
+    public string? ProductGroupName { get; set; }
+
     public decimal? MaxWeightKg { get; set; }
     public decimal? CurrentWeightKg { get; set; }
     public decimal? AddedWeightKg { get; set; }
@@ -47,6 +54,10 @@ public sealed class CapacityScopeEvaluationDto
     public string ScopeType { get; set; } = string.Empty;
     public long ScopeId { get; set; }
     public string ScopeCode { get; set; } = string.Empty;
+    public decimal? MaxCapacityQuantity { get; set; }
+    public decimal? CurrentQuantity { get; set; }
+    public decimal? AddedQuantity { get; set; }
+    public decimal? ProjectedQuantity { get; set; }
     public decimal? MaxWeightKg { get; set; }
     public decimal? CurrentWeightKg { get; set; }
     public decimal? AddedWeightKg { get; set; }

@@ -117,6 +117,10 @@ namespace BMWMS.Repository.Repositories
                 (!excludeId.HasValue || g.ProductGroupId != excludeId.Value));
         }
 
+        public Task<bool> IsActiveUnitOfMeasureAsync(int unitOfMeasureId) =>
+            _context.UnitsOfMeasures.AnyAsync(unit =>
+                unit.UnitOfMeasureId == unitOfMeasureId && unit.Status == "ACTIVE");
+
         public async Task<long> AddAsync(ProductGroup group, List<ProductGroupAttribute>? attributes = null)
         {
             if (attributes != null)
