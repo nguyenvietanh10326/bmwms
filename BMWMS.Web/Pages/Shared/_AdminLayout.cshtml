@@ -48,7 +48,7 @@
 
                 <!-- Sản phẩm & Danh mục -->
                 @{
-                    var isProductActive = Context.Request.Path.StartsWithSegments("/Products") || Context.Request.Path.StartsWithSegments("/Categories");
+                    var isProductActive = Context.Request.Path.StartsWithSegments("/Products") || Context.Request.Path.StartsWithSegments("/Categories") || Context.Request.Path.StartsWithSegments("/Admin/ProductAttributes");
                 }
                 <div class="nav-item nav-item-has-sub @(isProductActive ? "expanded active" : "")" onclick="toggleSubmenu(this)">
                     <div class="nav-item-main">
@@ -64,6 +64,7 @@
                         <a href="/Products/Create" class="nav-sub-item @(Context.Request.Path == "/Products/Create" ? "active" : "")">Thêm hàng hóa mới</a>
                     }
                     <a href="/Categories/Index" class="nav-sub-item @(Context.Request.Path == "/Categories" || Context.Request.Path == "/Categories/Index" ? "active" : "")">Nhóm danh mục</a>
+                    <a href="/Admin/ProductAttributes/Index" class="nav-sub-item @(Context.Request.Path.StartsWithSegments("/Admin/ProductAttributes") ? "active" : "")">Thông số kỹ thuật</a>
                 </div>
 
                 <!-- Nhà cung cấp -->
