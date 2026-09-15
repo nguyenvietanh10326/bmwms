@@ -1,5 +1,6 @@
 using BMWMS.Business.DTOs.Inventory;
 using BMWMS.Business.Interfaces.Inventory;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -8,25 +9,21 @@ namespace BMWMS.API.Controllers.Inventory
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,SALES_STAFF")]
     public class SalesOrdersController : ControllerBase
     {
         private readonly ISalesOrderService _salesOrderService;
+        private readonly ILogger<SalesOrdersController> _logger;
 
-        public SalesOrdersController(ISalesOrderService salesOrderService)
+        public SalesOrdersController(ISalesOrderService salesOrderService, ILogger<SalesOrdersController> logger)
         {
             _salesOrderService = salesOrderService;
+            _logger = logger;
         }
 
         // Helper láº¥y Current User ID tá»« Claims
-        private long GetCurrentUserId()
-        {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (long.TryParse(userIdClaim, out long userId))
-            {
-                return userId;
-            }
-            return 4; // Fallback ID máº·c Ä‘á»‹nh (vd: Admin) náº¿u chÆ°a cáº¥u hÃ¬nh Identity/Claims
-        }
+        private bool TryGetCurrentUserId(out long userId)
+            => long.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out userId);
 
         /// <summary>
         /// GET: api/salesorders
@@ -85,6 +82,7 @@ namespace BMWMS.API.Controllers.Inventory
         /// Tạo mới đơn bán hàng ở trạng thái Nháp (DRAFT)
         /// </summary>
         [HttpPost]
+        [Authorize(Roles = "SALES_STAFF,SYSTEM_ADMIN")]
         public async Task<IActionResult> CreateDraft([FromBody] CreateUpdateSalesOrderDto dto)
         {
             if (!ModelState.IsValid)
@@ -99,7 +97,9 @@ namespace BMWMS.API.Controllers.Inventory
 
             try
             {
-                dto.CurrentUserId = GetCurrentUserId();
+                if (!TryGetCurrentUserId(out var currentUserId))
+                    return Unauthorized(new { success = false, message = "Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại." });
+                dto.CurrentUserId = currentUserId;
                 var result = await _salesOrderService.CreateDraftAsync(dto);
 
                 return CreatedAtAction(nameof(GetById), new { id = result.SalesOrderId }, new
@@ -113,8 +113,13 @@ namespace BMWMS.API.Controllers.Inventory
             {
                 return BadRequest(new { success = false, message = ex.Message });
             }
-            catch (Exception)
+            catch (InvalidOperationException ex)
             {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Cannot create sales order draft for current user {UserId}.", dto.CurrentUserId);
                 return StatusCode(500, new { success = false, message = "Không thể tạo đơn bán hàng. Vui lòng thử lại." });
             }
         }
@@ -124,6 +129,7 @@ namespace BMWMS.API.Controllers.Inventory
         /// Cáº­p nháº­t ÄÆ¡n bÃ¡n hÃ ng (Chá»‰ khi á»Ÿ tráº¡ng thÃ¡i DRAFT)
         /// </summary>
         [HttpPut("{id:long}")]
+        [Authorize(Roles = "SALES_STAFF,SYSTEM_ADMIN")]
         public async Task<IActionResult> UpdateDraft(long id, [FromBody] CreateUpdateSalesOrderDto dto)
         {
             if (!ModelState.IsValid)
@@ -133,8 +139,9 @@ namespace BMWMS.API.Controllers.Inventory
 
             try
             {
+                if (!TryGetCurrentUserId(out var currentUserId)) return Unauthorized();
                 dto.SalesOrderId = id;
-                dto.CurrentUserId = GetCurrentUserId();
+                dto.CurrentUserId = currentUserId;
 
                 bool isUpdated = await _salesOrderService.UpdateDraftAsync(dto);
                 if (!isUpdated)
@@ -159,11 +166,12 @@ namespace BMWMS.API.Controllers.Inventory
         /// Kiá»ƒm tra tá»“n kho & XÃ¡c nháº­n giá»¯ tá»“n (Äá»•i tráº¡ng thÃ¡i DRAFT -> ALLOCATED)
         /// </summary>
         [HttpPost("{id:long}/confirm")]
+        [Authorize(Roles = "SALES_STAFF,SYSTEM_ADMIN")]
         public async Task<IActionResult> ConfirmAndReserveStock(long id)
         {
             try
             {
-                long currentUserId = GetCurrentUserId();
+                if (!TryGetCurrentUserId(out var currentUserId)) return Unauthorized();
                 var (isSuccess, message) = await _salesOrderService.ConfirmAndReserveStockAsync(id, currentUserId);
 
                 if (!isSuccess)
@@ -184,11 +192,12 @@ namespace BMWMS.API.Controllers.Inventory
         /// Há»§y Ä‘Æ¡n bÃ¡n hÃ ng (Äá»•i tráº¡ng thÃ¡i -> CANCELLED)
         /// </summary>
         [HttpPost("{id:long}/cancel")]
+        [Authorize(Roles = "SALES_STAFF,SYSTEM_ADMIN")]
         public async Task<IActionResult> CancelOrder(long id, [FromBody] CancelOrderRequest request)
         {
             try
             {
-                long currentUserId = GetCurrentUserId();
+                if (!TryGetCurrentUserId(out var currentUserId)) return Unauthorized();
                 string reason = request?.Reason ?? "Há»§y Ä‘Æ¡n tá»« há»‡ thá»‘ng";
 
                 var (isSuccess, message) = await _salesOrderService.CancelOrderAsync(id, currentUserId, reason);

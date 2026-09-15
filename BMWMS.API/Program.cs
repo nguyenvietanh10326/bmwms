@@ -106,7 +106,7 @@ builder.Services.AddScoped<IInventoryService, InventoryService>();
 builder.Services.AddScoped<IStorageLocationService, StorageLocationService>();
 builder.Services.AddScoped<IStocktakeService, StocktakeService>();
 builder.Services.AddScoped<IInboundService, InboundService>();
-builder.Services.AddScoped<ICapacityEvaluationService, CapacityEvaluationService>();
+builder.Services.AddScoped<ICapacityEvaluationService, ProductGroupCapacityEvaluationService>();
 builder.Services.AddScoped<IEmailService, SmtpEmailService>();
 builder.Services.AddScoped<IPurchaseOrderEmailComposer, PurchaseOrderEmailComposer>();
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();

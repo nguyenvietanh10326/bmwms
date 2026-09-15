@@ -303,6 +303,26 @@ public class OutboundOrderService : IOutboundOrderService
             }
 
             _context.OutboundOrders.Add(outbound);
+            await _context.SaveChangesAsync();
+            var warehouseManagers = await _context.Users
+                .Include(user => user.Role)
+                .Where(user => user.Status == "ACTIVE" &&
+                    (user.Role.RoleCode == "WAREHOUSE_MANAGER" || user.Role.RoleCode == "SYSTEM_ADMIN"))
+                .ToListAsync();
+            foreach (var manager in warehouseManagers)
+            {
+                _context.Notifications.Add(new Notification
+                {
+                    UserId = manager.UserId,
+                    NotificationType = "OUTBOUND_APPROVAL_REQUIRED",
+                    Title = "Có phiếu xuất kho chờ duyệt",
+                    Message = $"Phiếu {outbound.OutboundOrderNumber} cần được duyệt và phân công nhân viên kho.",
+                    ReferenceType = "OUTBOUND_ORDER",
+                    ReferenceId = outbound.OutboundOrderId,
+                    IsRead = false,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
             await _auditLogService.StageAsync(new AuditEventDto
             {
                 UserId = createdByUserId,
@@ -724,6 +744,9 @@ public class OutboundOrderService : IOutboundOrderService
                 var item = order.OutboundOrderItems.SingleOrDefault(value => value.OutboundOrderItemId == itemRequests.Key);
                 if (item == null) return (false, "Dòng hàng không thuộc phiếu xuất.");
                 var requestedTotal = itemRequests.Sum(value => value.PickQuantity);
+                var itemRemaining = item.RequestedQuantity - item.IssuedQuantity;
+                if (requestedTotal > itemRemaining)
+                    return (false, $"Tổng số lượng lấy của {item.Product.ProductCode} vượt số lượng còn phải xuất ({itemRemaining}).");
                 var routes = await GetAvailableAllocationsAsync(order, item);
                 var expected = BuildExpectedAllocationMap(routes, requestedTotal);
                 var actual = itemRequests
