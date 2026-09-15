@@ -16,6 +16,32 @@ public class ProductAttributeRepository : IProductAttributeRepository
         _context = context;
     }
 
+    public async Task<(List<ProductAttribute> Items, int TotalCount)> GetPagedAsync(string? keyword, string? status, int pageIndex, int pageSize)
+    {
+        var query = _context.ProductAttributes.Include(a => a.ProductAttributeOptions).AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(keyword))
+        {
+            keyword = keyword.ToLower();
+            query = query.Where(a => a.AttributeCode.ToLower().Contains(keyword) || a.AttributeName.ToLower().Contains(keyword));
+        }
+
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            query = query.Where(a => a.Status == status);
+        }
+
+        int totalCount = await query.CountAsync();
+        
+        var items = await query
+            .OrderBy(a => a.AttributeName)
+            .Skip((pageIndex - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return (items, totalCount);
+    }
+
     public async Task<List<ProductAttribute>> GetAllAsync()
     {
         return await _context.ProductAttributes

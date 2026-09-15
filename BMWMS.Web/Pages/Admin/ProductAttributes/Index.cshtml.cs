@@ -16,11 +16,26 @@ namespace BMWMS.Web.Pages.Admin.ProductAttributes
             _apiService = apiService;
         }
 
-        public List<ProductAttributeDto> Attributes { get; set; } = new();
+        [BindProperty(SupportsGet = true)]
+        public string? Keyword { get; set; }
+
+        [BindProperty(SupportsGet = true)]
+        public string? Status { get; set; }
+
+        [BindProperty(SupportsGet = true)]
+        public int PageIndex { get; set; } = 1;
+
+        [BindProperty(SupportsGet = true)]
+        public int PageSize { get; set; } = 10;
+
+        public PagedResultModel<ProductAttributeDto> PagedAttributes { get; set; } = new();
 
         public async Task OnGetAsync()
         {
-            Attributes = await _apiService.GetAllAsync();
+            if (PageIndex < 1) PageIndex = 1;
+            if (PageSize < 1) PageSize = 10;
+
+            PagedAttributes = await _apiService.GetPagedListAsync(Keyword, Status, PageIndex, PageSize);
         }
     }
 }

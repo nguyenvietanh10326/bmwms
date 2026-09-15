@@ -30,6 +30,40 @@
         </div>
     }
 
+    <!-- FILTER & SEARCH BAR -->
+    <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px 20px; margin-bottom: 20px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+        <form method="get" id="attributeFilterForm" style="display: flex; gap: 14px; align-items: center; flex-wrap: wrap;">
+            <input type="hidden" name="PageIndex" value="1" />
+            <input type="hidden" name="PageSize" value="@(Model.PageSize > 0 ? Model.PageSize : 10)" id="attrPageSizeInput" />
+
+            <div style="flex: 1; min-width: 260px; position: relative;">
+                <i class="ri-search-line" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 16px;"></i>
+                <input type="text" asp-for="Keyword" placeholder="Tìm theo mã thuộc tính, tên thuộc tính..." 
+                       style="width: 100%; padding: 9px 12px 9px 36px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; outline: none;" />
+            </div>
+
+            <div style="min-width: 200px;">
+                <select asp-for="Status" style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; outline: none; background: #fff;">
+                    <option value="">-- Tất cả trạng thái --</option>
+                    <option value="ACTIVE">Đang hoạt động (ACTIVE)</option>
+                    <option value="INACTIVE">Đã khóa (INACTIVE)</option>
+                </select>
+            </div>
+
+            <div style="display: flex; gap: 8px;">
+                <button type="submit" style="background: #2563b8; color: #fff; border: none; padding: 9px 18px; border-radius: 8px; font-weight: 500; font-size: 13px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+                    <i class="ri-filter-3-line"></i> Lọc Dữ Liệu
+                </button>
+                @if (!string.IsNullOrWhiteSpace(Model.Keyword) || !string.IsNullOrWhiteSpace(Model.Status))
+                {
+                    <a asp-page="./Index" style="background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; padding: 9px 14px; border-radius: 8px; font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
+                        <i class="ri-close-circle-line"></i> Xóa lọc
+                    </a>
+                }
+            </div>
+        </form>
+    </div>
+
     <div style="background: #ffffff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow: hidden;">
         <table style="width: 100%; border-collapse: collapse; text-align: left;">
             <thead>
@@ -43,9 +77,9 @@
                 </tr>
             </thead>
             <tbody>
-                @if (Model.Attributes != null && Model.Attributes.Any())
+                @if (Model.PagedAttributes.Items != null && Model.PagedAttributes.Items.Any())
                 {
-                    foreach (var item in Model.Attributes)
+                    foreach (var item in Model.PagedAttributes.Items)
                     {
                         <tr style="border-bottom: 1px solid #e2e8f0; transition: background-color 0.15s ease;" onmouseover="this.style.backgroundColor='#f8fafc'" onmouseout="this.style.backgroundColor='transparent'">
                             <td style="padding: 16px; font-size: 14px; color: #0f172a; font-weight: 600;">@item.AttributeCode</td>
@@ -90,11 +124,113 @@
                 {
                     <tr>
                         <td colspan="6" style="padding: 32px; text-align: center; color: #64748b; font-size: 14px;">
-                            Chưa có thông số kỹ thuật nào được cấu hình.
+                            Chưa có thông số kỹ thuật nào được cấu hình hoặc không tìm thấy kết quả phù hợp.
                         </td>
                     </tr>
                 }
             </tbody>
         </table>
+
+        <!-- SMART PAGINATION FOOTER -->
+        @{
+            var totalCount = Model.PagedAttributes.TotalCount;
+            var pageSize = Model.PageSize > 0 ? Model.PageSize : 10;
+            var currentPage = Model.PagedAttributes.PageIndex > 0 ? Model.PagedAttributes.PageIndex : 1;
+            var totalPages = Model.PagedAttributes.TotalPages;
+            var startEntry = totalCount == 0 ? 0 : (currentPage - 1) * pageSize + 1;
+            var endEntry = Math.Min(currentPage * pageSize, totalCount);
+
+            int windowSize = 5;
+            int startPage = Math.Max(1, currentPage - windowSize / 2);
+            int endPage = Math.Min(totalPages, startPage + windowSize - 1);
+            if (endPage - startPage + 1 < windowSize)
+            {
+                startPage = Math.Max(1, endPage - windowSize + 1);
+            }
+        }
+
+        <div style="padding: 14px 20px; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; background: #fafafa; font-size: 13px; color: #64748b;">
+            <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+                <div>
+                    Hiển thị <strong>@startEntry</strong> đến <strong>@endEntry</strong> trong tổng số <strong>@totalCount</strong> thông số
+                </div>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <label for="attrPageSizeSelect" style="font-size: 12px; color: #64748b;">Số dòng / trang:</label>
+                    <select id="attrPageSizeSelect" onchange="changeAttrPageSize(this.value)" style="padding: 4px 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 12px; background: #fff; color: #334155; outline: none; cursor: pointer;">
+                        <!option value="10" @(pageSize == 10 ? "selected" : "")>10</!option>
+                        <!option value="20" @(pageSize == 20 ? "selected" : "")>20</!option>
+                        <!option value="50" @(pageSize == 50 ? "selected" : "")>50</!option>
+                        <!option value="100" @(pageSize == 100 ? "selected" : "")>100</!option>
+                    </select>
+                </div>
+            </div>
+
+            @if (totalPages > 1)
+            {
+                <div style="display: flex; align-items: center; gap: 4px; flex-wrap: wrap;">
+                    <!-- First Page -->
+                    @if (currentPage > 1)
+                    {
+                        <a asp-page="./Index" asp-route-PageIndex="1" asp-route-PageSize="@pageSize" asp-route-Keyword="@Model.Keyword" asp-route-Status="@Model.Status" title="Trang đầu" style="min-width: 32px; height: 32px; padding: 0 8px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; color: #334155; text-decoration: none; font-size: 12.5px; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; transition: all 0.15s;">&laquo;</a>
+                        <a asp-page="./Index" asp-route-PageIndex="@(currentPage - 1)" asp-route-PageSize="@pageSize" asp-route-Keyword="@Model.Keyword" asp-route-Status="@Model.Status" title="Trang trước" style="min-width: 32px; height: 32px; padding: 0 8px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; color: #334155; text-decoration: none; font-size: 12.5px; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; transition: all 0.15s;">&lsaquo;</a>
+                    }
+                    else
+                    {
+                        <span style="min-width: 32px; height: 32px; padding: 0 8px; border: 1px solid #e2e8f0; border-radius: 6px; background: #f8fafc; color: #cbd5e1; display: inline-flex; align-items: center; justify-content: center; font-size: 12.5px; cursor: not-allowed;">&laquo;</span>
+                        <span style="min-width: 32px; height: 32px; padding: 0 8px; border: 1px solid #e2e8f0; border-radius: 6px; background: #f8fafc; color: #cbd5e1; display: inline-flex; align-items: center; justify-content: center; font-size: 12.5px; cursor: not-allowed;">&lsaquo;</span>
+                    }
+
+                    @if (startPage > 1)
+                    {
+                        <a asp-page="./Index" asp-route-PageIndex="1" asp-route-PageSize="@pageSize" asp-route-Keyword="@Model.Keyword" asp-route-Status="@Model.Status" style="min-width: 32px; height: 32px; padding: 0 8px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; color: #334155; text-decoration: none; font-size: 12.5px; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; transition: all 0.15s;">1</a>
+                        @if (startPage > 2)
+                        {
+                            <span style="color: #64748b; margin: 0 2px;">...</span>
+                        }
+                    }
+
+                    @for (int p = startPage; p <= endPage; p++)
+                    {
+                        if (p == currentPage)
+                        {
+                            <span style="min-width: 32px; height: 32px; padding: 0 8px; border: 1px solid #2563b8; border-radius: 6px; background: #2563b8; color: #fff; font-size: 12.5px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 1px 2px rgba(37, 99, 235, 0.2);">@p</span>
+                        }
+                        else
+                        {
+                            <a asp-page="./Index" asp-route-PageIndex="@p" asp-route-PageSize="@pageSize" asp-route-Keyword="@Model.Keyword" asp-route-Status="@Model.Status" style="min-width: 32px; height: 32px; padding: 0 8px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; color: #334155; text-decoration: none; font-size: 12.5px; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; transition: all 0.15s;">@p</a>
+                        }
+                    }
+
+                    @if (endPage < totalPages)
+                    {
+                        @if (endPage < totalPages - 1)
+                        {
+                            <span style="color: #64748b; margin: 0 2px;">...</span>
+                        }
+                        <a asp-page="./Index" asp-route-PageIndex="@totalPages" asp-route-PageSize="@pageSize" asp-route-Keyword="@Model.Keyword" asp-route-Status="@Model.Status" style="min-width: 32px; height: 32px; padding: 0 8px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; color: #334155; text-decoration: none; font-size: 12.5px; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; transition: all 0.15s;">@totalPages</a>
+                    }
+
+                    @if (currentPage < totalPages)
+                    {
+                        <a asp-page="./Index" asp-route-PageIndex="@(currentPage + 1)" asp-route-PageSize="@pageSize" asp-route-Keyword="@Model.Keyword" asp-route-Status="@Model.Status" title="Trang tiếp" style="min-width: 32px; height: 32px; padding: 0 8px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; color: #334155; text-decoration: none; font-size: 12.5px; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; transition: all 0.15s;">&rsaquo;</a>
+                        <a asp-page="./Index" asp-route-PageIndex="@totalPages" asp-route-PageSize="@pageSize" asp-route-Keyword="@Model.Keyword" asp-route-Status="@Model.Status" title="Trang cuối" style="min-width: 32px; height: 32px; padding: 0 8px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; color: #334155; text-decoration: none; font-size: 12.5px; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; transition: all 0.15s;">&raquo;</a>
+                    }
+                    else
+                    {
+                        <span style="min-width: 32px; height: 32px; padding: 0 8px; border: 1px solid #e2e8f0; border-radius: 6px; background: #f8fafc; color: #cbd5e1; display: inline-flex; align-items: center; justify-content: center; font-size: 12.5px; cursor: not-allowed;">&rsaquo;</span>
+                        <span style="min-width: 32px; height: 32px; padding: 0 8px; border: 1px solid #e2e8f0; border-radius: 6px; background: #f8fafc; color: #cbd5e1; display: inline-flex; align-items: center; justify-content: center; font-size: 12.5px; cursor: not-allowed;">&raquo;</span>
+                    }
+                </div>
+            }
+        </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        function changeAttrPageSize(size) {
+            document.getElementById('attrPageSizeInput').value = size;
+            document.getElementById('attributeFilterForm').submit();
+        }
+    </script>
+}

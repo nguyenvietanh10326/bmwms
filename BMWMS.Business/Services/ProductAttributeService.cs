@@ -17,6 +17,22 @@ public class ProductAttributeService : IProductAttributeService
         _repository = repository;
     }
 
+    public async Task<BMWMS.Business.Common.PagedResultDto<ProductAttributeDto>> GetPagedAsync(string? keyword, string? status, int pageIndex, int pageSize)
+    {
+        if (pageIndex < 1) pageIndex = 1;
+        if (pageSize < 1) pageSize = 20;
+
+        var (items, totalCount) = await _repository.GetPagedAsync(keyword, status, pageIndex, pageSize);
+        
+        return new BMWMS.Business.Common.PagedResultDto<ProductAttributeDto>
+        {
+            Items = items.Select(MapToDto).ToList(),
+            TotalCount = totalCount,
+            PageIndex = pageIndex,
+            PageSize = pageSize
+        };
+    }
+
     public async Task<List<ProductAttributeDto>> GetAllAsync()
     {
         var attributes = await _repository.GetAllAsync();

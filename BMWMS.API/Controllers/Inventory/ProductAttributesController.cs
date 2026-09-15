@@ -20,6 +20,13 @@ public class ProductAttributesController : ControllerBase
     }
 
     [HttpGet]
+    public async Task<ActionResult> GetPaged([FromQuery] string? keyword, [FromQuery] string? status, [FromQuery] int pageIndex = 1, [FromQuery] int pageSize = 10)
+    {
+        var result = await _service.GetPagedAsync(keyword, status, pageIndex, pageSize);
+        return Ok(result);
+    }
+
+    [HttpGet("all")]
     public async Task<ActionResult<List<ProductAttributeDto>>> GetAll()
     {
         var result = await _service.GetAllAsync();
