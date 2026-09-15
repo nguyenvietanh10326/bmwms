@@ -178,13 +178,6 @@
             </select>
         </div>
 
-        <div style="flex: 1; min-width: 200px;">
-            <label class="form-label text-muted mb-2" style="font-size: 13px; font-weight: 500;">Kho nhận</label>
-            <select name="WarehouseId" class="form-select premium-input" asp-items="Model.WarehouseOptions">
-                <option value="">Tất cả kho</option>
-            </select>
-        </div>
-
         <div style="display: flex; gap: 12px;">
             <button type="submit" class="premium-btn-primary d-inline-flex align-items-center">
                 <i class="ri-filter-3-line me-1"></i> Lọc
@@ -203,7 +196,8 @@
                     <th>Mã lệnh</th>
                     <th>Purchase Order</th>
                     <th>Nhà cung cấp</th>
-                    <th>Kho nhận</th>
+                    <th>Ngày nhập hàng</th>
+                    <th>Nhân viên phụ trách</th>
                     <th style="text-align: center;">Trạng thái</th>
                     <th style="text-align: right;">Số dòng hàng</th>
                     <th style="text-align: center;">Thao tác</th>
@@ -218,14 +212,8 @@
                             <td style="font-weight: 600; color: #0f172a;">@item.InboundOrderNumber</td>
                             <td><span style="background: #f1f5f9; padding: 4px 8px; border-radius: 4px; font-family: monospace; font-size: 13px;">@item.PurchaseOrderNumber</span></td>
                             <td style="font-weight: 500;">@item.SupplierName</td>
-                            <td>
-                                <div class="d-flex align-items-center">
-                                    <div style="width: 28px; height: 28px; border-radius: 6px; background: #eff6ff; color: #3b82f6; display: flex; align-items: center; justify-content: center; margin-right: 8px;">
-                                        <i class="ri-store-2-line"></i>
-                                    </div>
-                                    @item.WarehouseName
-                                </div>
-                            </td>
+                            <td>@(item.ReceiptDate.HasValue ? item.ReceiptDate.Value.ToLocalTime().ToString("dd/MM/yyyy") : "—")</td>
+                            <td>@(item.ResponsibleStaffName ?? "—")</td>
                             <td style="text-align: center;">
                                 @if (item.Status == "COMPLETED")
                                 {
@@ -262,7 +250,7 @@
                 else
                 {
                     <tr>
-                        <td colspan="7" class="text-center" style="padding: 48px 24px;">
+                        <td colspan="8" class="text-center" style="padding: 48px 24px;">
                             <div style="width: 64px; height: 64px; background: #f8fafc; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; color: #cbd5e1;">
                                 <i class="ri-inbox-archive-line" style="font-size: 32px;"></i>
                             </div>
@@ -436,9 +424,13 @@
                                 <span class="text-muted">Nhà cung cấp:</span>
                                 <strong>${data.supplierName}</strong>
                             </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">Ngày nhập hàng:</span>
+                                <strong>${data.receiptDate ? formatDate(data.receiptDate) : '—'}</strong>
+                            </div>
                             <div class="d-flex justify-content-between">
-                                <span class="text-muted">Kho nhận:</span>
-                                <strong>${data.warehouseName || '---'}</strong>
+                                <span class="text-muted">Nhân viên phụ trách:</span>
+                                <strong>${data.responsibleStaffName || '—'}</strong>
                             </div>
                         </div>
                     </div>

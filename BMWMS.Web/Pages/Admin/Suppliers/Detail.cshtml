@@ -13,12 +13,9 @@
 <div class="page-header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px;">
     <div>
         <div class="page-header-title">Xem chi tiết nhà cung cấp</div>
-        <div class="page-header-sub">Xem hồ sơ, liên hệ, sản phẩm và trạng thái nhà cung cấp &middot; Actor chính: @(HttpContext.Session.GetString("RoleName") ?? "Nhân viên mua hàng")</div>
+        <div class="page-header-sub">Xem hồ sơ, thông tin liên hệ và trạng thái nhà cung cấp.</div>
     </div>
     <div style="font-weight: 500; display: flex; align-items: center; gap: 12px;">
-        <a href="/Admin/Suppliers/@Model.Supplier.SupplierCode/Products" class="btn" style="background-color: #f4f4f5; color: #18181b; border: 1px solid #e4e4e7; padding: 8px 16px; border-radius: 6px; font-weight: 500; text-decoration: none;">
-            <i class="ri-box-3-line" style="margin-right: 6px;"></i>Sản phẩm cung ứng
-        </a>
         <a href="/Admin/Suppliers/@Model.Supplier.SupplierCode/InboundHistory" class="btn" style="background-color: #f4f4f5; color: #18181b; border: 1px solid #e4e4e7; padding: 8px 16px; border-radius: 6px; font-weight: 500; text-decoration: none;">
             <i class="ri-history-line" style="margin-right: 6px;"></i>Lịch sử nhập
         </a>
@@ -54,10 +51,6 @@
             <input type="text" class="form-control" value="@Model.Supplier.SupplierName" disabled style="width: 100%; box-sizing: border-box; background-color: #f9fafb; color: var(--text-main); border: 1px solid var(--border-color); padding: 10px 12px; border-radius: 6px;" />
         </div>
         <div>
-            <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px; color: var(--text-main);">Mã số thuế</label>
-            <input type="text" class="form-control" value="@Model.Supplier.TaxCode" disabled style="width: 100%; box-sizing: border-box; background-color: #f9fafb; color: var(--text-main); border: 1px solid var(--border-color); padding: 10px 12px; border-radius: 6px;" />
-        </div>
-        <div>
             <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px; color: var(--text-main);">Số điện thoại</label>
             <input type="text" class="form-control" value="@Model.Supplier.PhoneNumber" disabled style="width: 100%; box-sizing: border-box; background-color: #f9fafb; color: var(--text-main); border: 1px solid var(--border-color); padding: 10px 12px; border-radius: 6px;" />
         </div>
@@ -78,49 +71,6 @@
             <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px; color: var(--text-main);">Trạng thái</label>
             <input type="text" class="form-control" value="@(Model.Supplier.Status == "ACTIVE" ? "Đang hoạt động" : "Tạm ngừng")" disabled style="width: 100%; box-sizing: border-box; background-color: #f9fafb; color: var(--text-main); border: 1px solid var(--border-color); padding: 10px 12px; border-radius: 6px;" />
         </div>
-    </div>
-</div>
-
-<div class="form-card" style="padding: 24px; margin-bottom: 24px;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-        <h3 style="font-size: 16px; font-weight: 600; color: var(--text-main); margin: 0;">Danh mục vật tư cung ứng</h3>
-    </div>
-
-    <div style="overflow-x: auto; margin-bottom: 24px;">
-        <table class="table" style="width: 100%; min-width: 800px; border-collapse: collapse;">
-            <thead>
-                <tr style="border-bottom: 1px solid var(--border-color);">
-                    <th style="text-align: left; padding: 12px 0; color: var(--text-muted); font-size: 13px; font-weight: 500;">Mã SP</th>
-                    <th style="text-align: left; padding: 12px 0; color: var(--text-muted); font-size: 13px; font-weight: 500;">Sản phẩm</th>
-                    <th style="text-align: left; padding: 12px 0; color: var(--text-muted); font-size: 13px; font-weight: 500;">Nhóm</th>
-                </tr>
-            </thead>
-            <tbody>
-                @if (Model.Supplier.SuppliedProducts != null && Model.Supplier.SuppliedProducts.Any())
-                {
-                    @foreach (var p in Model.Supplier.SuppliedProducts)
-                    {
-                        <tr style="border-bottom: 1px solid #f4f4f5;">
-                            <td style="padding: 16px 0; color: #2563eb; font-size: 14px;">@p.ProductCode</td>
-                            <td style="padding: 16px 0; color: var(--text-main); font-size: 14px;">@p.ProductName</td>
-                            <td style="padding: 16px 0; color: var(--text-muted); font-size: 14px;">@p.GroupName</td>
-                        </tr>
-                    }
-                }
-                else
-                {
-                    <tr>
-                        <td colspan="3" style="text-align: center; padding: 24px; color: var(--text-muted);">
-                            Hệ thống chưa có vật tư nào.
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
-
-    <div style="display: flex; justify-content: space-between; align-items: center; color: var(--text-muted); font-size: 14px;">
-        <div>Nhà cung cấp đang cung ứng <span style="font-weight: 600; color: var(--text-main);">@(Model.Supplier.SuppliedProducts?.Count ?? 0)</span> vật tư</div>
     </div>
 </div>
 
