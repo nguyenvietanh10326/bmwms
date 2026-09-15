@@ -18,9 +18,29 @@ namespace BMWMS.Web.Services
             _httpClient = httpClientFactory.CreateClient("ApiClient");
         }
 
+        public async Task<PagedResultModel<ProductAttributeDto>> GetPagedListAsync(string? keyword, string? status, int pageIndex = 1, int pageSize = 10)
+        {
+            var queryParams = new List<string>
+            {
+                $"pageIndex={pageIndex}",
+                $"pageSize={pageSize}"
+            };
+
+            if (!string.IsNullOrWhiteSpace(keyword))
+                queryParams.Add($"keyword={Uri.EscapeDataString(keyword)}");
+            if (!string.IsNullOrWhiteSpace(status))
+                queryParams.Add($"status={Uri.EscapeDataString(status)}");
+
+            var queryString = string.Join("&", queryParams);
+            var response = await _httpClient.GetAsync($"/api/ProductAttributes?{queryString}");
+            if (!response.IsSuccessStatusCode) return new PagedResultModel<ProductAttributeDto>();
+            
+            return await response.Content.ReadFromJsonAsync<PagedResultModel<ProductAttributeDto>>(_jsonOptions) ?? new PagedResultModel<ProductAttributeDto>();
+        }
+
         public async Task<List<ProductAttributeDto>> GetAllAsync()
         {
-            var response = await _httpClient.GetAsync("/api/ProductAttributes");
+            var response = await _httpClient.GetAsync("/api/ProductAttributes/all");
             if (!response.IsSuccessStatusCode) return new List<ProductAttributeDto>();
             return await response.Content.ReadFromJsonAsync<List<ProductAttributeDto>>(_jsonOptions) ?? new List<ProductAttributeDto>();
         }

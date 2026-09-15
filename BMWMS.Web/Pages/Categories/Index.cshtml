@@ -433,7 +433,26 @@
                 <div id="attrContent" class="d-none">
                     <div style="background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; padding: 10px 14px; border-radius: 8px; font-size: 12px; display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
                         <i class="ri-information-line" style="font-size: 16px;"></i>
-                        <span>Các thuộc tính được bật sẽ hiển thị trong form <strong>Tạo / Sửa sản phẩm</strong>. Chỉ bật hệ số khối lượng/thể tích khi nhóm hàng có căn cứ đo phù hợp; không bắt buộc mọi nhóm phải dùng m³.</span>
+                        <span>Các thuộc tính được bật sẽ hiển thị trong form <strong>Tạo / Sửa sản phẩm</strong>. Chỉ bật hệ số khối lượng/thể tích khi nhóm hàng có căn cước đo phù hợp; không bắt buộc mọi nhóm phải dùng mã.</span>
+                    </div>
+
+                    <div style="display: flex; gap: 12px; margin-bottom: 12px;">
+                        <div style="flex: 1; position: relative;">
+                            <i class="ri-search-line" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 14px;"></i>
+                            <input type="text" id="modalSearchAttr" placeholder="Tìm tên hoặc mã thuộc tính..." style="width: 100%; padding: 6px 12px 6px 32px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 12px; outline: none;" oninput="applyAttrFilter()" />
+                        </div>
+                        <select id="modalFilterDataType" style="padding: 6px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 12px; outline: none; background: #fff; min-width: 140px;" onchange="applyAttrFilter()">
+                            <option value="">-- Tất cả kiểu dữ liệu --</option>
+                            <option value="TEXT">TEXT (Chữ)</option>
+                            <option value="NUMBER">NUMBER (Số)</option>
+                            <option value="OPTION">OPTION (Lựa chọn)</option>
+                            <option value="DATE">DATE (Ngày)</option>
+                        </select>
+                        <select id="modalFilterAssigned" style="padding: 6px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 12px; outline: none; background: #fff; min-width: 140px;" onchange="applyAttrFilter()">
+                            <option value="">-- Tất cả trạng thái --</option>
+                            <option value="ASSIGNED">Đã bật cho nhóm</option>
+                            <option value="UNASSIGNED">Chưa bật</option>
+                        </select>
                     </div>
 
                     <div class="table-responsive">
@@ -452,6 +471,15 @@
                                 <!-- Rendered dynamically by JavaScript -->
                             </tbody>
                         </table>
+                    </div>
+                    
+                    <div id="modalPagination" style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; font-size: 12px; color: #64748b;">
+                        <div id="modalPageInfo">Hiển thị 0 đến 0 trong 0 thuộc tính</div>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" style="padding: 2px 8px; font-size: 12px;" onclick="prevAttrPage()">Trang trước</button>
+                            <span id="modalPageNumber" style="font-weight: 500; color: #334155;">1 / 1</span>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" style="padding: 2px 8px; font-size: 12px;" onclick="nextAttrPage()">Trang sau</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -562,6 +590,12 @@
     <script>
         let currentGroupId = 0;
         let allSystemAttributes = [];
+        let currentAssignedMap = new Map(); // Store state: attributeId -> { isRequired, displayOrder, defaultValue }
+        
+        // Modal state
+        let filteredAttributes = [];
+        let attrCurrentPage = 1;
+        const attrPageSize = 10;
 
         function openEditGroupModal(id, code, name, desc, status, uomId) {
             document.getElementById('editGroupId').value = id;
@@ -592,6 +626,12 @@
             document.getElementById('attrLoadingSpinner').classList.remove('d-none');
             document.getElementById('attrContent').classList.add('d-none');
 
+            // Reset filters
+            document.getElementById('modalSearchAttr').value = '';
+            document.getElementById('modalFilterDataType').value = '';
+            document.getElementById('modalFilterAssigned').value = '';
+            attrCurrentPage = 1;
+
             try {
                 // 1. Fetch all system attributes if not already cached
                 if (allSystemAttributes.length === 0) {
@@ -608,7 +648,10 @@
                     assignedAttrs = await groupAttrsRes.json();
                 }
 
-                renderAttributeTable(assignedAttrs);
+                currentAssignedMap.clear();
+                assignedAttrs.forEach(a => currentAssignedMap.set(a.productAttributeId, a));
+
+                applyAttrFilter();
             } catch (err) {
                 console.error("Lỗi tải thuộc tính:", err);
                 alert("Không thể tải danh sách thuộc tính từ máy chủ.");
@@ -618,21 +661,109 @@
             }
         }
 
-        function renderAttributeTable(assignedAttrs) {
+        function applyAttrFilter() {
+            // Read inputs
+            saveCurrentPageInputs(); // Ensure we don't lose typed data before filtering
+
+            const keyword = (document.getElementById('modalSearchAttr').value || '').toLowerCase();
+            const dataType = document.getElementById('modalFilterDataType').value;
+            const assignedStatus = document.getElementById('modalFilterAssigned').value;
+
+            filteredAttributes = allSystemAttributes.filter(attr => {
+                let matchSearch = true;
+                if (keyword) {
+                    matchSearch = attr.attributeName.toLowerCase().includes(keyword) || 
+                                  attr.attributeCode.toLowerCase().includes(keyword);
+                }
+
+                let matchType = true;
+                if (dataType) {
+                    matchType = attr.dataType === dataType;
+                }
+
+                let matchAssigned = true;
+                if (assignedStatus) {
+                    const isAssigned = currentAssignedMap.has(attr.productAttributeId);
+                    if (assignedStatus === 'ASSIGNED') matchAssigned = isAssigned;
+                    if (assignedStatus === 'UNASSIGNED') matchAssigned = !isAssigned;
+                }
+
+                return matchSearch && matchType && matchAssigned;
+            });
+
+            attrCurrentPage = 1;
+            renderAttributeTablePage();
+        }
+
+        function prevAttrPage() {
+            saveCurrentPageInputs();
+            if (attrCurrentPage > 1) {
+                attrCurrentPage--;
+                renderAttributeTablePage();
+            }
+        }
+
+        function nextAttrPage() {
+            saveCurrentPageInputs();
+            const totalPages = Math.ceil(filteredAttributes.length / attrPageSize);
+            if (attrCurrentPage < totalPages) {
+                attrCurrentPage++;
+                renderAttributeTablePage();
+            }
+        }
+
+        function saveCurrentPageInputs() {
+            const rows = document.querySelectorAll('#groupAttrTableBody tr');
+            rows.forEach(tr => {
+                const enabled = tr.querySelector('.attr-enabled');
+                if (!enabled) return;
+
+                const attrId = parseInt(enabled.getAttribute('data-id'));
+                if (enabled.checked) {
+                    const required = tr.querySelector('.attr-required').checked;
+                    const order = parseInt(tr.querySelector('.attr-order').value) || 0;
+                    const defVal = tr.querySelector('.attr-default').value;
+                    
+                    currentAssignedMap.set(attrId, {
+                        productAttributeId: attrId,
+                        isRequired: required,
+                        displayOrder: order,
+                        defaultValue: defVal ? defVal.trim() : null
+                    });
+                } else {
+                    currentAssignedMap.delete(attrId);
+                }
+            });
+        }
+
+        function renderAttributeTablePage() {
             const tbody = document.getElementById('groupAttrTableBody');
             tbody.innerHTML = '';
 
-            const assignedMap = new Map();
-            assignedAttrs.forEach(a => assignedMap.set(a.productAttributeId, a));
+            const totalItems = filteredAttributes.length;
+            const totalPages = Math.max(1, Math.ceil(totalItems / attrPageSize));
+            if (attrCurrentPage > totalPages) attrCurrentPage = totalPages;
 
-            // Merge all system attributes
-            allSystemAttributes.forEach((attr, idx) => {
-                const assigned = assignedMap.get(attr.productAttributeId);
+            const startIndex = (attrCurrentPage - 1) * attrPageSize;
+            const endIndex = Math.min(startIndex + attrPageSize, totalItems);
+            const pageItems = filteredAttributes.slice(startIndex, endIndex);
+
+            // Update pagination UI
+            document.getElementById('modalPageInfo').innerText = `Hiển thị ${totalItems > 0 ? startIndex + 1 : 0} đến ${endIndex} trong ${totalItems} thuộc tính`;
+            document.getElementById('modalPageNumber').innerText = `${attrCurrentPage} / ${totalPages}`;
+
+            if (pageItems.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">Không tìm thấy thuộc tính nào phù hợp.</td></tr>`;
+                return;
+            }
+
+            pageItems.forEach((attr, idx) => {
+                const assigned = currentAssignedMap.get(attr.productAttributeId);
                 const isCapacityAttribute = attr.attributeCode === 'STORAGE_VOLUME_M3_PER_BASE_UOM'
                     || attr.attributeCode === 'STORAGE_WEIGHT_KG_PER_BASE_UOM';
                 const isChecked = !!assigned;
                 const isRequired = assigned ? assigned.isRequired : false;
-                const displayOrder = assigned ? assigned.displayOrder : (idx + 1);
+                const displayOrder = assigned ? assigned.displayOrder : (startIndex + idx + 1);
                 const defaultValue = assigned ? (assigned.defaultValue || '') : '';
 
                 let typeBadge = `<span class="badge bg-secondary" style="font-size: 11px;">${attr.dataType}</span>`;
@@ -652,7 +783,7 @@
                     </td>
                     <td>
                         <div class="fw-bold text-dark">${attr.attributeName}</div>
-                        ${isCapacityAttribute ? '<div class="text-warning-emphasis small mt-1">Hồ sơ lưu kho tùy chọn theo nhóm</div>' : ''}
+                        ${isCapacityAttribute ? '<div class="text-warning-emphasis small mt-1">Hệ số lưu kho tùy chọn theo nhóm</div>' : ''}
                         ${optionsHint}
                     </td>
                     <td>
@@ -692,39 +823,28 @@
         }
 
         async function saveGroupAttributes() {
+            saveCurrentPageInputs(); // Ensure current page is saved to map
             const btn = document.getElementById('btnSaveAttributes');
-            const enabledCodes = new Set(Array.from(document.querySelectorAll('#groupAttrTableBody .attr-enabled:checked'))
-                .map(input => input.getAttribute('data-code')));
+            
+            const payload = Array.from(currentAssignedMap.values());
+            
+            // Validation
+            const enabledCodes = new Set();
+            payload.forEach(p => {
+                const attr = allSystemAttributes.find(a => a.productAttributeId === p.productAttributeId);
+                if (attr) enabledCodes.add(attr.attributeCode);
+            });
+            
             const usesPhysicalFactor = enabledCodes.has('STORAGE_VOLUME_M3_PER_BASE_UOM')
                 || enabledCodes.has('STORAGE_WEIGHT_KG_PER_BASE_UOM');
             if (usesPhysicalFactor &&
                 (!enabledCodes.has('STORAGE_FACTOR_BASIS') || !enabledCodes.has('STORAGE_FACTOR_REFERENCE'))) {
-                alert('Khi bật hệ số kg/m³, cần bật cả Cơ sở xác định và Nguồn tham chiếu hệ số lưu kho.');
+                alert('Khi bật hệ số kg/m3, cần bật cả Căn cứ xác định và Nguồn tham chiếu hệ số lưu kho.');
                 return;
             }
 
             btn.disabled = true;
             btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Đang lưu...';
-
-            const payload = [];
-            const rows = document.querySelectorAll('#groupAttrTableBody tr');
-
-            rows.forEach(tr => {
-                const enabled = tr.querySelector('.attr-enabled');
-                if (enabled && enabled.checked) {
-                    const attrId = parseInt(enabled.getAttribute('data-id'));
-                    const required = tr.querySelector('.attr-required').checked;
-                    const order = parseInt(tr.querySelector('.attr-order').value) || 0;
-                    const defVal = tr.querySelector('.attr-default').value;
-
-                    payload.push({
-                        productAttributeId: attrId,
-                        isRequired: required,
-                        displayOrder: order,
-                        defaultValue: defVal ? defVal.trim() : null
-                    });
-                }
-            });
 
             try {
                 const tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
@@ -749,7 +869,7 @@
                     alert('Lỗi: ' + (err.message || 'Không thể lưu cấu hình thuộc tính.'));
                 }
             } catch (ex) {
-                alert('Lỗi kết nối máy chủ: ' + ex.message);
+                alert('Lỗi kết nối máy chủ : ' + ex.message);
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = '<i class="ri-save-line me-1"></i> Lưu Cấu Hình Thuộc Tính';
