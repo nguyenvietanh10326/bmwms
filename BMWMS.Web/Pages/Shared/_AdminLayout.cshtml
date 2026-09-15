@@ -165,6 +165,14 @@
                     <i class="ri-upload-2-line nav-item-icon"></i>
                     Xuất kho (Outbound)
                 </a>
+                @if (isWhStaff)
+                {
+                    var isMyTasksActive = Context.Request.Path.StartsWithSegments("/Warehouse/MyTasks");
+                    <a href="/Warehouse/MyTasks" class="nav-item @(isMyTasksActive ? "active" : "")">
+                        <i class="ri-task-line nav-item-icon"></i>
+                        Nhiệm vụ của tôi
+                    </a>
+                }
                 <!-- Chuyển vị trí nội bộ -->
                 @{
                     var isTransferActive = Context.Request.Path.StartsWithSegments("/Transfer");

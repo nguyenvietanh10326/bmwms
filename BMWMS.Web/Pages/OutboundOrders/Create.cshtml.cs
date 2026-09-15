@@ -7,7 +7,7 @@ using System.Text.Json;
 
 namespace BMWMS.Web.Pages.OutboundOrders;
 
-[Authorize(Roles = "SALES_STAFF,PURCHASING_STAFF")]
+[Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,SALES_STAFF,PURCHASING_STAFF")]
 public class CreateModel : PageModel
 {
     private readonly IHttpClientFactory _httpClientFactory;

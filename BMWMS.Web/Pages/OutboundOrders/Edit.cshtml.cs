@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace BMWMS.Web.Pages.OutboundOrders;
 
-[Authorize(Roles = "SALES_STAFF,PURCHASING_STAFF")]
+[Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,SALES_STAFF,PURCHASING_STAFF")]
 public class EditModel : PageModel
 {
     private readonly IHttpClientFactory _httpClientFactory;
