@@ -53,22 +53,41 @@ public class ProductAttributeRepository : IProductAttributeRepository
         existing.Description = attribute.Description;
         existing.Status = attribute.Status;
 
-        // Delete old options from database
-        _context.ProductAttributeOptions.RemoveRange(existing.ProductAttributeOptions);
-        existing.ProductAttributeOptions.Clear();
-
-        // Add new options
+        // Update existing and add new
         if (attribute.ProductAttributeOptions != null && attribute.ProductAttributeOptions.Any())
         {
-            foreach (var option in attribute.ProductAttributeOptions)
+            foreach (var newOption in attribute.ProductAttributeOptions)
             {
-                existing.ProductAttributeOptions.Add(new ProductAttributeOption
+                var existingOption = existing.ProductAttributeOptions
+                    .FirstOrDefault(o => o.ProductAttributeOptionId != 0 && o.ProductAttributeOptionId == newOption.ProductAttributeOptionId);
+
+                if (existingOption != null)
                 {
-                    OptionCode = option.OptionCode,
-                    OptionValue = option.OptionValue,
-                    DisplayOrder = option.DisplayOrder,
-                    IsActive = option.IsActive
-                });
+                    existingOption.OptionCode = newOption.OptionCode;
+                    existingOption.OptionValue = newOption.OptionValue;
+                    existingOption.DisplayOrder = newOption.DisplayOrder;
+                    existingOption.IsActive = newOption.IsActive;
+                }
+                else
+                {
+                    existing.ProductAttributeOptions.Add(new ProductAttributeOption
+                    {
+                        OptionCode = newOption.OptionCode,
+                        OptionValue = newOption.OptionValue,
+                        DisplayOrder = newOption.DisplayOrder,
+                        IsActive = newOption.IsActive
+                    });
+                }
+            }
+        }
+
+        // Inactivate missing
+        var newOptionIds = attribute.ProductAttributeOptions?.Select(o => o.ProductAttributeOptionId).ToList() ?? new List<long>();
+        foreach (var oldOption in existing.ProductAttributeOptions)
+        {
+            if (oldOption.ProductAttributeOptionId != 0 && !newOptionIds.Contains(oldOption.ProductAttributeOptionId))
+            {
+                oldOption.IsActive = false; // Soft delete
             }
         }
 
