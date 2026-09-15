@@ -1,4 +1,4 @@
-using BMWMS.Web.Models;
+ï»¿using BMWMS.Web.Models;
 using BMWMS.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -31,7 +31,7 @@ namespace BMWMS.Web.Pages.Admin.UnitOfMeasures
             try
             {
                 await _apiService.DeleteAsync(id);
-                TempData["SuccessMessage"] = "Xóa don v? tính thành công.";
+                
             }
             catch (System.Exception ex)
             {

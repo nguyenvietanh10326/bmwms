@@ -1,4 +1,4 @@
-using BMWMS.Web.Models;
+ï»¿using BMWMS.Web.Models;
 using BMWMS.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -26,7 +26,7 @@ namespace BMWMS.Web.Pages.Admin.UnitOfMeasures
             var entity = await _apiService.GetByIdAsync(Id);
             if (entity == null)
             {
-                TempData["ErrorMessage"] = "Không tìm th?y ÐVT.";
+                
                 return RedirectToPage("./Index");
             }
 
@@ -51,7 +51,7 @@ namespace BMWMS.Web.Pages.Admin.UnitOfMeasures
             try
             {
                 await _apiService.UpdateAsync(Id, Input);
-                TempData["SuccessMessage"] = "C?p nh?t don v? tính thành công.";
+                
                 return RedirectToPage("./Index");
             }
             catch (System.Exception ex)
