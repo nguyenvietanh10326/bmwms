@@ -2,19 +2,16 @@ using BMWMS.Web.Models;
 using BMWMS.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace BMWMS.Web.Pages.Admin.Suppliers;
 
 public class InboundHistoryModel : PageModel
 {
     private readonly SupplierApiService _supplierApiService;
-    private readonly WarehouseApiService _warehouseApiService;
 
-    public InboundHistoryModel(SupplierApiService supplierApiService, WarehouseApiService warehouseApiService)
+    public InboundHistoryModel(SupplierApiService supplierApiService)
     {
         _supplierApiService = supplierApiService;
-        _warehouseApiService = warehouseApiService;
     }
 
     [BindProperty(SupportsGet = true)]
@@ -27,8 +24,6 @@ public class InboundHistoryModel : PageModel
     public int TotalCount { get; set; }
     public int TotalPages => (int)Math.Ceiling(TotalCount / (double)Filter.PageSize);
 
-    public SelectList? WarehouseOptions { get; set; }
-
     public async Task<IActionResult> OnGetAsync()
     {
         var roleCode = HttpContext.Session.GetString("RoleCode");
@@ -36,10 +31,6 @@ public class InboundHistoryModel : PageModel
         {
             return Forbid();
         }
-
-        // Get dropdown options
-        var warehouses = await _warehouseApiService.GetWarehousesAsync();
-        WarehouseOptions = new SelectList(warehouses, "WarehouseId", "WarehouseName", Filter.WarehouseId);
 
         // Get inbounds
         var result = await _supplierApiService.GetSupplierInboundHistoryAsync(SupplierCode, Filter);

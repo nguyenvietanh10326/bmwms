@@ -21,8 +21,11 @@ public class SupplierInboundHistoryResponseModel
     public string SupplierName { get; set; } = null!;
     public string? WarehouseName { get; set; }
     public string Status { get; set; } = null!;
+    public int LineCount { get; set; }
     public int TotalQuantity { get; set; }
     public DateTime CreatedAt { get; set; }
+    public DateTime? ReceiptDate { get; set; }
+    public string? ResponsibleStaffName { get; set; }
 }
 
 public class SupplierInboundHistoryDetailModel
@@ -35,6 +38,7 @@ public class SupplierInboundHistoryDetailModel
     public DateTime CreatedAt { get; set; }
     public DateTime? ExpectedDate { get; set; }
     public DateTime? ReceiptDate { get; set; }
+    public string? ResponsibleStaffName { get; set; }
     
     public List<SupplierInboundHistoryItemModel> Items { get; set; } = new();
 }

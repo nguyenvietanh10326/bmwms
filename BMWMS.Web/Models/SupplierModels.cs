@@ -67,9 +67,7 @@ public class SupplierCreateRequestModel
     [StringLength(200, MinimumLength = 2, ErrorMessage = "Tên nhà cung cấp từ 2 đến 200 ký tự")]
     public string SupplierName { get; set; } = null!;
 
-    [Required(ErrorMessage = "Vui lòng nhập Mã số thuế")]
-    [StringLength(20, MinimumLength = 10, ErrorMessage = "Mã số thuế từ 10 đến 20 ký tự")]
-    public string TaxCode { get; set; } = null!;
+    public string? TaxCode { get; set; }
 
     [Required(ErrorMessage = "Vui lòng nhập Số điện thoại")]
     [StringLength(20, ErrorMessage = "Số điện thoại tối đa 20 ký tự")]
@@ -96,9 +94,7 @@ public class SupplierUpdateRequestModel
     [StringLength(200, MinimumLength = 2, ErrorMessage = "Tên nhà cung cấp từ 2 đến 200 ký tự")]
     public string SupplierName { get; set; } = null!;
 
-    [Required(ErrorMessage = "Vui lòng nhập Mã số thuế")]
-    [StringLength(20, MinimumLength = 10, ErrorMessage = "Mã số thuế từ 10 đến 20 ký tự")]
-    public string TaxCode { get; set; } = null!;
+    public string? TaxCode { get; set; }
 
     [Required(ErrorMessage = "Vui lòng nhập Số điện thoại")]
     [StringLength(20, ErrorMessage = "Số điện thoại tối đa 20 ký tự")]
