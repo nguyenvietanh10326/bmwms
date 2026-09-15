@@ -66,6 +66,7 @@ public class ProductAttributeService : IProductAttributeService
             Status = dto.Status,
             ProductAttributeOptions = dto.Options.Select(o => new ProductAttributeOption
             {
+                ProductAttributeOptionId = o.ProductAttributeOptionId,
                 OptionCode = o.OptionCode,
                 OptionValue = o.OptionValue,
                 DisplayOrder = o.DisplayOrder,
