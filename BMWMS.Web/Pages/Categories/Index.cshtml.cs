@@ -2,6 +2,7 @@ using BMWMS.Web.Models;
 using BMWMS.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
@@ -12,11 +13,19 @@ namespace BMWMS.Web.Pages.Categories
     public class IndexModel : PageModel
     {
         private readonly ProductGroupApiService _productGroupService;
+        private readonly ProductApiService _productApiService;
 
-        public IndexModel(ProductGroupApiService productGroupService)
+        public IndexModel(ProductGroupApiService productGroupService, ProductApiService productApiService)
         {
             _productGroupService = productGroupService;
+            _productApiService = productApiService;
         }
+
+        public List<SelectListItem> UomOptions { get; set; } = new();
+
+        public string UnitName(int? unitId) => unitId.HasValue
+            ? UomOptions.FirstOrDefault(option => option.Value == unitId.Value.ToString())?.Text ?? "Chưa cấu hình"
+            : "Chưa cấu hình";
 
         public PagedResultModel<ProductGroupViewModel> PagedGroups { get; set; } = new();
 
@@ -56,6 +65,9 @@ namespace BMWMS.Web.Pages.Categories
             }
 
             PagedGroups = await _productGroupService.GetPagedListAsync(Keyword, Status, PageIndex, PageSize);
+            UomOptions = (await _productApiService.GetUnitsOfMeasureAsync())
+                .Select(unit => new SelectListItem($"{unit.UnitName} ({unit.UnitCode})", unit.UnitOfMeasureId.ToString()))
+                .ToList();
 
             // Compute statistics
             var allGroups = await _productGroupService.GetAllActiveAsync();

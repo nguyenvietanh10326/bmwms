@@ -33,11 +33,6 @@
             </div>
             <div style="font-size: 13px; color: #64748b; margin-top: 4px;">
                 Mã SKU: <span style="font-family: monospace; font-weight: 600; color: #1e3a8a;">@Model.Product.ProductCode</span>
-                @if (!string.IsNullOrEmpty(Model.Product.Barcode))
-                {
-                    <span style="margin: 0 8px;">•</span>
-                    <span>Barcode: <span style="font-family: monospace;">@Model.Product.Barcode</span></span>
-                }
             </div>
         </div>
 
@@ -243,43 +238,6 @@
             }
         </div>
 
-    </div>
-
-    <!-- WAREHOUSE SAFETY STOCK POLICIES -->
-    <div style="background: #ffffff; border-radius: 10px; border: 1px solid #e2e8f0; padding: 24px;">
-        <div style="font-size: 16px; font-weight: 600; color: #0f172a; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px;">
-            <i class="ri-shield-check-line" style="color: #2563b8;"></i> Định Mức Tồn Kho An Toàn (Policy)
-        </div>
-
-        @if (Model.Product.WarehousePolicies != null && Model.Product.WarehousePolicies.Any())
-        {
-            <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
-                <thead>
-                    <tr style="background: #f8fafc; color: #475569; text-align: left;">
-                        <th style="padding: 8px 12px;">Kho hàng</th>
-                        <th style="padding: 8px 12px; text-align: right;">Định mức tồn tối thiểu</th>
-                        <th style="padding: 8px 12px; text-align: right;">Cảnh báo cận hạn (ngày)</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var pol in Model.Product.WarehousePolicies)
-                    {
-                        <tr style="border-bottom: 1px solid #f1f5f9;">
-                            <td style="padding: 8px 12px; font-weight: 500;">@pol.WarehouseName</td>
-                            <td style="padding: 8px 12px; text-align: right; color: #dc2626; font-weight: 600;">@pol.MinimumStockQuantity.ToString("N0")</td>
-                            <td style="padding: 8px 12px; text-align: right; color: #d97706; font-weight: 600;">@pol.ExpiryWarningDays ngày</td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        }
-        else
-        {
-            <div style="text-align: center; padding: 24px 0; color: #94a3b8; font-size: 13px;">
-                <i class="ri-shield-line" style="font-size: 28px; margin-bottom: 4px; display: block;"></i>
-                Chưa thiết lập định mức an toàn riêng theo kho.
-            </div>
-        }
     </div>
 
 </div>

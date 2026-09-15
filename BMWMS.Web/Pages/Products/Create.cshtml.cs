@@ -23,7 +23,6 @@ namespace BMWMS.Web.Pages.Products
         public CreateProductModel Product { get; set; } = new();
 
         public List<SelectListItem> GroupOptions { get; set; } = new();
-        public List<SelectListItem> UomOptions { get; set; } = new();
 
         public string? ErrorMessage { get; set; }
 
@@ -55,18 +54,12 @@ namespace BMWMS.Web.Pages.Products
 
         private async Task LoadDropdownsAsync()
         {
-            var groups = await _productApiService.GetProductGroupsAsync();
+            var groups = await _productGroupApiService.GetAllActiveAsync();
             GroupOptions = new List<SelectListItem> { new("--- Chọn nhóm danh mục ---", "") };
             foreach (var g in groups)
             {
-                GroupOptions.Add(new SelectListItem(g.GroupName, g.ProductGroupId.ToString()));
-            }
-
-            var uoms = await _productApiService.GetUnitsOfMeasureAsync();
-            UomOptions = new List<SelectListItem> { new("--- Chọn đơn vị tính cơ sở ---", "") };
-            foreach (var u in uoms)
-            {
-                UomOptions.Add(new SelectListItem($"{u.UnitName} ({u.UnitCode})", u.UnitOfMeasureId.ToString()));
+                if (g.BaseUnitOfMeasureId.HasValue)
+                    GroupOptions.Add(new SelectListItem(g.GroupName, g.ProductGroupId.ToString()));
             }
         }
 
