@@ -232,6 +232,7 @@ namespace BMWMS.Repository.Repositories.Inventory
                     StorageLocationId = inventory.StorageLocationId,
                     ProductLotId = inventory.ProductLotId, // Fallback if no lot
                     ReservedQuantity = reserveQuantity,
+                    ConsumedQuantity = 0,
                     Status = "ACTIVE",
                     ReservedAt = DateTime.UtcNow,
                     ReservedByUserId = userId

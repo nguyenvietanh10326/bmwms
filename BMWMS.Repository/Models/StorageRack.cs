@@ -15,6 +15,8 @@ public partial class StorageRack
 
     public string RackName { get; set; } = null!;
 
+    public decimal? MaxCapacityQuantity { get; set; }
+
     public decimal? AreaSquareMeter { get; set; }
 
     public decimal? MaxWeightKg { get; set; }

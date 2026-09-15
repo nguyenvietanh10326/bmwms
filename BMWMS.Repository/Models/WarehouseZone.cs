@@ -13,6 +13,10 @@ public partial class WarehouseZone
 
     public string ZoneName { get; set; } = null!;
 
+    public long? ProductGroupId { get; set; }
+
+    public decimal? MaxCapacityQuantity { get; set; }
+
     public string? Description { get; set; }
 
     public decimal? AreaSquareMeter { get; set; }

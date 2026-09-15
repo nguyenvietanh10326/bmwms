@@ -17,6 +17,8 @@ public partial class StorageLocation
 
     public string LocationType { get; set; } = null!;
 
+    public decimal? MaxCapacityQuantity { get; set; }
+
     public decimal? AreaSquareMeter { get; set; }
 
     public decimal? MaxWeightKg { get; set; }
