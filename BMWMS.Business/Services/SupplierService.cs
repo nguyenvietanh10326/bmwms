@@ -94,16 +94,11 @@ public class SupplierService : ISupplierService
             throw new ArgumentException("Mã nhà cung cấp đã tồn tại.");
         }
 
-        if (await _supplierRepository.CheckTaxCodeExistsAsync(dto.TaxCode))
-        {
-            throw new ArgumentException("Mã số thuế đã tồn tại.");
-        }
-
         var supplier = new Repository.Models.Supplier
         {
             SupplierCode = dto.SupplierCode,
             SupplierName = dto.SupplierName,
-            TaxCode = dto.TaxCode,
+            TaxCode = null,
             PhoneNumber = dto.PhoneNumber,
             Email = dto.Email,
             Address = dto.Address,
@@ -123,7 +118,6 @@ public class SupplierService : ISupplierService
             {
                 supplier.SupplierCode,
                 supplier.SupplierName,
-                supplier.TaxCode,
                 supplier.Status
             },
             IpAddress = ipAddress
@@ -159,14 +153,6 @@ public class SupplierService : ISupplierService
             }
         }
 
-        if (supplier.TaxCode != dto.TaxCode)
-        {
-            if (await _supplierRepository.CheckTaxCodeExistsAsync(dto.TaxCode))
-            {
-                throw new ArgumentException("Mã số thuế mới đã tồn tại.");
-            }
-        }
-
         var oldValues = new
         {
             supplier.SupplierCode,
@@ -181,7 +167,6 @@ public class SupplierService : ISupplierService
 
         supplier.SupplierCode = dto.SupplierCode;
         supplier.SupplierName = dto.SupplierName;
-        supplier.TaxCode = dto.TaxCode;
         supplier.PhoneNumber = dto.PhoneNumber;
         supplier.Email = dto.Email;
         supplier.Address = dto.Address;
@@ -201,7 +186,6 @@ public class SupplierService : ISupplierService
             {
                 supplier.SupplierCode,
                 supplier.SupplierName,
-                supplier.TaxCode,
                 supplier.PhoneNumber,
                 supplier.Email,
                 supplier.Address,
@@ -264,6 +248,8 @@ public class SupplierService : ISupplierService
             WarehouseName = io.Warehouse?.WarehouseName,
             Status = io.Status,
             CreatedAt = io.CreatedAt,
+            ReceiptDate = io.ConfirmedAt,
+            ResponsibleStaffName = io.AssignedToUser?.FullName ?? io.CreatedByUser?.FullName,
             LineCount = io.InboundOrderItems.Count
         }).ToList();
 
@@ -294,6 +280,7 @@ public class SupplierService : ISupplierService
             CreatedAt = order.CreatedAt,
             ExpectedDate = order.ExpectedReceiptDate.ToDateTime(TimeOnly.MinValue),
             ReceiptDate = order.ConfirmedAt,
+            ResponsibleStaffName = order.AssignedToUser?.FullName ?? order.CreatedByUser?.FullName,
             Items = order.InboundOrderItems.Select(d => new SupplierInboundHistoryItemDto
             {
                 ProductCode = d.Product.ProductCode,
