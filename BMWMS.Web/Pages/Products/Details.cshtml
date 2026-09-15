@@ -241,8 +241,6 @@
                             <tr>
                                 <th>Mã NCC</th>
                                 <th>Tên Nhà Cung Cấp</th>
-                                <th>Mã SP Nội Bộ NCC</th>
-                                <th class="text-center">Thời Gian Giao Hàng</th>
                                 <th class="text-center">Thao tác</th>
                             </tr>
                         </thead>
@@ -252,8 +250,6 @@
                                 <tr>
                                     <td class="font-monospace text-primary fw-bold">@sup.SupplierCode</td>
                                     <td class="fw-medium text-dark">@sup.SupplierName</td>
-                                    <td>@(string.IsNullOrEmpty(sup.SupplierProductCode) ? "-" : sup.SupplierProductCode)</td>
-                                    <td class="text-center">@(sup.LeadTimeDays.HasValue ? $"{sup.LeadTimeDays} ngày" : "-")</td>
                                     <td class="text-center">
                                         <a href="/Admin/Suppliers/Detail/@sup.SupplierCode"
                                            class="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1"
