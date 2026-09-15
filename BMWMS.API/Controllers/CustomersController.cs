@@ -1,6 +1,8 @@
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
+using Microsoft.Data.SqlClient;
 using BMWMS.Repository.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,13 +10,16 @@ namespace BMWMS.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Roles = "SYSTEM_ADMIN,SALES_STAFF")]
     public class CustomersController : ControllerBase
     {
         private readonly BmwmsContext _context;
+        private readonly ILogger<CustomersController> _logger;
 
-        public CustomersController(BmwmsContext context)
+        public CustomersController(BmwmsContext context, ILogger<CustomersController> logger)
         {
             _context = context;
+            _logger = logger;
         }
 
         [HttpGet]
@@ -50,6 +55,14 @@ namespace BMWMS.API.Controllers
                 return BadRequest(new { message });
             }
 
+            var customerName = request.CustomerName?.Trim() ?? string.Empty;
+            var phoneNumber = request.PhoneNumber?.Trim() ?? string.Empty;
+            var address = request.Address?.Trim() ?? string.Empty;
+            if (customerName.Length is < 2 or > 250 || phoneNumber.Length is < 8 or > 20 || address.Length is < 3 or > 500)
+                return BadRequest(new { message = "Tên khách hàng, số điện thoại hoặc địa chỉ không hợp lệ." });
+            if (!TryGetCurrentUserId(out var currentUserId))
+                return Unauthorized(new { message = "Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại." });
+
             var taxCode = string.IsNullOrWhiteSpace(request.TaxCode)
                 ? null
                 : request.TaxCode.Trim();
@@ -63,13 +76,13 @@ namespace BMWMS.API.Controllers
                 var customer = new Customer
                 {
                     CustomerCode = $"KH-TMP-{Guid.NewGuid():N}",
-                    CustomerName = request.CustomerName.Trim(),
-                    PhoneNumber = request.PhoneNumber.Trim(),
-                    Address = request.Address.Trim(),
+                    CustomerName = customerName,
+                    PhoneNumber = phoneNumber,
+                    Address = address,
                     Email = string.IsNullOrWhiteSpace(request.Email) ? null : request.Email.Trim(),
                     TaxCode = taxCode,
                     Status = "ACTIVE",
-                    CreatedByUserId = GetCurrentUserId(),
+                    CreatedByUserId = currentUserId,
                     CreatedAt = DateTime.UtcNow
                 };
 
@@ -89,18 +102,26 @@ namespace BMWMS.API.Controllers
                     customer.Address
                 });
             }
-            catch (DbUpdateException)
+            catch (DbUpdateException ex)
             {
                 await transaction.RollbackAsync();
-                return Conflict(new { message = "Không thể tạo khách hàng do thông tin bị trùng." });
+                _logger.LogError(ex, "Cannot save customer created by user {UserId}.", currentUserId);
+                if (ex.InnerException is SqlException { Number: 2601 or 2627 })
+                    return Conflict(new { message = "Thông tin khách hàng bị trùng. Vui lòng kiểm tra lại." });
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    new { message = "Không thể lưu khách hàng do lỗi dữ liệu. Vui lòng liên hệ quản trị viên." });
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                _logger.LogError(ex, "Cannot create customer for user {UserId}.", currentUserId);
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    new { message = "Không thể tạo khách hàng. Vui lòng thử lại." });
             }
         }
 
-        private long GetCurrentUserId()
-        {
-            var value = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            return long.TryParse(value, out var userId) ? userId : 4;
-        }
+        private bool TryGetCurrentUserId(out long userId)
+            => long.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out userId);
     }
 
     public class CreateCustomerRequest
