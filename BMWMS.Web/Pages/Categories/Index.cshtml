@@ -1,4 +1,4 @@
-@page
+﻿@page
 @model BMWMS.Web.Pages.Categories.IndexModel
 @{
     Layout = "_AdminLayout";
@@ -518,9 +518,9 @@
                         <label class="form-label fw-medium small text-dark">Đơn vị tính cơ sở <span class="text-danger">*</span></label>
                         <div class="d-flex gap-2">
                             <select name="BaseUnitOfMeasureId" id="createGroupUom" class="form-select" required asp-items="Model.UomOptions"><option value="">Chọn ĐVT</option></select>
-                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="openUomModal()" title="Quản lý Đơn vị tính">
+                            <a href="/Admin/UnitOfMeasures" class="btn btn-outline-secondary btn-sm" title="Quản lý Đơn vị tính">
                                 <i class="ri-settings-3-line"></i>
-                            </button>
+                            </a>
                         </div>
                     </div>
                     <div class="mb-3">
@@ -569,9 +569,9 @@
                         <label class="form-label fw-medium small text-dark">Đơn vị tính cơ sở</label>
                         <div class="d-flex gap-2">
                             <select name="BaseUnitOfMeasureId" id="editGroupUom" class="form-select" asp-items="Model.UomOptions"><option value="">Chưa cấu hình</option></select>
-                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="openUomModal()" title="Quản lý Đơn vị tính">
+                            <a href="/Admin/UnitOfMeasures" class="btn btn-outline-secondary btn-sm" title="Quản lý Đơn vị tính">
                                 <i class="ri-settings-3-line"></i>
-                            </button>
+                            </a>
                         </div>
                         <small class="text-muted">Không đổi được nếu sản phẩm hiện có dùng ĐVT khác.</small>
                     </div>
@@ -596,76 +596,6 @@
     </div>
 </div>
 
-<!-- MODAL: QUẢN LÝ ĐƠN VỊ TÍNH -->
-<div class="modal fade" id="manageUomModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content border-0 shadow-lg" style="border-radius: 12px; overflow: hidden;">
-            <div class="modal-header" style="background: #f8fafc; border-bottom: 1px solid #e2e8f0; padding: 16px 20px;">
-                <h5 class="modal-title fw-bold text-dark mb-0" style="font-size: 16px; display: flex; align-items: center; gap: 8px;">
-                    <i class="ri-settings-3-line" style="color: #2563b8;"></i> Quản lý Đơn vị tính
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body p-4" style="background: #f8fafc;">
-                <!-- Add New UOM Form -->
-                <div class="card border-0 shadow-sm mb-4" style="border-radius: 8px;">
-                    <div class="card-body p-3">
-                        <h6 class="fw-bold mb-3 text-dark" style="font-size: 13px;">Thêm Đơn vị tính mới</h6>
-                        <form id="addUomForm" class="row g-2 align-items-end" onsubmit="event.preventDefault(); submitAddUom();">
-                            <div class="col-md-3">
-                                <label class="form-label small mb-1">Mã (Code)</label>
-                                <input type="text" id="addUomCode" class="form-control form-control-sm" required placeholder="VD: CAI" />
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label small mb-1">Tên (Name)</label>
-                                <input type="text" id="addUomName" class="form-control form-control-sm" required placeholder="VD: Cái" />
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label small mb-1">Thang tỷ lệ (Scale)</label>
-                                <input type="number" id="addUomScale" class="form-control form-control-sm" min="0" value="0" />
-                            </div>
-                            <div class="col-md-2">
-                                <button type="submit" class="btn btn-primary btn-sm w-100" id="btnAddUom">
-                                    <i class="ri-add-line"></i> Thêm
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-
-                <!-- UOM List -->
-                <div class="card border-0 shadow-sm" style="border-radius: 8px;">
-                    <div class="card-body p-0">
-                        <div class="table-responsive" style="max-height: 350px; overflow-y: auto;">
-                            <table class="table table-hover table-bordered align-middle mb-0" style="font-size: 13px;">
-                                <thead class="table-light sticky-top">
-                                    <tr>
-                                        <th style="width: 25%;">Mã (Code)</th>
-                                        <th style="width: 35%;">Tên Đơn vị tính</th>
-                                        <th style="width: 20%; text-align: center;">Tỷ lệ (Scale)</th>
-                                        <th style="width: 20%; text-align: right;">Thao tác</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="uomTableBody">
-                                    <tr>
-                                        <td colspan="4" class="text-center py-4">
-                                            <div class="spinner-border text-primary spinner-border-sm" role="status"></div>
-                                            <span class="ms-2">Đang tải...</span>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer" style="border-top: 1px solid #e2e8f0; padding: 12px 20px;">
-                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Đóng</button>
-            </div>
-        </div>
-    </div>
-</div>
-
 @section Scripts {
     <script>
         let currentGroupId = 0;
@@ -677,140 +607,6 @@
         let attrCurrentPage = 1;
         const attrPageSize = 10;
         
-        let allUoms = [];
-
-        function openUomModal() {
-            const modalEl = document.getElementById('manageUomModal');
-            if (window.bootstrap && bootstrap.Modal) {
-                bootstrap.Modal.getOrCreateInstance(modalEl).show();
-            }
-            loadUoms();
-        }
-
-        async function loadUoms() {
-            const tbody = document.getElementById('uomTableBody');
-            tbody.innerHTML = `<tr><td colspan="4" class="text-center py-4"><div class="spinner-border text-primary spinner-border-sm" role="status"></div><span class="ms-2">Đang tải...</span></td></tr>`;
-            try {
-                const tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
-                const headers = {};
-                if (tokenInput) headers['RequestVerificationToken'] = tokenInput.value;
-
-                const res = await fetch('/api/UnitOfMeasures', { headers });
-                if (res.ok) {
-                    allUoms = await res.json();
-                    renderUomTable();
-                    updateUomSelects();
-                } else {
-                    tbody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-danger">Lỗi tải ĐVT</td></tr>`;
-                }
-            } catch (err) {
-                console.error(err);
-                tbody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-danger">Lỗi kết nối server</td></tr>`;
-            }
-        }
-
-        function renderUomTable() {
-            const tbody = document.getElementById('uomTableBody');
-            if (allUoms.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-muted">Chưa có đơn vị tính nào.</td></tr>`;
-                return;
-            }
-            
-            let html = '';
-            allUoms.forEach(u => {
-                html += `
-                    <tr>
-                        <td class="fw-bold">${u.unitCode}</td>
-                        <td>${u.unitName}</td>
-                        <td class="text-center">${u.quantityScale}</td>
-                        <td class="text-end">
-                            <button class="btn btn-sm btn-outline-danger" onclick="deleteUom(${u.unitOfMeasureId})" title="Xóa">
-                                <i class="ri-delete-bin-line"></i>
-                            </button>
-                        </td>
-                    </tr>
-                `;
-            });
-            tbody.innerHTML = html;
-        }
-
-        async function submitAddUom() {
-            const btn = document.getElementById('btnAddUom');
-            btn.disabled = true;
-            btn.innerHTML = `<i class="ri-loader-4-line ri-spin"></i>`;
-            
-            const code = document.getElementById('addUomCode').value.trim();
-            const name = document.getElementById('addUomName').value.trim();
-            const scale = document.getElementById('addUomScale').value || 0;
-            
-            try {
-                const tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
-                const headers = { 'Content-Type': 'application/json' };
-                if (tokenInput) headers['RequestVerificationToken'] = tokenInput.value;
-                
-                const res = await fetch('/api/UnitOfMeasures', {
-                    method: 'POST',
-                    headers: headers,
-                    body: JSON.stringify({ unitCode: code, unitName: name, quantityScale: parseInt(scale), status: 'ACTIVE' })
-                });
-                
-                if (res.ok) {
-                    document.getElementById('addUomForm').reset();
-                    await loadUoms();
-                } else {
-                    const err = await res.json();
-                    alert(err.message || 'Lỗi thêm ĐVT');
-                }
-            } catch (err) {
-                alert('Lỗi kết nối server');
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = `<i class="ri-add-line"></i> Thêm`;
-            }
-        }
-
-        async function deleteUom(id) {
-            if (!confirm('Bạn có chắc muốn xóa ĐVT này không? Không thể xóa nếu ĐVT đang được sử dụng.')) return;
-            try {
-                const tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
-                const headers = {};
-                if (tokenInput) headers['RequestVerificationToken'] = tokenInput.value;
-                
-                const res = await fetch(`/api/UnitOfMeasures/${id}`, {
-                    method: 'DELETE',
-                    headers: headers
-                });
-                
-                if (res.ok) {
-                    await loadUoms();
-                } else {
-                    const err = await res.json();
-                    alert(err.message || 'Không thể xóa ĐVT. Có thể đang được sử dụng.');
-                }
-            } catch (err) {
-                alert('Lỗi kết nối server');
-            }
-        }
-
-        function updateUomSelects() {
-            const createSel = document.getElementById('createGroupUom');
-            const editSel = document.getElementById('editGroupUom');
-            
-            const currentCreateVal = createSel.value;
-            const currentEditVal = editSel.value;
-            
-            let optionsHtml = '<option value="">Chọn ĐVT</option>';
-            allUoms.forEach(u => {
-                optionsHtml += `<option value="${u.unitOfMeasureId}">${u.unitName} (${u.unitCode})</option>`;
-            });
-            
-            createSel.innerHTML = optionsHtml;
-            editSel.innerHTML = '<option value="">Chưa cấu hình</option>' + optionsHtml.replace('<option value="">Chọn ĐVT</option>', '');
-            
-            if (currentCreateVal) createSel.value = currentCreateVal;
-            if (currentEditVal) editSel.value = currentEditVal;
-        }
-
         function openEditGroupModal(id, code, name, desc, status, uomId) {
             document.getElementById('editGroupId').value = id;
             document.getElementById('editGroupCode').value = code;
@@ -1096,3 +892,4 @@
         }
     </script>
 }
+

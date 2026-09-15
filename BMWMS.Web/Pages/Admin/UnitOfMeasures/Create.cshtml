@@ -1,0 +1,53 @@
+﻿@page
+@model BMWMS.Web.Pages.Admin.UnitOfMeasures.CreateModel
+@{
+    ViewData["Title"] = "Thêm Đơn vị tính";
+    Layout = "_AdminLayout";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="h4 mb-0 text-gray-800 fw-bold">Thêm Đơn vị tính mới</h2>
+    <a asp-page="./Index" class="btn btn-outline-secondary shadow-sm">
+        <i class="ri-arrow-left-line me-1"></i> Quay lại
+    </a>
+</div>
+
+<div class="card shadow-sm mb-4 border-0">
+    <div class="card-body p-4">
+        <form method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Input.UnitCode" class="form-label fw-bold">Mã ĐVT <span class="text-danger">*</span></label>
+                    <input asp-for="Input.UnitCode" class="form-control" placeholder="VD: CAI" />
+                    <span asp-validation-for="Input.UnitCode" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Input.UnitName" class="form-label fw-bold">Tên ĐVT <span class="text-danger">*</span></label>
+                    <input asp-for="Input.UnitName" class="form-control" placeholder="VD: Cái" />
+                    <span asp-validation-for="Input.UnitName" class="text-danger small"></span>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Input.QuantityScale" class="form-label fw-bold">Thang tỷ lệ (Scale)</label>
+                    <input asp-for="Input.QuantityScale" class="form-control" type="number" min="0" value="0" />
+                    <span asp-validation-for="Input.QuantityScale" class="text-danger small"></span>
+                    <small class="text-muted d-block mt-1">Số chữ số thập phân tối đa cho phép. VD: 0 = số nguyên, 2 = 2 chữ số thập phân.</small>
+                </div>
+            </div>
+
+            <hr class="my-4" />
+            <div class="d-flex justify-content-end gap-2">
+                <a asp-page="./Index" class="btn btn-light">Hủy</a>
+                <button type="submit" class="btn btn-primary"><i class="ri-save-line me-1"></i> Lưu Đơn vị tính</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

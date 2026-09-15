@@ -72,6 +72,7 @@ builder.Services.AddScoped<CategoryApiService>();
 builder.Services.AddScoped<ProductApiService>();
 builder.Services.AddScoped<ProductGroupApiService>();
 builder.Services.AddScoped<ProductAttributeApiService>();
+builder.Services.AddScoped<UnitOfMeasureApiService>();
 builder.Services.AddScoped<AuthApiService>();
 builder.Services.AddScoped<IDashboardApiService, DashboardApiService>();
 builder.Services.AddScoped<WarehouseApiService>();
