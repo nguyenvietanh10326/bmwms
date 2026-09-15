@@ -1,4 +1,4 @@
-﻿using BMWMS.Web.Models;
+using BMWMS.Web.Models;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Net.Http.Json;
@@ -10,9 +10,9 @@ namespace BMWMS.Web.Services
     {
         private readonly HttpClient _httpClient;
 
-        public UnitOfMeasureApiService(HttpClient httpClient)
+        public UnitOfMeasureApiService(IHttpClientFactory factory)
         {
-            _httpClient = httpClient;
+            _httpClient = factory.CreateClient("ApiClient");
         }
 
         public async Task<List<UnitOfMeasureDto>> GetAllAsync(string? keyword = null)
