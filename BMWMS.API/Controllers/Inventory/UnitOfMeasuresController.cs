@@ -1,4 +1,4 @@
-using BMWMS.Business.DTOs.Product;
+锘縰sing BMWMS.Business.DTOs.Product;
 using BMWMS.Business.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -38,21 +38,21 @@ namespace BMWMS.API.Controllers.Inventory
         public async Task<ActionResult> Create([FromBody] CreateUnitOfMeasureDto dto)
         {
             var id = await _service.CreateAsync(dto);
-            return Ok(new { id, message = "Th阭 蠽T th鄋h c鬾g" });
+            return Ok(new { id, message = "Th锚m 脨VT th脿nh c么ng" });
         }
 
         [HttpPut("{id}")]
         public async Task<ActionResult> Update(int id, [FromBody] UpdateUnitOfMeasureDto dto)
         {
             await _service.UpdateAsync(id, dto);
-            return Ok(new { message = "C?p nh?t 蠽T th鄋h c鬾g" });
+            return Ok(new { message = "C岷璸 nh岷璽 脨VT th脿nh c么ng" });
         }
 
         [HttpDelete("{id}")]
         public async Task<ActionResult> Delete(int id)
         {
             await _service.DeleteAsync(id);
-            return Ok(new { message = "X骯 蠽T th鄋h c鬾g" });
+            return Ok(new { message = "X贸a 脨VT th脿nh c么ng" });
         }
     }
 }

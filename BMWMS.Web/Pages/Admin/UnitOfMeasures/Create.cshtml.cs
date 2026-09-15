@@ -1,4 +1,4 @@
-using BMWMS.Web.Models;
+﻿using BMWMS.Web.Models;
 using BMWMS.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -32,7 +32,7 @@ namespace BMWMS.Web.Pages.Admin.UnitOfMeasures
             try
             {
                 await _apiService.CreateAsync(Input);
-                TempData["SuccessMessage"] = "Th�m don v? t�nh th�nh c�ng.";
+                TempData["SuccessMessage"] = "Thêm đơn vị tính thành công.";
                 return RedirectToPage("./Index");
             }
             catch (System.Exception ex)
