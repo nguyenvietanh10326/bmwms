@@ -1,0 +1,17 @@
+.git
+.github
+.vs
+.vscode
+**/bin
+**/obj
+**/.vs
+**/*.user
+**/*.suo
+**/*.log
+output
+tmp
+TestResults
+publish
+.env
+.env.*
+!.env.example

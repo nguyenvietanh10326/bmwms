@@ -1,0 +1,112 @@
+using BMWMS.Business.DTOs.ProductAttribute;
+using BMWMS.Repository.Interfaces;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using System;
+using BMWMS.Repository.Models;
+
+namespace BMWMS.Business.Services;
+
+public class ProductAttributeService : IProductAttributeService
+{
+    private readonly IProductAttributeRepository _repository;
+
+    public ProductAttributeService(IProductAttributeRepository repository)
+    {
+        _repository = repository;
+    }
+
+    public async Task<List<ProductAttributeDto>> GetAllAsync()
+    {
+        var attributes = await _repository.GetAllAsync();
+        return attributes.Select(MapToDto).ToList();
+    }
+
+    public async Task<ProductAttributeDto?> GetByIdAsync(long id)
+    {
+        var attribute = await _repository.GetByIdAsync(id);
+        if (attribute == null) return null;
+        return MapToDto(attribute);
+    }
+
+    public async Task<ProductAttributeDto> CreateAsync(CreateProductAttributeDto dto)
+    {
+        var attribute = new BMWMS.Repository.Models.ProductAttribute
+        {
+            AttributeCode = dto.AttributeCode.ToUpper(),
+            AttributeName = dto.AttributeName,
+            DataType = dto.DataType,
+            UnitLabel = dto.UnitLabel,
+            Description = dto.Description,
+            Status = dto.Status,
+            ProductAttributeOptions = dto.Options.Select(o => new ProductAttributeOption
+            {
+                OptionCode = o.OptionCode,
+                OptionValue = o.OptionValue,
+                DisplayOrder = o.DisplayOrder,
+                IsActive = o.IsActive
+            }).ToList()
+        };
+
+        var created = await _repository.AddAsync(attribute);
+        return MapToDto(created);
+    }
+
+    public async Task UpdateAsync(long id, UpdateProductAttributeDto dto)
+    {
+        var existing = await _repository.GetByIdAsync(id);
+        if (existing == null) throw new KeyNotFoundException("Thuộc tính không tồn tại.");
+
+        existing.AttributeCode = dto.AttributeCode.ToUpper();
+        existing.AttributeName = dto.AttributeName;
+        existing.DataType = dto.DataType;
+        existing.UnitLabel = dto.UnitLabel;
+        existing.Description = dto.Description;
+        existing.Status = dto.Status;
+
+        existing.ProductAttributeOptions = dto.Options.Select(o => new ProductAttributeOption
+        {
+            OptionCode = o.OptionCode,
+            OptionValue = o.OptionValue,
+            DisplayOrder = o.DisplayOrder,
+            IsActive = o.IsActive
+        }).ToList();
+
+        await _repository.UpdateAsync(existing);
+    }
+
+    public async Task<bool> DeleteAsync(long id)
+    {
+        bool isUsed = await _repository.IsAttributeUsedAsync(id);
+        if (isUsed)
+        {
+            throw new InvalidOperationException("Không thể xóa thông số kỹ thuật này vì nó đang được sử dụng trong Nhóm sản phẩm hoặc Sản phẩm. Hãy chuyển trạng thái sang INACTIVE.");
+        }
+        
+        return await _repository.DeleteAsync(id);
+    }
+
+    private static ProductAttributeDto MapToDto(BMWMS.Repository.Models.ProductAttribute attribute)
+    {
+        return new ProductAttributeDto
+        {
+            ProductAttributeId = attribute.ProductAttributeId,
+            AttributeCode = attribute.AttributeCode,
+            AttributeName = attribute.AttributeName,
+            DataType = attribute.DataType,
+            UnitLabel = attribute.UnitLabel,
+            Description = attribute.Description,
+            Status = attribute.Status,
+            Options = attribute.ProductAttributeOptions.Select(o => new ProductAttributeOptionDto
+            {
+                ProductAttributeOptionId = o.ProductAttributeOptionId,
+                ProductAttributeId = o.ProductAttributeId,
+                OptionCode = o.OptionCode,
+                OptionValue = o.OptionValue,
+                DisplayOrder = o.DisplayOrder,
+                IsActive = o.IsActive
+            }).OrderBy(o => o.DisplayOrder).ToList()
+        };
+    }
+}

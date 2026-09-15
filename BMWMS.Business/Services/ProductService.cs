@@ -416,8 +416,7 @@ namespace BMWMS.Business.Services
                 throw new InvalidOperationException("Không thể lưu sản phẩm vào nhóm đang ngừng hoạt động.");
 
             var configuredAttributesById = productGroup.ProductGroupAttributes
-                .Where(groupAttribute => groupAttribute.ProductAttribute.Status == "ACTIVE" &&
-                                         ProductAttributePolicy.IsAllowed(groupAttribute.ProductAttribute.AttributeCode))
+                .Where(groupAttribute => groupAttribute.ProductAttribute.Status == "ACTIVE")
                 .ToDictionary(
                     groupAttribute => groupAttribute.ProductAttributeId);
             var configuredAttributesByCode = configuredAttributesById.Values.ToDictionary(

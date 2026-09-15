@@ -1,0 +1,72 @@
+using BMWMS.Business.DTOs.ProductAttribute;
+using BMWMS.Business.Services;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
+using System.Collections.Generic;
+
+namespace BMWMS.API.Controllers.Inventory;
+
+[ApiController]
+[Route("api/[controller]")]
+[Authorize]
+public class ProductAttributesController : ControllerBase
+{
+    private readonly IProductAttributeService _service;
+
+    public ProductAttributesController(IProductAttributeService service)
+    {
+        _service = service;
+    }
+
+    [HttpGet]
+    public async Task<ActionResult<List<ProductAttributeDto>>> GetAll()
+    {
+        var result = await _service.GetAllAsync();
+        return Ok(result);
+    }
+
+    [HttpGet("{id}")]
+    public async Task<ActionResult<ProductAttributeDto>> GetById(long id)
+    {
+        var result = await _service.GetByIdAsync(id);
+        if (result == null) return NotFound();
+        return Ok(result);
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<ProductAttributeDto>> Create(CreateProductAttributeDto dto)
+    {
+        var result = await _service.CreateAsync(dto);
+        return CreatedAtAction(nameof(GetById), new { id = result.ProductAttributeId }, result);
+    }
+
+    [HttpPut("{id}")]
+    public async Task<ActionResult> Update(long id, UpdateProductAttributeDto dto)
+    {
+        try
+        {
+            await _service.UpdateAsync(id, dto);
+            return NoContent();
+        }
+        catch (System.Collections.Generic.KeyNotFoundException)
+        {
+            return NotFound();
+        }
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<ActionResult> Delete(long id)
+    {
+        try
+        {
+            var success = await _service.DeleteAsync(id);
+            if (!success) return NotFound();
+            return NoContent();
+        }
+        catch (System.InvalidOperationException ex)
+        {
+            return BadRequest(new { Message = ex.Message });
+        }
+    }
+}
