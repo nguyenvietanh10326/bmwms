@@ -13,6 +13,8 @@ public partial class ProductGroup
 
     public string GroupName { get; set; } = null!;
 
+    public int? BaseUnitOfMeasureId { get; set; }
+
     public string? Description { get; set; }
 
     public string Status { get; set; } = null!;

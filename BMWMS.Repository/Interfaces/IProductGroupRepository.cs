@@ -13,6 +13,7 @@ namespace BMWMS.Repository.Interfaces
         Task<List<ProductGroupAttribute>> GetAttributesByGroupIdAsync(long productGroupId);
         Task<List<ProductAttribute>> GetAllAttributesAsync();
         Task<bool> IsGroupCodeExistsAsync(string groupCode, long? excludeId = null);
+        Task<bool> IsActiveUnitOfMeasureAsync(int unitOfMeasureId);
         Task<long> AddAsync(ProductGroup group, List<ProductGroupAttribute>? attributes = null);
         Task UpdateAsync(ProductGroup group, List<ProductGroupAttribute>? attributes = null);
         Task DeleteAsync(long productGroupId);

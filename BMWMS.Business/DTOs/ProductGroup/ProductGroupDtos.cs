@@ -9,6 +9,7 @@ namespace BMWMS.Business.DTOs.ProductGroup
         public long ProductGroupId { get; set; }
         public string GroupCode { get; set; } = string.Empty;
         public string GroupName { get; set; } = string.Empty;
+        public int? BaseUnitOfMeasureId { get; set; }
         public string? Description { get; set; }
         public string Status { get; set; } = "ACTIVE";
         public int ProductCount { get; set; }
@@ -33,6 +34,9 @@ namespace BMWMS.Business.DTOs.ProductGroup
         [StringLength(200, ErrorMessage = "Tên nhóm tối đa 200 ký tự.")]
         public string GroupName { get; set; } = string.Empty;
 
+        [Required(ErrorMessage = "Chọn đơn vị tính cơ sở cho nhóm sản phẩm.")]
+        public int? BaseUnitOfMeasureId { get; set; }
+
         [StringLength(1000, ErrorMessage = "Mô tả tối đa 1000 ký tự.")]
         public string? Description { get; set; }
 
@@ -46,6 +50,8 @@ namespace BMWMS.Business.DTOs.ProductGroup
         [Required(ErrorMessage = "Tên nhóm sản phẩm không được để trống.")]
         [StringLength(200, ErrorMessage = "Tên nhóm tối đa 200 ký tự.")]
         public string GroupName { get; set; } = string.Empty;
+
+        public int? BaseUnitOfMeasureId { get; set; }
 
         [StringLength(1000, ErrorMessage = "Mô tả tối đa 1000 ký tự.")]
         public string? Description { get; set; }
