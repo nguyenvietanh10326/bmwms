@@ -17,9 +17,9 @@ public class SmtpEmailService : IEmailService
         _logger = logger;
     }
 
-    public async Task SendEmailAsync(string to, string subject, string body)
+    public Task SendEmailAsync(string to, string subject, string body)
     {
-        await SendEmailAsync(new EmailMessage
+        return SendEmailAsync(new EmailMessage
         {
             To = to,
             Subject = subject,
@@ -27,7 +27,7 @@ public class SmtpEmailService : IEmailService
         });
     }
 
-    public async Task SendEmailAsync(EmailMessage message)
+    public Task SendEmailAsync(EmailMessage message)
     {
         var smtpConfig = _config.GetSection("SmtpSettings");
         var host = smtpConfig["Host"];
@@ -43,42 +43,47 @@ public class SmtpEmailService : IEmailService
             throw new InvalidOperationException("Cấu hình SMTP chưa đầy đủ nên email chưa được gửi.");
         }
 
-        using var client = new SmtpClient(host, port)
-        {
-            Credentials = new NetworkCredential(username, password),
-            EnableSsl = enableSsl,
-            Timeout = 10000 // 10 seconds
-        };
-
         if (string.IsNullOrWhiteSpace(message.To))
             throw new ArgumentException("Địa chỉ email người nhận không hợp lệ.", nameof(message));
 
-        using var mailMessage = new MailMessage
+        // Fire and forget task to send email asynchronously without blocking the caller
+        _ = Task.Run(async () =>
         {
-            From = new MailAddress(fromEmail ?? username, "BMWMS System"),
-            Subject = message.Subject,
-            Body = message.HtmlBody,
-            IsBodyHtml = true,
-        };
+            try
+            {
+                using var client = new SmtpClient(host, port)
+                {
+                    Credentials = new NetworkCredential(username, password),
+                    EnableSsl = enableSsl,
+                    Timeout = 10000 // 10 seconds
+                };
 
-        mailMessage.To.Add(message.To);
+                using var mailMessage = new MailMessage
+                {
+                    From = new MailAddress(fromEmail ?? username, "BMWMS System"),
+                    Subject = message.Subject,
+                    Body = message.HtmlBody,
+                    IsBodyHtml = true,
+                };
 
-        foreach (var attachment in message.Attachments)
-        {
-            if (attachment.Content.Length == 0) continue;
-            var stream = new MemoryStream(attachment.Content, writable: false);
-            mailMessage.Attachments.Add(new Attachment(stream, attachment.FileName, attachment.ContentType));
-        }
+                mailMessage.To.Add(message.To);
 
-        try
-        {
-            await client.SendMailAsync(mailMessage);
-            _logger.LogInformation("Sent email successfully to {Recipient}", message.To);
-        }
-        catch (System.Exception ex)
-        {
-            _logger.LogError(ex, "Failed to send email to {Recipient}", message.To);
-            throw;
-        }
+                foreach (var attachment in message.Attachments)
+                {
+                    if (attachment.Content.Length == 0) continue;
+                    var stream = new MemoryStream(attachment.Content, writable: false);
+                    mailMessage.Attachments.Add(new Attachment(stream, attachment.FileName, attachment.ContentType));
+                }
+
+                await client.SendMailAsync(mailMessage);
+                _logger.LogInformation("Sent email successfully to {Recipient}", message.To);
+            }
+            catch (System.Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send email to {Recipient}", message.To);
+            }
+        });
+
+        return Task.CompletedTask;
     }
 }
