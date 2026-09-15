@@ -1,4 +1,4 @@
-using BMWMS.Business.Common;
+ï»¿using BMWMS.Business.Common;
 using BMWMS.Business.DTOs.Product;
 using BMWMS.Business.Interfaces;
 using BMWMS.Repository.Interfaces;
@@ -46,7 +46,7 @@ namespace BMWMS.Business.Services
         public async Task<int> CreateAsync(CreateUnitOfMeasureDto dto)
         {
             if (await _repository.ExistsByCodeAsync(dto.UnitCode))
-                throw new ApiException($"Mã ÐVT '{dto.UnitCode}' dã t?n t?i.", 400);
+                throw new InvalidOperationException($"Mï¿½ ï¿½VT '{dto.UnitCode}' dï¿½ t?n t?i.");
 
             var entity = new UnitsOfMeasure
             {
@@ -63,10 +63,10 @@ namespace BMWMS.Business.Services
         public async Task UpdateAsync(int id, UpdateUnitOfMeasureDto dto)
         {
             var entity = await _repository.GetByIdAsync(id);
-            if (entity == null) throw new ApiException("Không tìm th?y ÐVT", 404);
+            if (entity == null) throw new InvalidOperationException("Khï¿½ng tï¿½m th?y ï¿½VT");
 
             if (await _repository.ExistsByCodeAsync(dto.UnitCode, id))
-                throw new ApiException($"Mã ÐVT '{dto.UnitCode}' dã t?n t?i.", 400);
+                throw new InvalidOperationException($"Mï¿½ ï¿½VT '{dto.UnitCode}' dï¿½ t?n t?i.");
 
             entity.UnitCode = dto.UnitCode;
             entity.UnitName = dto.UnitName;
@@ -79,10 +79,10 @@ namespace BMWMS.Business.Services
         public async Task DeleteAsync(int id)
         {
             var entity = await _repository.GetByIdAsync(id);
-            if (entity == null) throw new ApiException("Không tìm th?y ÐVT", 404);
+            if (entity == null) throw new InvalidOperationException("Khï¿½ng tï¿½m th?y ï¿½VT");
 
             if (await _repository.IsInUseAsync(id))
-                throw new ApiException("ÐVT này dang du?c s? d?ng, không th? xóa", 400);
+                throw new InvalidOperationException("ï¿½VT nï¿½y dang du?c s? d?ng, khï¿½ng th? xï¿½a");
 
             await _repository.DeleteAsync(entity);
         }
