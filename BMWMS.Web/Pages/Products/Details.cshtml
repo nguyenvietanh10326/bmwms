@@ -120,41 +120,37 @@
         
         <!-- TAB: INFO -->
         <div class="tab-pane fade show active" id="info-tab-pane" role="tabpanel" tabindex="0">
-            <div class="row g-4">
-                <div class="col-md-6">
-                    <div class="d-flex flex-column gap-3">
-                        <div class="d-flex justify-content-between border-bottom border-dashed pb-2">
-                            <span class="text-muted">Mô tả / Quy cách:</span>
-                            <span class="fw-medium text-dark text-end">@(Model.Product.Description ?? "Chưa có mô tả")</span>
-                        </div>
-                        <div class="d-flex justify-content-between border-bottom border-dashed pb-2">
-                            <span class="text-muted">Đơn vị tính cơ sở:</span>
-                            <span class="fw-bold text-dark text-end">@Model.Product.UnitName</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="d-flex flex-column gap-3">
-                        <div class="d-flex justify-content-between border-bottom border-dashed pb-2">
-                            <span class="text-muted">Người khởi tạo:</span>
-                            <span class="fw-medium text-dark text-end">@Model.Product.CreatedByName</span>
-                        </div>
-                        <div class="d-flex justify-content-between border-bottom border-dashed pb-2">
-                            <span class="text-muted">Thời gian tạo:</span>
-                            <span class="text-dark text-end">@Model.Product.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
-                        </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <tbody>
+                        <tr>
+                            <td class="text-muted" style="width: 35%;">Mô tả / Quy cách</td>
+                            <td class="fw-medium text-dark">@(Model.Product.Description ?? "Chưa có mô tả")</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Đơn vị tính cơ sở</td>
+                            <td class="fw-bold text-dark">@Model.Product.UnitName</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Người khởi tạo</td>
+                            <td class="fw-medium text-dark">@Model.Product.CreatedByName</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Thời gian tạo</td>
+                            <td class="text-dark">@Model.Product.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                        </tr>
                         @if (Model.Product.UpdatedAt.HasValue)
                         {
-                            <div class="d-flex justify-content-between border-bottom border-dashed pb-2">
-                                <span class="text-muted">Cập nhật lần cuối:</span>
-                                <span class="text-dark text-end">
+                            <tr>
+                                <td class="text-muted">Cập nhật lần cuối</td>
+                                <td class="text-dark">
                                     @Model.Product.UpdatedAt.Value.ToString("dd/MM/yyyy HH:mm")
                                     @(Model.Product.UpdatedByName != null ? $" (bởi {Model.Product.UpdatedByName})" : "")
-                                </span>
-                            </div>
+                                </td>
+                            </tr>
                         }
-                    </div>
-                </div>
+                    </tbody>
+                </table>
             </div>
         </div>
 
@@ -162,25 +158,32 @@
         <div class="tab-pane fade" id="attr-tab-pane" role="tabpanel" tabindex="0">
             @if (Model.Product.AttributeValues != null && Model.Product.AttributeValues.Any())
             {
-                <div class="row g-4">
-                    @foreach (var av in Model.Product.AttributeValues)
-                    {
-                        <div class="col-md-6 col-lg-4">
-                            <div class="d-flex justify-content-between align-items-center border-bottom border-dashed pb-2">
-                                <div>
-                                    <span class="text-muted fw-medium">@av.AttributeName</span>
-                                    <code class="small text-secondary ms-1">(@av.AttributeCode)</code>
-                                </div>
-                                <div class="text-end">
-                                    <span class="fw-bold text-dark">@av.AttributeValue</span>
-                                    @if (!string.IsNullOrEmpty(av.UnitLabel))
-                                    {
-                                        <span class="small text-muted ms-1">@av.UnitLabel</span>
-                                    }
-                                </div>
-                            </div>
-                        </div>
-                    }
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 35%;">Tên Thông Số</th>
+                                <th>Mã</th>
+                                <th class="text-end">Giá Trị</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var av in Model.Product.AttributeValues)
+                            {
+                                <tr>
+                                    <td class="fw-medium text-muted">@av.AttributeName</td>
+                                    <td><code class="small text-secondary">@av.AttributeCode</code></td>
+                                    <td class="text-end">
+                                        <span class="fw-bold text-dark">@av.AttributeValue</span>
+                                        @if (!string.IsNullOrEmpty(av.UnitLabel))
+                                        {
+                                            <span class="small text-muted ms-1">@av.UnitLabel</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
                 </div>
             }
             else
