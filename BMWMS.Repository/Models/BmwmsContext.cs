@@ -879,6 +879,7 @@ public partial class BmwmsContext : DbContext
             entity.HasIndex(e => e.GroupCode, "UQ_ProductGroups_Code").IsUnique();
 
             entity.Property(e => e.ProductGroupId).HasColumnName("ProductGroupID");
+            entity.Property(e => e.BaseUnitOfMeasureId).HasColumnName("BaseUnitOfMeasureID");
             entity.Property(e => e.CreatedAt)
                 .HasPrecision(0)
                 .HasDefaultValueSql("(sysutcdatetime())");
@@ -1292,6 +1293,7 @@ public partial class BmwmsContext : DbContext
             entity.HasIndex(e => new { e.StorageLocationId, e.WarehouseId }, "UQ_StorageLocations_LocationWarehouse").IsUnique();
 
             entity.Property(e => e.StorageLocationId).HasColumnName("StorageLocationID");
+            entity.Property(e => e.MaxCapacityQuantity).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.AreaSquareMeter).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.CreatedAt)
                 .HasPrecision(0)
@@ -1333,6 +1335,7 @@ public partial class BmwmsContext : DbContext
             entity.HasKey(e => e.RackId);
 
             entity.Property(e => e.AreaSquareMeter).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.MaxCapacityQuantity).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.MaxVolumeM3).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.MaxWeightKg).HasColumnType("decimal(18, 4)");
 
@@ -1363,7 +1366,7 @@ public partial class BmwmsContext : DbContext
         {
             entity.HasIndex(e => e.SupplierCode, "UQ_Suppliers_Code").IsUnique();
 
-            entity.HasIndex(e => e.TaxCode, "UQ_Suppliers_TaxCode").IsUnique();
+            entity.HasIndex(e => e.TaxCode, "UQ_Suppliers_TaxCode").IsUnique().HasFilter("[TaxCode] IS NOT NULL");
 
             entity.Property(e => e.SupplierId).HasColumnName("SupplierID");
             entity.Property(e => e.Address).HasMaxLength(500);
@@ -1982,6 +1985,8 @@ public partial class BmwmsContext : DbContext
             entity.HasIndex(e => new { e.ZoneId, e.WarehouseId }, "UQ_WarehouseZones_ZoneWarehouse").IsUnique();
 
             entity.Property(e => e.ZoneId).HasColumnName("ZoneID");
+            entity.Property(e => e.ProductGroupId).HasColumnName("ProductGroupID");
+            entity.Property(e => e.MaxCapacityQuantity).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.AreaSquareMeter).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.Description).HasMaxLength(500);
             entity.Property(e => e.MaxVolumeM3).HasColumnType("decimal(18, 4)");
