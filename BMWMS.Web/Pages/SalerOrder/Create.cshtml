@@ -481,8 +481,9 @@
                 };
 
                 errorBox.classList.add('d-none');
-                if (!payload.customerName || !payload.phoneNumber || !payload.address) {
-                    errorBox.textContent = 'Vui lòng nhập tên khách hàng, số điện thoại và địa chỉ.';
+                const emailField = document.getElementById('newCustomerEmail');
+                if (payload.customerName.length < 2 || payload.phoneNumber.length < 8 || payload.address.length < 3 || !emailField.checkValidity()) {
+                    errorBox.textContent = 'Tên cần ít nhất 2 ký tự, số điện thoại ít nhất 8 ký tự, địa chỉ ít nhất 3 ký tự và email phải hợp lệ.';
                     errorBox.classList.remove('d-none');
                     return;
                 }
@@ -493,7 +494,7 @@
 
                 try {
                     const token = document.querySelector('#createSoForm input[name="__RequestVerificationToken"]').value;
-                    const response = await fetch('?handler=CreateCustomer', {
+                    const response = await fetch(`${window.location.pathname}?handler=CreateCustomer`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -501,18 +502,33 @@
                         },
                         body: JSON.stringify(payload)
                     });
-                    const result = await response.json();
+                    if (response.redirected && response.url.includes('/Auth/Login'))
+                        throw new Error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+                    const rawResult = await response.text();
+                    let result = {};
+                    try { result = rawResult ? JSON.parse(rawResult) : {}; }
+                    catch { throw new Error('Máy chủ trả về phản hồi không hợp lệ. Vui lòng tải lại trang và thử lại.'); }
                     const validationMessage = Object.values(result.errors || {}).flat()[0];
                     if (!response.ok || !result.success) {
                         throw new Error(result.message || validationMessage || 'Không thể tạo khách hàng.');
                     }
 
                     const customer = result.data;
+                    if (!customer || !customer.customerId)
+                        throw new Error('Đã lưu khách hàng nhưng không nhận được mã. Vui lòng tải lại trang để chọn khách hàng.');
                     const select = document.getElementById('SalesOrder_CustomerId');
+                    if (!select)
+                        throw new Error('Đã lưu khách hàng. Vui lòng tải lại trang để chọn khách hàng mới.');
                     const option = new Option(`${customer.customerCode} — ${customer.customerName}`, customer.customerId, true, true);
                     select.add(option);
+                    select.value = String(customer.customerId);
+                    select.dispatchEvent(new Event('change', { bubbles: true }));
                     document.querySelectorAll('.customer-field').forEach(field => field.value = '');
-                    bootstrap.Modal.getOrCreateInstance(document.getElementById('customerModal')).hide();
+                    try {
+                        window.bootstrap?.Modal.getOrCreateInstance(document.getElementById('customerModal')).hide();
+                    } catch {
+                        document.querySelector('#customerModal [data-bs-dismiss="modal"]')?.click();
+                    }
                 } catch (error) {
                     errorBox.textContent = error.message;
                     errorBox.classList.remove('d-none');

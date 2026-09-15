@@ -41,6 +41,22 @@ namespace BMWMS.Web.Pages.SaleOrder
 
             return NotFound();
         }
+
+        public async Task<IActionResult> OnPostConfirmAsync(long id)
+        {
+            var client = _httpClientFactory.CreateClient("ApiClient");
+            var response = await client.PostAsync($"api/SalesOrders/{id}/confirm", null);
+            if (response.IsSuccessStatusCode)
+            {
+                TempData["SuccessMessage"] = "Đã xác nhận đơn hàng thành công.";
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                TempData["ErrorMessage"] = "Không thể xác nhận đơn hàng: " + error;
+            }
+            return RedirectToPage(new { id });
+        }
     }
 
     // --- CÁC CLASS DTO KHỚP CHÍNH XÁC VỚI RESPONSE JSON BẠN CUNG CẤP ---

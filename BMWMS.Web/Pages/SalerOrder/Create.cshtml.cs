@@ -1,4 +1,6 @@
 using BMWMS.Web.Models.Inventory;
+using System.Net;
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -8,10 +10,12 @@ namespace BMWMS.Web.Pages.SalesOrders
     public class CreateModel : PageModel
     {
         private readonly IHttpClientFactory _httpClientFactory;
+        private readonly ILogger<CreateModel> _logger;
 
-        public CreateModel(IHttpClientFactory httpClientFactory)
+        public CreateModel(IHttpClientFactory httpClientFactory, ILogger<CreateModel> logger)
         {
             _httpClientFactory = httpClientFactory;
+            _logger = logger;
         }
 
         [BindProperty]
@@ -63,8 +67,7 @@ namespace BMWMS.Web.Pages.SalesOrders
                 var response = await client.PostAsJsonAsync("api/SalesOrders", SalesOrder);
                 if (!response.IsSuccessStatusCode)
                 {
-                    var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
-                    ErrorMessage = error?.Message ?? "Không thể tạo đơn bán hàng.";
+                    ErrorMessage = await ReadApiErrorAsync(response, "Không thể tạo đơn bán hàng.");
                     await LoadFormDataAsync();
                     return Page();
                 }
@@ -83,41 +86,60 @@ namespace BMWMS.Web.Pages.SalesOrders
                 TempData["SuccessMessage"] = "Tạo đơn bán hàng nháp thành công.";
                 return RedirectToPage("./Details", new { id = salesOrderId });
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Cannot create sales order draft from the web form.");
                 ErrorMessage = "Không thể kết nối đến hệ thống dữ liệu. Vui lòng thử lại sau.";
                 await LoadFormDataAsync();
                 return Page();
             }
         }
 
-        public async Task<IActionResult> OnPostCreateCustomerAsync([FromBody] CreateCustomerInput input)
+        public async Task<IActionResult> OnPostCreateCustomerAsync()
         {
             var client = _httpClientFactory.CreateClient("ApiClient");
 
             try
             {
+                using var reader = new StreamReader(Request.Body);
+                var json = await reader.ReadToEndAsync();
+                var input = JsonSerializer.Deserialize<CreateCustomerInput>(
+                    json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                if (input == null)
+                {
+                    Response.StatusCode = StatusCodes.Status400BadRequest;
+                    return new JsonResult(new { success = false, message = "Thông tin khách hàng không hợp lệ." });
+                }
+
                 var response = await client.PostAsJsonAsync("api/Customers", input);
                 if (!response.IsSuccessStatusCode)
                 {
-                    var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
                     Response.StatusCode = (int)response.StatusCode;
                     return new JsonResult(new
                     {
                         success = false,
-                        message = error?.Message ?? "Không thể tạo khách hàng."
+                        message = await ReadApiErrorAsync(response, "Không thể tạo khách hàng.")
                     });
                 }
 
                 var customer = await response.Content.ReadFromJsonAsync<CustomerDto>();
+                if (customer == null || customer.CustomerId <= 0)
+                    throw new JsonException("The customer API returned no customer identifier.");
                 return new JsonResult(new
                 {
                     success = true,
                     data = customer
                 });
             }
-            catch
+            catch (JsonException ex)
             {
+                _logger.LogWarning(ex, "Invalid customer request or response in the sales-order form.");
+                Response.StatusCode = StatusCodes.Status400BadRequest;
+                return new JsonResult(new { success = false, message = "Dữ liệu khách hàng không hợp lệ. Vui lòng tải lại trang và thử lại." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Cannot create customer from the sales-order form.");
                 Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
                 return new JsonResult(new
                 {
@@ -125,6 +147,38 @@ namespace BMWMS.Web.Pages.SalesOrders
                     message = "Không thể kết nối đến hệ thống dữ liệu."
                 });
             }
+        }
+
+        private static async Task<string> ReadApiErrorAsync(HttpResponseMessage response, string fallback)
+        {
+            if (response.StatusCode == HttpStatusCode.Unauthorized)
+                return "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.";
+            if (response.StatusCode == HttpStatusCode.Forbidden)
+                return "Tài khoản hiện tại không có quyền thực hiện thao tác này.";
+
+            try
+            {
+                var body = await response.Content.ReadAsStringAsync();
+                using var document = JsonDocument.Parse(body);
+                var root = document.RootElement;
+                if (root.TryGetProperty("message", out var message) &&
+                    message.ValueKind == JsonValueKind.String &&
+                    !string.IsNullOrWhiteSpace(message.GetString()))
+                    return message.GetString()!;
+
+                if (root.TryGetProperty("errors", out var errors) && errors.ValueKind == JsonValueKind.Object)
+                    foreach (var property in errors.EnumerateObject())
+                        if (property.Value.ValueKind == JsonValueKind.Array)
+                            foreach (var item in property.Value.EnumerateArray())
+                                if (item.ValueKind == JsonValueKind.String && !string.IsNullOrWhiteSpace(item.GetString()))
+                                    return item.GetString()!;
+            }
+            catch (JsonException)
+            {
+                // A proxy may return HTML for authentication or server failures.
+            }
+
+            return $"{fallback} (HTTP {(int)response.StatusCode})";
         }
 
         private void ValidateBusinessInput()
