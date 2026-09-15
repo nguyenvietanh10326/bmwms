@@ -44,6 +44,7 @@ namespace BMWMS.Business.Services
                 ProductGroupId = g.ProductGroupId,
                 GroupCode = g.GroupCode,
                 GroupName = g.GroupName,
+                BaseUnitOfMeasureId = g.BaseUnitOfMeasureId,
                 Description = g.Description,
                 Status = g.Status,
                 ProductCount = g.Products.Count,
@@ -69,6 +70,7 @@ namespace BMWMS.Business.Services
                 ProductGroupId = g.ProductGroupId,
                 GroupCode = g.GroupCode,
                 GroupName = g.GroupName,
+                BaseUnitOfMeasureId = g.BaseUnitOfMeasureId,
                 Description = g.Description,
                 Status = g.Status,
                 ProductCount = g.Products.Count,
@@ -88,13 +90,16 @@ namespace BMWMS.Business.Services
                 ProductGroupId = group.ProductGroupId,
                 GroupCode = group.GroupCode,
                 GroupName = group.GroupName,
+                BaseUnitOfMeasureId = group.BaseUnitOfMeasureId,
                 Description = group.Description,
                 Status = group.Status,
                 ProductCount = group.Products.Count,
                 AttributeCount = group.ProductGroupAttributes.Count,
                 CreatedAt = group.CreatedAt,
                 UpdatedAt = group.UpdatedAt,
-                Attributes = group.ProductGroupAttributes.Select(pga => new GroupAttributeConfigDto
+                Attributes = group.ProductGroupAttributes
+                    .Where(pga => ProductAttributePolicy.IsAllowed(pga.ProductAttribute.AttributeCode))
+                    .Select(pga => new GroupAttributeConfigDto
                 {
                     ProductAttributeId = pga.ProductAttributeId,
                     AttributeCode = pga.ProductAttribute.AttributeCode,
@@ -121,7 +126,9 @@ namespace BMWMS.Business.Services
         public async Task<List<GroupAttributeConfigDto>> GetAttributesByGroupIdAsync(long productGroupId)
         {
             var groupAttrs = await _productGroupRepository.GetAttributesByGroupIdAsync(productGroupId);
-            return groupAttrs.Select(pga => new GroupAttributeConfigDto
+            return groupAttrs
+                .Where(pga => ProductAttributePolicy.IsAllowed(pga.ProductAttribute.AttributeCode))
+                .Select(pga => new GroupAttributeConfigDto
             {
                 ProductAttributeId = pga.ProductAttributeId,
                 AttributeCode = pga.ProductAttribute.AttributeCode,
@@ -147,7 +154,8 @@ namespace BMWMS.Business.Services
         public async Task<List<ProductAttributeDto>> GetAllAttributesAsync()
         {
             var attrs = await _productGroupRepository.GetAllAttributesAsync();
-            return attrs.Select(a => new ProductAttributeDto
+            return attrs.Where(a => ProductAttributePolicy.IsAllowed(a.AttributeCode))
+                .Select(a => new ProductAttributeDto
             {
                 ProductAttributeId = a.ProductAttributeId,
                 AttributeCode = a.AttributeCode,
@@ -170,6 +178,10 @@ namespace BMWMS.Business.Services
 
         public async Task<long> CreateAsync(CreateProductGroupDto dto, long userId)
         {
+            if (!dto.BaseUnitOfMeasureId.HasValue ||
+                !await _productGroupRepository.IsActiveUnitOfMeasureAsync(dto.BaseUnitOfMeasureId.Value))
+                throw new InvalidOperationException("Chọn đơn vị tính cơ sở đang hoạt động cho nhóm sản phẩm.");
+
             var isCodeExists = await _productGroupRepository.IsGroupCodeExistsAsync(dto.GroupCode.Trim());
             if (isCodeExists)
                 throw new InvalidOperationException($"Mã nhóm sản phẩm '{dto.GroupCode}' đã tồn tại trong hệ thống.");
@@ -178,6 +190,7 @@ namespace BMWMS.Business.Services
             {
                 GroupCode = dto.GroupCode.Trim().ToUpper(),
                 GroupName = dto.GroupName.Trim(),
+                BaseUnitOfMeasureId = dto.BaseUnitOfMeasureId,
                 Description = dto.Description?.Trim(),
                 Status = dto.Status ?? "ACTIVE",
                 CreatedAt = DateTime.UtcNow
@@ -194,7 +207,7 @@ namespace BMWMS.Business.Services
                 ActionType = AuditActions.Create,
                 EntityName = AuditEntities.ProductGroup,
                 EntityId = id.ToString(),
-                NewValues = new { group.GroupCode, group.GroupName, group.Description, group.Status }
+                NewValues = new { group.GroupCode, group.GroupName, group.BaseUnitOfMeasureId, group.Description, group.Status }
             });
 
             return id;
@@ -206,7 +219,17 @@ namespace BMWMS.Business.Services
             if (group == null)
                 throw new KeyNotFoundException($"Không tìm thấy nhóm sản phẩm với ID: {productGroupId}");
 
-            var oldValues = new { group.GroupName, group.Description, group.Status };
+            var oldValues = new { group.GroupName, group.BaseUnitOfMeasureId, group.Description, group.Status };
+
+            if (dto.BaseUnitOfMeasureId.HasValue)
+            {
+                if (!await _productGroupRepository.IsActiveUnitOfMeasureAsync(dto.BaseUnitOfMeasureId.Value))
+                    throw new InvalidOperationException("Đơn vị tính cơ sở không tồn tại hoặc đang ngừng sử dụng.");
+                if (group.Products.Any(product => product.UnitOfMeasureId != dto.BaseUnitOfMeasureId.Value))
+                    throw new InvalidOperationException(
+                        "Nhóm hiện có sản phẩm dùng đơn vị tính khác. Cần phân tách/chuyển nhóm sản phẩm trước khi đặt một ĐVT chung; hệ thống không tự đổi ĐVT của hàng đã giao dịch.");
+                group.BaseUnitOfMeasureId = dto.BaseUnitOfMeasureId;
+            }
 
             group.GroupName = dto.GroupName.Trim();
             group.Description = dto.Description?.Trim();
@@ -224,7 +247,8 @@ namespace BMWMS.Business.Services
                 attrs = await BuildValidatedGroupAttributesAsync(
                     productGroupId,
                     existingAttributes
-                        .Where(attribute => attribute.ProductAttribute.Status == "ACTIVE")
+                        .Where(attribute => attribute.ProductAttribute.Status == "ACTIVE" &&
+                                            ProductAttributePolicy.IsAllowed(attribute.ProductAttribute.AttributeCode))
                         .Select(ToAssignmentDto));
             }
 
@@ -237,7 +261,7 @@ namespace BMWMS.Business.Services
                 EntityName = AuditEntities.ProductGroup,
                 EntityId = productGroupId.ToString(),
                 OldValues = oldValues,
-                NewValues = new { group.GroupName, group.Description, group.Status }
+                NewValues = new { group.GroupName, group.BaseUnitOfMeasureId, group.Description, group.Status }
             });
         }
 
@@ -258,7 +282,8 @@ namespace BMWMS.Business.Services
                 attrs = await BuildValidatedGroupAttributesAsync(
                     productGroupId,
                     existingAttributes
-                        .Where(attribute => attribute.ProductAttribute.Status == "ACTIVE")
+                        .Where(attribute => attribute.ProductAttribute.Status == "ACTIVE" &&
+                                            ProductAttributePolicy.IsAllowed(attribute.ProductAttribute.AttributeCode))
                         .Select(ToAssignmentDto));
             }
 
@@ -330,6 +355,7 @@ namespace BMWMS.Business.Services
         {
             var allAttributes = await _productGroupRepository.GetAllAttributesAsync();
             var activeAttributeIds = allAttributes
+                .Where(attribute => ProductAttributePolicy.IsAllowed(attribute.AttributeCode))
                 .Select(attribute => attribute.ProductAttributeId)
                 .ToHashSet();
             var submitted = assignments.ToList();
@@ -341,20 +367,6 @@ namespace BMWMS.Business.Services
                     "Một hoặc nhiều thuộc tính không tồn tại hoặc đang ngừng hoạt động.");
             if (submitted.Any(attribute => attribute.DisplayOrder < 0))
                 throw new InvalidOperationException("Thứ tự hiển thị thuộc tính không được là số âm.");
-
-            var attributeCodesById = allAttributes.ToDictionary(
-                attribute => attribute.ProductAttributeId,
-                attribute => attribute.AttributeCode);
-            var enabledCodes = submitted
-                .Select(assignment => attributeCodesById[assignment.ProductAttributeId])
-                .ToHashSet(StringComparer.OrdinalIgnoreCase);
-            var usesPhysicalStorageFactor = enabledCodes.Contains(StorageVolumeAttributeCode) ||
-                                            enabledCodes.Contains(StorageWeightAttributeCode);
-            if (usesPhysicalStorageFactor &&
-                (!enabledCodes.Contains(StorageFactorBasisAttributeCode) ||
-                 !enabledCodes.Contains(StorageFactorReferenceAttributeCode)))
-                throw new InvalidOperationException(
-                    "Khi bật hệ số kg/m³, phải bật cả 'Cơ sở xác định hệ số lưu kho' và 'Nguồn tham chiếu hệ số lưu kho'.");
 
             return submitted
                 .GroupBy(attribute => attribute.ProductAttributeId)

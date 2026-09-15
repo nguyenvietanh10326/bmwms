@@ -168,6 +168,7 @@ namespace BMWMS.Business.Services
         {
             dto.AttributeValues ??= new List<ProductAttributeValueDto>();
             await NormalizeAndValidateAttributeValuesAsync(dto.ProductGroupId, dto.AttributeValues);
+            dto.UnitOfMeasureId = await ResolveGroupUnitOfMeasureAsync(dto.ProductGroupId);
             if (!(await _productRepository.GetUnitsOfMeasureAsync())
                 .Any(unit => unit.UnitOfMeasureId == dto.UnitOfMeasureId))
                 throw new InvalidOperationException("Đơn vị tính cơ sở không tồn tại hoặc đang ngừng hoạt động.");
@@ -254,6 +255,14 @@ namespace BMWMS.Business.Services
 
             dto.AttributeValues ??= new List<ProductAttributeValueDto>();
             await NormalizeAndValidateAttributeValuesAsync(dto.ProductGroupId, dto.AttributeValues);
+            var targetGroup = await _productGroupRepository.GetByIdAsync(dto.ProductGroupId);
+            if (targetGroup?.BaseUnitOfMeasureId is int configuredUnitId)
+                dto.UnitOfMeasureId = configuredUnitId;
+            else if (dto.ProductGroupId == product.ProductGroupId)
+                dto.UnitOfMeasureId = product.UnitOfMeasureId; // legacy mixed-UOM group
+            else
+                throw new InvalidOperationException(
+                    "Nhóm đích chưa có một ĐVT cơ sở thống nhất; không thể chuyển sản phẩm sang nhóm này.");
             if (!(await _productRepository.GetUnitsOfMeasureAsync())
                 .Any(unit => unit.UnitOfMeasureId == dto.UnitOfMeasureId))
                 throw new InvalidOperationException("Đơn vị tính cơ sở không tồn tại hoặc đang ngừng hoạt động.");
@@ -407,7 +416,8 @@ namespace BMWMS.Business.Services
                 throw new InvalidOperationException("Không thể lưu sản phẩm vào nhóm đang ngừng hoạt động.");
 
             var configuredAttributesById = productGroup.ProductGroupAttributes
-                .Where(groupAttribute => groupAttribute.ProductAttribute.Status == "ACTIVE")
+                .Where(groupAttribute => groupAttribute.ProductAttribute.Status == "ACTIVE" &&
+                                         ProductAttributePolicy.IsAllowed(groupAttribute.ProductAttribute.AttributeCode))
                 .ToDictionary(
                     groupAttribute => groupAttribute.ProductAttributeId);
             var configuredAttributesByCode = configuredAttributesById.Values.ToDictionary(
@@ -531,6 +541,15 @@ namespace BMWMS.Business.Services
                     throw new InvalidOperationException(
                         "Nguồn tham chiếu hệ số lưu kho không được vượt quá 500 ký tự.");
             }
+        }
+
+        private async Task<int> ResolveGroupUnitOfMeasureAsync(long groupId)
+        {
+            var group = await _productGroupRepository.GetByIdAsync(groupId);
+            if (group?.BaseUnitOfMeasureId is not int unitId)
+                throw new InvalidOperationException(
+                    "Nhóm sản phẩm chưa cấu hình ĐVT cơ sở thống nhất. Hãy cấu hình hoặc phân tách nhóm trước khi tạo sản phẩm.");
+            return unitId;
         }
 
         private static int CountSignificantDecimalPlaces(string value)
