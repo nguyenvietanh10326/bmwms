@@ -50,6 +50,9 @@ namespace BMWMS.Business.DTOs.Inventory
         public string DisplayCapacity => AreaSquareMeter.HasValue ? $"{AreaSquareMeter.Value:N0} m²" : "—";
 
         public decimal? MaxWeightKg { get; set; }
+        public decimal? MaxCapacityQuantity { get; set; }
+        public decimal? CurrentCapacityQuantity { get; set; }
+        public string? CapacityUnitName { get; set; }
         public decimal? MaxVolumeM3 { get; set; }
         public decimal? CurrentWeightKg { get; set; }
         public decimal? CurrentVolumeM3 { get; set; }
@@ -69,8 +72,7 @@ namespace BMWMS.Business.DTOs.Inventory
         public string OccupancyStatus => Status.Equals("Blocked", StringComparison.OrdinalIgnoreCase) || Status.Equals("Inactive", StringComparison.OrdinalIgnoreCase)
             ? "Blocked"
             : CapacityStatus.Equals("EXCEEDED", StringComparison.OrdinalIgnoreCase) ||
-              (MaxWeightKg.HasValue && CurrentWeightKg.HasValue && CurrentWeightKg >= MaxWeightKg) ||
-              (MaxVolumeM3.HasValue && CurrentVolumeM3.HasValue && CurrentVolumeM3 >= MaxVolumeM3)
+              (MaxCapacityQuantity.HasValue && CurrentCapacityQuantity.HasValue && CurrentCapacityQuantity >= MaxCapacityQuantity)
                 ? "Full"
                 : HasMissingCapacityData ? "Unknown"
                 : TotalOnHandQuantity > 0 ? "Occupied" : "Available";
@@ -88,6 +90,7 @@ namespace BMWMS.Business.DTOs.Inventory
 
         public decimal? AreaSquareMeter { get; set; }
         public decimal? MaxWeightKg { get; set; }
+        public decimal? MaxCapacityQuantity { get; set; }
         public decimal? MaxVolumeM3 { get; set; }
 
         public bool IsPutawayAllowed { get; set; } = true;
@@ -113,6 +116,11 @@ namespace BMWMS.Business.DTOs.Inventory
         public long WarehouseId { get; set; }
         public string ZoneCode { get; set; } = string.Empty;
         public string ZoneName { get; set; } = string.Empty;
+        public long? ProductGroupId { get; set; }
+        public string? ProductGroupName { get; set; }
+        public string? CapacityUnitName { get; set; }
+        public decimal? MaxCapacityQuantity { get; set; }
+        public decimal AllocatedRackCapacityQuantity { get; set; }
         public string? Description { get; set; }
         public decimal? AreaSquareMeter { get; set; }
         public decimal? MaxWeightKg { get; set; }
@@ -131,6 +139,8 @@ namespace BMWMS.Business.DTOs.Inventory
         public long WarehouseId { get; set; }
         public string ZoneCode { get; set; } = string.Empty;
         public string ZoneName { get; set; } = string.Empty;
+        public long? ProductGroupId { get; set; }
+        public decimal? MaxCapacityQuantity { get; set; }
         public string? Description { get; set; }
         public decimal? AreaSquareMeter { get; set; }
         public decimal? MaxWeightKg { get; set; }
@@ -148,6 +158,8 @@ namespace BMWMS.Business.DTOs.Inventory
         public string ZoneName { get; set; } = string.Empty;
         public string RackCode { get; set; } = string.Empty;
         public string RackName { get; set; } = string.Empty;
+        public decimal? MaxCapacityQuantity { get; set; }
+        public decimal AllocatedLocationCapacityQuantity { get; set; }
         public decimal? AreaSquareMeter { get; set; }
         public decimal? MaxWeightKg { get; set; }
         public decimal? MaxVolumeM3 { get; set; }
@@ -165,6 +177,7 @@ namespace BMWMS.Business.DTOs.Inventory
         public long ZoneId { get; set; }
         public string RackCode { get; set; } = string.Empty;
         public string RackName { get; set; } = string.Empty;
+        public decimal? MaxCapacityQuantity { get; set; }
         public decimal? AreaSquareMeter { get; set; }
         public decimal? MaxWeightKg { get; set; }
         public decimal? MaxVolumeM3 { get; set; }
@@ -189,6 +202,12 @@ namespace BMWMS.Business.DTOs.Inventory
         public long ZoneId { get; set; }
         public string ZoneCode { get; set; } = string.Empty;
         public string ZoneName { get; set; } = string.Empty;
+        public long? ProductGroupId { get; set; }
+        public string? ProductGroupName { get; set; }
+        public string? CapacityUnitName { get; set; }
+        public decimal? MaxCapacityQuantity { get; set; }
+        public decimal? CurrentCapacityQuantity { get; set; }
+        public decimal AllocatedRackCapacityQuantity { get; set; }
         public string? Description { get; set; }
         public decimal? AreaSquareMeter { get; set; }
         public decimal? MaxWeightKg { get; set; }
@@ -210,6 +229,9 @@ namespace BMWMS.Business.DTOs.Inventory
         public long ZoneId { get; set; }
         public string RackCode { get; set; } = string.Empty;
         public string RackName { get; set; } = string.Empty;
+        public decimal? MaxCapacityQuantity { get; set; }
+        public decimal? CurrentCapacityQuantity { get; set; }
+        public decimal AllocatedLocationCapacityQuantity { get; set; }
         public decimal? AreaSquareMeter { get; set; }
         public decimal? MaxWeightKg { get; set; }
         public decimal? MaxVolumeM3 { get; set; }
