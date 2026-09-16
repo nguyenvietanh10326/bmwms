@@ -74,7 +74,8 @@ namespace BMWMS.Business.DTOs.Inventory
             : CapacityStatus.Equals("EXCEEDED", StringComparison.OrdinalIgnoreCase) ||
               (MaxCapacityQuantity.HasValue && CurrentCapacityQuantity.HasValue && CurrentCapacityQuantity >= MaxCapacityQuantity)
                 ? "Full"
-                : HasMissingCapacityData ? "Unknown"
+                : TotalOnHandQuantity > 0 && CurrentCapacityQuantity is null && HasMissingCapacityData
+                    ? "Unknown"
                 : TotalOnHandQuantity > 0 ? "Occupied" : "Available";
     }
 
