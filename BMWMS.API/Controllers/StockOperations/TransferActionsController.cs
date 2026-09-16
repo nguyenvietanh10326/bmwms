@@ -23,7 +23,7 @@ namespace BMWMS.API.Controllers.StockOperations
         private long CurrentUserId => long.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
         private bool IsManager => User.IsInRole("WAREHOUSE_MANAGER");
 
-        [HttpPost("{id}/approve")]
+        [HttpPost("{id:long}/approve")]
         [Authorize(Roles = "WAREHOUSE_MANAGER")]
         public async Task<IActionResult> ApproveTransfer(long id, [FromBody] ApproveTransferDto dto)
         {
@@ -40,7 +40,7 @@ namespace BMWMS.API.Controllers.StockOperations
             }
         }
 
-        [HttpPost("{id}/cancel")]
+        [HttpPost("{id:long}/cancel")]
         public async Task<IActionResult> CancelTransfer(long id, [FromBody] CancelTransferDto dto)
         {
             try
@@ -55,7 +55,7 @@ namespace BMWMS.API.Controllers.StockOperations
             }
         }
 
-        [HttpPost("{id}/confirm")]
+        [HttpPost("{id:long}/confirm")]
         [Authorize(Roles = "WAREHOUSE_STAFF")]
         public async Task<IActionResult> ConfirmTransfer(long id, [FromBody] ConfirmTransferDto dto)
         {
@@ -72,3 +72,4 @@ namespace BMWMS.API.Controllers.StockOperations
         }
     }
 }
+

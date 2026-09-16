@@ -34,6 +34,7 @@ namespace BMWMS.Web.Services
             public string SourceLocationSummary { get; set; } = "";
             public string DestinationLocationSummary { get; set; } = "";
             public string Status { get; set; } = "";
+            public string DisplayLabel => string.IsNullOrWhiteSpace(LocationName) ? LocationCode : $"{LocationCode} - {LocationName}";
             public string StatusLabel { get; set; } = "";
             public string StatusCss { get; set; } = "";
             public string ProgressLabel { get; set; } = "";
@@ -77,6 +78,7 @@ namespace BMWMS.Web.Services
             public string TransferOrderNumber { get; set; } = "";
             public string TransferType { get; set; } = "";
             public string Status { get; set; } = "";
+            public string DisplayLabel => string.IsNullOrWhiteSpace(LocationName) ? LocationCode : $"{LocationCode} - {LocationName}";
             public string StatusLabel { get; set; } = "";
             public string ProgressLabel { get; set; } = "";
             public string NextAction { get; set; } = "";
@@ -226,6 +228,7 @@ namespace BMWMS.Web.Services
             public bool IsPutawayAllowed { get; set; }
             public bool IsPickable { get; set; }
             public string Status { get; set; } = "";
+            public string DisplayLabel => string.IsNullOrWhiteSpace(LocationName) ? LocationCode : $"{LocationCode} - {LocationName}";
             public string DisplayLabel => string.IsNullOrEmpty(ZoneCode) ? LocationCode : $"{ZoneCode} / {RackCode} / {LocationCode}";
         }
 
@@ -472,5 +475,6 @@ namespace BMWMS.Web.Services
         }
     }
 }
+
 
 
