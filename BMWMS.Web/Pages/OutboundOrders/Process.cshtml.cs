@@ -74,7 +74,7 @@ namespace BMWMS.Web.Pages.OutboundOrders
                 {
                     success = true,
                     message = SuccessMessage,
-                    completed = detail?.Status == "ISSUED"
+                    completed = detail?.Status is "ISSUED" or "PENDING_APPROVAL"
                 });
             }
 
@@ -150,6 +150,8 @@ namespace BMWMS.Web.Pages.OutboundOrders
 
     public class AvailableLocationDto
     {
+        public decimal StoredQuantity { get; set; }
+        public decimal HeldQuantity { get; set; }
         public long StorageLocationId { get; set; }
         public string LocationCode { get; set; } = string.Empty;
         public string LocationPath { get; set; } = string.Empty;
@@ -163,6 +165,7 @@ namespace BMWMS.Web.Pages.OutboundOrders
 
     public class PickItemRequestDto
     {
+        public string PickingMethod { get; set; } = "DEFAULT";
         public long OutboundOrderId { get; set; }
         public long OutboundOrderItemId { get; set; }
         public long StorageLocationId { get; set; }

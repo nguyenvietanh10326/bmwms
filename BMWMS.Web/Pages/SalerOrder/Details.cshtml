@@ -21,14 +21,22 @@
     </div>
       <div class="d-flex gap-2 no-print">
           <a href="/sales-orders" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Quay lại</a>
-          @if (order?.Status == "DRAFT" && User.IsInRole("SALES_STAFF"))
+          @if (order?.Status == "DRAFT" && (User.IsInRole("SALES_STAFF") || User.IsInRole("SYSTEM_ADMIN")))
           {
-              <a href="/SalerOrder/Edit?id=@order.SalesOrderId" class="btn btn-outline-warning"><i class="bi bi-pencil me-1"></i>Chỉnh sửa</a>
+              <a href="/sales-orders/create?id=@order.SalesOrderId" class="btn btn-outline-warning"><i class="bi bi-pencil me-1"></i>Chỉnh sửa</a>
+              <form method="post" asp-page-handler="Cancel" asp-route-id="@order.SalesOrderId" onsubmit="return confirm('Hủy SO nháp và giải phóng giữ tồn?');">
+                  <input name="reason" class="form-control" placeholder="Lý do hủy" minlength="10" maxlength="500" required />
+                  <button class="btn btn-outline-danger">Hủy SO nháp</button>
+              </form>
           }
           @if (order?.Status == "DRAFT" && (User.IsInRole("WAREHOUSE_MANAGER") || User.IsInRole("SYSTEM_ADMIN")))
           {
               <form method="post" asp-page-handler="Confirm" asp-route-id="@order.SalesOrderId" onsubmit="return confirm('Bạn có chắc chắn muốn xác nhận đơn hàng này? Hệ thống sẽ giữ tồn kho cho các sản phẩm.');">
                   <button type="submit" class="btn btn-success"><i class="bi bi-check-circle me-1"></i>Duyệt SO &amp; giữ tồn</button>
+              </form>
+              <form method="post" asp-page-handler="Reject" asp-route-id="@order.SalesOrderId" onsubmit="return confirm('Từ chối SO và giải phóng giữ tồn?');">
+                  <input name="reason" class="form-control" placeholder="Lý do từ chối" minlength="10" maxlength="500" required />
+                  <button class="btn btn-outline-danger">Từ chối SO</button>
               </form>
           }
           <button type="button" class="btn btn-outline-primary" onclick="window.print()"><i class="bi bi-printer me-1"></i>In phiếu</button>
@@ -36,6 +44,8 @@
 </div>
 
 <div class="card border-0 shadow-sm mb-4">
+    @if (TempData["ErrorMessage"] is string error) { <div class="alert alert-danger">@error</div> }
+    @if (TempData["SuccessMessage"] is string success) { <div class="alert alert-success">@success</div> }
     <div class="card-body">
         <div class="row g-3">
             <div class="col-md-4"><div class="text-muted small">Khách hàng</div><strong>[@order?.CustomerCode] @order?.CustomerName</strong></div>
@@ -95,6 +105,7 @@
         "PARTIALLY_FULFILLED" => "Đã xuất một phần",
         "FULFILLED" or "COMPLETED" => "Đã xuất đủ",
         "CANCELLED" => "Đã hủy",
+        "REJECTED" => "Quản lý từ chối",
         _ => status ?? "Không xác định"
     };
 

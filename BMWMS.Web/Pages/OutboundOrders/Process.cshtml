@@ -57,7 +57,13 @@
                     </div>
                 }
 
-                <div class="fw-semibold mb-2">Phân bổ lấy hàng</div>
+                <div class="d-flex align-items-center gap-3 mb-2"><div class="fw-semibold">Phân bổ lấy hàng</div>
+                    <select class="form-select form-select-sm picking-method" data-item-id="@item.OutboundOrderItemId" style="max-width:260px" aria-label="Phương pháp lấy @item.ProductCode">
+                        <option value="FIFO" selected="@(item.RotationMethod == "FIFO")">FIFO — ngày nhập cũ nhất</option>
+                        <option value="FEFO" selected="@(item.RotationMethod == "FEFO")">FEFO — HSD gần nhất</option>
+                        <option value="CUSTOM">Tự chọn vị trí</option>
+                    </select>
+                </div>
                 @if (item.AvailableLocations.Count == 0)
                 { <div class="alert alert-warning mb-0">Không còn hàng đủ điều kiện tại vị trí kho. Báo quản lý trước khi tiếp tục hoặc kết thúc đợt.</div> }
                 else
@@ -69,14 +75,14 @@
                         {
                             var suggested = Math.Min(suggestedRemaining, location.AvailableQuantity);
                             suggestedRemaining -= suggested;
-                            <tr class="pick-row" data-item-id="@item.OutboundOrderItemId" data-item-remaining="@item.RemainingQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture)" data-suggested="@suggested.ToString(System.Globalization.CultureInfo.InvariantCulture)">
+                            <tr class="pick-row" data-item-id="@item.OutboundOrderItemId" data-received="@(location.FirstReceivedDate?.ToString("yyyy-MM-dd"))" data-expiry="@(location.ExpiryDate?.ToString("yyyy-MM-dd"))" data-item-remaining="@item.RemainingQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture)" data-suggested="@suggested.ToString(System.Globalization.CultureInfo.InvariantCulture)">
                                 <td><input type="checkbox" class="form-check-input pick-check" aria-label="Chọn vị trí @location.LocationCode" @(suggested > 0 ? "checked" : null) /></td>
-                                <td>@(string.IsNullOrWhiteSpace(location.LocationPath) ? location.LocationCode : location.LocationPath) @if (suggested > 0) { <span class="badge bg-info-subtle text-info-emphasis">Đề xuất</span> }</td>
+                                <td>@(string.IsNullOrWhiteSpace(location.LocationPath) ? location.LocationCode : location.LocationPath) <span class="badge bg-info-subtle text-info-emphasis suggestion-badge" hidden="@(suggested <= 0)">Đề xuất</span></td>
                                 <td><div>@(location.FirstReceivedDate?.ToString("dd/MM/yyyy") ?? "Không xác định")</div><div class="text-muted small">HSD: @(location.ExpiryDate?.ToString("dd/MM/yyyy") ?? "Không áp dụng")</div></td>
-                                <td class="text-end">@FormatQuantity(location.AvailableQuantity, item.QuantityScale) @item.UnitName</td>
+                                <td class="text-end">@FormatQuantity(location.AvailableQuantity, item.QuantityScale) @item.UnitName<div class="text-muted small">Cất: @FormatQuantity(location.StoredQuantity, item.QuantityScale) · Giữ: @FormatQuantity(location.HeldQuantity, item.QuantityScale)</div></td>
                                 <td>
                                     <input type="number" class="form-control form-control-sm pick-quantity"
-                                           min="@QuantityStep(item.QuantityScale)" max="@location.AvailableQuantity"
+                                           min="@QuantityStep(item.QuantityScale)" max="@location.AvailableQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture)"
                                            step="@QuantityStep(item.QuantityScale)"
                                            value="@suggested.ToString(System.Globalization.CultureInfo.InvariantCulture)"
                                            data-order-id="@Model.Order.OutboundOrderId"
@@ -102,8 +108,8 @@
                 @if (Model.Order.Items.Any(item => item.IssuedQuantity > 0) &&
                      Model.Order.Items.Any(item => item.RemainingQuantity > 0))
                 {
-                    <form method="post" asp-page-handler="Complete" asp-route-id="@Model.Order.OutboundOrderId" class="mt-2" onsubmit="return confirm('Hoàn tất đợt xuất theo số lượng thực tế đã ghi nhận? Phần chưa trả NCC sẽ được giải phóng giữ tồn; phần SO chưa giao vẫn chờ xử lý.');">
-                        <div class="input-group"><input name="reason" class="form-control" minlength="10" maxlength="500" placeholder="Lý do kết thúc đợt khi còn thiếu" required /><button class="btn btn-outline-warning">Hoàn tất đợt giao một phần</button></div>
+                    <form method="post" asp-page-handler="Complete" asp-route-id="@Model.Order.OutboundOrderId" class="mt-2" onsubmit="return confirm('Gửi số thực xuất để Quản lý kho duyệt chốt đợt?');">
+                        <div class="input-group"><input name="reason" class="form-control" minlength="10" maxlength="500" placeholder="Lý do đợt này giao thiếu" required /><button class="btn btn-outline-primary">Gửi chốt đợt giao thiếu</button></div>
                     </form>
                 }
             </div>
@@ -135,7 +141,7 @@
 @section Scripts {
 @Html.AntiForgeryToken()
 <script>
-    const checks = [...document.querySelectorAll('.pick-check')];
+    let checks = [...document.querySelectorAll('.pick-check')];
     const reviewButton = document.getElementById('reviewBatch');
     const submitButton = document.getElementById('submitBatch');
     const batchError = document.getElementById('batchError');
@@ -152,12 +158,42 @@
     document.querySelectorAll('.shipment-check').forEach(input => input.addEventListener('change', validateBatch));
     reviewButton?.addEventListener('click', renderBatchSummary);
     submitButton?.addEventListener('click', submitBatch);
+    document.querySelectorAll('.picking-method').forEach(select => {
+        select.addEventListener('change', () => applyMethod(select));
+        applyMethod(select);
+    });
+
+    function applyMethod(select) {
+        const rows = [...document.querySelectorAll('.pick-row')].filter(r => r.dataset.itemId === select.dataset.itemId);
+        rows.sort((a,b) => {
+            const expiry = select.value === 'FEFO' ? (a.dataset.expiry || '9999').localeCompare(b.dataset.expiry || '9999') : 0;
+            return expiry || (a.dataset.received || '9999').localeCompare(b.dataset.received || '9999') ||
+                a.querySelector('td:nth-child(2)').textContent.localeCompare(b.querySelector('td:nth-child(2)').textContent, 'vi', {numeric:true});
+        });
+        let remaining = Number(rows[0]?.dataset.itemRemaining || 0);
+        rows.forEach(row => {
+            row.parentElement.appendChild(row);
+            const input = row.querySelector('.pick-quantity'), check = row.querySelector('.pick-check');
+            const suggestion = select.value === 'FEFO' && !row.dataset.expiry ? 0 : Math.min(remaining, Number(input.max));
+            remaining -= suggestion;
+            row.dataset.suggested = String(suggestion);
+            row.dataset.method = select.value;
+            check.checked = select.value !== 'CUSTOM' && suggestion > 0;
+            input.value = check.checked ? suggestion : '';
+            input.disabled = !check.checked;
+            row.hidden = select.value !== 'CUSTOM' && suggestion <= 0;
+            row.querySelector('.suggestion-badge').hidden = select.value === 'CUSTOM' || suggestion <= 0;
+        });
+        checks = [...document.querySelectorAll('.pick-check')];
+        validateBatch();
+    }
 
     function validateBatch() {
         const selectedRows = checks.filter(check => check.checked).map(check => check.closest('.pick-row'));
         let message = selectedRows.length ? '' : 'Chọn ít nhất một vị trí cần lấy.';
         const totals = new Map();
         let deviatesFromSuggestion = false;
+        if (selectedRows.some(row => row.dataset.method === 'CUSTOM')) deviatesFromSuggestion = true;
         selectedRows.forEach(row => {
             const input = row.querySelector('.pick-quantity');
             const quantity = Number(input.value);
@@ -173,7 +209,7 @@
             const row = check.closest('.pick-row');
             const input = row.querySelector('.pick-quantity');
             const remaining = suggestionRemaining.get(row.dataset.itemId) || 0;
-            const expected = Math.min(remaining, Number(input.max));
+            const expected = row.dataset.method === 'FEFO' && !row.dataset.expiry ? 0 : Math.min(remaining, Number(input.max));
             suggestionRemaining.set(row.dataset.itemId, remaining - expected);
             const actual = check.checked ? Number(input.value) : 0;
             if (Math.abs(actual - expected) > 0.000001) deviatesFromSuggestion = true;
@@ -216,6 +252,7 @@
             return {
                 outboundOrderId: Number(input.dataset.orderId),
                 outboundOrderItemId: Number(row.dataset.itemId),
+                pickingMethod: row.dataset.method || 'DEFAULT',
                 storageLocationId: Number(input.dataset.locationId),
                 productLotId: Number(input.dataset.lotId),
                 inventoryReservationId: input.dataset.reservationId ? Number(input.dataset.reservationId) : null,

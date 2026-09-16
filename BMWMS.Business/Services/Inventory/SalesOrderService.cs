@@ -42,6 +42,7 @@ namespace BMWMS.Business.Services.Inventory
             }
 
             var items = new List<SalesOrderItemDto>();
+            if (await _context.OutboundOrders.AnyAsync(o => o.SalesOrderId == salesOrderId && o.Status == "PENDING_APPROVAL")) return null;
 
             foreach (var detail in salesOrder.SalesOrderDetails)
             {
@@ -346,6 +347,14 @@ namespace BMWMS.Business.Services.Inventory
 
         public async Task<bool> UpdateDraftAsync(CreateUpdateSalesOrderDto dto)
         {
+            var actor = await _context.Users.Include(u => u.Role).AsNoTracking()
+                .FirstOrDefaultAsync(u => u.UserId == dto.CurrentUserId && u.Status == "ACTIVE");
+            if (actor?.Role?.RoleCode is not ("SALES_STAFF" or "SYSTEM_ADMIN"))
+                throw new InvalidOperationException("Chỉ nhân viên bán hàng được sửa SO nháp.");
+            if (await _salesOrderRepository.GetActiveCustomerAsync(dto.CustomerId) == null)
+                throw new ArgumentException("Khách hàng không còn hoạt động.");
+            if (dto.ExpectedIssueDate < dto.OrderDate)
+                throw new ArgumentException("Ngày xuất dự kiến không được trước ngày đặt hàng.");
             if (!dto.SalesOrderId.HasValue || dto.Items == null || dto.Items.Count == 0) return false;
             if (dto.Items.GroupBy(i => i.ProductId).Any(g => g.Count() > 1))
                 throw new ArgumentException("Mỗi sản phẩm chỉ được xuất hiện một lần trong đơn bán hàng.");
@@ -520,6 +529,26 @@ namespace BMWMS.Business.Services.Inventory
             }
 
             await _context.SaveChangesAsync();
+        }
+
+        public async Task<(bool IsSuccess, string Message)> RejectDraftAsync(long salesOrderId, long userId, string reason)
+        {
+            reason = reason?.Trim() ?? "";
+            if (reason.Length is < 10 or > 500) return (false, "Lý do từ chối phải từ 10 đến 500 ký tự.");
+            await using var tx = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+            var actor = await _context.Users.Include(u => u.Role).AsNoTracking()
+                .FirstOrDefaultAsync(u => u.UserId == userId && u.Status == "ACTIVE");
+            if (actor?.Role?.RoleCode is not ("WAREHOUSE_MANAGER" or "SYSTEM_ADMIN"))
+                return (false, "Chỉ Quản lý kho được từ chối SO.");
+            var order = await _salesOrderRepository.GetByIdAsync(salesOrderId);
+            if (order?.Status != "DRAFT") return (false, "Chỉ được từ chối SO đang nháp.");
+            await ReleaseReservationsAsync(salesOrderId, userId);
+            order.Status = "REJECTED";
+            order.Notes = $"{order.Notes}\nManager từ chối: {reason}";
+            order.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+            await tx.CommitAsync();
+            return (true, "Đã từ chối SO và giải phóng giữ tồn.");
         }
     }
 }

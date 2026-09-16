@@ -61,6 +61,19 @@ namespace BMWMS.Web.Pages.SaleOrder
             }
             return RedirectToPage(new { id });
         }
+
+        public async Task<IActionResult> OnPostCancelAsync(long id, string reason) => await ChangeStateAsync(id, "cancel", reason);
+        public async Task<IActionResult> OnPostRejectAsync(long id, string reason) => await ChangeStateAsync(id, "reject", reason);
+        private async Task<IActionResult> ChangeStateAsync(long id, string action, string reason)
+        {
+            if (action == "reject" && !User.IsInRole("WAREHOUSE_MANAGER") && !User.IsInRole("SYSTEM_ADMIN")) return Forbid();
+            if (action == "cancel" && !User.IsInRole("SALES_STAFF") && !User.IsInRole("SYSTEM_ADMIN")) return Forbid();
+            var client = _httpClientFactory.CreateClient("ApiClient");
+            var response = await client.PostAsJsonAsync($"api/SalesOrders/{id}/{action}", new { reason });
+            TempData[response.IsSuccessStatusCode ? "SuccessMessage" : "ErrorMessage"] =
+                response.IsSuccessStatusCode ? "Đã cập nhật SO." : await BMWMS.Web.Services.ApiErrorReader.ReadAsync(response);
+            return RedirectToPage(new { id });
+        }
     }
 
     // --- CÁC CLASS DTO KHỚP CHÍNH XÁC VỚI RESPONSE JSON BẠN CUNG CẤP ---

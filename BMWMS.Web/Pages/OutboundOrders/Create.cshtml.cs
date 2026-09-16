@@ -83,6 +83,7 @@ public class CreateModel : PageModel
             {
                 ProductId = i.ProductId,
                 RequestedQuantity = i.RequestedQuantity,
+                RequestedLocations = i.SourceLocations.Where(s => s.Quantity > 0).ToList(),
                 Notes = i.Notes
             }).ToList()
         };
@@ -185,7 +186,7 @@ public class CreateModel : PageModel
         Input.Items = detail.Items.Select(x => new OutboundOrderItemVM
         {
             ProductId = x.ProductId, ProductCode = x.ProductCode, ProductName = x.ProductName,
-            UnitName = x.UnitName, ReferenceQuantity = x.ReceivedQuantity,
+            UnitName = x.UnitName, ReferenceQuantity = x.ReceivedQuantity, SourceLocations = x.SourceLocations,
             AvailableQuantity = x.RemainingQuantity, RequestedQuantity = x.RemainingQuantity,
             QuantityScale = x.QuantityScale, TrackLot = x.TrackLot
         }).ToList();
@@ -206,6 +207,7 @@ public class OutboundOrderVM
 }
 public class OutboundOrderItemVM
 {
+    public List<ReturnLocationVM> SourceLocations { get; set; } = new();
     public long ProductId { get; set; }
     [Microsoft.AspNetCore.Mvc.ModelBinding.Validation.ValidateNever] public string ProductCode { get; set; } = string.Empty;
     [Microsoft.AspNetCore.Mvc.ModelBinding.Validation.ValidateNever] public string ProductName { get; set; } = string.Empty;
@@ -228,11 +230,23 @@ public class CreateOutboundOrderRequest
     public bool IsSubmit { get; set; }
     public List<OutboundOrderItemRequest> Items { get; set; } = new();
 }
-public class OutboundOrderItemRequest { public long ProductId { get; set; } public decimal RequestedQuantity { get; set; } public string? Notes { get; set; } }
+public class OutboundOrderItemRequest { public long ProductId { get; set; } public decimal RequestedQuantity { get; set; } public string? Notes { get; set; } public List<ReturnLocationVM> RequestedLocations { get; set; } = new(); }
+public class ReturnLocationVM
+{
+    public long StorageLocationId { get; set; }
+    public long ProductLotId { get; set; }
+    public string LocationPath { get; set; } = string.Empty;
+    public DateOnly FirstReceivedDate { get; set; }
+    public DateOnly? ExpiryDate { get; set; }
+    public decimal StoredQuantity { get; set; }
+    public decimal HeldQuantity { get; set; }
+    public decimal ReturnableQuantity { get; set; }
+    public decimal Quantity { get; set; }
+}
 public class SalesOrderOptionDto { public long SalesOrderId { get; set; } public string SalesOrderNumber { get; set; } = string.Empty; }
 public class PurchaseOrderOptionDto { public long PurchaseOrderId { get; set; } public string PurchaseOrderNumber { get; set; } = string.Empty; public string SupplierName { get; set; } = string.Empty; }
 public class UserOptionDto { public long UserId { get; set; } public string Username { get; set; } = string.Empty; public string? FullName { get; set; } }
 public class SalesOrderDetailApiResponse { public string SalesOrderNumber { get; set; } = string.Empty; public string CustomerName { get; set; } = string.Empty; public long? WarehouseId { get; set; } public List<SalesOrderLineApiResponse> Items { get; set; } = new(); }
 public class SalesOrderLineApiResponse { public long ProductId { get; set; } public string ProductCode { get; set; } = string.Empty; public string ProductName { get; set; } = string.Empty; public string UnitName { get; set; } = string.Empty; public byte QuantityScale { get; set; } public bool TrackLot { get; set; } public decimal Quantity { get; set; } public decimal ReservedQuantity { get; set; } }
 public class PurchaseOrderDetailApiResponse { public string PurchaseOrderNumber { get; set; } = string.Empty; public string SupplierName { get; set; } = string.Empty; public List<PurchaseReturnLineApiResponse> Items { get; set; } = new(); }
-public class PurchaseReturnLineApiResponse { public long ProductId { get; set; } public string ProductCode { get; set; } = string.Empty; public string ProductName { get; set; } = string.Empty; public string UnitName { get; set; } = string.Empty; public byte QuantityScale { get; set; } public bool TrackLot { get; set; } public decimal ReceivedQuantity { get; set; } public decimal RemainingQuantity { get; set; } }
+public class PurchaseReturnLineApiResponse { public List<ReturnLocationVM> SourceLocations { get; set; } = new(); public long ProductId { get; set; } public string ProductCode { get; set; } = string.Empty; public string ProductName { get; set; } = string.Empty; public string UnitName { get; set; } = string.Empty; public byte QuantityScale { get; set; } public bool TrackLot { get; set; } public decimal ReceivedQuantity { get; set; } public decimal RemainingQuantity { get; set; } }

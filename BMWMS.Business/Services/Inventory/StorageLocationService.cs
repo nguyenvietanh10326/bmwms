@@ -180,7 +180,7 @@ namespace BMWMS.Business.Services.Inventory
                 AreaSquareMeter = null,
                 IsPutawayAllowed = true,
                 IsPickable = true,
-                Status = "AVAILABLE",
+                Status = dto.MaxCapacityQuantity == 0 ? "INACTIVE" : "AVAILABLE",
                 CreatedAt = DateTime.Now
             };
 
@@ -190,8 +190,9 @@ namespace BMWMS.Business.Services.Inventory
             return (true, "Thêm mới vị trí thành công.");
         }
 
-        public async Task<(bool Success, string Message)> UpdateLocationAsync(CreateUpdateStorageLocationDto dto, long currentUserId = 0)
+public async Task<(bool Success, string Message)> UpdateLocationAsync(CreateUpdateStorageLocationDto dto, long currentUserId = 0)
         {
+            await using var configurationTransaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
             var warehouseValidation = await ValidateOperationalWarehouseAsync(dto.WarehouseId);
             if (warehouseValidation != null)
                 return (false, warehouseValidation);
@@ -222,7 +223,12 @@ namespace BMWMS.Business.Services.Inventory
                 new[] { entity.StorageLocationId }, group!);
             if (stockError != null) return (false, stockError);
             if (currentQuantity > dto.MaxCapacityQuantity)
-                return (false, $"Bin đang chứa {currentQuantity}; sức chứa mới không được nhỏ hơn tồn vật lý.");
+                return (false, ReductionMessage("Bin", currentQuantity, dto.MaxCapacityQuantity!.Value));
+            if (dto.MaxCapacityQuantity == 0)
+            {
+                var blockers = await _locationRepository.GetLocationDeactivationBlockersAsync(entity.StorageLocationId);
+                if (blockers.Count > 0) return (false, $"Không thể đặt sức chứa 0 vì {string.Join(", ", blockers)}.");
+            }
 
             var isDuplicate = await _locationRepository.ExistsCodeAsync(dto.WarehouseId, dto.LocationCode, dto.StorageLocationId);
             if (isDuplicate)
@@ -236,6 +242,7 @@ namespace BMWMS.Business.Services.Inventory
             entity.LocationName = dto.LocationName?.Trim();
             entity.LocationType = "BIN";
             entity.MaxCapacityQuantity = dto.MaxCapacityQuantity;
+            if (dto.MaxCapacityQuantity == 0) entity.Status = "INACTIVE";
             entity.IsPutawayAllowed = true;
             entity.IsPickable = true;
             entity.UpdatedAt = DateTime.Now;
@@ -243,6 +250,7 @@ namespace BMWMS.Business.Services.Inventory
             await _locationRepository.UpdateAsync(entity);
             await RecordAuditAsync(currentUserId, AuditActions.Update, AuditEntities.StorageLocation, entity.StorageLocationId, oldValue,
                 new { entity.LocationCode, entity.LocationName, entity.RackId, entity.MaxCapacityQuantity, entity.Status });
+            await configurationTransaction.CommitAsync();
             return (true, "Cập nhật vị trí thành công.");
         }
 
@@ -672,8 +680,9 @@ namespace BMWMS.Business.Services.Inventory
             return (true, "Thêm mới khu vực (Zone) thành công.");
         }
 
-        public async Task<(bool Success, string Message)> UpdateZoneAsync(CreateUpdateZoneDto dto, long currentUserId = 0)
+public async Task<(bool Success, string Message)> UpdateZoneAsync(CreateUpdateZoneDto dto, long currentUserId = 0)
         {
+            await using var configurationTransaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
             var warehouseValidation = await ValidateOperationalWarehouseAsync(dto.WarehouseId);
             if (warehouseValidation != null)
                 return (false, warehouseValidation);
@@ -692,23 +701,40 @@ namespace BMWMS.Business.Services.Inventory
             if (await _locationRepository.ExistsZoneCodeAsync(dto.WarehouseId, dto.ZoneCode, dto.ZoneId))
                 return (false, $"Mã khu vực '{dto.ZoneCode}' đã tồn tại trong kho này.");
 
-            if (zone.ProductGroupId.HasValue && zone.ProductGroupId != group!.ProductGroupId &&
-                zone.StorageRacks.Count > 0)
-                return (false, "Không đổi Product Group của Zone đang có Rack/Bin. Hãy điều chuyển hàng, dừng sử dụng vị trí cũ và tạo Zone mới.");
-
-            var childValidation = ValidateChildQuantityBudget(dto.MaxCapacityQuantity,
-                zone.StorageRacks.Sum(rack => rack.MaxCapacityQuantity ?? 0), $"Zone {zone.ZoneCode}");
-            if (childValidation != null)
-                return (false, childValidation);
+            var resetChildCapacity = false;
+            if (zone.ProductGroupId != group!.ProductGroupId)
+            {
+                var oldGroup = await _context.ProductGroups.AsNoTracking().FirstOrDefaultAsync(g => g.ProductGroupId == zone.ProductGroupId);
+                resetChildCapacity = zone.StorageRacks.Count > 0 && oldGroup?.BaseUnitOfMeasureId != group.BaseUnitOfMeasureId;
+                if (resetChildCapacity && !dto.ResetChildCapacityOnUnitChange)
+                    return (false, "ĐVT mới khác ĐVT cũ. Xác nhận đặt sức chứa toàn bộ Rack/Bin con về 0 và ngừng hoạt động để cấu hình lại; không tự quy đổi.");
+                foreach (var bin in zone.StorageRacks.SelectMany(rack => rack.StorageLocations))
+                {
+                    var blockers = await _locationRepository.GetLocationDeactivationBlockersAsync(bin.StorageLocationId);
+                    if (blockers.Count > 0)
+                        return (false, $"Không thể đổi nhóm: Bin {bin.LocationCode} {string.Join(", ", blockers)}. Hãy điều chuyển/hoàn tất phiếu trước.");
+                    if (!resetChildCapacity && bin.MaxCapacityQuantity.HasValue && decimal.Round(bin.MaxCapacityQuantity.Value, scale) != bin.MaxCapacityQuantity.Value)
+                        return (false, "Sức chứa Bin con không phù hợp độ chính xác ĐVT của nhóm mới; sửa sức chứa Bin trước.");
+                }
+            }
 
             var binIds = zone.StorageRacks.SelectMany(rack => rack.StorageLocations)
                 .Select(bin => bin.StorageLocationId).ToList();
             var (currentQuantity, stockError) = await GetPhysicalQuantityAsync(binIds, group!);
             if (stockError != null) return (false, stockError);
             if (currentQuantity > dto.MaxCapacityQuantity)
-                return (false, $"Zone đang chứa {currentQuantity}; sức chứa mới không được nhỏ hơn tồn vật lý.");
+                return (false, ReductionMessage("Zone", currentQuantity, dto.MaxCapacityQuantity!.Value));
+            var childValidation = ValidateChildQuantityBudget(dto.MaxCapacityQuantity,
+                resetChildCapacity ? 0 : zone.StorageRacks.Sum(rack => rack.MaxCapacityQuantity ?? 0), $"Zone {zone.ZoneCode}");
+            if (childValidation != null) return (false, childValidation);
 
             var oldValue = new { zone.ZoneCode, zone.ZoneName, zone.Description, zone.ProductGroupId, zone.MaxCapacityQuantity, zone.Status };
+            if (resetChildCapacity)
+                foreach (var rack in zone.StorageRacks)
+                {
+                    rack.MaxCapacityQuantity = 0; rack.Status = "INACTIVE";
+                    foreach (var bin in rack.StorageLocations) { bin.MaxCapacityQuantity = 0; bin.Status = "INACTIVE"; }
+                }
             zone.ZoneCode = dto.ZoneCode.Trim().ToUpperInvariant();
             zone.ZoneName = dto.ZoneName.Trim();
             zone.Description = dto.Description?.Trim();
@@ -716,7 +742,8 @@ namespace BMWMS.Business.Services.Inventory
             zone.MaxCapacityQuantity = dto.MaxCapacityQuantity;
             await _locationRepository.UpdateZoneAsync(zone);
             await RecordAuditAsync(currentUserId, AuditActions.Update, AuditEntities.WarehouseZone, zone.ZoneId, oldValue,
-                new { zone.ZoneCode, zone.ZoneName, zone.Description, zone.ProductGroupId, zone.MaxCapacityQuantity, zone.Status });
+                new { zone.ZoneCode, zone.ZoneName, zone.Description, zone.ProductGroupId, zone.MaxCapacityQuantity, zone.Status, ResetChildCapacity = resetChildCapacity });
+            await configurationTransaction.CommitAsync();
             return (true, "Cập nhật khu vực và sức chứa thành công.");
         }
 
@@ -762,7 +789,7 @@ namespace BMWMS.Business.Services.Inventory
                 RackName = dto.RackName.Trim(),
                 MaxCapacityQuantity = dto.MaxCapacityQuantity,
                 AreaSquareMeter = null,
-                Status = "ACTIVE"
+                Status = dto.MaxCapacityQuantity == 0 ? "INACTIVE" : "ACTIVE"
             };
 
             await _locationRepository.AddRackAsync(rack);
@@ -771,8 +798,9 @@ namespace BMWMS.Business.Services.Inventory
             return (true, "Thêm mới kệ chứa (Rack) thành công.");
         }
 
-        public async Task<(bool Success, string Message)> UpdateRackAsync(CreateUpdateRackDto dto, long currentUserId = 0)
+public async Task<(bool Success, string Message)> UpdateRackAsync(CreateUpdateRackDto dto, long currentUserId = 0)
         {
+            await using var configurationTransaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
             var warehouseValidation = await ValidateOperationalWarehouseAsync(dto.WarehouseId);
             if (warehouseValidation != null)
                 return (false, warehouseValidation);
@@ -797,14 +825,22 @@ namespace BMWMS.Business.Services.Inventory
             if (rack.ZoneId != dto.ZoneId && rack.WarehouseZone.ProductGroupId != zone.ProductGroupId &&
                 rack.StorageLocations.Count > 0)
                 return (false, "Không chuyển Rack đang có Bin sang Zone thuộc Product Group khác.");
-            var childValidation = ValidateChildQuantityBudget(dto.MaxCapacityQuantity,
-                rack.StorageLocations.Sum(bin => bin.MaxCapacityQuantity ?? 0), $"Rack {rack.RackCode}");
-            if (childValidation != null) return (false, childValidation);
             var (currentQuantity, stockError) = await GetPhysicalQuantityAsync(
                 rack.StorageLocations.Select(bin => bin.StorageLocationId).ToList(), group!);
             if (stockError != null) return (false, stockError);
             if (currentQuantity > dto.MaxCapacityQuantity)
-                return (false, $"Rack đang chứa {currentQuantity}; sức chứa mới không được nhỏ hơn tồn vật lý.");
+                return (false, ReductionMessage("Rack", currentQuantity, dto.MaxCapacityQuantity!.Value));
+            if (dto.MaxCapacityQuantity == 0)
+            {
+                foreach (var bin in rack.StorageLocations)
+                {
+                    var blockers = await _locationRepository.GetLocationDeactivationBlockersAsync(bin.StorageLocationId);
+                    if (blockers.Count > 0) return (false, $"Bin {bin.LocationCode} {string.Join(", ", blockers)}.");
+                }
+            }
+            var childValidation = ValidateChildQuantityBudget(dto.MaxCapacityQuantity == 0 ? 1 : dto.MaxCapacityQuantity,
+                dto.MaxCapacityQuantity == 0 ? 0 : rack.StorageLocations.Sum(bin => bin.MaxCapacityQuantity ?? 0), $"Rack {rack.RackCode}");
+            if (childValidation != null) return (false, childValidation);
             if (rack.ZoneId != dto.ZoneId)
             {
                 foreach (var location in rack.StorageLocations)
@@ -822,6 +858,11 @@ namespace BMWMS.Business.Services.Inventory
                 return (false, hierarchyValidation);
 
             var oldValue = new { rack.RackCode, rack.RackName, rack.ZoneId, rack.MaxCapacityQuantity, rack.Status };
+            if (dto.MaxCapacityQuantity == 0)
+            {
+                rack.Status = "INACTIVE";
+                foreach (var bin in rack.StorageLocations) { bin.Status = "INACTIVE"; bin.MaxCapacityQuantity = 0; }
+            }
             rack.ZoneId = dto.ZoneId;
             rack.RackCode = dto.RackCode.Trim().ToUpperInvariant();
             rack.RackName = dto.RackName.Trim();
@@ -829,11 +870,13 @@ namespace BMWMS.Business.Services.Inventory
             await _locationRepository.UpdateRackAsync(rack);
             await RecordAuditAsync(currentUserId, AuditActions.Update, AuditEntities.StorageRack, rack.RackId, oldValue,
                 new { rack.RackCode, rack.RackName, rack.ZoneId, rack.MaxCapacityQuantity, rack.Status });
+            await configurationTransaction.CommitAsync();
             return (true, "Cập nhật Rack và sức chứa thành công.");
         }
 
         public async Task<(bool Success, string Message)> ChangeLocationStatusAsync(long locationId, bool active, long currentUserId = 0)
         {
+            await using var configurationTransaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
             var location = await _locationRepository.GetForUpdateAsync(locationId);
             if (location == null)
                 return (false, "Không tìm thấy Bin.");
@@ -857,6 +900,8 @@ namespace BMWMS.Business.Services.Inventory
             }
             else
             {
+                if (location.MaxCapacityQuantity is null or <= 0)
+                    return (false, "Cấu hình sức chứa Bin lớn hơn 0 trước khi kích hoạt.");
                 if (!location.RackId.HasValue)
                     return (false, "Bin chưa thuộc Rack nên không thể kích hoạt.");
                 var rack = (await _locationRepository.GetRacksByWarehouseAsync(location.WarehouseId))
@@ -870,11 +915,13 @@ namespace BMWMS.Business.Services.Inventory
             await _locationRepository.UpdateAsync(location);
             await RecordAuditAsync(currentUserId, AuditActions.ChangeStatus, AuditEntities.StorageLocation, location.StorageLocationId,
                 new { Status = oldStatus }, new { location.Status });
+            await configurationTransaction.CommitAsync();
             return (true, active ? "Đã kích hoạt Bin." : "Đã ngừng sử dụng Bin.");
         }
 
-        public async Task<(bool Success, string Message)> ChangeRackStatusAsync(long rackId, bool active, long currentUserId = 0)
+public async Task<(bool Success, string Message)> ChangeRackStatusAsync(long rackId, bool active, long currentUserId = 0)
         {
+            await using var configurationTransaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
             var rack = await _locationRepository.GetRackByIdAsync(rackId);
             if (rack == null)
                 return (false, "Không tìm thấy Rack.");
@@ -889,12 +936,18 @@ namespace BMWMS.Business.Services.Inventory
             var oldStatus = rack.Status;
             if (!active)
             {
-                if (rack.StorageLocations.Any(location => !IsInactive(location.Status)))
-                    return (false, "Chỉ được ngừng sử dụng Rack sau khi tất cả Bin con đã ngừng sử dụng.");
+                foreach (var bin in rack.StorageLocations)
+                {
+                    var blockers = await _locationRepository.GetLocationDeactivationBlockersAsync(bin.StorageLocationId);
+                    if (blockers.Count > 0) return (false, $"Bin {bin.LocationCode} {string.Join(", ", blockers)}. Điều chuyển/hoàn tất phiếu trước.");
+                }
+                foreach (var bin in rack.StorageLocations) bin.Status = "INACTIVE";
                 rack.Status = "INACTIVE";
             }
             else
             {
+                if (rack.MaxCapacityQuantity is null or <= 0)
+                    return (false, "Cấu hình sức chứa Rack lớn hơn 0 trước khi kích hoạt.");
                 if (rack.WarehouseZone == null || !IsUsableNodeStatus(rack.WarehouseZone.Status))
                     return (false, "Hãy kích hoạt Zone cha trước khi kích hoạt Rack.");
                 rack.Status = "ACTIVE";
@@ -903,11 +956,13 @@ namespace BMWMS.Business.Services.Inventory
             await _locationRepository.UpdateRackAsync(rack);
             await RecordAuditAsync(currentUserId, AuditActions.ChangeStatus, AuditEntities.StorageRack, rack.RackId,
                 new { Status = oldStatus }, new { rack.Status });
+            await configurationTransaction.CommitAsync();
             return (true, active ? "Đã kích hoạt Rack." : "Đã ngừng sử dụng Rack.");
         }
 
-        public async Task<(bool Success, string Message)> ChangeZoneStatusAsync(long zoneId, bool active, long currentUserId = 0)
+public async Task<(bool Success, string Message)> ChangeZoneStatusAsync(long zoneId, bool active, long currentUserId = 0)
         {
+            await using var configurationTransaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
             var zone = await _locationRepository.GetZoneByIdAsync(zoneId);
             if (zone == null)
                 return (false, "Không tìm thấy Zone.");
@@ -922,18 +977,29 @@ namespace BMWMS.Business.Services.Inventory
             var oldStatus = zone.Status;
             if (!active)
             {
-                if (zone.StorageRacks.Any(rack => !IsInactive(rack.Status)))
-                    return (false, "Chỉ được ngừng sử dụng Zone sau khi tất cả Rack con đã ngừng sử dụng.");
+                foreach (var bin in zone.StorageRacks.SelectMany(r => r.StorageLocations))
+                {
+                    var blockers = await _locationRepository.GetLocationDeactivationBlockersAsync(bin.StorageLocationId);
+                    if (blockers.Count > 0) return (false, $"Bin {bin.LocationCode} {string.Join(", ", blockers)}. Điều chuyển/hoàn tất phiếu trước.");
+                }
+                foreach (var rack in zone.StorageRacks)
+                {
+                    rack.Status = "INACTIVE";
+                    foreach (var bin in rack.StorageLocations) bin.Status = "INACTIVE";
+                }
                 zone.Status = "INACTIVE";
             }
             else
             {
+                if (zone.MaxCapacityQuantity is null or <= 0)
+                    return (false, "Cấu hình sức chứa Zone lớn hơn 0 trước khi kích hoạt.");
                 zone.Status = "ACTIVE";
             }
 
             await _locationRepository.UpdateZoneAsync(zone);
             await RecordAuditAsync(currentUserId, AuditActions.ChangeStatus, AuditEntities.WarehouseZone, zone.ZoneId,
                 new { Status = oldStatus }, new { zone.Status });
+            await configurationTransaction.CommitAsync();
             return (true, active ? "Đã kích hoạt Zone." : "Đã ngừng sử dụng Zone.");
         }
 
@@ -1072,8 +1138,8 @@ namespace BMWMS.Business.Services.Inventory
 
         private static string? ValidateQuantityCapacity(decimal? quantity, byte scale, string label)
         {
-            if (!quantity.HasValue || quantity.Value <= 0)
-                return $"Nhập sức chứa tối đa lớn hơn 0 cho {label}.";
+            if (!quantity.HasValue || quantity.Value < 0 || (label == "Zone" && quantity.Value == 0))
+                return $"Sức chứa {label} là bắt buộc; Zone phải lớn hơn 0, Rack/Bin có thể bằng 0 để ngừng sử dụng.";
             if (quantity.Value > 99999999999999m)
                 return $"Sức chứa {label} quá lớn.";
             if (decimal.Round(quantity.Value, scale) != quantity.Value)
@@ -1099,10 +1165,15 @@ namespace BMWMS.Business.Services.Inventory
         private static string? ValidateChildQuantityBudget(
             decimal? parentCapacity, decimal childrenCapacity, string parentLabel)
         {
-            if (parentCapacity.HasValue && childrenCapacity > parentCapacity.Value)
+            if (!parentCapacity.HasValue || parentCapacity <= 0)
+                return $"Cấu hình sức chứa {parentLabel} lớn hơn 0 trước khi cấu hình cấp con.";
+            if (childrenCapacity > parentCapacity.Value)
                 return $"Tổng sức chứa cấp con ({childrenCapacity}) vượt sức chứa {parentLabel} ({parentCapacity.Value}).";
             return null;
         }
+
+        private static string ReductionMessage(string scope, decimal current, decimal target) =>
+            FormattableString.Invariant($"{scope} đang chứa {current:0.####}; sức chứa mới {target:0.####}. Hãy điều chuyển ít nhất {current - target:0.####} theo ĐVT của nhóm trước khi giảm sức chứa.");
 
         private static string? ValidateZoneIdentity(CreateUpdateZoneDto dto)
         {

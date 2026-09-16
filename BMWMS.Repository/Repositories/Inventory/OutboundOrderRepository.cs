@@ -24,10 +24,12 @@ namespace BMWMS.Repository.Repositories.Inventory
                 .Include(o => o.AssignedToUser)
                 .Include(o => o.CreatedByUser)
                 .Include(o => o.ApprovedByUser)
+                .Include(o => o.ConfirmedByUser)
                 .Include(o => o.SalesOrder)
                     .ThenInclude(s => s!.Customer)
                 .Include(o => o.SalesOrder)
                     .ThenInclude(s => s!.SalesOrderDetails)
+                        .ThenInclude(d => d.Product).ThenInclude(p => p.UnitOfMeasure)
                 .Include(o => o.PurchaseOrder)
                     .ThenInclude(p => p!.Supplier)
                 .Include(o => o.OutboundOrderItems)
@@ -67,6 +69,7 @@ namespace BMWMS.Repository.Repositories.Inventory
         public async Task<OutboundOrder?> GetByIdAsync(long id)
         {
             return await _context.OutboundOrders
+                .Include(o => o.ConfirmedByUser)
                 .Include(o => o.Warehouse)
                 .Include(o => o.AssignedToUser)
                 .Include(o => o.CreatedByUser)
@@ -75,6 +78,7 @@ namespace BMWMS.Repository.Repositories.Inventory
                     .ThenInclude(s => s!.Customer)
                 .Include(o => o.SalesOrder)
                     .ThenInclude(s => s!.SalesOrderDetails)
+                        .ThenInclude(d => d.Product).ThenInclude(p => p.UnitOfMeasure)
                 .Include(o => o.PurchaseOrder)
                     .ThenInclude(p => p!.Supplier)
                 .Include(o => o.OutboundOrderItems)

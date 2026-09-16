@@ -29,6 +29,7 @@ namespace BMWMS.Web.Pages.OutboundOrders
             new SelectListItem { Text = "-- Tất cả trạng thái --", Value = "" },
             new SelectListItem { Text = "Sẵn sàng xuất", Value = "READY" },
             new SelectListItem { Text = "Đang xuất hàng", Value = "ISSUING" },
+            new SelectListItem { Text = "Chờ duyệt chốt đợt", Value = "PENDING_APPROVAL" },
             new SelectListItem { Text = "Đã xuất", Value = "ISSUED" },
             new SelectListItem { Text = "Đã hủy (CANCELLED)", Value = "CANCELLED" }
         };
