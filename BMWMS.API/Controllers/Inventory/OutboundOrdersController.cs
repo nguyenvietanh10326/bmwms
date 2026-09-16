@@ -161,11 +161,20 @@ public class OutboundOrdersController : ControllerBase
     }
 
     [HttpPost("{id:long}/close-sales-remainder")]
-    [Authorize(Roles = "SALES_STAFF")]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
     public async Task<IActionResult> CloseSalesRemainder(long id, [FromBody] CompleteOutboundOrderRequest request)
     {
         if (!TryGetCurrentUserId(out var currentUserId)) return Unauthorized();
         var (success, message) = await _outboundOrderService.CloseRemainingSalesDemandAsync(id, currentUserId, request.Reason ?? string.Empty);
+        return success ? Ok(new { message }) : BadRequest(new { message });
+    }
+
+    [HttpPost("{id:long}/review-completion")]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
+    public async Task<IActionResult> ReviewCompletion(long id, [FromBody] ReviewOutboundCompletionRequest request)
+    {
+        if (!TryGetCurrentUserId(out var currentUserId)) return Unauthorized();
+        var (success, message) = await _outboundOrderService.ReviewCompletionAsync(id, currentUserId, request);
         return success ? Ok(new { message }) : BadRequest(new { message });
     }
 

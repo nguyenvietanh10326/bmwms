@@ -134,7 +134,7 @@ namespace BMWMS.API.Controllers.Inventory
         {
             if (!ModelState.IsValid)
             {
-                return BadRequest(new { success = false, message = "Dá»¯ liá»‡u Ä‘áº§u vÃ o khÃ´ng há»£p lá»‡!" });
+                return BadRequest(new { success = false, message = "Dữ liệu đầu vào không hợp lệ." });
             }
 
             try
@@ -149,15 +149,17 @@ namespace BMWMS.API.Controllers.Inventory
                     return BadRequest(new
                     {
                         success = false,
-                        message = "Cáº­p nháº­t tháº¥t báº¡i! ÄÆ¡n hÃ ng khÃ´ng tá»“n táº¡i hoáº·c khÃ´ng á»Ÿ tráº¡ng thÃ¡i NhÃ¡p (DRAFT)."
+                        message = "Không thể cập nhật: đơn không tồn tại hoặc không còn ở trạng thái nháp."
                     });
                 }
 
-                return Ok(new { success = true, message = "Cáº­p nháº­t Ä‘Æ¡n bÃ¡n hÃ ng thÃ nh cÃ´ng!" });
+                return Ok(new { success = true, message = "Đã cập nhật đơn bán hàng." });
             }
+            catch (ArgumentException ex) { return BadRequest(new { success = false, message = ex.Message }); }
+            catch (InvalidOperationException ex) { return BadRequest(new { success = false, message = ex.Message }); }
             catch (Exception ex)
             {
-                return StatusCode(500, new { success = false, message = "Lá»—i há»‡ thá»‘ng: " + (ex.InnerException?.Message ?? ex.Message) });
+                return StatusCode(500, new { success = false, message = "Không thể cập nhật SO. Vui lòng kiểm tra database/migration hoặc liên hệ quản trị viên." });
             }
         }
 
@@ -213,6 +215,16 @@ namespace BMWMS.API.Controllers.Inventory
             {
                 return StatusCode(500, new { success = false, message = "Lá»—i há»‡ thá»‘ng: " + (ex.InnerException?.Message ?? ex.Message) });
             }
+        }
+
+        [HttpPost("{id:long}/reject")]
+        [Authorize(Roles = "WAREHOUSE_MANAGER,SYSTEM_ADMIN")]
+        public async Task<IActionResult> RejectDraft(long id, [FromBody] CancelOrderRequest request)
+        {
+            if (!TryGetCurrentUserId(out var userId)) return Unauthorized();
+            var result = await _salesOrderService.RejectDraftAsync(id, userId, request?.Reason ?? "");
+            return result.IsSuccess ? Ok(new { success = true, message = result.Message })
+                : BadRequest(new { success = false, message = result.Message });
         }
     }
 }

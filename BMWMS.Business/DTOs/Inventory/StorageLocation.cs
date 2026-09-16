@@ -136,6 +136,7 @@ namespace BMWMS.Business.DTOs.Inventory
 
     public class CreateUpdateZoneDto
     {
+        public bool ResetChildCapacityOnUnitChange { get; set; }
         public long ZoneId { get; set; }
         public long WarehouseId { get; set; }
         public string ZoneCode { get; set; } = string.Empty;
