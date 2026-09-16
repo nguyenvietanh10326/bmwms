@@ -83,7 +83,7 @@
                     <div class="text-muted small fw-medium text-uppercase mb-1">Theo Dõi Hạn Sử Dụng</div>
                     <div class="mt-2">
                         <span class="badge @(Model.Product.TrackExpiry ? "bg-purple-subtle text-purple border-purple" : "bg-light text-secondary border") px-2 py-1">
-                            Hạn: @(Model.Product.TrackExpiry ? (Model.Product.DefaultShelfLifeDays.HasValue ? $"{Model.Product.DefaultShelfLifeDays} ngày" : "BẬT") : "TẮT")
+                            HSD khi nhập: @(Model.Product.TrackExpiry ? "Bắt buộc theo nhãn hàng" : "Không bắt buộc")
                         </span>
                     </div>
                 </div>

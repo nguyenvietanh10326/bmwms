@@ -201,7 +201,7 @@ namespace BMWMS.Business.Services
                 RotationMethod = dto.RotationMethod,
                 TrackLot = dto.TrackExpiry,
                 TrackExpiry = dto.TrackExpiry,
-                DefaultShelfLifeDays = dto.DefaultShelfLifeDays,
+                DefaultShelfLifeDays = null,
                 Status = dto.Status ?? "ACTIVE",
                 CreatedByUserId = currentUserId > 0 ? currentUserId : 1,
                 CreatedAt = DateTime.UtcNow
@@ -358,7 +358,7 @@ namespace BMWMS.Business.Services
             // Lot tracking is managed internally by the inventory flow, not by product configuration.
             product.TrackLot = product.TrackLot || dto.TrackExpiry;
             product.TrackExpiry = dto.TrackExpiry;
-            product.DefaultShelfLifeDays = dto.DefaultShelfLifeDays;
+            product.DefaultShelfLifeDays = null;
             product.Status = dto.Status;
             product.UpdatedByUserId = currentUserId > 0 ? currentUserId : 1;
             product.UpdatedAt = DateTime.UtcNow;
