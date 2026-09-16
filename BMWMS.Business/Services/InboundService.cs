@@ -47,8 +47,8 @@ public class InboundService : IInboundService
             filter.FromDate,
             filter.ToDate,
             filter.AssignedToUserId,
-            filter.PageIndex,
-            filter.PageSize);
+            Math.Max(1, filter.PageIndex),
+            Math.Clamp(filter.PageSize, 1, 100), filter.SortOrder);
 
         return new InboundOrderPageDto
         {
@@ -105,6 +105,8 @@ public class InboundService : IInboundService
             AssignedToUserId = order.AssignedToUserId,
             AssignedToUserName = order.AssignedToUser?.FullName ?? "",
             CreatedByUserName = order.CreatedByUser?.FullName ?? "",
+            ApprovedByUserName = order.ConfirmedByUser?.Role?.RoleCode is "WAREHOUSE_MANAGER" or "SYSTEM_ADMIN"
+                ? order.ConfirmedByUser.FullName : null,
             Notes = order.Notes,
             CancellationReason = order.CancellationReason,
             ParentInboundOrderNumber = order.ParentInboundOrder?.InboundOrderNumber,
@@ -239,11 +241,121 @@ public class InboundService : IInboundService
         return dto;
     }
 
-    public async Task<long> CreateInboundOrderAsync(CreateInboundOrderDto dto, long currentUserId)
+    public async Task StartSalesReturnAsync(long id, long currentUserId)
+    {
+        await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+        var order = await _context.InboundOrders.Include(o => o.ConfirmedByUser).ThenInclude(u => u.Role)
+            .FirstOrDefaultAsync(o => o.InboundOrderId == id)
+            ?? throw new InvalidOperationException("Không tìm thấy lệnh nhận trả.");
+        await EnsureWarehouseStaffCreatorAsync(currentUserId);
+        await EnsureAssignedUserAsync(order.AssignedToUserId, currentUserId, "bắt đầu nhận trả");
+        if (order.SourceType != "SALES_RETURN" || order.Status != "ASSIGNED" ||
+            order.ConfirmedByUser?.Role.RoleCode is not ("WAREHOUSE_MANAGER" or "SYSTEM_ADMIN"))
+            throw new InvalidOperationException("Chỉ được bắt đầu lệnh nhận trả đã được Quản lý kho duyệt và giao.");
+        order.Status = "IN_PROGRESS";
+        await _auditLogService.StageAsync(new AuditEventDto { UserId = currentUserId, ActionType = "START_CUSTOMER_RETURN",
+            EntityName = AuditEntities.InboundOrder, EntityId = order.InboundOrderNumber, NewValues = new { order.Status } });
+        await _context.SaveChangesAsync();
+        await transaction.CommitAsync();
+    }
+
+    public async Task RecordSalesReturnReceiptAsync(long id, RecordSalesReturnReceiptDto dto, long currentUserId)
+    {
+        await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+        var order = await _context.InboundOrders
+            .Include(o => o.ConfirmedByUser).ThenInclude(u => u.Role)
+            .Include(o => o.InboundOrderItems).ThenInclude(i => i.Product).ThenInclude(p => p.UnitOfMeasure)
+            .Include(o => o.InboundOrderItems).ThenInclude(i => i.InboundOrderDetails)
+            .FirstOrDefaultAsync(o => o.InboundOrderId == id)
+            ?? throw new InvalidOperationException("Không tìm thấy lệnh nhận trả.");
+        await EnsureWarehouseStaffCreatorAsync(currentUserId);
+        await EnsureAssignedUserAsync(order.AssignedToUserId, currentUserId, "ghi nhận hàng trả");
+        if (order.SourceType != "SALES_RETURN" || order.Status != "IN_PROGRESS" ||
+            order.ConfirmedByUser?.Role.RoleCode is not ("WAREHOUSE_MANAGER" or "SYSTEM_ADMIN"))
+            throw new InvalidOperationException("Phải bắt đầu lệnh đã được quản lý duyệt trước khi ghi nhận hàng trả.");
+        if (order.InboundOrderItems.Any(i => i.ReceivedQuantity > 0 || i.InboundOrderDetails.Count > 0))
+            throw new InvalidOperationException("Đợt này đã ghi nhận hàng. Không được ghi nhận lặp.");
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        if (dto.ReceiptDate == default || dto.ReceiptDate > today)
+            throw new ArgumentException("Ngày nhận thực tế phải hợp lệ và không nằm trong tương lai.");
+        var rows = dto.Items ?? new List<SalesReturnReceiptLineDto>();
+        if (rows.Count != order.InboundOrderItems.Count || rows.GroupBy(r => r.InboundOrderItemId).Any(g => g.Count() > 1) ||
+            rows.Any(r => !order.InboundOrderItems.Any(i => i.InboundOrderItemId == r.InboundOrderItemId)))
+            throw new ArgumentException("Phải có kết quả cho đúng mỗi mặt hàng trong lệnh nhận trả.");
+        if (rows.All(r => r.ActualQuantity == 0))
+            throw new ArgumentException("Phải có ít nhất một mặt hàng đủ điều kiện nhận lại; nếu không, quản lý hủy lệnh.");
+        var receiving = await _context.StorageLocations.FirstOrDefaultAsync(l => l.WarehouseId == order.WarehouseId &&
+            (l.LocationType == "RECEIVING" || l.LocationType == "STAGING") && l.Status != "INACTIVE" && l.Status != "BLOCKED")
+            ?? throw new InvalidOperationException("Kho chưa có vị trí tiếp nhận đang hoạt động.");
+        var isShort = false;
+        foreach (var item in order.InboundOrderItems)
+        {
+            var row = rows.Single(r => r.InboundOrderItemId == item.InboundOrderItemId);
+            if (row.ActualQuantity < 0 || row.ActualQuantity > item.ExpectedQuantity)
+                throw new ArgumentException($"Số nhận trả của {item.Product.ProductCode} phải từ 0 đến số lượng đã duyệt.");
+            if (item.Product.Status != "ACTIVE") throw new InvalidOperationException("Vật tư đang ngừng sử dụng.");
+            var delivered = await _context.SalesOrderDetails.Where(d => d.SalesOrderId == order.SalesOrderId && d.ProductId == item.ProductId)
+                .SumAsync(d => (decimal?)d.FulfilledQuantity) ?? 0;
+            var previouslyReturned = await _context.InboundOrderDetails.Where(d =>
+                d.InboundOrderItem.InboundOrder.SalesOrderId == order.SalesOrderId && d.InboundOrderId != id &&
+                d.InboundOrderItem.InboundOrder.Status == "COMPLETED" && d.ConditionStatus == "GOOD" && d.ProductId == item.ProductId)
+                .SumAsync(d => (decimal?)d.ReceivedQuantity) ?? 0;
+            if (row.ActualQuantity > delivered - previouslyReturned)
+                throw new ArgumentException("Tổng hàng khách trả không được vượt số đã giao thực tế từ SO.");
+            isShort |= row.ActualQuantity < item.ExpectedQuantity;
+            item.ReceivedQuantity = row.ActualQuantity;
+            item.ShortageQuantity = item.ExpectedQuantity - row.ActualQuantity;
+            if (row.ActualQuantity == 0) continue;
+            QuantityRules.EnsureValid(item.Product, row.ActualQuantity, "Số thực nhận");
+            if ((item.Product.TrackExpiry || item.Product.RotationMethod == "FEFO") &&
+                (!row.ExpiryDate.HasValue || row.ExpiryDate.Value <= today))
+                throw new ArgumentException($"Vật tư {item.Product.ProductCode} phải có HSD còn hiệu lực.");
+            if (row.ManufactureDate > today || row.ManufactureDate > row.ExpiryDate)
+                throw new ArgumentException("Ngày sản xuất không hợp lệ.");
+            var layer = new BMWMS.Repository.Models.ProductLot {
+                ProductId = item.ProductId, LotNumber = $"RCV-{id}-{item.InboundOrderItemId}-{Guid.NewGuid():N}",
+                FirstReceivedDate = dto.ReceiptDate, ManufactureDate = row.ManufactureDate,
+                ExpiryDate = row.ExpiryDate, Status = "AVAILABLE", CreatedAt = DateTime.UtcNow };
+            _context.ProductLots.Add(layer);
+            _context.InboundOrderDetails.Add(new BMWMS.Repository.Models.InboundOrderDetail {
+                InboundOrderId = id, InboundOrderItemId = item.InboundOrderItemId, ProductId = item.ProductId,
+                StorageLocationId = receiving.StorageLocationId, ProductLot = layer, ReceivedQuantity = row.ActualQuantity,
+                ConditionStatus = "GOOD", RecordedByUserId = currentUserId, RecordedAt = DateTime.UtcNow });
+        }
+        if (isShort && (dto.ShortageReason?.Trim().Length ?? 0) < 5)
+            throw new ArgumentException("Nhận chưa đủ số đã duyệt phải có lý do ít nhất 5 ký tự.");
+        order.ExpectedReceiptDate = dto.ReceiptDate;
+        order.Status = "COMPLETED";
+        if (isShort) order.Notes = AppendReceiptNote(order.Notes, $"Nhận chưa đủ: {dto.ShortageReason?.Trim()}");
+        await _auditLogService.StageAsync(new AuditEventDto { UserId = currentUserId, ActionType = "RECEIVE_CUSTOMER_RETURN",
+            EntityName = AuditEntities.InboundOrder, EntityId = order.InboundOrderNumber,
+            NewValues = new { dto.ReceiptDate, dto.ShortageReason, dto.Items, Status = "RECEIVED" } });
+        await _context.SaveChangesAsync();
+        await transaction.CommitAsync();
+    }
+
+    public async Task<long> CreateInboundOrderAsync(CreateInboundOrderDto dto, long currentUserId, bool authorizeSalesReturn = false)
     {
         dto.SourceType = (dto.SourceType ?? string.Empty).Trim().ToUpperInvariant();
         await using var assignmentTransaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
-        await EnsureWarehouseStaffCreatorAsync(currentUserId);
+        if (authorizeSalesReturn)
+        {
+            var manager = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == currentUserId);
+            if (manager?.Status != "ACTIVE" || manager.Role.RoleCode is not ("WAREHOUSE_MANAGER" or "SYSTEM_ADMIN"))
+                throw new InvalidOperationException("Chỉ Quản lý kho được duyệt lệnh nhận hàng khách trả.");
+            if (dto.SourceType != "SALES_RETURN") throw new ArgumentException("Lệnh chấp thuận nhận trả phải tham chiếu SO.");
+            if (!dto.AssignedToUserId.HasValue) throw new ArgumentException("Phải chọn nhân viên kho thực hiện.");
+            await EnsureWarehouseStaffAssigneeAsync(dto.AssignedToUserId);
+            foreach (var line in dto.Items) line.ActualReceivedQuantity = 0;
+        }
+        else
+        {
+            await EnsureWarehouseStaffCreatorAsync(currentUserId);
+            if (dto.SourceType == "SALES_RETURN")
+                throw new InvalidOperationException("Hàng khách trả phải có lệnh nhận trả được Quản lý kho duyệt trước. Vui lòng mở phiếu đã được giao.");
+            dto.AssignedToUserId = currentUserId;
+            await EnsureWarehouseStaffAssigneeAsync(currentUserId);
+        }
 
         var activeWarehouses = await _context.Warehouses
             .Where(w => w.Status == "ACTIVE")
@@ -255,8 +367,7 @@ public class InboundService : IInboundService
         dto.WarehouseId = activeWarehouses[0].WarehouseId;
 
         dto.IsSubmit = true;
-        dto.AssignedToUserId = currentUserId;
-        await EnsureWarehouseStaffAssigneeAsync(currentUserId);
+
 
         var submittedItems = (dto.Items ?? new List<CreateInboundOrderItemDto>()).ToList();
         if (submittedItems.Count == 0 || submittedItems.GroupBy(item => item.ProductId).Any(group => group.Count() > 1))
@@ -297,7 +408,7 @@ public class InboundService : IInboundService
         {
             if (!dto.SalesOrderId.HasValue)
                 throw new ArgumentException("Vui lòng chọn SO có hàng khách trả.");
-            if (string.IsNullOrWhiteSpace(dto.Notes) || dto.Notes.Trim().Length < 10)
+            if (string.IsNullOrWhiteSpace(dto.Notes) || dto.Notes.Trim().Length < 10 || dto.Notes.Length > 500)
                 throw new ArgumentException("Hàng khách trả phải có lý do và căn cứ chấp thuận rõ ràng, tối thiểu 10 ký tự.");
 
             var salesOrder = await GetSalesOrderForInboundAsync(dto.SalesOrderId.Value);
@@ -307,19 +418,20 @@ public class InboundService : IInboundService
             var sourceItems = salesOrder.Items.Where(item => item.RemainingQuantity > 0).ToList();
             var sourceSnapshotMatches = submittedItems.Count == sourceItems.Count && sourceItems.All(sourceItem =>
                 submittedByProduct.TryGetValue(sourceItem.ProductId, out var submitted) &&
-                submitted.ExpectedQuantity == sourceItem.RemainingQuantity);
+                submitted.ExpectedQuantity >= 0 && submitted.ExpectedQuantity <= sourceItem.RemainingQuantity);
             if (!sourceSnapshotMatches)
                 throw new ArgumentException("Dữ liệu SO đã thay đổi hoặc đã bị chỉnh sửa. Vui lòng tải lại SO trước khi lập phiếu nhập.");
 
             dto.Items = sourceItems.Select(item => new CreateInboundOrderItemDto
             {
                 ProductId = item.ProductId,
-                ExpectedQuantity = item.RemainingQuantity,
+                ExpectedQuantity = submittedByProduct[item.ProductId].ExpectedQuantity,
                 ActualReceivedQuantity = submittedByProduct[item.ProductId].ActualReceivedQuantity,
                 ManufactureDate = submittedByProduct[item.ProductId].ManufactureDate,
                 ExpiryDate = submittedByProduct[item.ProductId].ExpiryDate,
                 Notes = submittedByProduct[item.ProductId].Notes
-            }).ToList();
+            }).Where(item => item.ExpectedQuantity > 0).ToList();
+            if (dto.Items.Count == 0) throw new ArgumentException("Phải chọn ít nhất một vật tư cần nhận trả.");
             dto.PurchaseOrderId = null;
             dto.Notes = dto.Notes.Trim();
         }
@@ -330,13 +442,13 @@ public class InboundService : IInboundService
 
         if (dto.ExpectedReceiptDate == default)
             throw new ArgumentException("Vui lòng chọn ngày nhận hàng của đợt này.");
-        if (dto.ExpectedReceiptDate > DateOnly.FromDateTime(DateTime.Today))
+        if (!authorizeSalesReturn && dto.ExpectedReceiptDate > DateOnly.FromDateTime(DateTime.Today))
             throw new ArgumentException("Ngày nhận thực tế không được nằm trong tương lai.");
         if (dto.Items.Any(i => i.ExpectedQuantity <= 0))
             throw new ArgumentException("Số lượng dự kiến phải lớn hơn 0.");
         if (dto.Items.Any(i => i.ActualReceivedQuantity < 0 || i.ActualReceivedQuantity > i.ExpectedQuantity))
             throw new ArgumentException("Số lượng thực nhận phải từ 0 đến số lượng còn lại của từng vật tư.");
-        if (dto.Items.All(i => i.ActualReceivedQuantity == 0))
+        if (!authorizeSalesReturn && dto.Items.All(i => i.ActualReceivedQuantity == 0))
             throw new ArgumentException("Phải có ít nhất một vật tư có số lượng thực nhận lớn hơn 0.");
         await ValidateQuantitiesAsync(dto.Items.SelectMany(i => new[]
         {
@@ -379,10 +491,10 @@ public class InboundService : IInboundService
             WarehouseId = dto.WarehouseId,
             ExpectedReceiptDate = dto.ExpectedReceiptDate,
             Notes = dto.Notes,
-            Status = "COMPLETED",
+            Status = authorizeSalesReturn ? "ASSIGNED" : "COMPLETED",
             CreatedAt = DateTime.UtcNow,
             CreatedByUserId = currentUserId,
-            AssignedToUserId = currentUserId,
+            AssignedToUserId = dto.AssignedToUserId,
             ConfirmedAt = DateTime.UtcNow,
             ConfirmedByUserId = currentUserId,
             ParentInboundOrderId = null
@@ -408,7 +520,7 @@ public class InboundService : IInboundService
         await _auditLogService.StageAsync(new AuditEventDto
         {
             UserId = currentUserId,
-            ActionType = "CREATE_INBOUND",
+            ActionType = authorizeSalesReturn ? "AUTHORIZE_CUSTOMER_RETURN" : "CREATE_INBOUND",
             EntityName = AuditEntities.InboundOrder,
             EntityId = inboundOrder.InboundOrderNumber,
             NewValues = new
@@ -910,6 +1022,7 @@ public class InboundService : IInboundService
 
     public async Task CancelInboundOrderAsync(long id, CancelInboundOrderDto dto, long currentUserId)
     {
+        await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
         if (string.IsNullOrWhiteSpace(dto.CancellationReason))
             throw new ArgumentException("Vui lòng nhập lý do hủy phiếu.");
 
@@ -919,8 +1032,9 @@ public class InboundService : IInboundService
             .FirstOrDefaultAsync(o => o.InboundOrderId == id);
         if (order == null) throw new Exception("Không tìm thấy lệnh nhập kho");
         await EnsureInboundPlannerAuthorizedAsync(order.SourceType, currentUserId, "hủy phiếu nhập");
-        if (order.Status is not ("DRAFT" or "ASSIGNED") || order.InboundOrderItems.Any(i => i.InboundOrderDetails.Count > 0))
-            throw new Exception("Chỉ có thể hủy phiếu ở trạng thái Nháp hoặc Sẵn sàng, trước khi bắt đầu kiểm nhận.");
+        if (order.Status is not ("DRAFT" or "ASSIGNED" or "IN_PROGRESS") ||
+            order.InboundOrderItems.Any(i => i.ReceivedQuantity > 0 || i.InboundOrderDetails.Count > 0))
+            throw new InvalidOperationException("Chỉ được hủy phiếu chưa ghi nhận hàng thực nhận. Phiếu đã nhận hàng không được xóa hoặc hủy ngược tồn.");
 
         order.Status = "CANCELLED";
         order.CancellationReason = dto.CancellationReason.Trim();
@@ -938,6 +1052,7 @@ public class InboundService : IInboundService
         });
 
         await _context.SaveChangesAsync();
+        await transaction.CommitAsync();
     }
 
     public async Task ConfirmInboundOrderAsync(long id, long currentUserId)
@@ -1319,6 +1434,8 @@ public class InboundService : IInboundService
                 ?? throw new InvalidOperationException("Không tìm thấy phiếu nhập kho.");
 
             await EnsureAssignedUserAsync(order.AssignedToUserId, currentUserId, "hoàn tất kiểm nhận");
+            if (order.SourceType == "SALES_RETURN")
+                throw new InvalidOperationException("Hàng khách trả phải đi qua bước Bắt đầu và Ghi nhận thực nhận của lệnh đã được Quản lý duyệt.");
             if (order.Status is not ("ASSIGNED" or "IN_PROGRESS"))
                 throw new InvalidOperationException("Chỉ được hoàn tất kiểm nhận khi phiếu ở trạng thái Sẵn sàng hoặc Đang nhận.");
 
@@ -1445,6 +1562,8 @@ public class InboundService : IInboundService
                 ?? throw new InvalidOperationException("Không tìm thấy phiếu nhập kho.");
 
             await EnsureAssignedUserAsync(order.AssignedToUserId, currentUserId, "nhận hàng");
+            if (order.SourceType == "SALES_RETURN")
+                throw new InvalidOperationException("Nhận khách trả phải dùng bước ghi nhận thực nhận của lệnh đã duyệt.");
             if (order.Status is not ("ASSIGNED" or "IN_PROGRESS"))
                 throw new InvalidOperationException("Chỉ được nhận hàng khi phiếu ở trạng thái Sẵn sàng hoặc Đang nhận.");
 
@@ -1849,11 +1968,10 @@ public class InboundService : IInboundService
         var role = actor.Role?.RoleCode?.Trim().ToUpperInvariant() ?? string.Empty;
         var normalizedSource = sourceType?.Trim().ToUpperInvariant() ?? string.Empty;
         var permitted = role is "SYSTEM_ADMIN" or "WAREHOUSE_MANAGER" ||
-                        (role == "PURCHASING_STAFF" && normalizedSource == "PURCHASE_ORDER") ||
-                        (role == "SALES_STAFF" && normalizedSource == "SALES_RETURN");
+                        (role == "PURCHASING_STAFF" && normalizedSource == "PURCHASE_ORDER");
         if (!permitted)
         {
-            var owner = normalizedSource == "SALES_RETURN" ? "Nhân viên bán hàng" : "Nhân viên mua hàng";
+            var owner = normalizedSource == "SALES_RETURN" ? "Quản lý kho" : "Nhân viên mua hàng";
             throw new UnauthorizedAccessException($"Chỉ {owner} hoặc Quản lý kho được {action} cho loại phiếu này.");
         }
     }

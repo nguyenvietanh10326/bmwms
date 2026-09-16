@@ -42,8 +42,8 @@ namespace BMWMS.Business.Services.Inventory
                 filter.SearchTerm,
                 filter.Status,
                 filter.WarehouseId,
-                filter.PageIndex,
-                filter.PageSize
+                Math.Max(1, filter.PageIndex),
+                Math.Clamp(filter.PageSize, 1, 100), filter.SortOrder
             );
 
             var listDtos = items.Select(po =>

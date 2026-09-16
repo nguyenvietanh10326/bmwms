@@ -15,7 +15,7 @@ public interface IInboundRepository
         DateTime? toDate,
         long? assignedToUserId,
         int pageIndex,
-        int pageSize);
+        int pageSize, string? sortOrder = null);
 
     Task<InboundOrder?> GetByIdAsync(long id);
     Task AddAsync(InboundOrder inboundOrder);

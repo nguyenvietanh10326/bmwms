@@ -77,6 +77,7 @@ public class SupplierApiService
         query.Add($"PageIndex={filter.PageIndex}");
         query.Add($"PageSize={filter.PageSize}");
 
+        query.Add($"SortOrder={Uri.EscapeDataString(filter.SortOrder)}");
         var url = $"api/suppliers/{supplierCode}/inbound-history?{string.Join("&", query)}";
         var response = await _httpClient.GetAsync(url);
         if (!response.IsSuccessStatusCode) return null;

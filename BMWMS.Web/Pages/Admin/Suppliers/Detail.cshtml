@@ -79,11 +79,25 @@
     Nhà cung cấp là dữ liệu danh mục; lịch sử nhập được liên kết qua đơn mua và lệnh nhập kho.
 </div>
 
+<section class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-white"><h2 class="h5 mb-0">Vật tư cung ứng</h2></div>
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-4"><label class="form-label">Tìm kiếm</label><input asp-for="ProductSearch" class="form-control" placeholder="Mã hoặc tên vật tư" /></div>
+            <div class="col-md-3"><label class="form-label">Nhóm sản phẩm</label><select asp-for="ProductGroup" class="form-select"><option value="">Tất cả</option>@foreach (var group in Model.Supplier.SuppliedProducts.Select(p => p.GroupName).Distinct().OrderBy(g => g)) { <option value="@group">@group</option> }</select></div>
+            <div class="col-md-3"><label class="form-label">Trạng thái cung ứng</label><select asp-for="ProductStatus" class="form-select"><option value="">Tất cả</option><option value="ACTIVE">Đang cung ứng</option><option value="INACTIVE">Ngừng cung ứng</option></select></div>
+            <div class="col-md-2"><button class="btn btn-primary">Lọc</button><a href="/Admin/Suppliers/Detail/@Model.Supplier.SupplierCode" class="btn btn-outline-secondary">Đặt lại</a></div>
+        </form>
+    </div>
+    <div class="table-responsive"><table class="table align-middle mb-0"><thead class="table-light"><tr><th>Mã vật tư</th><th>Tên vật tư</th><th>Nhóm</th><th>Đơn vị tính</th><th>Trạng thái cung ứng</th></tr></thead><tbody>
+        @foreach (var product in Model.FilteredProducts) { <tr><td>@product.ProductCode</td><td>@product.ProductName</td><td>@product.GroupName</td><td>@product.Unit</td><td>@(product.Status == "ACTIVE" ? "Đang cung ứng" : "Ngừng cung ứng")</td></tr> }
+        @if (!Model.FilteredProducts.Any()) { <tr><td colspan="5" class="text-center text-muted py-4">Không có vật tư phù hợp.</td></tr> }
+    </tbody></table></div>
+</section>
 <div style="display: flex; justify-content: flex-end; gap: 12px;">
     <a href="/Admin/Suppliers" class="btn" style="padding: 10px 24px; color: var(--text-main); text-decoration: none; font-weight: 500;">Quay lại</a>
     @if (canEdit)
     {
-        <button type="button" class="btn" style="background-color: #e4e4e7; color: #a1a1aa; border: 1px solid #d4d4d8; padding: 10px 24px; border-radius: 6px; font-weight: 500; cursor: not-allowed;" disabled>Lưu nháp</button>
         <a href="/Admin/Suppliers/Edit/@Model.Supplier.SupplierCode" class="btn btn-primary" style="background-color: #27272a; color: white; border: none; padding: 10px 24px; border-radius: 6px; font-weight: 500; text-decoration: none;">Chỉnh sửa</a>
     }
 </div>

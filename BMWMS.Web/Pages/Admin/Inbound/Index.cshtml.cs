@@ -7,9 +7,10 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace BMWMS.Web.Pages.Admin.Inbound;
 
-[Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF,PURCHASING_STAFF,SALES_STAFF")]
+[Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF,PURCHASING_STAFF,SALES_STAFF,ACCOUNTANT,DIRECTOR")]
 public class IndexModel : PageModel
 {
+    private bool CanReadAllOrders => User.IsInRole("SYSTEM_ADMIN") || User.IsInRole("WAREHOUSE_MANAGER") || User.IsInRole("ACCOUNTANT") || User.IsInRole("DIRECTOR");
     private readonly InboundApiService _inboundApiService;
 
     public IndexModel(InboundApiService inboundApiService)
@@ -24,7 +25,7 @@ public class IndexModel : PageModel
 
     public async Task<IActionResult> OnGetAsync()
     {
-        if (User.IsInRole("WAREHOUSE_STAFF"))
+        if (!CanReadAllOrders && User.IsInRole("WAREHOUSE_STAFF"))
         {
             var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (long.TryParse(userIdClaim, out var currentUserId))
@@ -32,11 +33,11 @@ public class IndexModel : PageModel
                 Filter.AssignedToUserId = currentUserId;
             }
         }
-        else if (User.IsInRole("SALES_STAFF"))
+        else if (!CanReadAllOrders && User.IsInRole("SALES_STAFF"))
         {
             Filter.SourceType = "SALES_RETURN";
         }
-        else if (User.IsInRole("PURCHASING_STAFF"))
+        else if (!CanReadAllOrders && User.IsInRole("PURCHASING_STAFF"))
         {
             Filter.SourceType = "PURCHASE_ORDER";
         }

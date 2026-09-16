@@ -17,7 +17,7 @@ public class InboundApiService
 
     public async Task<InboundOrderPageModel> GetInboundOrdersPageAsync(InboundOrderFilterModel filter)
     {
-        var queryString = $"?pageIndex={filter.PageIndex}&pageSize={filter.PageSize}";
+        var queryString = $"?pageIndex={filter.PageIndex}&pageSize={filter.PageSize}&sortOrder={Uri.EscapeDataString(filter.SortOrder)}";
         if (!string.IsNullOrEmpty(filter.Keyword)) queryString += $"&keyword={Uri.EscapeDataString(filter.Keyword)}";
         if (!string.IsNullOrEmpty(filter.Status)) queryString += $"&status={Uri.EscapeDataString(filter.Status)}";
         if (!string.IsNullOrEmpty(filter.SourceType)) queryString += $"&sourceType={Uri.EscapeDataString(filter.SourceType)}";
@@ -157,22 +157,13 @@ public class InboundApiService
         }
     }
 
-    private static async Task<string> ReadErrorAsync(HttpResponseMessage response)
+    public async Task StartSalesReturnAsync(long id)
     {
-        try
-        {
-            var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>();
-            if (!string.IsNullOrWhiteSpace(problem?.Detail)) return problem.Detail;
-            if (!string.IsNullOrWhiteSpace(problem?.Title)) return problem.Title;
-        }
-        catch
-        {
-            // API cũ có thể vẫn trả chuỗi thuần; đọc lại ở nhánh bên dưới nếu còn nội dung.
-        }
-
-        var raw = await response.Content.ReadAsStringAsync();
-        return string.IsNullOrWhiteSpace(raw) ? $"API trả về mã {response.StatusCode}." : raw.Trim('"');
+        var response = await _httpClient.PostAsync($"api/inbounds/{id}/customer-return/start", null);
+        if (!response.IsSuccessStatusCode) throw new InvalidOperationException(await ReadErrorAsync(response));
     }
+
+    private static Task<string> ReadErrorAsync(HttpResponseMessage response) => ApiErrorReader.ReadAsync(response);
 }
 
 public class ReceiveItemResponse
