@@ -113,9 +113,9 @@
                             <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
                             </div>
                             <div style="display: flex; align-items: center; gap: 10px;">
-                                <input type="checkbox" id="chkExpiry" asp-for="Product.TrackExpiry" style="width: 18px; height: 18px; cursor: pointer; accent-color: #2563b8;" onchange="toggleShelfLife(this.checked)" />
+                                <input type="checkbox" id="chkExpiry" asp-for="Product.TrackExpiry" style="width: 18px; height: 18px; cursor: pointer; accent-color: #2563b8;"  />
                                 <label for="chkExpiry" style="font-size: 13px; font-weight: 500; color: #334155; cursor: pointer; margin: 0;">
-                                    Có theo dõi HSD
+                                    Bắt buộc ghi HSD khi nhập
                                 </label>
                             </div>
                         </div>
@@ -123,13 +123,6 @@
 
                     <!-- HSD mặc định + Trạng thái -->
                     <div style="display: flex; flex-direction: column; gap: 16px;">
-                        <div id="shelfLifeContainer">
-                            <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">
-                                Hạn sử dụng mặc định (Số ngày) <span id="shelfLifeRequiredStar" style="color: #dc2626; display: none;">*</span>
-                            </label>
-                            <input type="number" id="txtShelfLife" asp-for="Product.DefaultShelfLifeDays" placeholder="Ví dụ: 180 (6 tháng)" style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px;" />
-                            <span asp-validation-for="Product.DefaultShelfLifeDays" style="color: #dc2626; font-size: 12px;"></span>
-                        </div>
 
                         <div>
                             <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">
@@ -193,8 +186,6 @@
             const isFEFO = value === 'FEFO';
             const chkExpiry = document.getElementById('chkExpiry');
             const fefoNotice = document.getElementById('fefoRequiredNotice');
-            const shelfLifeStar = document.getElementById('shelfLifeRequiredStar');
-            const txtShelfLife = document.getElementById('txtShelfLife');
 
             if (isFEFO) {
                 chkExpiry.checked = true;
@@ -202,30 +193,14 @@
                 chkExpiry.style.opacity = '0.7';
                 chkExpiry.style.cursor = 'not-allowed';
                 fefoNotice.style.display = 'block';
-                shelfLifeStar.style.display = 'inline';
-                txtShelfLife.setAttribute('required', 'required');
-                toggleShelfLife(true);
             } else {
                 chkExpiry.onclick = null;
                 chkExpiry.style.opacity = '1';
                 chkExpiry.style.cursor = 'pointer';
                 fefoNotice.style.display = 'none';
-                shelfLifeStar.style.display = 'none';
-                txtShelfLife.removeAttribute('required');
-                toggleShelfLife(chkExpiry.checked);
             }
         }
 
-        function toggleShelfLife(isChecked) {
-            var container = document.getElementById('shelfLifeContainer');
-            if (isChecked) {
-                container.style.opacity = '1';
-                container.style.pointerEvents = 'auto';
-            } else {
-                container.style.opacity = '0.5';
-                container.style.pointerEvents = 'none';
-            }
-        }
 
         async function onGroupChanged(groupId) {
             const noGroup = document.getElementById('noGroupSelected');
