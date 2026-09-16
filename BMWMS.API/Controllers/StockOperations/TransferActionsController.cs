@@ -8,7 +8,7 @@ namespace BMWMS.API.Controllers.StockOperations
 {
     [ApiController]
     [Route("api/transfers")]
-    [Authorize]
+    [Authorize(Roles = "WAREHOUSE_MANAGER,SYSTEM_ADMIN,WAREHOUSE_STAFF")]
     public class TransferActionsController : ControllerBase
     {
         private readonly ITransferApprovalService _approvalService;
