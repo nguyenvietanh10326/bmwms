@@ -9,9 +9,10 @@ namespace BMWMS.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF,PURCHASING_STAFF,SALES_STAFF")]
+[Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF,PURCHASING_STAFF,SALES_STAFF,ACCOUNTANT,DIRECTOR")]
 public class InboundsController : ControllerBase
 {
+    private bool CanReadAllOrders => User.IsInRole("SYSTEM_ADMIN") || User.IsInRole("WAREHOUSE_MANAGER") || User.IsInRole("ACCOUNTANT") || User.IsInRole("DIRECTOR");
     private readonly IInboundService _inboundService;
     private readonly ILogger<InboundsController> _logger;
 
@@ -24,7 +25,7 @@ public class InboundsController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<InboundOrderPageDto>> GetInboundOrders([FromQuery] InboundOrderFilterDto filter)
     {
-        if (User.IsInRole("WAREHOUSE_STAFF"))
+        if (!CanReadAllOrders && User.IsInRole("WAREHOUSE_STAFF"))
         {
             var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (long.TryParse(userIdClaim, out var currentUserId))
@@ -36,11 +37,11 @@ public class InboundsController : ControllerBase
                 return Unauthorized();
             }
         }
-        else if (User.IsInRole("SALES_STAFF"))
+        else if (!CanReadAllOrders && User.IsInRole("SALES_STAFF"))
         {
             filter.SourceType = "SALES_RETURN";
         }
-        else if (User.IsInRole("PURCHASING_STAFF"))
+        else if (!CanReadAllOrders && User.IsInRole("PURCHASING_STAFF"))
         {
             filter.SourceType = "PURCHASE_ORDER";
         }
@@ -54,18 +55,18 @@ public class InboundsController : ControllerBase
     {
         var result = await _inboundService.GetInboundOrderByIdAsync(id);
         if (result == null) return NotFound();
-        if (User.IsInRole("WAREHOUSE_STAFF"))
+        if (!CanReadAllOrders && User.IsInRole("WAREHOUSE_STAFF"))
         {
             if (!long.TryParse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var currentUserId))
                 return Unauthorized();
             if (result.AssignedToUserId != currentUserId)
                 return Forbid();
         }
-        else if (User.IsInRole("SALES_STAFF") && result.SourceType != "SALES_RETURN")
+        else if (!CanReadAllOrders && User.IsInRole("SALES_STAFF") && result.SourceType != "SALES_RETURN")
         {
             return Forbid();
         }
-        else if (User.IsInRole("PURCHASING_STAFF") && result.SourceType != "PURCHASE_ORDER")
+        else if (!CanReadAllOrders && User.IsInRole("PURCHASING_STAFF") && result.SourceType != "PURCHASE_ORDER")
         {
             return Forbid();
         }
@@ -80,6 +81,41 @@ public class InboundsController : ControllerBase
         [FromQuery] decimal putawayQuantity = 0)
     {
         return Ok(await _inboundService.GetPutawayLocationsAsync(warehouseId, productId, putawayQuantity));
+    }
+
+    [HttpPost("customer-return/authorize")]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
+    public async Task<IActionResult> AuthorizeCustomerReturn([FromBody] CreateInboundOrderDto dto)
+    {
+        if (!long.TryParse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var userId)) return Unauthorized();
+        try { return Ok(await _inboundService.CreateInboundOrderAsync(dto, userId, authorizeSalesReturn: true)); }
+        catch (UnauthorizedAccessException) { return Forbid(); }
+        catch (ArgumentException ex) { return BadRequest(new { message = ex.Message }); }
+        catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
+        catch (Exception ex) { return HandleException(ex); }
+    }
+
+    [HttpPost("{id:long}/customer-return/start")]
+    [Authorize(Roles = "WAREHOUSE_STAFF")]
+    public async Task<IActionResult> StartCustomerReturn(long id)
+    {
+        if (!long.TryParse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var userId)) return Unauthorized();
+        try { await _inboundService.StartSalesReturnAsync(id, userId); return Ok(); }
+        catch (UnauthorizedAccessException) { return Forbid(); }
+        catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
+        catch (Exception ex) { return HandleException(ex); }
+    }
+
+    [HttpPost("{id:long}/customer-return/receive")]
+    [Authorize(Roles = "WAREHOUSE_STAFF")]
+    public async Task<IActionResult> ReceiveCustomerReturn(long id, [FromBody] RecordSalesReturnReceiptDto dto)
+    {
+        if (!long.TryParse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var userId)) return Unauthorized();
+        try { await _inboundService.RecordSalesReturnReceiptAsync(id, dto, userId); return Ok(); }
+        catch (UnauthorizedAccessException) { return Forbid(); }
+        catch (ArgumentException ex) { return BadRequest(new { message = ex.Message }); }
+        catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
+        catch (Exception ex) { return HandleException(ex); }
     }
 
     [HttpPost]
