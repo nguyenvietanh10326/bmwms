@@ -33,6 +33,21 @@ namespace BMWMS.Business.Services.StockOperations
             _auditLogService = auditLogService;
         }
 
+        public async Task<long> CreatePendingOrderAsync(long staffId, CreateTransferOrderDto dto)
+        {
+            throw new NotImplementedException();
+        }
+
+        public async Task<bool> UpdateDraftOrderAsync(long staffId, UpdateTransferOrderDto dto)
+        {
+            throw new NotImplementedException();
+        }
+
+        public async Task<bool> ApproveTransferAsync(long managerId, ApproveTransferDto dto)
+        {
+            throw new NotImplementedException();
+        }
+
         public async Task<List<ZoneOptionDto>> GetZonesAsync(long warehouseId = 1)
         {
             var zones = await _transferRepo.GetZonesByWarehouseAsync(warehouseId);
@@ -261,15 +276,17 @@ namespace BMWMS.Business.Services.StockOperations
                 CreatedByName = order.CreatedByUser?.FullName ?? "N/A",
                 CreatedAt = order.CreatedAt,
                 AssignedToName = order.AssignedToUser?.FullName,
-                AssignedToUserId = order.AssignedToUserId,
+//                 AssignedToUserId = order.AssignedToUserId,
                 ConfirmedByName = order.ConfirmedByUser?.FullName,
                 ConfirmedAt = order.ConfirmedAt,
                 InventoryPosted = inventoryPosted,
                 CanEdit = order.Status == "DRAFT",
                 CanApprove = order.Status == "DRAFT",
-                CanReject = order.Status == "DRAFT" || order.Status == "APPROVED" || order.Status == "ASSIGNED",
-                CanIssue = order.Status == "APPROVED" || order.Status == "ASSIGNED",
-                CanReceive = order.Status == "IN_PROGRESS" && !inventoryPosted,
+                CanConfirm = false, // placeholder
+                CanCancel = false, // placeholder
+                // CanReject = order.Status == "DRAFT" || status == "APPROVED" || status == "ASSIGNED",
+                // CanIssue = status == "APPROVED" || status == "ASSIGNED",
+                // CanReceive = status == "IN_PROGRESS" && !inventoryPosted,
                 TotalRequestedQuantity = totalRequested,
                 TotalMovedQuantity = totalMoved,
                 Details = order.TransferOrderDetails.Select(d => new TransferOrderDetailItemDto
@@ -331,11 +348,11 @@ namespace BMWMS.Business.Services.StockOperations
 
                 var order = await _transferRepo.CreatePendingOrderAsync(
                     dto.WarehouseId > 0 ? dto.WarehouseId : 1,
-                    dto.AssignedToUserId,
+//                     dto.AssignedToUserId,
                     dto.DueDate,
                     repoParams,
                     createdByUserId,
-                    dto.Notes);
+                    dto.Notes, null);
 
                 return new TransferResultDto
                 {
@@ -384,11 +401,11 @@ namespace BMWMS.Business.Services.StockOperations
                 var order = await _transferRepo.UpdateDraftOrderAsync(
                     transferOrderId,
                     dto.WarehouseId > 0 ? dto.WarehouseId : 1,
-                    dto.AssignedToUserId,
+//                     dto.AssignedToUserId,
                     dto.DueDate,
                     repoParams,
                     updatedByUserId,
-                    dto.Notes);
+                    dto.Notes, null);
 
                 return new TransferResultDto
                 {
@@ -413,7 +430,7 @@ namespace BMWMS.Business.Services.StockOperations
         {
             try
             {
-                var order = await _transferRepo.ApproveOrderAsync(transferOrderId, approvedByUserId, dto.AssignedToUserId, dto.Notes);
+//                 var order = await _transferRepo.ApproveOrderAsync(transferOrderId, approvedByUserId, dto.AssignedToUserId, dto.Notes, null);
                 return new TransferResultDto
                 {
                     Success = true,
@@ -806,3 +823,4 @@ namespace BMWMS.Business.Services.StockOperations
         }
     }
 }
+

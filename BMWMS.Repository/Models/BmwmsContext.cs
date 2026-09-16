@@ -1439,6 +1439,8 @@ public partial class BmwmsContext : DbContext
             entity.Property(e => e.AssignedToUserId).HasColumnName("AssignedToUserID");
             entity.Property(e => e.ConfirmedAt).HasPrecision(0);
             entity.Property(e => e.ConfirmedByUserId).HasColumnName("ConfirmedByUserID");
+            entity.Property(e => e.ApprovedAt).HasPrecision(0);
+            entity.Property(e => e.ApprovedByUserId).HasColumnName("ApprovedByUserID");
             entity.Property(e => e.CreatedAt)
                 .HasPrecision(0)
                 .HasDefaultValueSql("(sysutcdatetime())");
@@ -1464,6 +1466,10 @@ public partial class BmwmsContext : DbContext
             entity.HasOne(d => d.ConfirmedByUser).WithMany(p => p.TransferOrderConfirmedByUsers)
                 .HasForeignKey(d => d.ConfirmedByUserId)
                 .HasConstraintName("FK_TransferOrders_ConfirmedBy");
+
+            entity.HasOne(d => d.ApprovedByUser).WithMany(p => p.TransferOrderApprovedByUsers)
+                .HasForeignKey(d => d.ApprovedByUserId)
+                .HasConstraintName("FK_TransferOrders_ApprovedBy");
 
             entity.HasOne(d => d.CreatedByUser).WithMany(p => p.TransferOrderCreatedByUsers)
                 .HasForeignKey(d => d.CreatedByUserId)
