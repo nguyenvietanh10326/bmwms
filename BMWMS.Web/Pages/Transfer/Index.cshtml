@@ -19,7 +19,7 @@
 <div class="transfer-page">
     <div class="pagehead" style="display:flex; justify-content:space-between; align-items:flex-end;">
         <div>
-            <h1>Danh sách Lệnh Điều Chuyển</h1>
+            <h3 class="mb-1">Phiếu chuyển kho</h3>
             <p>Quản lý các lệnh điều chuyển nội bộ.</p>
         </div>
         @if (Model.IsStaff)
@@ -57,7 +57,7 @@
                     <th>Ngày yêu cầu</th>
                     <th>Người tạo</th>
                     <th>Người thực hiện</th>
-                    <th>Tổng S.L</th>
+                    <th>Số mặt hàng</th>
                     <th>Trạng Thái</th>
                     <th></th>
                 </tr>
@@ -72,7 +72,7 @@
                             <td>@item.RequestedDate.ToString("dd/MM/yyyy")</td>
                             <td>@item.CreatedByName</td>
                             <td>@item.AssignedToName</td>
-                            <td>@item.TotalRequestedQuantity</td>
+                            <td>@item.TotalItems dòng</td>
                             <td><span class="badge bg-@item.StatusCss">@item.StatusLabel</span></td>
                             <td class="text-end">
                                 <a href="/Transfer/Details?id=@item.TransferOrderId" class="btn btn-sm btn-light">Chi tiết</a>

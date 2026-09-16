@@ -13,4 +13,5 @@ public interface IProductAttributeRepository
     Task UpdateAsync(ProductAttribute attribute);
     Task<bool> DeleteAsync(long id);
     Task<bool> IsAttributeUsedAsync(long id);
+    Task<bool> IsCodeExistsAsync(string attributeCode, long? excludeId = null);
 }

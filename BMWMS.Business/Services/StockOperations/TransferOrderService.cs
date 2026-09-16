@@ -101,6 +101,7 @@ namespace BMWMS.Business.Services.StockOperations
                     ProductCode = d.Product?.ProductCode ?? "",
                     ProductName = d.Product?.ProductName ?? "",
                     UnitName = d.Product?.UnitOfMeasure?.UnitName ?? "",
+                    QuantityScale = d.Product?.UnitOfMeasure?.QuantityScale ?? 0,
                     LotNumber = d.ProductLot?.LotNumber ?? "",
                     SourceLocationId = d.SourceLocationId ?? 0,
                     SourceLocationCode = d.SourceLocation?.LocationCode ?? "",
