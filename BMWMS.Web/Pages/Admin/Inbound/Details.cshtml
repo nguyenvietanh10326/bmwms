@@ -18,6 +18,14 @@
     <div class="d-flex justify-content-between align-items-start mb-3">
         <div><div class="text-muted">Chi tiết phiếu nhập kho</div><h3>@Model.Order.InboundOrderNumber</h3></div>
         <div class="d-flex gap-2">
+            @if (isReturn && isAssignedStaff && Model.Order.Status == "READY")
+            {
+                <form method="post" asp-page-handler="StartReturn" asp-route-id="@Model.Order.InboundOrderId"><button class="btn btn-primary">Bắt đầu nhận hàng trả</button></form>
+            }
+            @if (isReturn && isAssignedStaff && Model.Order.Status == "RECEIVING")
+            {
+                <a asp-page="./ReturnReceipt" asp-route-id="@Model.Order.InboundOrderId" class="btn btn-primary">Ghi nhận thực nhận</a>
+            }
             @if (isAssignedStaff && hasPendingPutaway && Model.Order.Status == "RECEIVED")
             {
                 <a asp-page="./Putaway" asp-route-id="@Model.Order.InboundOrderId" class="btn btn-primary">Cất hàng vào vị trí</a>
@@ -26,10 +34,7 @@
         </div>
     </div>
 
-    <div class="alert alert-info">
-        <strong>@(isReturn ? "Khách trả hàng theo SO" : "Nhập hàng mua theo PO"):</strong>
-        @Model.Order.SourceReference — @Model.Order.PartnerName. Số lượng thực nhận đã được chốt khi lập phiếu; tồn kho chỉ tăng sau khi xác nhận vị trí cất thực tế.
-    </div>
+
     @if (isReturn)
     {
         <div class="alert alert-warning">
@@ -41,11 +46,22 @@
         <div class="col-md-3"><div class="text-muted small">Trạng thái</div><strong>@StatusLabel(Model.Order.Status)</strong></div>
         <div class="col-md-3"><div class="text-muted small">Đơn tham chiếu</div><strong>@Model.Order.SourceReference</strong></div>
         <div class="col-md-3"><div class="text-muted small">Đối tác</div><strong>@Model.Order.PartnerName</strong></div>
-        <div class="col-md-3"><div class="text-muted small">Ngày nhận thực tế</div><span>@Model.Order.ExpectedReceiptDate.ToString("dd/MM/yyyy")</span></div>
+        <div class="col-md-3"><div class="text-muted small">@(isReturn && Model.Order.Status is "READY" or "RECEIVING" ? "Ngày dự kiến nhận trả" : "Ngày nhận thực tế")</div><span>@Model.Order.ExpectedReceiptDate.ToString("dd/MM/yyyy")</span></div>
         <div class="col-md-3"><div class="text-muted small">Nhân viên thực hiện</div><span>@(string.IsNullOrWhiteSpace(Model.Order.AssignedToUserName) ? "Không xác định" : Model.Order.AssignedToUserName)</span></div>
+        @if (isReturn) { <div class="col-md-3"><div class="text-muted small">Người duyệt nhận trả</div><span>@(Model.Order.ApprovedByUserName ?? "Chưa ghi nhận duyệt của Quản lý")</span></div> }
         <div class="col-12"><div class="text-muted small">@(isReturn ? "Lý do và căn cứ nhận hàng trả" : "Ghi chú phiếu")</div><span>@(string.IsNullOrWhiteSpace(Model.Order.Notes) ? "Không có" : Model.Order.Notes)</span></div>
         @if (!string.IsNullOrWhiteSpace(Model.Order.CancellationReason)) { <div class="col-12"><div class="text-muted small">Lý do hủy</div><strong class="text-danger">@Model.Order.CancellationReason</strong></div> }
     </div></div>
+
+    @if (isReturn && (User.IsInRole("WAREHOUSE_MANAGER") || User.IsInRole("SYSTEM_ADMIN")) &&
+        Model.Order.Status is "READY" or "RECEIVING" && Model.Order.Items.All(item => item.ReceivedQuantity == 0))
+    {
+        <form method="post" asp-page-handler="Cancel" asp-route-id="@Model.Order.InboundOrderId" class="d-flex gap-2 mb-3"
+              onsubmit="return confirm('Hủy lệnh chưa nhận hàng và giải phóng nhân viên đang phụ trách?');">
+            <input name="reason" class="form-control" required maxlength="500" placeholder="Lý do hủy lệnh nhận trả" />
+            <button class="btn btn-outline-danger text-nowrap">Hủy lệnh nhận trả</button>
+        </form>
+    }
 
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div><h4 class="h6 mb-1">Mặt hàng trong đợt nhập</h4><div class="text-muted small">Đối chiếu số theo đơn, số thực nhận và vị trí cất của từng mặt hàng.</div></div>
@@ -56,7 +72,7 @@
         <div class="card border-0 shadow-sm mb-3"><div class="card-header bg-white d-flex justify-content-between"><span><strong>@item.ProductName</strong> <span class="text-muted">(@item.ProductCode)</span></span><span>@item.UnitName</span></div>
         <div class="card-body">
             <div class="row g-3 mb-3">
-                <div class="col"><div class="text-muted small">Còn phải nhận trước đợt</div><strong>@FormatQuantity(item.ExpectedQuantity, item.QuantityScale) @item.UnitName</strong></div>
+                <div class="col"><div class="text-muted small">@(isReturn ? "Số lượng được duyệt" : "Còn phải nhận trước đợt")</div><strong>@FormatQuantity(item.ExpectedQuantity, item.QuantityScale) @item.UnitName</strong></div>
                 <div class="col"><div class="text-muted small">Thực nhận đợt này</div><strong class="text-success">@FormatQuantity(item.ReceivedQuantity, item.QuantityScale) @item.UnitName</strong></div>
                 <div class="col"><div class="text-muted small">Đã cất vào vị trí</div><strong class="text-success">@FormatQuantity(item.PutawayQuantity, item.QuantityScale) @item.UnitName</strong></div>
                 <div class="col"><div class="text-muted small">Chưa nhận</div><strong class="text-warning">@FormatQuantity(Math.Max(0, item.ExpectedQuantity - item.ReceivedQuantity), item.QuantityScale) @item.UnitName</strong></div>

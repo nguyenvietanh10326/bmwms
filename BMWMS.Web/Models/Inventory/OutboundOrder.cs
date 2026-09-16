@@ -93,6 +93,8 @@ namespace BMWMS.Web.Models.Inventory
     // Request chứa các tham số lọc + phân trang
     public class OutboundOrderQueryFilter
     {
+        public string? SourceType { get; set; }
+        public string SortOrder { get; set; } = "newest";
         public string? Search { get; set; }
         public string? Status { get; set; }
         // Cấu hình phân trang

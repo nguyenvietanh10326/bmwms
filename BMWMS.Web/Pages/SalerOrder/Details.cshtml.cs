@@ -6,7 +6,7 @@ using System.Text.Json.Serialization;
 
 namespace BMWMS.Web.Pages.SaleOrder
 {
-    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,SALES_STAFF")]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,SALES_STAFF,ACCOUNTANT,DIRECTOR")]
     public class DetailsModel : PageModel
     {
         private readonly IHttpClientFactory _httpClientFactory;

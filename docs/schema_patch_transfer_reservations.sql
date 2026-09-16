@@ -4,6 +4,44 @@ GO
 BEGIN TRANSACTION;
 GO
 
+/*
+    The shared Update15-9 schema predates the redesigned Transfer workflow.
+    Keep the legacy ASSIGNED/IN_PROGRESS rows readable while enabling
+    DRAFT -> APPROVED -> COMPLETED for new internal transfers.
+*/
+IF OBJECT_ID(N'dbo.TransferOrders', N'U') IS NULL
+    THROW 51001, 'Missing dbo.TransferOrders. Apply the shared BMWMS schema first.', 1;
+
+IF COL_LENGTH(N'dbo.TransferOrders', N'ApprovedByUserID') IS NULL
+    ALTER TABLE dbo.TransferOrders ADD ApprovedByUserID BIGINT NULL;
+
+IF COL_LENGTH(N'dbo.TransferOrders', N'ApprovedAt') IS NULL
+    ALTER TABLE dbo.TransferOrders ADD ApprovedAt DATETIME2(7) NULL;
+
+IF NOT EXISTS
+(
+    SELECT 1 FROM sys.foreign_keys
+    WHERE name = N'FK_TransferOrders_ApprovedBy'
+      AND parent_object_id = OBJECT_ID(N'dbo.TransferOrders')
+)
+    ALTER TABLE dbo.TransferOrders WITH CHECK
+        ADD CONSTRAINT FK_TransferOrders_ApprovedBy
+        FOREIGN KEY (ApprovedByUserID) REFERENCES dbo.Users(UserID);
+
+IF EXISTS
+(
+    SELECT 1 FROM sys.check_constraints
+    WHERE name = N'CK_TransferOrders_Status'
+      AND parent_object_id = OBJECT_ID(N'dbo.TransferOrders')
+)
+    ALTER TABLE dbo.TransferOrders DROP CONSTRAINT CK_TransferOrders_Status;
+
+ALTER TABLE dbo.TransferOrders WITH CHECK
+    ADD CONSTRAINT CK_TransferOrders_Status CHECK
+    (
+        Status IN ('DRAFT', 'APPROVED', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED')
+    );
+
 IF EXISTS
 (
     SELECT 1

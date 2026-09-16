@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace BMWMS.Web.Pages.Admin.Inbound;
 
-[Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF,PURCHASING_STAFF,SALES_STAFF")]
+[Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF,PURCHASING_STAFF,SALES_STAFF,ACCOUNTANT,DIRECTOR")]
 public class DetailsModel : PageModel
 {
     private readonly InboundApiService _inboundApiService;
@@ -21,6 +21,16 @@ public class DetailsModel : PageModel
              Order.AssignedToUserId != userId))
             return Forbid();
         return Page();
+    }
+
+    public async Task<IActionResult> OnPostStartReturnAsync(long id)
+    {
+        if (!User.IsInRole("WAREHOUSE_STAFF")) return Forbid();
+        try {
+            await _inboundApiService.StartSalesReturnAsync(id);
+            return RedirectToPage("./ReturnReceipt", new { id });
+        }
+        catch (Exception ex) { TempData["ErrorMessage"] = ex.Message; return RedirectToPage(new { id }); }
     }
 
     public async Task<IActionResult> OnPostConfirmAsync(long id)

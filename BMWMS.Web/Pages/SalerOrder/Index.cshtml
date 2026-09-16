@@ -17,9 +17,12 @@
         <h1 class="h3 mb-1 text-gray-800">Danh sách đơn bán hàng (SO)</h1>
         <p class="text-muted mb-0">Theo dõi đơn bán hàng từ khi tạo nháp đến khi xuất hàng hoặc hủy đơn.</p>
     </div>
+    @if (User.IsInRole("SYSTEM_ADMIN") || User.IsInRole("SALES_STAFF"))
+    {
     <a href="/sales-orders/create" class="btn btn-primary shadow-sm flex-shrink-0">
         <i class="bi bi-plus-lg me-2"></i>Tạo đơn bán hàng
     </a>
+    }
 </div>
 
 @if (!string.IsNullOrWhiteSpace(Model.SuccessMessage))
@@ -37,14 +40,7 @@
     </div>
 }
 
-<div class="alert alert-light border d-flex align-items-start gap-2 py-2" role="note">
-    <i class="bi bi-diagram-3 text-primary mt-1"></i>
-    <div class="small text-muted">
-        <span class="fw-semibold text-dark">Quy trình trạng thái:</span>
-        Nháp → Đã xác nhận → Đã xuất một phần → Đã xuất.
-        Đơn nháp hoặc đã xác nhận có thể chuyển sang Đã hủy.
-    </div>
-</div>
+
 
 <div class="card border-0 shadow-sm mb-4">
     <div class="card-body">
@@ -90,7 +86,7 @@
                     <i class="bi bi-funnel me-1"></i>Áp dụng
                 </button>
             </div>
-        </form>
+        <div class="col-md-3 filter-group"><label class="form-label">Sắp xếp</label><select asp-for="SortOrder" class="form-select"><option value="newest">Mới nhất</option><option value="oldest">Cũ nhất</option></select></div></form>
     </div>
 </div>
 
@@ -180,7 +176,7 @@
                     <li class="page-item @(pageIndex == 1 ? "disabled" : string.Empty)">
                         <a class="page-link" asp-page="./Index"
                            asp-route-Keyword="@Model.Keyword"
-                           asp-route-Status="@Model.Status"
+                           asp-route-Status="@Model.Status" asp-route-SortOrder="@Model.SortOrder"
                            asp-route-FromDate="@Model.FromDate?.ToString("yyyy-MM-dd")"
                            asp-route-ToDate="@Model.ToDate?.ToString("yyyy-MM-dd")"
                            asp-route-PageSize="@Model.PageSize"
@@ -193,7 +189,7 @@
                         <li class="page-item @(i == pageIndex ? "active" : string.Empty)">
                             <a class="page-link" asp-page="./Index"
                                asp-route-Keyword="@Model.Keyword"
-                               asp-route-Status="@Model.Status"
+                               asp-route-Status="@Model.Status" asp-route-SortOrder="@Model.SortOrder"
                                asp-route-FromDate="@Model.FromDate?.ToString("yyyy-MM-dd")"
                                asp-route-ToDate="@Model.ToDate?.ToString("yyyy-MM-dd")"
                                asp-route-PageSize="@Model.PageSize"
@@ -204,7 +200,7 @@
                     <li class="page-item @(pageIndex == totalPages ? "disabled" : string.Empty)">
                         <a class="page-link" asp-page="./Index"
                            asp-route-Keyword="@Model.Keyword"
-                           asp-route-Status="@Model.Status"
+                           asp-route-Status="@Model.Status" asp-route-SortOrder="@Model.SortOrder"
                            asp-route-FromDate="@Model.FromDate?.ToString("yyyy-MM-dd")"
                            asp-route-ToDate="@Model.ToDate?.ToString("yyyy-MM-dd")"
                            asp-route-PageSize="@Model.PageSize"

@@ -10,6 +10,7 @@ namespace BMWMS.Web.Models.Inventory
     // DTO tìm kiếm và phân trang
     public class SalesOrderSearchCriteria
     {
+        public string SortOrder { get; set; } = "newest";
         public string? Keyword { get; set; }
         public string? Status { get; set; }
         public DateOnly? FromDate { get; set; }

@@ -5,6 +5,7 @@ namespace BMWMS.Web.Models.Inventory
 {
     public class PurchaseOrderFilterDto
     {
+        public string SortOrder { get; set; } = "newest";
         public string? SearchTerm { get; set; }
         public string? Status { get; set; }
         public long? WarehouseId { get; set; }

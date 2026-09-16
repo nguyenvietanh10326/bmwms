@@ -5,6 +5,7 @@ namespace BMWMS.Web.Models;
 
 public class InboundOrderFilterModel
 {
+        public string SortOrder { get; set; } = "newest";
     public string? Keyword { get; set; }
     public string? Status { get; set; }
     public string? SourceType { get; set; }
@@ -62,6 +63,7 @@ public class InboundOrderDetailDto
     public long? AssignedToUserId { get; set; }
     public string AssignedToUserName { get; set; } = string.Empty;
     public string CreatedByUserName { get; set; } = string.Empty;
+    public string? ApprovedByUserName { get; set; }
     public string? Notes { get; set; }
     public string? CancellationReason { get; set; }
     public string? ParentInboundOrderNumber { get; set; }

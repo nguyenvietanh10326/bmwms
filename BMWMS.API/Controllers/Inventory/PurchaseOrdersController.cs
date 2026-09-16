@@ -18,7 +18,7 @@ public class PurchaseOrdersController : ControllerBase
     }
 
     [HttpGet("{id:long}")]
-    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF")]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF,ACCOUNTANT,DIRECTOR")]
     public async Task<IActionResult> GetById(long id)
     {
         try
@@ -36,15 +36,15 @@ public class PurchaseOrdersController : ControllerBase
     }
 
     [HttpGet("AllSupplier")]
-    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF")]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF,ACCOUNTANT,DIRECTOR")]
     public async Task<IActionResult> GetAllSupplier() => Ok(await _poService.GetLookupListAsync());
 
     [HttpGet("AllWarehouse")]
-    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF")]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF,ACCOUNTANT,DIRECTOR")]
     public async Task<IActionResult> GetAllWarehouse() => Ok(await _poService.GetLookListAsync());
 
     [HttpGet("AllProduct")]
-    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF")]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF,ACCOUNTANT,DIRECTOR")]
     public async Task<IActionResult> GetAllProduct() => Ok(await _poService.GetUpListAsync());
 
     [HttpPost]
@@ -68,7 +68,7 @@ public class PurchaseOrdersController : ControllerBase
     }
 
     [HttpGet]
-    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF")]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF,ACCOUNTANT,DIRECTOR")]
     public async Task<IActionResult> GetPaged([FromQuery] PurchaseOrderFilterDto filter) =>
         Ok(await _poService.GetPagedOrdersAsync(filter));
 
@@ -140,7 +140,7 @@ public class PurchaseOrdersController : ControllerBase
     }
 
     [HttpGet("/AllCustomers")]
-    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF,SALES_STAFF")]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF,SALES_STAFF,ACCOUNTANT,DIRECTOR")]
     public async Task<IActionResult> GetAllCustomer()
     {
         try

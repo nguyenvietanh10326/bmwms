@@ -3,35 +3,22 @@
 @using BMWMS.Web.Helpers
 @{
     Layout = "_AdminLayout";
-    ViewData["Title"] = "Tạo phiếu xuất kho";
     var isPurchaseReturn = User.IsInRole("WAREHOUSE_MANAGER") || User.IsInRole("SYSTEM_ADMIN");
+    ViewData["Title"] = isPurchaseReturn ? "Duyệt lệnh trả NCC" : "Tạo phiếu xuất bán";
     ViewData["OutboundSourceType"] = isPurchaseReturn ? "PURCHASE_RETURN" : "SALES_ORDER";
 }
 
 <div class="container-fluid py-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
-            <h3 class="mb-1">Tạo phiếu xuất kho</h3>
-            <div class="text-muted">Outbound là chứng từ tác nghiệp vật lý và được tạo thẳng ở trạng thái Sẵn sàng, không có bước Nháp.</div>
+            <h3 class="mb-1">@ViewData["Title"]</h3>
+
         </div>
         <a asp-page="./Index" class="btn btn-outline-secondary">Danh sách phiếu xuất</a>
     </div>
 
-    <partial name="_Workflow" model='"CREATE"' />
-
-    <div class="alert alert-info d-flex gap-2 align-items-start" role="note">
-        <i class="bi bi-info-circle mt-1"></i>
-        <div>
-            <strong>Bước hiện tại:</strong> chọn đơn tham chiếu và số lượng cần xử lý trong đợt này.
-            Thông tin đối tác, mặt hàng và giới hạn số lượng được lấy trực tiếp từ SO/PO và không thể sửa tại đây.
-            @(isPurchaseReturn
-                ? "Quản lý kho quyết định trả NCC và phân công một Nhân viên kho đang rảnh."
-                : "Nhân viên kho tự nhận đợt xuất từ SO đã được Quản lý kho duyệt và giữ tồn.")
-        </div>
-    </div>
-
-    <form method="post" id="outboundForm">
-        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+    <form method="post" id="outboundForm" data-return="@(isPurchaseReturn ? "true" : "false")">
+        <div asp-validation-summary="All" class="alert alert-danger"></div>
         <div class="card shadow-sm border-0 mb-3">
             <div class="card-header bg-white fw-semibold">Thông tin nguồn xuất</div>
             <div class="card-body">
@@ -47,18 +34,17 @@
                             <label class="form-label">Nhân viên kho thực hiện</label>
                             <select asp-for="Input.AssignedToUserId" asp-items="Model.AssigneeOptions" class="form-select" required></select>
                             <span asp-validation-for="Input.AssignedToUserId" class="text-danger"></span>
-                            <div class="form-text">Chỉ hiển thị nhân viên không có nhiệm vụ nhập/xuất đang hoạt động.</div>
                         </div>
                     }
                     <div class="col-md-4 source-sales @(isPurchaseReturn ? "d-none" : "")">
                         <label class="form-label">Đơn bán hàng đủ điều kiện xuất</label>
+                        <input type="search" id="referenceSearch" class="form-control mb-2" placeholder="Tìm mã đơn hoặc đối tác" aria-label="Tìm đơn tham chiếu" />
                         <select asp-for="Input.SalesOrderId" asp-items="Model.SalesOrderOptions" class="form-select" id="salesOrder" aria-describedby="salesOrderHelp"></select>
-                        <div class="form-text" id="salesOrderHelp">Chỉ hiển thị SO đã xác nhận và còn số lượng chưa giao/chưa nằm trong phiếu xuất đang xử lý.</div>
                     </div>
                     <div class="col-md-4 source-purchase @(!isPurchaseReturn ? "d-none" : "")">
                         <label class="form-label">Đơn mua hàng đã nhập</label>
+                        <input type="search" id="purchaseReferenceSearch" class="form-control mb-2" placeholder="Tìm mã đơn hoặc đối tác" aria-label="Tìm đơn tham chiếu" />
                         <select asp-for="Input.PurchaseOrderId" asp-items="Model.PurchaseOrderOptions" class="form-select" id="purchaseOrder" aria-describedby="purchaseOrderHelp"></select>
-                        <div class="form-text" id="purchaseOrderHelp">Chỉ dùng cho hàng trước đó đã được chấp nhận và xếp vào kho nhưng sau này có quyết định trả NCC. Hàng bị từ chối ngay tại cửa nhận không đi qua phiếu xuất này.</div>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Đối tác</label>
@@ -74,7 +60,7 @@
                     </div>
                     <div class="col-12">
                         <label class="form-label">@(isPurchaseReturn ? "Lý do trả nhà cung cấp" : "Ghi chú nghiệp vụ")</label>
-                        <textarea asp-for="Input.Notes" class="form-control" rows="2" placeholder="Ví dụ: lý do trả NCC, yêu cầu giao hàng..."></textarea>
+                        <textarea asp-for="Input.Notes" class="form-control" rows="2" required="@isPurchaseReturn" minlength="@(isPurchaseReturn ? "10" : null)" maxlength="500" placeholder="Lý do trả NCC hoặc yêu cầu giao hàng"></textarea>
                         <span asp-validation-for="Input.Notes" class="text-danger"></span>
                     </div>
                 </div>
@@ -98,9 +84,9 @@
                             <td><input type="hidden" asp-for="Input.Items[i].ProductId" /><input type="hidden" asp-for="Input.Items[i].ProductCode" />@Model.Input.Items[i].ProductCode</td>
                             <td><input type="hidden" asp-for="Input.Items[i].ProductName" />@Model.Input.Items[i].ProductName</td>
                             <td><input type="hidden" asp-for="Input.Items[i].UnitName" />@Model.Input.Items[i].UnitName</td>
-                            <td class="text-end"><input type="hidden" asp-for="Input.Items[i].ReferenceQuantity" />@FormatQuantity(Model.Input.Items[i].ReferenceQuantity, Model.Input.Items[i].QuantityScale)</td>
-                            <td class="text-end"><input type="hidden" asp-for="Input.Items[i].AvailableQuantity" />@FormatQuantity(Model.Input.Items[i].AvailableQuantity, Model.Input.Items[i].QuantityScale)</td>
-                            <td><input type="hidden" asp-for="Input.Items[i].QuantityScale" /><input type="hidden" asp-for="Input.Items[i].TrackLot" /><input asp-for="Input.Items[i].RequestedQuantity" type="number" min="0" max="@Model.Input.Items[i].AvailableQuantity" step="@QuantityStep(Model.Input.Items[i].QuantityScale)" class="form-control text-end" /></td>
+                            <td class="text-end"><input type="hidden" name="Input.Items[@i].ReferenceQuantity" value="@(Model.Input.Items[i].ReferenceQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture))" />@FormatQuantity(Model.Input.Items[i].ReferenceQuantity, Model.Input.Items[i].QuantityScale)</td>
+                            <td class="text-end"><input type="hidden" name="Input.Items[@i].AvailableQuantity" value="@(Model.Input.Items[i].AvailableQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture))" />@FormatQuantity(Model.Input.Items[i].AvailableQuantity, Model.Input.Items[i].QuantityScale)</td>
+                            <td><input type="hidden" asp-for="Input.Items[i].QuantityScale" /><input type="hidden" asp-for="Input.Items[i].TrackLot" /><input asp-for="Input.Items[i].RequestedQuantity" type="number" min="0" max="@(Model.Input.Items[i].AvailableQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture))" step="@QuantityStep(Model.Input.Items[i].QuantityScale)" class="form-control text-end" /></td>
                         </tr>
                     }
                     @if (Model.Input.Items.Count == 0)
@@ -112,7 +98,7 @@
             </div>
             <div class="card-footer bg-white d-flex justify-content-end gap-2">
                 <span class="text-muted small me-auto align-self-center" id="createHint">Chọn đơn tham chiếu để tải các mặt hàng còn có thể xuất.</span>
-                <button type="submit" id="saveDraftButton" class="btn btn-primary" @(Model.Input.Items.Count == 0 ? "disabled" : null)>@(isPurchaseReturn ? "Tạo lệnh và phân công" : "Tạo và nhận đợt xuất")</button>
+                <button type="submit" id="createOutboundButton" class="btn btn-primary" @(Model.Input.Items.Count == 0 ? "disabled" : null)>@(isPurchaseReturn ? "Duyệt và giao lệnh trả NCC" : "Tạo phiếu xuất")</button>
             </div>
         </div>
     </form>
@@ -125,8 +111,9 @@
     const salesOrder = document.getElementById('salesOrder');
     const purchaseOrder = document.getElementById('purchaseOrder');
     const body = document.getElementById('itemsBody');
-    const saveDraftButton = document.getElementById('saveDraftButton');
+    const createOutboundButton = document.getElementById('createOutboundButton');
     const createHint = document.getElementById('createHint');
+    let referenceVersion = 0;
 
     function toggleSource() {
         const isSales = sourceType.value === 'SALES_ORDER';
@@ -135,16 +122,19 @@
     }
 
     async function loadReference(kind, id) {
+        const version = ++referenceVersion;
         document.getElementById('partnerName').value = '';
         document.getElementById('sourceReference').value = '';
         if (!id) { renderItems([]); return; }
         const handler = kind === 'sales' ? 'SalesOrderDetail' : 'PurchaseOrderDetail';
-        saveDraftButton.disabled = true;
+        createOutboundButton.disabled = true;
         createHint.textContent = 'Đang tải dữ liệu đơn tham chiếu...';
         let response;
         try {
             response = await fetch(`?handler=${handler}&id=${id}`, { headers: { 'Accept': 'application/json' } });
+            if (version !== referenceVersion) return;
         } catch {
+            if (version !== referenceVersion) return;
             renderItems([]);
             createHint.textContent = 'Mất kết nối khi tải đơn tham chiếu. Vui lòng thử lại.';
             return;
@@ -156,7 +146,10 @@
             createHint.textContent = message;
             return;
         }
-        const data = await response.json();
+        let data;
+        try { data = await response.json(); }
+        catch { renderItems([]); createHint.textContent = 'Dữ liệu đơn tham chiếu không hợp lệ. Vui lòng tải lại.'; return; }
+        if (version !== referenceVersion) return;
         document.getElementById('partnerName').value = kind === 'sales' ? data.customerName : data.supplierName;
         document.getElementById('sourceReference').value = kind === 'sales' ? data.salesOrderNumber : data.purchaseOrderNumber;
         const items = (data.items || []).map(x => ({
@@ -169,7 +162,7 @@
         renderItems(items);
     }
 
-    function escapeHtml(value) { const d = document.createElement('div'); d.textContent = value ?? ''; return d.innerHTML; }
+    function escapeHtml(value) { const d = document.createElement('div'); d.textContent = value ?? ''; return d.innerHTML.replaceAll('"', '&quot;').replaceAll("'", '&#39;'); }
     function quantityStep(scale) { return scale === 0 ? '1' : `0.${'0'.repeat(scale - 1)}1`; }
     function formatQuantity(value, scale) {
         return Number(value).toLocaleString('en-US', {
@@ -179,9 +172,9 @@
     }
     function renderItems(items) {
         document.getElementById('itemCount').textContent = `${items.length} mặt hàng`;
-        saveDraftButton.disabled = items.length === 0;
+        createOutboundButton.disabled = items.length === 0;
         createHint.textContent = items.length
-            ? 'Phiếu sẽ chuyển thẳng sang Sẵn sàng xử lý; chưa trừ tồn kho tại bước tạo.'
+            ? 'Nhập số lượng đợt này; nhập 0 nếu chưa xuất mặt hàng.'
             : 'Đơn không còn mặt hàng có thể xuất.';
         if (!items.length) { body.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">Đơn không còn mặt hàng có thể xuất.</td></tr>'; return; }
         body.innerHTML = items.map((x, i) => `<tr>
@@ -195,6 +188,18 @@
 
     salesOrder.addEventListener('change', e => loadReference('sales', e.target.value));
     purchaseOrder.addEventListener('change', e => loadReference('purchase', e.target.value));
+    ['referenceSearch', 'purchaseReferenceSearch'].forEach((id, index) => {
+        const search = document.getElementById(id);
+        const select = index === 0 ? salesOrder : purchaseOrder;
+        if (search) search.addEventListener('input', () => {
+            const keyword = search.value.trim().toLocaleLowerCase('vi');
+            Array.from(select.options).forEach(option => { option.hidden = !!option.value && !option.selected && !option.text.toLocaleLowerCase('vi').includes(keyword); });
+        });
+    });
+    document.getElementById('outboundForm').addEventListener('submit', event => {
+        if (!event.target.checkValidity()) return;
+        if (event.target.dataset.return === 'true' && !confirm('Duyệt trả hàng cho NCC và giao lệnh cho nhân viên đã chọn?')) event.preventDefault();
+    });
     toggleSource();
 </script>
 }

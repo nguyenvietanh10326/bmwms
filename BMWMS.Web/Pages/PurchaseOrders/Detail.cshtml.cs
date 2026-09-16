@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace BMWMS.Web.Pages.PurchaseOrders;
 
-[Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF")]
+[Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF,ACCOUNTANT,DIRECTOR")]
 public class DetailModel : PageModel
 {
     private readonly PurchaseOrderApiService _apiService;
@@ -48,6 +48,7 @@ public class DetailModel : PageModel
 
     public async Task<IActionResult> OnPostCancelAsync(string? reason)
     {
+        if (!User.IsInRole("SYSTEM_ADMIN") && !User.IsInRole("WAREHOUSE_MANAGER") && !User.IsInRole("PURCHASING_STAFF")) return Forbid();
         var (isSuccess, message) = await _apiService.CancelPurchaseOrderAsync(Id, reason);
         if (isSuccess)
         {

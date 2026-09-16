@@ -27,11 +27,14 @@ public class InboundHistoryModel : PageModel
     public async Task<IActionResult> OnGetAsync()
     {
         var roleCode = HttpContext.Session.GetString("RoleCode");
-        if (roleCode != "SYSTEM_ADMIN" && roleCode != "WAREHOUSE_MANAGER" && roleCode != "PURCHASING_STAFF")
+        if (roleCode != "SYSTEM_ADMIN" && roleCode != "WAREHOUSE_MANAGER" && roleCode != "PURCHASING_STAFF" && roleCode != "ACCOUNTANT" && roleCode != "DIRECTOR")
         {
             return Forbid();
         }
 
+        Filter.PageIndex = Math.Max(1, Filter.PageIndex);
+        Filter.PageSize = Math.Clamp(Filter.PageSize, 1, 100);
+        if (Filter.FromDate > Filter.ToDate) { TempData["ErrorMessage"] = "Từ ngày không được sau đến ngày."; return Page(); }
         // Get inbounds
         var result = await _supplierApiService.GetSupplierInboundHistoryAsync(SupplierCode, Filter);
         if (result != null)
