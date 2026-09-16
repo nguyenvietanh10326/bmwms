@@ -25,7 +25,7 @@ namespace BMWMS.Web.Pages.Transfer
         public bool IsEditMode => Id > 0;
         public TransferOrderDetailViewDto? EditingOrder { get; set; }
         public string InitialRowsJson { get; set; } = "[]";
-        public long? SelectedAssignedToUserId { get; set; }
+        
         public string? SelectedDueDate { get; set; }
         public string? ExistingNotes { get; set; }
 
@@ -54,7 +54,7 @@ namespace BMWMS.Web.Pages.Transfer
                     return RedirectToPage("/Transfer/Details", new { id = Id });
                 }
 
-                SelectedAssignedToUserId = EditingOrder.AssignedToUserId;
+                
                 SelectedDueDate = EditingOrder.DueDate?.ToString("yyyy-MM-dd");
                 ExistingNotes = EditingOrder.Notes;
                 InitialRowsJson = BuildInitialRowsJson(EditingOrder);
@@ -103,13 +103,12 @@ namespace BMWMS.Web.Pages.Transfer
             string itemsJson,
             string? action,
             long? transferOrderId,
-            long? assignedToUserId,
             string? dueDate,
             string? notes)
         {
             LoadUserInfo();
             Id = transferOrderId ?? 0;
-            SelectedAssignedToUserId = assignedToUserId;
+            
             SelectedDueDate = dueDate;
             ExistingNotes = notes;
 
@@ -150,7 +149,7 @@ namespace BMWMS.Web.Pages.Transfer
             var request = new CreateTransferOrderDto
             {
                 WarehouseId      = 1,
-                AssignedToUserId = assignedToUserId > 0 ? assignedToUserId : null,
+                
                 DueDate          = dueDate,
                 Notes            = notes,
                 Items            = items
@@ -161,7 +160,7 @@ namespace BMWMS.Web.Pages.Transfer
                 {
                     TransferOrderId = Id,
                     WarehouseId = request.WarehouseId,
-                    AssignedToUserId = request.AssignedToUserId,
+                    
                     DueDate = request.DueDate,
                     Notes = request.Notes,
                     Items = request.Items
@@ -230,3 +229,4 @@ namespace BMWMS.Web.Pages.Transfer
         }
     }
 }
+

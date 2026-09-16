@@ -92,16 +92,7 @@
                     <label>Kho hàng *</label>
                     <input type="text" value="Kho chính" disabled />
                 </div>
-                <div class="field">
-                    <label>Nhân viên phụ trách</label>
-                    <select name="assignedToUserId">
-                        <option value="">-- Chọn nhân viên --</option>
-                        @foreach (var staff in Model.StaffUsers)
-                        {
-                            <option value="@staff.UserId" selected="@(Model.SelectedAssignedToUserId == staff.UserId ? "selected" : null)">@staff.FullName (@staff.RoleName)</option>
-                        }
-                    </select>
-                </div>
+                
                 <div class="field">
                     <label>Ngày dự kiến hoàn thành</label>
                     <input type="date" name="dueDate" value="@Model.SelectedDueDate" min="@DateTime.Today.ToString("yyyy-MM-dd")" />
@@ -552,3 +543,5 @@
         sel.value = value?.toString() || '';
     }
 </script>
+
+
