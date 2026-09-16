@@ -71,6 +71,27 @@ public class ProductAttributeService : IProductAttributeService
 
     public async Task UpdateAsync(long id, UpdateProductAttributeDto dto)
     {
+        var existing = await _repository.GetByIdAsync(id);
+        if (existing is null)
+            throw new InvalidOperationException("Không tìm thấy thuộc tính sản phẩm.");
+        if (await _repository.IsAttributeUsedAsync(id))
+        {
+            var oldOptions = existing.ProductAttributeOptions
+                .OrderBy(option => option.ProductAttributeOptionId)
+                .Select(option => (option.ProductAttributeOptionId, option.OptionCode, option.IsActive))
+                .ToList();
+            var newOptions = dto.Options
+                .OrderBy(option => option.ProductAttributeOptionId)
+                .Select(option => (option.ProductAttributeOptionId, option.OptionCode, option.IsActive))
+                .ToList();
+            if (!string.Equals(existing.AttributeCode, dto.AttributeCode, StringComparison.OrdinalIgnoreCase) ||
+                !string.Equals(existing.DataType, dto.DataType, StringComparison.OrdinalIgnoreCase) ||
+                !string.Equals(existing.UnitLabel, dto.UnitLabel, StringComparison.OrdinalIgnoreCase) ||
+                !oldOptions.SequenceEqual(newOptions))
+                throw new InvalidOperationException(
+                    "Thuộc tính đang được dùng: không đổi mã, kiểu dữ liệu, ĐVT hoặc mã lựa chọn. Có thể đổi tên/mô tả hoặc ngừng dùng thuộc tính.");
+        }
+
         var attribute = new BMWMS.Repository.Models.ProductAttribute
         {
             ProductAttributeId = id,
