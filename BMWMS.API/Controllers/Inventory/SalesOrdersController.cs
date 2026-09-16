@@ -166,7 +166,7 @@ namespace BMWMS.API.Controllers.Inventory
         /// Kiá»ƒm tra tá»“n kho & XÃ¡c nháº­n giá»¯ tá»“n (Äá»•i tráº¡ng thÃ¡i DRAFT -> ALLOCATED)
         /// </summary>
         [HttpPost("{id:long}/confirm")]
-        [Authorize(Roles = "SALES_STAFF,SYSTEM_ADMIN")]
+        [Authorize(Roles = "WAREHOUSE_MANAGER,SYSTEM_ADMIN")]
         public async Task<IActionResult> ConfirmAndReserveStock(long id)
         {
             try
@@ -192,7 +192,7 @@ namespace BMWMS.API.Controllers.Inventory
         /// Há»§y Ä‘Æ¡n bÃ¡n hÃ ng (Äá»•i tráº¡ng thÃ¡i -> CANCELLED)
         /// </summary>
         [HttpPost("{id:long}/cancel")]
-        [Authorize(Roles = "SALES_STAFF,SYSTEM_ADMIN")]
+        [Authorize(Roles = "SALES_STAFF,WAREHOUSE_MANAGER,SYSTEM_ADMIN")]
         public async Task<IActionResult> CancelOrder(long id, [FromBody] CancelOrderRequest request)
         {
             try
