@@ -110,6 +110,7 @@ public class InboundRepository : IInboundRepository
                 .ThenInclude(p => p.Supplier)
             .Include(i => i.SalesOrder)
                 .ThenInclude(s => s.Customer)
+            .Include(i => i.SalesOrder).ThenInclude(s => s!.SalesOrderDetails)
             .Include(i => i.Warehouse)
             .Include(i => i.AssignedToUser)
             .Include(i => i.CreatedByUser)

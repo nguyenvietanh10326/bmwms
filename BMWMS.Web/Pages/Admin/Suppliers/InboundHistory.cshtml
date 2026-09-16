@@ -170,12 +170,7 @@
         <div style="flex: 1; min-width: 200px;">
             <label class="form-label text-muted mb-2" style="font-size: 13px; font-weight: 500;">Trạng thái</label>
             <select name="Filter.Status" class="form-select premium-input">
-                <option value="">Tất cả trạng thái</option>
-                <option value="COMPLETED" selected="@(Model.Filter.Status == "COMPLETED")">Đã nhận</option>
-                <option value="IN_PROGRESS" selected="@(Model.Filter.Status == "IN_PROGRESS")">Đang ghi nhận thực nhận</option>
-                <option value="ASSIGNED" selected="@(Model.Filter.Status == "ASSIGNED")">Đã phân công</option>
-                <option value="DRAFT" selected="@(Model.Filter.Status == "DRAFT")">Nháp</option>
-                <option value="CANCELLED" selected="@(Model.Filter.Status == "CANCELLED")">Đã hủy</option>
+                <option value="COMPLETED" selected>Hoàn tất</option>
             </select>
         </div>
 

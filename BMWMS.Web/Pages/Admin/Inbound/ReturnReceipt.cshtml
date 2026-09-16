@@ -15,14 +15,13 @@
             <div class="col-md-8"><label class="form-label">Lý do nếu nhận chưa đủ số đã duyệt</label><input asp-for="ShortageReason" class="form-control" maxlength="500" /></div>
         </div></div>
         <div class="card border-0 shadow-sm"><div class="table-responsive"><table class="table align-middle mb-0">
-            <thead class="table-light"><tr><th>Vật tư</th><th>Đơn vị</th><th class="text-end">Đã duyệt</th><th>Thực nhận</th><th>Ngày sản xuất</th><th>Hạn sử dụng</th></tr></thead><tbody>
+            <thead class="table-light"><tr><th>Vật tư</th><th>Đơn vị</th><th class="text-end">Đã giao cho khách</th><th class="text-end">Số trả đã duyệt</th><th>Thực nhận</th><th>Hạn sử dụng</th></tr></thead><tbody>
             @for (var i = 0; i < Model.Order.Items.Count; i++)
             {
                 var item = Model.Order.Items[i];
-                <tr><td>@item.ProductCode — @item.ProductName<input name="Lines[@i].InboundOrderItemId" type="hidden" value="@item.InboundOrderItemId" /></td><td>@item.UnitName</td><td class="text-end">@FormatHelper.FormatQuantity(item.ExpectedQuantity, item.QuantityScale)</td>
+                <tr><td>@item.ProductCode — @item.ProductName<input name="Lines[@i].InboundOrderItemId" type="hidden" value="@item.InboundOrderItemId" /></td><td>@item.UnitName</td><td class="text-end">@(item.SourceDeliveredQuantity.HasValue ? FormatHelper.FormatQuantity(item.SourceDeliveredQuantity.Value, item.QuantityScale) : "—")</td><td class="text-end">@FormatHelper.FormatQuantity(item.ExpectedQuantity, item.QuantityScale)</td>
                 <td><input name="Lines[@i].ActualQuantity" type="number" class="form-control text-end" min="0" max="@(item.ExpectedQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture))" step="@(item.QuantityScale == 0 ? "1" : "0." + new string('0', item.QuantityScale - 1) + "1")" value="@(Model.Lines.FirstOrDefault(l => l.InboundOrderItemId == item.InboundOrderItemId)?.ActualQuantity?.ToString(System.Globalization.CultureInfo.InvariantCulture))" required /></td>
-                <td><input name="Lines[@i].ManufactureDate" type="date" class="form-control" value="@(Model.Lines.FirstOrDefault(l => l.InboundOrderItemId == item.InboundOrderItemId)?.ManufactureDate?.ToString("yyyy-MM-dd"))" /></td>
-                <td><input name="Lines[@i].ExpiryDate" type="date" class="form-control" value="@(Model.Lines.FirstOrDefault(l => l.InboundOrderItemId == item.InboundOrderItemId)?.ExpiryDate?.ToString("yyyy-MM-dd"))" /></td></tr>
+                <td><input name="Lines[@i].ExpiryDate" type="date" class="form-control" required="@(item.TrackExpiry || item.RotationMethod == "FEFO")" value="@(Model.Lines.FirstOrDefault(l => l.InboundOrderItemId == item.InboundOrderItemId)?.ExpiryDate?.ToString("yyyy-MM-dd"))" /></td></tr>
             }
             </tbody></table></div><div class="card-footer bg-white text-end"><button class="btn btn-primary">Chốt thực nhận và cất hàng</button></div></div>
     </form>

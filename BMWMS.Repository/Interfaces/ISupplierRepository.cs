@@ -9,6 +9,7 @@ public interface ISupplierRepository
     Task<decimal> GetSupplierYtdInboundValueAsync(long supplierId, int year);
     Task<bool> CheckSupplierCodeExistsAsync(string code);
     Task<bool> CheckTaxCodeExistsAsync(string taxCode);
+    Task<bool> CheckEmailExistsAsync(string email, long? excludeSupplierId = null);
     Task AddAsync(Supplier supplier);
     Task<bool> HasPurchaseReferencesAsync(long supplierId);
     Task UpdateAsync(Supplier supplier);

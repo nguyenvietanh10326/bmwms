@@ -91,7 +91,7 @@
                                 </td>
                                 <td>
                                     <input name="PutawayDtos[@rowIndex].PutawayQuantity" type="number"
-                                           min="@QuantityStep(receipt.QuantityScale)" max="@receipt.RemainingQuantity"
+                                           min="@QuantityStep(receipt.QuantityScale)" max="@receipt.RemainingQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture)"
                                            step="@QuantityStep(receipt.QuantityScale)"
                                            value="@receipt.RemainingQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture)"
                                            class="form-control allocation-quantity" required />
@@ -136,7 +136,7 @@
                         </td>
                         <td>
                             <input name="PutawayDtos[__INDEX__].PutawayQuantity" type="number"
-                                   min="@QuantityStep(receipt.QuantityScale)" max="@receipt.RemainingQuantity"
+                                   min="@QuantityStep(receipt.QuantityScale)" max="@receipt.RemainingQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture)"
                                    step="@QuantityStep(receipt.QuantityScale)" class="form-control allocation-quantity" required />
                         </td>
                         <td><button type="button" class="btn btn-sm btn-outline-danger remove-allocation">Xóa</button></td>

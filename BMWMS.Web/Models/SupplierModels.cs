@@ -73,6 +73,9 @@ public class SupplierCreateRequestModel
     [StringLength(20, ErrorMessage = "Số điện thoại tối đa 20 ký tự")]
     public string PhoneNumber { get; set; } = null!;
 
+    [Required(ErrorMessage = "Vui lòng nhập email nhà cung cấp")]
+    [EmailAddress(ErrorMessage = "Email không hợp lệ")]
+    [StringLength(150)]
     public string? Email { get; set; }
 
     [Required(ErrorMessage = "Vui lòng nhập Địa chỉ")]
@@ -100,6 +103,9 @@ public class SupplierUpdateRequestModel
     [StringLength(20, ErrorMessage = "Số điện thoại tối đa 20 ký tự")]
     public string PhoneNumber { get; set; } = null!;
 
+    [Required(ErrorMessage = "Vui lòng nhập email nhà cung cấp")]
+    [EmailAddress(ErrorMessage = "Email không hợp lệ")]
+    [StringLength(150)]
     public string? Email { get; set; }
 
     [Required(ErrorMessage = "Vui lòng nhập Địa chỉ")]
