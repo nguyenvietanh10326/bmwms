@@ -55,12 +55,26 @@ namespace BMWMS.Business.DTOs.Inventory
         public string? CompletionReason { get; set; }
         public bool CanCloseSalesRemainder { get; set; }
         public DateTime? CompletedAt { get; set; }
+        public bool HasReferenceRemainder { get; set; }
+        public long? CompletionReviewedByUserId { get; set; }
+        public string? CompletionReviewedByUserName { get; set; }
+        public List<OutboundRemainderDto> Remainders { get; set; } = new();
         public string? CancellationReason { get; set; }
         public string Status { get; set; } = null!;
         public string? Notes { get; set; }
         public DateTime CreatedAt { get; set; }
 
         public List<OutboundOrderItemDto> Items { get; set; } = new();
+    }
+
+    public class OutboundRemainderDto
+    {
+        public string ProductName { get; set; } = string.Empty;
+        public string UnitName { get; set; } = string.Empty;
+        public byte QuantityScale { get; set; }
+        public decimal PlannedQuantity { get; set; }
+        public decimal DeliveredQuantity { get; set; }
+        public decimal RemainingQuantity { get; set; }
     }
 
     public class OutboundOrderItemDto
@@ -95,11 +109,18 @@ namespace BMWMS.Business.DTOs.Inventory
 
     public class CreateOutboundOrderItemRequest
     {
+        public List<RequestedReturnLocationDto> RequestedLocations { get; set; } = new();
         public long ProductId { get; set; }
         public decimal RequestedQuantity { get; set; }
         public string? Notes { get; set; }
     }
 
+    public class RequestedReturnLocationDto
+    {
+        public long StorageLocationId { get; set; }
+        public long ProductLotId { get; set; }
+        public decimal Quantity { get; set; }
+    }
     // Request Cập nhật trạng thái lệnh xuất kho
     public class UpdateOutboundOrderStatusRequest
     {
@@ -182,6 +203,7 @@ namespace BMWMS.Business.DTOs.Inventory
 
     public class PurchaseOrderReturnItemDto
     {
+        public List<PurchaseReturnSourceLocationDto> SourceLocations { get; set; } = new();
         public long ProductId { get; set; }
         public string ProductCode { get; set; } = string.Empty;
         public string ProductName { get; set; } = string.Empty;
@@ -191,6 +213,22 @@ namespace BMWMS.Business.DTOs.Inventory
         public decimal RemainingQuantity { get; set; }
         public byte QuantityScale { get; set; }
         public bool TrackLot { get; set; }
+    }
+    public class PurchaseReturnSourceLocationDto
+    {
+        public long StorageLocationId { get; set; }
+        public long ProductLotId { get; set; }
+        public string LocationPath { get; set; } = string.Empty;
+        public DateOnly FirstReceivedDate { get; set; }
+        public DateOnly? ExpiryDate { get; set; }
+        public decimal StoredQuantity { get; set; }
+        public decimal HeldQuantity { get; set; }
+        public decimal ReturnableQuantity { get; set; }
+    }
+    public class ReviewOutboundCompletionRequest
+    {
+        public string? RemainderAction { get; set; }
+        public string? Reason { get; set; }
     }
     public class SalesOrderItemDto
     {
@@ -263,6 +301,8 @@ namespace BMWMS.Business.DTOs.Inventory
 
         public class AvailableStockLocationDto
         {
+            public decimal StoredQuantity { get; set; }
+            public decimal HeldQuantity { get; set; }
             public long StorageLocationId { get; set; }
             public string LocationCode { get; set; } = null!;
             public string LocationPath { get; set; } = null!;
@@ -277,6 +317,7 @@ namespace BMWMS.Business.DTOs.Inventory
         // Request Submit hành động Pick hàng từ Màn 2
         public class ExecutePickItemRequest
         {
+            public string PickingMethod { get; set; } = "DEFAULT";
             public long OutboundOrderId { get; set; }
             public long OutboundOrderItemId { get; set; }
             public long StorageLocationId { get; set; }

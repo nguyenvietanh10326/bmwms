@@ -34,5 +34,6 @@ namespace BMWMS.Business.Interfaces.Inventory
 
         // Hủy đơn bán hàng
         Task<(bool IsSuccess, string Message)> CancelOrderAsync(long salesOrderId, long userId, string reason);
+        Task<(bool IsSuccess, string Message)> RejectDraftAsync(long salesOrderId, long userId, string reason);
     }
     }
