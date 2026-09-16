@@ -17,7 +17,8 @@
                     (isManager || isAssignedStaff);
     var canStart = isAssignedStaff && Model.Order.Status == "READY";
     var canProcess = isAssignedStaff && Model.Order.Status == "ISSUING";
-    var canCloseSalesRemainder = isSales && Model.Order.CanCloseSalesRemainder;
+    var canCloseSalesRemainder = isManager && Model.Order.CanCloseSalesRemainder;
+    var canReview = isManager && Model.Order.Status == "PENDING_APPROVAL";
     var sourceLabel = Model.Order.SourceType == "PURCHASE_RETURN" ? "Trả nhà cung cấp theo PO" : "Bán hàng theo SO";
     ViewData["OutboundSourceType"] = Model.Order.SourceType;
 }
@@ -56,12 +57,35 @@
             {
                 <div class="col-md-3"><div class="text-muted small">Kết quả đợt xuất</div><span>@(Model.Order.CompletionType == "PARTIAL" ? "Giao một phần" : "Giao đủ")</span></div>
                 <div class="col-md-3"><div class="text-muted small">Hoàn tất lúc</div><span>@(Model.Order.CompletedAt?.ToString("dd/MM/yyyy HH:mm") ?? "—")</span></div>
+                <div class="col-md-3"><div class="text-muted small">Người duyệt chốt đợt</div><span>@(Model.Order.CompletionReviewedByUserName ?? "—")</span></div>
             }
             <div class="col-12"><div class="text-muted small">Ghi chú</div><span>@(string.IsNullOrWhiteSpace(Model.Order.Notes) ? "Không có" : Model.Order.Notes)</span></div>
             @if (!string.IsNullOrWhiteSpace(Model.Order.CompletionReason)) { <div class="col-12"><div class="text-muted small">Lý do hoàn tất khi còn thiếu</div><span>@Model.Order.CompletionReason</span></div> }
             @if (!string.IsNullOrWhiteSpace(Model.Order.CancellationReason)) { <div class="col-12"><div class="text-muted small">Lý do hủy</div><span>@Model.Order.CancellationReason</span></div> }
         </div>
     </div></div>
+
+    @if (Model.Order.Status == "PENDING_APPROVAL")
+    {
+        <div class="card border-primary shadow-sm mb-3"><div class="card-header bg-primary-subtle fw-semibold">Chờ Quản lý kho duyệt chốt đợt xuất</div><div class="card-body">
+            @if (canReview)
+            {
+                <form method="post" asp-page-handler="ReviewCompletion" asp-route-id="@Model.Order.OutboundOrderId" class="row g-3" onsubmit="return confirm('Duyệt số thực xuất và chốt đợt này?');">
+                    @if (Model.Order.HasReferenceRemainder)
+                    {
+                        <div class="col-12"><div class="table-responsive"><table class="table table-sm align-middle mb-0"><thead><tr><th>Vật tư</th><th>Đơn vị</th><th class="text-end">@(Model.Order.SourceType == "SALES_ORDER" ? "Khách đặt" : "Dự kiến trả đợt này")</th><th class="text-end">Đã giao</th><th class="text-end">Còn thiếu</th></tr></thead><tbody>
+                        @foreach (var line in Model.Order.Remainders)
+                        { <tr><td>@line.ProductName</td><td>@line.UnitName</td><td class="text-end">@FormatQuantity(line.PlannedQuantity, line.QuantityScale)</td><td class="text-end">@FormatQuantity(line.DeliveredQuantity, line.QuantityScale)</td><td class="text-end">@FormatQuantity(line.RemainingQuantity, line.QuantityScale)</td></tr> }
+                        </tbody></table></div></div>
+                        <div class="col-md-4"><label class="form-label">Quyết định phần còn lại</label><select name="remainderAction" class="form-select" required><option value="">Chọn quyết định</option><option value="CONTINUE">Tiếp tục đợt sau</option><option value="CLOSE">Kết thúc phần còn lại</option></select></div>
+                        <div class="col-md-8"><label class="form-label">Căn cứ đã thống nhất với @(Model.Order.SourceType == "SALES_ORDER" ? "khách hàng" : "nhà cung cấp")</label><textarea name="reason" class="form-control" minlength="10" maxlength="500" rows="2" required></textarea></div>
+                    }
+                    <div class="col-12 text-end"><button class="btn btn-primary">Duyệt chốt đợt xuất</button></div>
+                </form>
+            }
+            else { <span>Đã ghi nhận thực xuất. Chờ Quản lý kho chốt đợt trước khi lập đợt tiếp theo.</span> }
+        </div></div>
+    }
 
     @if (canApprove)
     {
@@ -90,7 +114,7 @@
     {
         <div class="card border-warning shadow-sm mb-3"><div class="card-body">
             <div class="fw-semibold mb-1">Khách không nhận phần còn lại</div>
-            <div class="text-muted small mb-3">Đây là quyết định của Sales sau khi đợt giao thiếu đã hoàn tất. Thao tác sẽ đóng SO và giải phóng tồn còn giữ.</div>
+            <div class="text-muted mb-3">Quản lý kho ghi nhận thỏa thuận ngoài hệ thống với khách hàng. Đóng SO sẽ giải phóng tồn còn giữ.</div>
             <form method="post" asp-page-handler="CloseSalesRemainder" asp-route-id="@Model.Order.OutboundOrderId" class="row g-2 align-items-end" onsubmit="return confirm('Đóng phần nhu cầu còn lại của SO? Thao tác này không thể tiếp tục giao bằng SO hiện tại.');">
                 <div class="col-md-9"><label class="form-label">Lý do khách không nhận tiếp</label><input name="reason" class="form-control" minlength="10" maxlength="500" required /></div>
                 <div class="col-md-3"><button class="btn btn-warning w-100">Đóng phần còn lại</button></div>
@@ -131,6 +155,6 @@
 </div>
 
 @functions {
-    string StatusLabel(string status) => status switch { "DRAFT" => "Nháp", "READY" => "Sẵn sàng xuất", "ISSUING" => "Đang xuất hàng", "ISSUED" => "Đã xuất", "CANCELLED" => "Đã hủy", _ => status };
+    string StatusLabel(string status) => status switch { "DRAFT" => "Nháp", "READY" => "Sẵn sàng xuất", "ISSUING" => "Đang xuất hàng", "PENDING_APPROVAL" => "Chờ duyệt chốt đợt", "ISSUED" => "Đã xuất", "CANCELLED" => "Đã hủy", _ => status };
     string FormatQuantity(decimal value, byte scale) => FormatHelper.FormatQuantity(value, scale);
 }

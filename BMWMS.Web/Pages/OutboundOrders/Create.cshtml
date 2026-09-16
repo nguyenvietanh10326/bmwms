@@ -36,15 +36,13 @@
                             <span asp-validation-for="Input.AssignedToUserId" class="text-danger"></span>
                         </div>
                     }
-                    <div class="col-md-4 source-sales @(isPurchaseReturn ? "d-none" : "")">
+                    <div class="col-12 order-first source-sales @(isPurchaseReturn ? "d-none" : "")">
                         <label class="form-label">Đơn bán hàng đủ điều kiện xuất</label>
-                        <input type="search" id="referenceSearch" class="form-control mb-2" placeholder="Tìm mã đơn hoặc đối tác" aria-label="Tìm đơn tham chiếu" />
-                        <select asp-for="Input.SalesOrderId" asp-items="Model.SalesOrderOptions" class="form-select" id="salesOrder" aria-describedby="salesOrderHelp"></select>
+                        <div class="row g-2"><div class="col-md-4"><input type="search" id="referenceSearch" class="form-control" placeholder="Tìm mã đơn hoặc đối tác" aria-label="Tìm đơn tham chiếu" /></div><div class="col-md-8"><select asp-for="Input.SalesOrderId" asp-items="Model.SalesOrderOptions" class="form-select" id="salesOrder"></select></div></div>
                     </div>
-                    <div class="col-md-4 source-purchase @(!isPurchaseReturn ? "d-none" : "")">
+                    <div class="col-12 order-first source-purchase @(!isPurchaseReturn ? "d-none" : "")">
                         <label class="form-label">Đơn mua hàng đã nhập</label>
-                        <input type="search" id="purchaseReferenceSearch" class="form-control mb-2" placeholder="Tìm mã đơn hoặc đối tác" aria-label="Tìm đơn tham chiếu" />
-                        <select asp-for="Input.PurchaseOrderId" asp-items="Model.PurchaseOrderOptions" class="form-select" id="purchaseOrder" aria-describedby="purchaseOrderHelp"></select>
+                        <div class="row g-2"><div class="col-md-4"><input type="search" id="purchaseReferenceSearch" class="form-control" placeholder="Tìm mã đơn hoặc đối tác" aria-label="Tìm đơn tham chiếu" /></div><div class="col-md-8"><select asp-for="Input.PurchaseOrderId" asp-items="Model.PurchaseOrderOptions" class="form-select" id="purchaseOrder"></select></div></div>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Đối tác</label>
@@ -73,12 +71,15 @@
                 <span class="text-muted" id="itemCount">@Model.Input.Items.Count mặt hàng</span>
             </div>
             <div class="table-responsive">
-                <table class="table align-middle mb-0">
+                <table class="table align-middle mb-0" style="min-width:900px">
                     <thead class="table-light">
-                        <tr><th>Mã hàng</th><th>Tên sản phẩm</th><th>Đơn vị</th><th class="text-end">@(isPurchaseReturn ? "Đã nhập từ PO" : "Khách đặt")</th><th class="text-end">@(isPurchaseReturn ? "Còn có thể trả" : "Còn có thể giao")</th><th style="width:180px">Số lượng đợt này</th></tr>
+                        @if (isPurchaseReturn)
+                        { <tr><th>STT</th><th>Vị trí</th><th>Ngày nhập / HSD</th><th class="text-end">Đang cất</th><th class="text-end">Đang giữ</th><th class="text-end">Có thể trả</th><th style="width:160px">Số lượng đợt này</th></tr> }
+                        else
+                        { <tr><th>Mã hàng</th><th>Tên sản phẩm</th><th>Đơn vị</th><th class="text-end">Khách đặt</th><th class="text-end">Còn có thể giao</th><th style="width:180px">Số lượng đợt này</th></tr> }
                     </thead>
                     <tbody id="itemsBody">
-                    @for (var i = 0; i < Model.Input.Items.Count; i++)
+                    @for (var i = 0; !isPurchaseReturn && i < Model.Input.Items.Count; i++)
                     {
                         <tr>
                             <td><input type="hidden" asp-for="Input.Items[i].ProductId" /><input type="hidden" asp-for="Input.Items[i].ProductCode" />@Model.Input.Items[i].ProductCode</td>
@@ -88,10 +89,16 @@
                             <td class="text-end"><input type="hidden" name="Input.Items[@i].AvailableQuantity" value="@(Model.Input.Items[i].AvailableQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture))" />@FormatQuantity(Model.Input.Items[i].AvailableQuantity, Model.Input.Items[i].QuantityScale)</td>
                             <td><input type="hidden" asp-for="Input.Items[i].QuantityScale" /><input type="hidden" asp-for="Input.Items[i].TrackLot" /><input asp-for="Input.Items[i].RequestedQuantity" type="number" min="0" max="@(Model.Input.Items[i].AvailableQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture))" step="@QuantityStep(Model.Input.Items[i].QuantityScale)" class="form-control text-end" /></td>
                         </tr>
+                        @if (isPurchaseReturn && Model.Input.Items[i].SourceLocations.Count > 0)
+                        {
+                            <tr><td colspan="6">@* Quantities are reloaded from the server after rendering below. *@
+                            <div class="return-source-placeholder" data-item="@i"></div>
+                            </td></tr>
+                        }
                     }
-                    @if (Model.Input.Items.Count == 0)
+                    @if (Model.Input.Items.Count == 0 || isPurchaseReturn)
                     {
-                        <tr><td colspan="6" class="text-center text-muted py-4">Chọn đơn tham chiếu để tải mặt hàng có thể xuất.</td></tr>
+                        <tr><td colspan="@(isPurchaseReturn ? 7 : 6)" class="text-center text-muted py-4">Chọn đơn tham chiếu để tải mặt hàng có thể xuất.</td></tr>
                     }
                     </tbody>
                 </table>
@@ -121,7 +128,7 @@
         document.querySelector('.source-purchase').classList.toggle('d-none', isSales);
     }
 
-    async function loadReference(kind, id) {
+    async function loadReference(kind, id, restorePosted = false) {
         const version = ++referenceVersion;
         document.getElementById('partnerName').value = '';
         document.getElementById('sourceReference').value = '';
@@ -157,9 +164,26 @@
             unitName: x.unitOfMeasure || x.unitName || '',
             quantityScale: x.quantityScale || 0, trackLot: x.trackLot || false,
             referenceQuantity: kind === 'sales' ? x.quantity : x.receivedQuantity,
-            availableQuantity: kind === 'sales' ? x.reservedQuantity : x.remainingQuantity
+            availableQuantity: kind === 'sales' ? x.reservedQuantity : x.remainingQuantity,
+            sourceLocations: x.sourceLocations || []
         }));
         renderItems(items);
+        if (restorePosted) {
+            const posted = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Input.Items));
+            items.forEach((item,i) => {
+                const previous = posted.find(p => p.ProductId === item.productId);
+                if (!previous) return;
+                const method = document.querySelector(`.return-source-method[data-item="${i}"]`);
+                if (method) method.value = 'CUSTOM';
+                item.sourceLocations.forEach((source,j) => {
+                    const old = (previous.SourceLocations || []).find(s => s.StorageLocationId === source.storageLocationId && s.ProductLotId === source.productLotId);
+                    const input = document.querySelector(`.return-source-quantity[data-item="${i}"][data-source="${j}"]`);
+                    if (input) input.value = old?.Quantity ?? 0;
+                });
+                document.querySelector(`[name="Input.Items[${i}].RequestedQuantity"]`).value =
+                    [...document.querySelectorAll(`.return-source-quantity[data-item="${i}"]`)].reduce((sum,el) => sum + Number(el.value || 0),0).toFixed(item.quantityScale);
+            });
+        }
     }
 
     function escapeHtml(value) { const d = document.createElement('div'); d.textContent = value ?? ''; return d.innerHTML.replaceAll('"', '&quot;').replaceAll("'", '&#39;'); }
@@ -176,14 +200,48 @@
         createHint.textContent = items.length
             ? 'Nhập số lượng đợt này; nhập 0 nếu chưa xuất mặt hàng.'
             : 'Đơn không còn mặt hàng có thể xuất.';
-        if (!items.length) { body.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">Đơn không còn mặt hàng có thể xuất.</td></tr>'; return; }
-        body.innerHTML = items.map((x, i) => `<tr>
+        if (!items.length) { body.innerHTML = `<tr><td colspan="${sourceType.value === 'PURCHASE_RETURN' ? 7 : 6}" class="text-center text-muted py-4">Chọn đơn còn hàng có thể xuất để tải thông tin.</td></tr>`; return; }
+        body.innerHTML = sourceType.value === 'PURCHASE_RETURN' ? items.map((x,i) => returnSources(x,i)).join('') : items.map((x, i) => `<tr>
             <td><input type="hidden" name="Input.Items[${i}].ProductId" value="${x.productId}"><input type="hidden" name="Input.Items[${i}].ProductCode" value="${escapeHtml(x.productCode)}">${escapeHtml(x.productCode)}</td>
             <td><input type="hidden" name="Input.Items[${i}].ProductName" value="${escapeHtml(x.productName)}">${escapeHtml(x.productName)}</td>
             <td><input type="hidden" name="Input.Items[${i}].UnitName" value="${escapeHtml(x.unitName)}">${escapeHtml(x.unitName)}</td>
             <td class="text-end"><input type="hidden" name="Input.Items[${i}].ReferenceQuantity" value="${x.referenceQuantity}">${formatQuantity(x.referenceQuantity, x.quantityScale)}</td>
             <td class="text-end"><input type="hidden" name="Input.Items[${i}].AvailableQuantity" value="${x.availableQuantity}">${formatQuantity(x.availableQuantity, x.quantityScale)}</td>
-            <td><input type="hidden" name="Input.Items[${i}].QuantityScale" value="${x.quantityScale}"><input type="hidden" name="Input.Items[${i}].TrackLot" value="${x.trackLot}"><input type="number" name="Input.Items[${i}].RequestedQuantity" value="${x.availableQuantity}" min="0" max="${x.availableQuantity}" step="${quantityStep(x.quantityScale)}" class="form-control text-end" required></td></tr>`).join('');
+            <td><input type="hidden" name="Input.Items[${i}].QuantityScale" value="${x.quantityScale}"><input type="hidden" name="Input.Items[${i}].TrackLot" value="${x.trackLot}"><input type="number" name="Input.Items[${i}].RequestedQuantity" value="${x.availableQuantity}" min="0" max="${x.availableQuantity}" step="${quantityStep(x.quantityScale)}" class="form-control text-end" required></td></tr>
+            ${(x.sourceLocations || []).length ? returnSources(x, i) : ''}`).join('');
+        document.querySelectorAll('.return-source-method').forEach(select => {
+            select.addEventListener('change', () => suggestReturn(Number(select.dataset.item), items[Number(select.dataset.item)]));
+            suggestReturn(Number(select.dataset.item), items[Number(select.dataset.item)]);
+        });
+        document.querySelectorAll('.return-source-quantity').forEach(input => input.addEventListener('input', () => {
+            const i = input.dataset.item;
+            document.querySelector(`[name="Input.Items[${i}].RequestedQuantity"]`).value =
+                [...document.querySelectorAll(`.return-source-quantity[data-item="${i}"]`)].reduce((s, el) => s + Number(el.value || 0), 0).toFixed(items[Number(i)].quantityScale);
+        }));
+    }
+    function returnSources(x, i) {
+        return `<tr class="table-light"><td colspan="7"><div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+        <div><strong>${escapeHtml(x.productCode)} — ${escapeHtml(x.productName)}</strong><span class="ms-2 text-muted">ĐVT: ${escapeHtml(x.unitName)}</span></div>
+        <div class="d-flex align-items-center gap-2"><label class="mb-0" for="method${i}">Gợi ý lấy hàng</label><select id="method${i}" class="form-select form-select-sm return-source-method" data-item="${i}" style="width:190px"><option value="FIFO">FIFO — ngày nhập</option><option value="FEFO">FEFO — HSD</option><option value="CUSTOM">Tự chọn</option></select></div></div>
+        <input type="hidden" name="Input.Items[${i}].ProductId" value="${x.productId}"><input type="hidden" name="Input.Items[${i}].ProductCode" value="${escapeHtml(x.productCode)}"><input type="hidden" name="Input.Items[${i}].ProductName" value="${escapeHtml(x.productName)}"><input type="hidden" name="Input.Items[${i}].UnitName" value="${escapeHtml(x.unitName)}"><input type="hidden" name="Input.Items[${i}].ReferenceQuantity" value="${x.referenceQuantity}"><input type="hidden" name="Input.Items[${i}].AvailableQuantity" value="${x.availableQuantity}"><input type="hidden" name="Input.Items[${i}].QuantityScale" value="${x.quantityScale}"><input type="hidden" name="Input.Items[${i}].RequestedQuantity" value="0"></td></tr>
+        ${x.sourceLocations.map((s,j) => `<tr><td>${j+1}</td><td>${escapeHtml(s.locationPath)}</td><td>${escapeHtml(s.firstReceivedDate)}<div class="text-muted">HSD: ${escapeHtml(s.expiryDate || '—')}</div></td><td class="text-end">${formatQuantity(s.storedQuantity,x.quantityScale)}</td><td class="text-end">${formatQuantity(s.heldQuantity,x.quantityScale)}</td><td class="text-end">${formatQuantity(s.returnableQuantity,x.quantityScale)}</td><td>
+        <input type="hidden" name="Input.Items[${i}].SourceLocations[${j}].StorageLocationId" value="${s.storageLocationId}"><input type="hidden" name="Input.Items[${i}].SourceLocations[${j}].ProductLotId" value="${s.productLotId}">
+        <input type="number" aria-label="Số muốn trả ${escapeHtml(x.productName)} tại ${escapeHtml(s.locationPath)}" name="Input.Items[${i}].SourceLocations[${j}].Quantity" class="form-control text-end return-source-quantity" data-item="${i}" data-source="${j}" min="0" max="${s.returnableQuantity}" step="${quantityStep(x.quantityScale)}" value="0"></td></tr>`).join('')}`;
+    }
+    function suggestReturn(i,x) {
+        const method = document.querySelector(`.return-source-method[data-item="${i}"]`).value;
+        const total = document.querySelector(`[name="Input.Items[${i}].RequestedQuantity"]`);
+        total.readOnly = true;
+        let remainder = x.availableQuantity;
+        const ordered = x.sourceLocations.map((s,j) => ({...s,j})).sort((a,b) =>
+            (method === 'FEFO' ? (a.expiryDate || '9999').localeCompare(b.expiryDate || '9999') : 0) ||
+            a.firstReceivedDate.localeCompare(b.firstReceivedDate) || a.locationPath.localeCompare(b.locationPath,undefined,{numeric:true}));
+        ordered.forEach(s => {
+            const input = document.querySelector(`.return-source-quantity[data-item="${i}"][data-source="${s.j}"]`);
+            const q = method === 'CUSTOM' || (method === 'FEFO' && !s.expiryDate) ? 0 : Math.min(remainder,s.returnableQuantity);
+            input.value = Number(q.toFixed(x.quantityScale)); remainder = Number((remainder - q).toFixed(x.quantityScale));
+        });
+        total.value = method === 'CUSTOM' ? 0 : (x.availableQuantity-remainder).toFixed(x.quantityScale);
     }
 
     salesOrder.addEventListener('change', e => loadReference('sales', e.target.value));
@@ -201,6 +259,8 @@
         if (event.target.dataset.return === 'true' && !confirm('Duyệt trả hàng cho NCC và giao lệnh cho nhân viên đã chọn?')) event.preventDefault();
     });
     toggleSource();
+    // Reload source locations on initial/server-error rendering; never trust posted stock figures.
+    if (sourceType.value === 'PURCHASE_RETURN' && purchaseOrder.value) loadReference('purchase', purchaseOrder.value, @(ViewData.ModelState.ErrorCount > 0 ? "true" : "false"));
 </script>
 }
 @functions {

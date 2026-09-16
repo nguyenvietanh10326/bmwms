@@ -270,7 +270,7 @@ namespace BMWMS.Repository.Repositories.Inventory
                     (inventory.OnHandQuantity > 0 || inventory.ReservedQuantity > 0)))
                 reasons.Add("vẫn còn tồn kho hoặc số lượng đã giữ chỗ");
 
-            if (await _context.ProductFixedLocations.AnyAsync(mapping => mapping.StorageLocationId == locationId))
+            if (await _context.ProductFixedLocations.AnyAsync(mapping => mapping.StorageLocationId == locationId && mapping.IsActive))
                 reasons.Add("đang được cấu hình làm vị trí ưu tiên cho sản phẩm");
 
             if (await _context.InventoryReservations.AnyAsync(reservation =>

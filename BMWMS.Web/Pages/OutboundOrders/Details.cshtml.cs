@@ -111,9 +111,19 @@ namespace BMWMS.Web.Pages.OutboundOrders
 
         public async Task<IActionResult> OnPostCloseSalesRemainderAsync(long id, string reason)
         {
+            if (!User.IsInRole("SYSTEM_ADMIN") && !User.IsInRole("WAREHOUSE_MANAGER")) return Forbid();
             var response = await _httpClientFactory.CreateClient("ApiClient")
                 .PostAsJsonAsync($"api/OutboundOrders/{id}/close-sales-remainder", new { reason });
             await SetResultMessageAsync(response, "Đã đóng phần nhu cầu còn lại của SO.");
+            return RedirectToPage("./Details", new { id });
+        }
+
+        public async Task<IActionResult> OnPostReviewCompletionAsync(long id, string? remainderAction, string? reason)
+        {
+            if (!User.IsInRole("SYSTEM_ADMIN") && !User.IsInRole("WAREHOUSE_MANAGER")) return Forbid();
+            var response = await _httpClientFactory.CreateClient("ApiClient")
+                .PostAsJsonAsync($"api/OutboundOrders/{id}/review-completion", new { remainderAction, reason });
+            await SetResultMessageAsync(response, "Đã duyệt chốt đợt xuất.");
             return RedirectToPage("./Details", new { id });
         }
 
@@ -170,11 +180,25 @@ namespace BMWMS.Web.Pages.OutboundOrders
         public string? CompletionReason { get; set; }
         public bool CanCloseSalesRemainder { get; set; }
         public DateTime? CompletedAt { get; set; }
+        public bool HasReferenceRemainder { get; set; }
+        public long? CompletionReviewedByUserId { get; set; }
+        public string? CompletionReviewedByUserName { get; set; }
+        public List<OutboundRemainderViewDto> Remainders { get; set; } = new();
         public string? CancellationReason { get; set; }
         public DateTime CreatedAt { get; set; }
         public string? Notes { get; set; }
 
         public List<OutboundOrderItemDetailDto> Items { get; set; } = new();
+    }
+
+    public class OutboundRemainderViewDto
+    {
+        public string ProductName { get; set; } = string.Empty;
+        public string UnitName { get; set; } = string.Empty;
+        public byte QuantityScale { get; set; }
+        public decimal PlannedQuantity { get; set; }
+        public decimal DeliveredQuantity { get; set; }
+        public decimal RemainingQuantity { get; set; }
     }
 
     public class OutboundOrderItemDetailDto

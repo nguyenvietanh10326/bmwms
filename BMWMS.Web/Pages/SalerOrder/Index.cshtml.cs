@@ -136,6 +136,7 @@ namespace BMWMS.Web.Pages.SalesOrders
             "PARTIALLY_ISSUED" => "Đã xuất một phần",
             "ISSUED" => "Đã xuất",
             "CANCELLED" => "Đã hủy",
+            "REJECTED" => "Bị từ chối",
             _ => "Không xác định"
         };
 
@@ -146,6 +147,7 @@ namespace BMWMS.Web.Pages.SalesOrders
             "PARTIALLY_ISSUED" => "bg-warning-subtle text-warning-emphasis border-warning-subtle",
             "ISSUED" => "bg-success-subtle text-success border-success-subtle",
             "CANCELLED" => "bg-danger-subtle text-danger border-danger-subtle",
+            "REJECTED" => "bg-danger-subtle text-danger border-danger-subtle",
             _ => "bg-light text-dark border-secondary-subtle"
         };
     }

@@ -49,6 +49,7 @@ namespace BMWMS.Repository.Repositories.Inventory
                 .AsNoTracking()
                 .Where(so => (so.Status == "CONFIRMED" || so.Status == "APPROVED" ||
                               so.Status == "ALLOCATED" || so.Status == "PARTIALLY_FULFILLED") &&
+                             !so.OutboundOrders.Any(o => o.Status == "PENDING_APPROVAL") &&
                              so.SalesOrderDetails.Any(d =>
                                  d.OrderedQuantity > d.FulfilledQuantity +
                                  so.OutboundOrders

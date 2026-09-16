@@ -7,10 +7,11 @@
 }
 
 <form method="post" id="createSoForm">
+    <input asp-for="SalesOrder.SalesOrderId" type="hidden" />
     <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-start gap-3 mb-4">
         <div>
             <div class="d-flex align-items-center gap-2 mb-1">
-                <h1 class="h3 mb-0">Tạo đơn bán hàng</h1>
+                <h1 class="h3 mb-0">@(Model.SalesOrder.SalesOrderId.HasValue ? "Sửa SO nháp" : "Tạo đơn bán hàng")</h1>
                 <span class="badge bg-secondary-subtle text-secondary border">Nháp</span>
             </div>
             <p class="text-muted mb-0">
@@ -23,7 +24,7 @@
                 <i class="bi bi-arrow-left me-1"></i>Quay lại
             </a>
             <button type="submit" asp-page-handler="SaveDraft" class="btn btn-primary px-4">
-                <i class="bi bi-save me-1"></i>Tạo đơn nháp
+                <i class="bi bi-save me-1"></i>@(Model.SalesOrder.SalesOrderId.HasValue ? "Lưu thay đổi" : "Tạo đơn nháp")
             </button>
         </div>
     </div>
@@ -99,12 +100,14 @@
                     </h2>
                     <p class="text-muted small mb-0">Khi lưu nháp, hệ thống giữ tồn ngay để nhân viên khác không thể chọn trùng lượng hàng này.</p>
                 </div>
-                <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#productModal">
+                <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#productModal" disabled="@Model.SalesOrder.SalesOrderId.HasValue">
                     <i class="bi bi-plus-lg me-1"></i>Chọn sản phẩm
                 </button>
             </div>
 
             <span asp-validation-for="SalesOrder.Items" class="text-danger small d-block mb-2"></span>
+            @if (Model.SalesOrder.SalesOrderId.HasValue)
+            { <div class="text-muted mb-3">Có thể sửa số lượng và thông tin đơn. Nếu cần thay danh sách vật tư, hãy hủy SO nháp và tạo lại để giữ lịch sử giữ tồn.</div> }
 
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0" id="productTable">
@@ -152,7 +155,7 @@
                                                value="@item.Notes" maxlength="1000" placeholder="Lưu ý khi xuất vật tư" />
                                     </td>
                                     <td class="text-center">
-                                        <button type="button" class="btn btn-link text-danger p-0 btn-remove" aria-label="Xóa sản phẩm">
+                                        <button type="button" class="btn btn-link text-danger p-0 btn-remove" aria-label="Xóa sản phẩm" disabled="@Model.SalesOrder.SalesOrderId.HasValue">
                                             <i class="bi bi-trash fs-5"></i>
                                         </button>
                                     </td>

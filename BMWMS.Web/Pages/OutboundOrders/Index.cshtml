@@ -41,6 +41,8 @@
                 <td class="text-end">
                     @if ((User.IsInRole("WAREHOUSE_MANAGER") || User.IsInRole("SYSTEM_ADMIN")) && item.Status == "DRAFT")
                     { <a asp-page="./Details" asp-route-id="@item.OutboundOrderId" class="btn btn-sm btn-primary">Duyệt &amp; phân công</a> }
+                    else if ((User.IsInRole("WAREHOUSE_MANAGER") || User.IsInRole("SYSTEM_ADMIN")) && item.Status == "PENDING_APPROVAL")
+                    { <a asp-page="./Details" asp-route-id="@item.OutboundOrderId" class="btn btn-sm btn-primary">Duyệt chốt đợt</a> }
                     else if (User.IsInRole("WAREHOUSE_STAFF") && item.Status == "READY")
                     { <a asp-page="./Details" asp-route-id="@item.OutboundOrderId" class="btn btn-sm btn-primary">Bắt đầu xử lý</a> }
                     else if (User.IsInRole("WAREHOUSE_STAFF") && item.Status == "ISSUING")
@@ -57,6 +59,6 @@
 </div>
 
 @functions {
-    string StatusLabel(string status) => status switch { "DRAFT" => "Nháp", "READY" => "Sẵn sàng xuất", "ISSUING" => "Đang xuất hàng", "ISSUED" => "Đã xuất", "CANCELLED" => "Đã hủy", _ => status };
+    string StatusLabel(string status) => status switch { "DRAFT" => "Nháp", "READY" => "Sẵn sàng xuất", "ISSUING" => "Đang xuất hàng", "PENDING_APPROVAL" => "Chờ duyệt chốt đợt", "ISSUED" => "Đã xuất", "CANCELLED" => "Đã hủy", _ => status };
     string StatusClass(string status) => status switch { "ISSUED" => "bg-success", "ISSUING" => "bg-warning text-dark", "READY" => "bg-primary", "CANCELLED" => "bg-danger", _ => "bg-secondary" };
 }

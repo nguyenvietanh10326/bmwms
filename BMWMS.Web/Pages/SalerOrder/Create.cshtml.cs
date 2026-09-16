@@ -39,9 +39,30 @@ namespace BMWMS.Web.Pages.SalesOrders
 
         public string? ErrorMessage { get; set; }
 
-        public async Task<IActionResult> OnGetAsync()
+        public async Task<IActionResult> OnGetAsync(long? id)
         {
+            if (!User.IsInRole("SALES_STAFF") && !User.IsInRole("SYSTEM_ADMIN")) return Forbid();
             await LoadFormDataAsync();
+            if (id.HasValue)
+            {
+                var client = _httpClientFactory.CreateClient("ApiClient");
+                var result = await client.GetFromJsonAsync<ApiWrapper<SalesOrderDetailDto>>($"api/SalesOrders/{id}");
+                var order = result?.Data;
+                if (order?.Status != "DRAFT") return BadRequest("Chỉ được sửa SO đang nháp.");
+                SalesOrder = new CreateUpdateSalesOrderDto
+                {
+                    SalesOrderId = order.SalesOrderId, CustomerId = order.CustomerId,
+                    OrderDate = order.OrderDate, ExpectedIssueDate = order.ExpectedIssueDate,
+                    Notes = order.Notes, AllocationStrategy = order.AllocationStrategy,
+                    Items = order.Items.Select(i => new CreateUpdateSalesOrderItemDto
+                    { ProductId = i.ProductId, OrderedQuantity = i.OrderedQuantity, Notes = i.Notes }).ToList()
+                };
+                foreach (var line in order.Items)
+                {
+                    var product = ProductList.FirstOrDefault(p => p.ProductId == line.ProductId);
+                    if (product != null) product.AvailableQuantity = product.Available + line.ReservedQuantity;
+                }
+            }
             return Page();
         }
 
@@ -64,7 +85,9 @@ namespace BMWMS.Web.Pages.SalesOrders
 
             try
             {
-                var response = await client.PostAsJsonAsync("api/SalesOrders", SalesOrder);
+                var response = SalesOrder.SalesOrderId.HasValue
+                    ? await client.PutAsJsonAsync($"api/SalesOrders/{SalesOrder.SalesOrderId}", SalesOrder)
+                    : await client.PostAsJsonAsync("api/SalesOrders", SalesOrder);
                 if (!response.IsSuccessStatusCode)
                 {
                     ErrorMessage = await ReadApiErrorAsync(response, "Không thể tạo đơn bán hàng.");
@@ -72,6 +95,11 @@ namespace BMWMS.Web.Pages.SalesOrders
                     return Page();
                 }
 
+                if (SalesOrder.SalesOrderId.HasValue)
+                {
+                    TempData["SuccessMessage"] = "Đã cập nhật SO nháp và giữ tồn theo số mới.";
+                    return RedirectToPage("./Details", new { id = SalesOrder.SalesOrderId });
+                }
                 var result = await response.Content
                     .ReadFromJsonAsync<ApiWrapper<SalesOrderDetailDto>>();
                 var salesOrderId = result?.Data?.SalesOrderId ?? 0;
