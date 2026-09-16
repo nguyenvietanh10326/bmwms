@@ -163,7 +163,7 @@ namespace BMWMS.Business.Services.Inventory
                 criteria.FromDate,
                 criteria.ToDate,
                 criteria.PageIndex,
-                criteria.PageSize
+                criteria.PageSize, criteria.SortOrder
             );
 
             // Mapping từ Entity sang DTO

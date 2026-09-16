@@ -38,6 +38,9 @@ public class OutboundOrderService : IOutboundOrderService
             rawOrders = rawOrders.Where(o => o.AssignedToUserId == filter.AssignedToUserId.Value).ToList();
         if (!string.IsNullOrWhiteSpace(filter.SourceType))
             rawOrders = rawOrders.Where(o => o.SourceType == filter.SourceType).ToList();
+        rawOrders = filter.SortOrder == "oldest"
+            ? rawOrders.OrderBy(o => o.CreatedAt).ThenBy(o => o.OutboundOrderId).ToList()
+            : rawOrders.OrderByDescending(o => o.CreatedAt).ThenByDescending(o => o.OutboundOrderId).ToList();
         return new PagedResultDto<OutboundOrderListDto>
         {
             TotalCount = rawOrders.Count,
