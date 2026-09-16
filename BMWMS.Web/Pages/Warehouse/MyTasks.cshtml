@@ -9,7 +9,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h3 class="mb-1">Nhiệm vụ của tôi</h3>
-            <div class="text-muted">Danh sách các lệnh Xuất kho / Nhập kho đang được phân công cho bạn.</div>
+            <div class="text-muted">Các phiếu xuất đang chờ bạn bắt đầu hoặc tiếp tục lấy hàng.</div>
         </div>
     </div>
 
@@ -42,16 +42,16 @@
                                     <tr>
                                         <td><strong>@task.OutboundOrderNumber</strong></td>
                                         <td>@task.ExpectedIssueDate?.ToString("dd/MM/yyyy")</td>
-                                        <td>@task.CustomerName</td>
+                                        <td>@task.PartnerName</td>
                                         <td>
                                             @if (task.Status == "READY") { <span class="badge bg-primary">Sẵn sàng xuất</span> }
                                             else if (task.Status == "ISSUING") { <span class="badge bg-warning text-dark">Đang lấy hàng</span> }
                                             else { <span class="badge bg-secondary">@task.Status</span> }
                                         </td>
                                         <td class="text-end">
-                                            @if (task.Status == "READY") { <a href="/OutboundOrders/Details?id=@task.OutboundOrderId" class="btn btn-sm btn-primary">Bắt đầu xử lý</a> }
-                                            else if (task.Status == "ISSUING") { <a href="/OutboundOrders/Process?id=@task.OutboundOrderId" class="btn btn-sm btn-warning">Tiếp tục lấy hàng</a> }
-                                            else { <a href="/OutboundOrders/Details?id=@task.OutboundOrderId" class="btn btn-sm btn-outline-secondary">Chi tiết</a> }
+                                            @if (task.Status == "READY") { <a asp-page="/OutboundOrders/Details" asp-route-id="@task.OutboundOrderId" class="btn btn-sm btn-primary">Bắt đầu xử lý</a> }
+                                            else if (task.Status == "ISSUING") { <a asp-page="/OutboundOrders/Process" asp-route-id="@task.OutboundOrderId" class="btn btn-sm btn-warning">Tiếp tục lấy hàng</a> }
+                                            else { <a asp-page="/OutboundOrders/Details" asp-route-id="@task.OutboundOrderId" class="btn btn-sm btn-outline-secondary">Chi tiết</a> }
                                         </td>
                                     </tr>
                                 }
