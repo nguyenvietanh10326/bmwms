@@ -168,6 +168,7 @@ namespace BMWMS.Web.Pages.OutboundOrders
         public DateTime? ApprovedAt { get; set; }
         public string? CompletionType { get; set; }
         public string? CompletionReason { get; set; }
+        public bool CanCloseSalesRemainder { get; set; }
         public DateTime? CompletedAt { get; set; }
         public string? CancellationReason { get; set; }
         public DateTime CreatedAt { get; set; }
