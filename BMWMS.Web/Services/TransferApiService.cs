@@ -87,7 +87,6 @@ namespace BMWMS.Web.Services
             public string CreatedByName { get; set; } = "";
             public DateTime CreatedAt { get; set; }
             public string? AssignedToName { get; set; }
-            public long? AssignedToUserId { get; set; }
             public string? ConfirmedByName { get; set; }
             public DateTime? ConfirmedAt { get; set; }
             public bool InventoryPosted { get; set; }
@@ -147,7 +146,6 @@ namespace BMWMS.Web.Services
         public class CreateTransferOrderDto
         {
             public long WarehouseId { get; set; } = 1;
-            public long? AssignedToUserId { get; set; }
             public string? DueDate { get; set; }   // "yyyy-MM-dd" string for JSON
             public string? Notes { get; set; }
             public List<CreateTransferItemDto> Items { get; set; } = new();
@@ -161,7 +159,6 @@ namespace BMWMS.Web.Services
         public class ApproveTransferDto
         {
             public long TransferOrderId { get; set; }
-            public long? AssignedToUserId { get; set; }
             public string? Notes { get; set; }
         }
 
@@ -475,4 +472,5 @@ namespace BMWMS.Web.Services
         }
     }
 }
+
 
