@@ -14,11 +14,6 @@ namespace BMWMS.Business.Services
 {
     public class ProductGroupService : IProductGroupService
     {
-        private const string StorageVolumeAttributeCode = "STORAGE_VOLUME_M3_PER_BASE_UOM";
-        private const string StorageWeightAttributeCode = "STORAGE_WEIGHT_KG_PER_BASE_UOM";
-        private const string StorageFactorBasisAttributeCode = "STORAGE_FACTOR_BASIS";
-        private const string StorageFactorReferenceAttributeCode = "STORAGE_FACTOR_REFERENCE";
-
         private readonly IProductGroupRepository _productGroupRepository;
         private readonly IAuditLogService _auditLogService;
 
@@ -152,7 +147,7 @@ namespace BMWMS.Business.Services
         public async Task<List<ProductAttributeDto>> GetAllAttributesAsync()
         {
             var attrs = await _productGroupRepository.GetAllAttributesAsync();
-            return attrs.Select(a => new ProductAttributeDto
+            return attrs.Where(attribute => attribute.Status == "ACTIVE").Select(a => new ProductAttributeDto
             {
                 ProductAttributeId = a.ProductAttributeId,
                 AttributeCode = a.AttributeCode,
@@ -350,6 +345,7 @@ namespace BMWMS.Business.Services
         {
             var allAttributes = await _productGroupRepository.GetAllAttributesAsync();
             var activeAttributeIds = allAttributes
+                .Where(attribute => attribute.Status == "ACTIVE")
                 .Select(attribute => attribute.ProductAttributeId)
                 .ToHashSet();
             var submitted = assignments.ToList();

@@ -26,12 +26,10 @@
     .transfer-items { min-width: 1180px; }
     .transfer-items th, .transfer-items td { min-width: 130px; }
     .transfer-items .product-col { min-width: 260px; }
-    .transfer-items .qty-col { min-width: 120px; }
-    .transfer-items .qty-input { height: 31px; padding: 4px 8px; font-size: 0.875rem; line-height: 1.5; }
+    .transfer-items .qty-col { min-width: 130px; width: 130px; }
+    .transfer-items .qty-input { width: 100%; min-width: 130px; height: 31px; padding: 4px 8px; font-size: 0.875rem; line-height: 1.5; }
     .transfer-items .action-col { min-width: 60px; text-align:center; }
     .table-scroll { overflow-x: auto; }
-    .row-validation { display:block; min-height:16px; margin-top:4px; font-size:12px; color:#dc2626; }
-    .row-validation.ok { color:#16a34a; }
 </style>
 
 <div class="transfer-page">
@@ -105,7 +103,21 @@
         let zones = [];
         const rowInventories = {};
         const validationTimers = {};
+        const lastValidationMessages = {};
         let validatedSubmit = false;
+
+        function quantityStep(scale) {
+            const safeScale = Math.max(0, Math.min(4, Number(scale) || 0));
+            return safeScale === 0 ? '1' : `0.${'0'.repeat(safeScale - 1)}1`;
+        }
+
+        function formatQuantity(value, scale) {
+            const safeScale = Math.max(0, Math.min(4, Number(scale) || 0));
+            const number = Number(value || 0);
+            return safeScale === 0
+                ? Math.round(number).toString()
+                : number.toFixed(safeScale).replace(/\.?0+$/, '');
+        }
 
         async function initData() {
             try {
@@ -129,7 +141,8 @@
                             destCode: '@d.DestLocationCode',
                             destZoneId: @(d.DestZoneId?.ToString() ?? "null"),
                             destRackId: @(d.DestRackId?.ToString() ?? "null"),
-                            qty: @d.RequestedQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                            qty: @d.RequestedQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                            quantityScale: @d.QuantityScale
                         });
                         </text>
                     }
@@ -155,8 +168,7 @@
                 <td><select id="destRack-${ri}" class="form-select form-select-sm" onchange="loadDestBins(${ri})" disabled><option value="">-- Chọn --</option></select></td>
                 <td><select name="destLocationIds" id="dloc-${ri}" class="form-select form-select-sm" onchange="validateRow(${ri})" disabled required><option value="">-- Chọn --</option></select></td>
                 <td>
-                    <input type="number" name="quantities" id="qty-${ri}" class="form-control form-control-sm qty-input" min="0.001" step="any" oninput="validateRow(${ri})" required />
-                    <span id="msg-${ri}" class="row-validation"></span>
+                    <input type="number" name="quantities" id="qty-${ri}" class="form-control form-control-sm qty-input" min="1" step="1" oninput="validateRow(${ri})" required />
                 </td>
                 <td style="text-align:center;"><button type="button" class="btn-remove" onclick="removeItemRow(${ri})"><i class="ri-delete-bin-line"></i></button></td>
             </tr>`;
@@ -171,7 +183,8 @@
                 productCode: data.pcode,
                 productName: data.pname,
                 lotNumber: data.lotNumber || '',
-                availableQuantity: data.qty
+                availableQuantity: data.qty,
+                quantityScale: data.quantityScale || 0
             }];
             const html = `<tr id="row-${ri}">
                 <td><select id="sourceZone-${ri}" class="form-select form-select-sm" onchange="loadSourceRacks(${ri})">${zoneOptions()}</select></td>
@@ -187,8 +200,7 @@
                 <td><select id="destRack-${ri}" class="form-select form-select-sm" onchange="loadDestBins(${ri})"><option value="">-- Chọn --</option></select></td>
                 <td><select name="destLocationIds" id="dloc-${ri}" class="form-select form-select-sm" onchange="validateRow(${ri})" required><option value="${data.dloc}" selected>${data.destCode || data.dloc}</option></select></td>
                 <td>
-                    <input type="number" name="quantities" id="qty-${ri}" value="${data.qty}" class="form-control form-control-sm qty-input" min="0.001" step="any" oninput="validateRow(${ri})" required />
-                    <span id="msg-${ri}" class="row-validation"></span>
+                    <input type="number" name="quantities" id="qty-${ri}" value="${data.qty}" class="form-control form-control-sm qty-input" min="${quantityStep(data.quantityScale || 0)}" step="${quantityStep(data.quantityScale || 0)}" oninput="validateRow(${ri})" required />
                 </td>
                 <td style="text-align:center;"><button type="button" class="btn-remove" onclick="removeItemRow(${ri})"><i class="ri-delete-bin-line"></i></button></td>
             </tr>`;
@@ -278,7 +290,7 @@
             productSelect.innerHTML = '<option value="">Đang tải...</option>';
             const res = await fetch(`/Transfer/Create?handler=LocationInventory&locationId=${locationId}`);
             rowInventories[ri] = (res.ok ? await res.json() : []).filter(i => (i.availableQuantity || 0) > 0);
-            productSelect.innerHTML = optionHtml(rowInventories[ri], 'productLotId', i => `${i.productCode} - ${i.productName} / Lot: ${i.lotNumber || '-'} / Khả dụng: ${i.availableQuantity}`);
+            productSelect.innerHTML = optionHtml(rowInventories[ri], 'productLotId', i => `${i.productCode} - ${i.productName} / Lot: ${i.lotNumber || '-'} / Khả dụng: ${formatQuantity(i.availableQuantity, i.quantityScale)}`);
         }
 
         function selectInventoryItem(ri) {
@@ -286,9 +298,12 @@
             const item = (rowInventories[ri] || []).find(i => i.productLotId == lotId);
             document.getElementById(`pid-${ri}`).value = item?.productId || '';
             document.getElementById(`plid-${ri}`).value = item?.productLotId || '';
-            document.getElementById(`onhand-${ri}`).textContent = item?.availableQuantity ?? 0;
+            document.getElementById(`onhand-${ri}`).textContent = item ? formatQuantity(item.availableQuantity, item.quantityScale) : '0';
             const qty = document.getElementById(`qty-${ri}`);
             qty.max = item?.availableQuantity ?? '';
+            qty.step = quantityStep(item?.quantityScale || 0);
+            qty.min = quantityStep(item?.quantityScale || 0);
+            qty.dataset.quantityScale = item?.quantityScale || 0;
             if (item && Number(qty.value || 0) > Number(item.availableQuantity || 0)) qty.value = item.availableQuantity;
             loadDestZonesForProduct(ri);
             validateRow(ri);
@@ -333,10 +348,16 @@
         }
 
         function setRowMessage(ri, text, ok = false) {
-            const msg = document.getElementById(`msg-${ri}`);
-            if (!msg) return;
-            msg.textContent = text || '';
-            msg.classList.toggle('ok', ok);
+            if (!text || ok) {
+                lastValidationMessages[ri] = '';
+                return;
+            }
+            if (lastValidationMessages[ri] === text) return;
+            lastValidationMessages[ri] = text;
+            if (typeof Toastify === 'function') {
+                Toastify({ text, duration: 3500, gravity: 'top', position: 'right',
+                    style: { background: '#dc2626', color: '#fff', borderRadius: '8px' } }).showToast();
+            }
         }
 
         function validateRow(ri) {
@@ -352,12 +373,22 @@
             const destId = dest.value;
             const available = Number(document.getElementById(`onhand-${ri}`).textContent || 0);
             const value = Number(qty.value || 0);
+            const quantityScale = Number(qty.dataset.quantityScale || 0);
 
             qty.setCustomValidity('');
             dest.setCustomValidity('');
             setRowMessage(ri, '');
 
             if (!value || value <= 0) return;
+            const factor = 10 ** quantityScale;
+            if (Math.abs(value * factor - Math.round(value * factor)) > 0.0000001) {
+                const text = quantityScale === 0
+                    ? 'Số lượng chuyển phải là số nguyên theo đơn vị tính.'
+                    : `Số lượng chuyển chỉ được có tối đa ${quantityScale} chữ số thập phân.`;
+                qty.setCustomValidity(text);
+                setRowMessage(ri, text);
+                return;
+            }
             if (available > 0 && value > available) {
                 const text = `Số lượng chuyển không được vượt tồn khả dụng nguồn (${available}).`;
                 qty.setCustomValidity(text);

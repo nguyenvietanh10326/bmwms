@@ -44,8 +44,15 @@ public class ProductAttributesController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<ProductAttributeDto>> Create(CreateProductAttributeDto dto)
     {
-        var result = await _service.CreateAsync(dto);
-        return CreatedAtAction(nameof(GetById), new { id = result.ProductAttributeId }, result);
+        try
+        {
+            var result = await _service.CreateAsync(dto);
+            return CreatedAtAction(nameof(GetById), new { id = result.ProductAttributeId }, result);
+        }
+        catch (System.InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     [HttpPut("{id}")]
@@ -59,6 +66,10 @@ public class ProductAttributesController : ControllerBase
         catch (System.Collections.Generic.KeyNotFoundException)
         {
             return NotFound();
+        }
+        catch (System.InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
         }
     }
 

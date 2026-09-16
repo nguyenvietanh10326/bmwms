@@ -26,7 +26,7 @@
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
                 <div>
                     <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">Mã Thuộc Tính <span style="color: #ef4444;">*</span></label>
-                    <input type="text" asp-for="Input.AttributeCode" placeholder="VD: COLOR, MATERIAL..." style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-family: monospace; text-transform: uppercase;" />
+                    <input type="text" asp-for="Input.AttributeCode" placeholder="VD: COLOR, MATERIAL..." oninput="this.value = this.value.toUpperCase()" style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-family: monospace; text-transform: uppercase;" />
                     <span asp-validation-for="Input.AttributeCode" style="color: #ef4444; font-size: 12px;"></span>
                 </div>
                 <div>
@@ -113,8 +113,10 @@
                 if (optionIndex === 0) {
                     addOptionRow();
                 }
+                container.querySelectorAll('input').forEach(input => input.disabled = false);
             } else {
                 container.style.display = 'none';
+                container.querySelectorAll('input').forEach(input => input.disabled = true);
             }
         }
 
@@ -127,6 +129,7 @@
             
             tr.innerHTML = `
                 <td style="padding: 8px;">
+                    <input type="hidden" name="Input.Options.Index" value="${optionIndex}" />
                     <input type="text" name="Input.Options[${optionIndex}].OptionCode" placeholder="VD: RED" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 13px; text-transform: uppercase;" required />
                 </td>
                 <td style="padding: 8px;">

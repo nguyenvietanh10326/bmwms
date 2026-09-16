@@ -12,15 +12,14 @@ namespace BMWMS.Repository.Repositories.Stocktake
         private const string SessionPendingApproval = "PENDING_APPROVAL";
         private const string SessionCompleted = "COMPLETED";
         private const string SessionCancelled = "CANCELLED";
+        private const string SessionRejected = "REJECTED";
 
         private const string LocationPending = "PENDING";
         private const string LocationInProgress = "IN_PROGRESS";
         private const string LocationCounted = "COUNTED";
-        private const string LocationRecountRequired = "RECOUNT_REQUIRED";
 
         private const string ResolutionAcceptDifference = "ACCEPT_DIFFERENCE";
         private const string ResolutionNoAdjustment = "NO_ADJUSTMENT";
-        private const string ResolutionRecount = "RECOUNT";
 
         private readonly BmwmsContext _context;
 
@@ -68,9 +67,7 @@ namespace BMWMS.Repository.Repositories.Stocktake
                 .AsNoTracking()
                 .Include(u => u.Role)
                 .Where(u => u.Status == "ACTIVE" && u.Role != null &&
-                    (u.Role.RoleCode == "SYSTEM_ADMIN" ||
-                     u.Role.RoleCode == "WAREHOUSE_MANAGER" ||
-                     u.Role.RoleCode == "WAREHOUSE_STAFF"))
+                    u.Role.RoleCode == "WAREHOUSE_STAFF")
                 .OrderBy(u => u.FullName)
                 .ToListAsync();
         }
@@ -177,10 +174,11 @@ namespace BMWMS.Repository.Repositories.Stocktake
                 var warehouse = await _context.Warehouses
                     .AsNoTracking()
                     .FirstOrDefaultAsync(w => w.WarehouseId == warehouseId && w.Status == "ACTIVE")
-                    ?? throw new InvalidOperationException("Khong tim thay kho hoat dong de kiem kho.");
+                    ?? throw new InvalidOperationException("Không tìm thấy kho đang hoạt động.");
 
-                if (assignedToUserId.HasValue && assignedToUserId.Value > 0)
-                    await ValidateAssignableUserAsync(assignedToUserId.Value);
+                if (!assignedToUserId.HasValue || assignedToUserId.Value <= 0)
+                    throw new InvalidOperationException("Phải giao phiếu kiểm kho cho một nhân viên kho.");
+                await ValidateAssignableUserAsync(assignedToUserId.Value);
 
                 var locationIds = storageLocationIds
                     .Where(id => id > 0)
@@ -198,7 +196,7 @@ namespace BMWMS.Repository.Repositories.Stocktake
                         .ToListAsync();
 
                     if (selectedLocations.Count != locationIds.Count)
-                        throw new InvalidOperationException("Danh sach bin chon co bin khong thuoc kho hoac khong hoat dong.");
+                        throw new InvalidOperationException("Danh sách có vị trí không thuộc kho hoặc không hoạt động.");
                 }
 
                 var session = new StocktakeSession
@@ -239,16 +237,19 @@ namespace BMWMS.Repository.Repositories.Stocktake
 
         public async Task<StocktakeSession> StartSessionAsync(long stocktakeSessionId, long startedByUserId)
         {
-            await using var transaction = await _context.Database.BeginTransactionAsync();
+            await using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
             try
             {
                 var session = await _context.StocktakeSessions
                     .Include(s => s.StocktakeLocations)
                     .FirstOrDefaultAsync(s => s.StocktakeSessionId == stocktakeSessionId)
-                    ?? throw new InvalidOperationException("Khong tim thay dot kiem kho.");
+                    ?? throw new InvalidOperationException("Không tìm thấy phiếu kiểm kho.");
 
                 if (session.Status != SessionScheduled)
-                    throw new InvalidOperationException($"Dot kiem kho dang o trang thai '{session.Status}', khong the bat dau.");
+                    throw new InvalidOperationException($"Phiếu đang ở trạng thái '{session.Status}', không thể bắt đầu.");
+
+                if (session.AssignedToUserId != startedByUserId)
+                    throw new UnauthorizedAccessException("Chỉ nhân viên được giao mới có thể bắt đầu phiếu kiểm kho.");
 
                 if (!session.StocktakeLocations.Any())
                 {
@@ -259,7 +260,7 @@ namespace BMWMS.Repository.Repositories.Stocktake
                         .ToListAsync();
 
                     if (!activeLocations.Any())
-                        throw new InvalidOperationException("Kho chua co bin hoat dong de bat dau kiem kho.");
+                        throw new InvalidOperationException("Kho chưa có vị trí hoạt động để bắt đầu kiểm kho.");
 
                     foreach (var location in activeLocations)
                     {
@@ -281,7 +282,26 @@ namespace BMWMS.Repository.Repositories.Stocktake
                 var locationIds = session.StocktakeLocations
                     .Select(l => l.StorageLocationId)
                     .Distinct()
+                    .OrderBy(id => id)
                     .ToList();
+
+                foreach (var locationId in locationIds)
+                {
+                    _ = await _context.Database.SqlQueryRaw<long>(
+                            "SELECT StorageLocationID AS Value FROM dbo.StorageLocations WITH (UPDLOCK, HOLDLOCK) WHERE StorageLocationID = {0}",
+                            locationId)
+                        .SingleAsync();
+                }
+
+                foreach (var locationId in locationIds)
+                {
+                    var isLocked = await _context.Database.SqlQueryRaw<int>(
+                            "SELECT CASE WHEN EXISTS (SELECT 1 FROM dbo.StocktakeLocationLocks WHERE StorageLocationID = {0}) THEN 1 ELSE 0 END AS Value",
+                            locationId)
+                        .SingleAsync();
+                    if (isLocked == 1)
+                        throw new InvalidOperationException($"Vị trí ID={locationId} đang bị khóa bởi phiếu kiểm kho khác.");
+                }
 
                 var inventories = await _context.Inventories
                     .AsNoTracking()
@@ -319,6 +339,12 @@ namespace BMWMS.Repository.Repositories.Stocktake
                 session.StartedAt = now;
 
                 await _context.SaveChangesAsync();
+                foreach (var locationId in locationIds)
+                {
+                    await _context.Database.ExecuteSqlInterpolatedAsync($@"
+                        INSERT dbo.StocktakeLocationLocks(StorageLocationID, StocktakeSessionID, LockedByUserID, LockedAt)
+                        VALUES ({locationId}, {session.StocktakeSessionId}, {startedByUserId}, {now})");
+                }
                 await transaction.CommitAsync();
                 return session;
             }
@@ -336,15 +362,16 @@ namespace BMWMS.Repository.Repositories.Stocktake
             {
                 var session = await _context.StocktakeSessions
                     .FirstOrDefaultAsync(s => s.StocktakeSessionId == stocktakeSessionId)
-                    ?? throw new InvalidOperationException("Khong tim thay dot kiem kho.");
+                    ?? throw new InvalidOperationException("Không tìm thấy phiếu kiểm kho.");
 
                 if (session.Status == SessionCompleted || session.Status == SessionCancelled)
-                    throw new InvalidOperationException("Dot kiem kho da ket thuc, khong the huy.");
+                    throw new InvalidOperationException("Phiếu kiểm kho đã kết thúc, không thể hủy.");
 
                 session.Status = SessionCancelled;
                 session.Notes = AppendNote(session.Notes, "Cancel", notes);
 
                 await _context.SaveChangesAsync();
+                await ReleaseLocationLocksAsync(stocktakeSessionId);
                 await transaction.CommitAsync();
                 return session;
             }
@@ -373,37 +400,37 @@ namespace BMWMS.Repository.Repositories.Stocktake
             {
                 var session = await GetTrackedSessionForMutationAsync(stocktakeSessionId);
                 if (session.Status != SessionInProgress)
-                    throw new InvalidOperationException("Chi co the nhap so dem khi dot kiem kho dang IN_PROGRESS.");
+                    throw new InvalidOperationException("Chỉ có thể nhập số đếm khi phiếu đang được kiểm.");
 
                 var location = session.StocktakeLocations.FirstOrDefault(l => l.StorageLocationId == storageLocationId)
-                    ?? throw new InvalidOperationException("Khong tim thay bin trong dot kiem kho.");
-
-                if (location.CountStatus == LocationCounted)
-                    throw new InvalidOperationException("Bin da submit, can mo recount truoc khi sua so dem.");
+                    ?? throw new InvalidOperationException("Không tìm thấy vị trí trong phiếu kiểm kho.");
 
                 var itemById = location.StocktakeItems.ToDictionary(i => i.StocktakeItemId);
                 foreach (var line in lines)
                 {
                     if (!itemById.TryGetValue(line.StocktakeItemId, out var item))
-                        throw new InvalidOperationException($"Dong dem ID={line.StocktakeItemId} khong thuoc bin nay.");
+                        throw new InvalidOperationException($"Dòng đếm ID={line.StocktakeItemId} không thuộc vị trí này.");
 
                     if (line.CountedQuantity.HasValue && line.CountedQuantity.Value < 0)
-                        throw new InvalidOperationException("So luong thuc dem khong duoc am.");
+                        throw new InvalidOperationException("Số lượng thực đếm không được âm.");
+                    var quantityScale = item.ProductLot.Product.UnitOfMeasure.QuantityScale;
+                    if (line.CountedQuantity.HasValue &&
+                        decimal.Round(line.CountedQuantity.Value, quantityScale) != line.CountedQuantity.Value)
+                        throw new InvalidOperationException(
+                            $"Số lượng {item.ProductLot.Product.ProductCode} chỉ được có tối đa {quantityScale} chữ số thập phân.");
 
                     item.CountedQuantity = line.CountedQuantity;
                     item.CountedByUserId = line.CountedQuantity.HasValue ? countedByUserId : null;
                     item.CountedAt = line.CountedQuantity.HasValue ? DateTime.UtcNow : null;
                     item.Notes = line.Notes;
                     
-                    // BR-14 & Recount bug fix: Clear previous recount resolution when a new count is provided
-                    if (item.Resolution == ResolutionRecount && line.CountedQuantity.HasValue)
-                    {
-                        item.Resolution = null;
-                        item.AdjustmentQuantity = null;
-                    }
+                    item.Resolution = null;
+                    item.AdjustmentQuantity = null;
                 }
 
-                location.CountStatus = LocationInProgress;
+                location.CountStatus = location.StocktakeItems.All(i => i.CountedQuantity.HasValue)
+                    ? LocationCounted
+                    : LocationInProgress;
                 location.Notes = AppendNote(location.Notes, "Count", notes);
 
                 await _context.SaveChangesAsync();
@@ -417,48 +444,60 @@ namespace BMWMS.Repository.Repositories.Stocktake
             }
         }
 
-        public async Task<StocktakeSession> SubmitLocationAsync(long stocktakeSessionId, long storageLocationId, long submittedByUserId, string? notes)
+        public async Task<StocktakeSession> SubmitSessionAsync(long stocktakeSessionId, long submittedByUserId)
         {
-            await using var transaction = await _context.Database.BeginTransactionAsync();
+            await using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
             try
             {
                 var session = await GetTrackedSessionForMutationAsync(stocktakeSessionId);
                 if (session.Status != SessionInProgress)
-                    throw new InvalidOperationException("Chi co the submit bin khi dot kiem kho dang IN_PROGRESS.");
+                    throw new InvalidOperationException("Chỉ có thể gửi kết quả khi phiếu đang được kiểm.");
+                if (session.AssignedToUserId != submittedByUserId)
+                    throw new UnauthorizedAccessException("Chỉ nhân viên được giao mới có thể gửi kết quả kiểm kho.");
 
-                var location = session.StocktakeLocations.FirstOrDefault(l => l.StorageLocationId == storageLocationId)
-                    ?? throw new InvalidOperationException("Khong tim thay bin trong dot kiem kho.");
-
-                var missing = location.StocktakeItems
+                var missing = session.StocktakeItems
                     .Where(i => !i.CountedQuantity.HasValue)
                     .Select(i => $"{i.ProductLot.Product.ProductCode}/{i.ProductLot.LotNumber}")
                     .ToList();
-
                 if (missing.Any())
-                    throw new InvalidOperationException($"Chua nhap so dem cho: {string.Join(", ", missing.Take(5))}.");
+                    throw new InvalidOperationException($"Còn {missing.Count} dòng chưa nhập: {string.Join(", ", missing.Take(5))}.");
+
+                var incompleteLocations = session.StocktakeLocations
+                    .Where(location => location.CountStatus != LocationCounted)
+                    .Select(location => location.StorageLocation.LocationCode)
+                    .ToList();
+                if (incompleteLocations.Any())
+                    throw new InvalidOperationException($"Còn vị trí chưa nhập xong: {string.Join(", ", incompleteLocations.Take(5))}.");
 
                 var now = DateTime.UtcNow;
-                location.CountStatus = LocationCounted;
-                location.CountedByUserId = submittedByUserId;
-                location.CountedAt = now;
-                location.Notes = AppendNote(location.Notes, "Submit", notes);
-
-                foreach (var item in location.StocktakeItems)
+                foreach (var location in session.StocktakeLocations)
                 {
-                    if (item.CountedByUserId == null)
-                        item.CountedByUserId = submittedByUserId;
-                    if (item.CountedAt == null)
-                        item.CountedAt = now;
+                    location.CountedByUserId ??= submittedByUserId;
+                    location.CountedAt ??= now;
                 }
 
-                if (session.StocktakeLocations.Any() &&
-                    session.StocktakeLocations.All(l => l.CountStatus == LocationCounted))
+                var hasVariance = session.StocktakeItems.Any(item =>
+                    item.CountedQuantity!.Value != item.BookQuantity);
+                session.SubmittedAt = now;
+                if (hasVariance)
                 {
-                    session.Status = SessionCounted;
-                    session.SubmittedAt = now;
+                    session.Status = SessionPendingApproval;
+                }
+                else
+                {
+                    foreach (var item in session.StocktakeItems)
+                    {
+                        item.Resolution = ResolutionNoAdjustment;
+                        item.AdjustmentQuantity = 0;
+                        item.ApprovedAt = now;
+                    }
+                    session.Status = SessionCompleted;
+                    session.ApprovedAt = now;
                 }
 
                 await _context.SaveChangesAsync();
+                if (!hasVariance)
+                    await ReleaseLocationLocksAsync(stocktakeSessionId);
                 await transaction.CommitAsync();
                 return session;
             }
@@ -479,34 +518,15 @@ namespace BMWMS.Repository.Repositories.Stocktake
 
                 var session = await GetTrackedSessionForMutationAsync(stocktakeSessionId);
                 if (session.Status != SessionInProgress)
-                    throw new InvalidOperationException("Chi co the them hang phat sinh khi dot kiem kho dang IN_PROGRESS.");
+                    throw new InvalidOperationException("Chỉ có thể thêm hàng phát sinh khi phiếu đang được kiểm.");
 
-                var location = session.StocktakeLocations.FirstOrDefault(l => l.StorageLocationId == storageLocationId);
-                if (location == null)
-                {
-                    var storageLocation = await _context.StorageLocations
-                        .AsNoTracking()
-                        .FirstOrDefaultAsync(l => l.StorageLocationId == storageLocationId &&
-                            l.WarehouseId == session.WarehouseId &&
-                            (l.Status == "ACTIVE" || l.Status == "AVAILABLE" || l.Status == "OCCUPIED"))
-                        ?? throw new InvalidOperationException("Bin khong thuoc kho cua dot kiem hoac khong hoat dong.");
-
-                    location = new StocktakeLocation
-                    {
-                        StocktakeSessionId = session.StocktakeSessionId,
-                        StorageLocationId = storageLocation.StorageLocationId,
-                        CountStatus = LocationInProgress
-                    };
-                    session.StocktakeLocations.Add(location);
-                }
-
-                if (location.CountStatus == LocationCounted)
-                    throw new InvalidOperationException("Bin da submit, khong the them hang phat sinh.");
+                var location = session.StocktakeLocations.FirstOrDefault(l => l.StorageLocationId == storageLocationId)
+                    ?? throw new InvalidOperationException("Vị trí không nằm trong phạm vi phiếu kiểm kho.");
 
                 _ = await _context.ProductLots
                     .AsNoTracking()
                     .FirstOrDefaultAsync(l => l.ProductLotId == productLotId && l.ProductId == productId && l.Status == "ACTIVE")
-                    ?? throw new InvalidOperationException("Khong tim thay lo san pham hoat dong.");
+                    ?? throw new InvalidOperationException("Không tìm thấy lô sản phẩm đang hoạt động.");
 
                 var existing = await _context.StocktakeItems
                     .FirstOrDefaultAsync(i =>
@@ -525,7 +545,7 @@ namespace BMWMS.Repository.Repositories.Stocktake
                     existing.CountedByUserId = countedByUserId;
                     existing.CountedAt = now;
                     existing.Notes = notes;
-                    location.CountStatus = LocationInProgress;
+                    location.CountStatus = LocationCounted;
 
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
@@ -546,80 +566,13 @@ namespace BMWMS.Repository.Repositories.Stocktake
                 };
 
                 _context.StocktakeItems.Add(item);
-                location.CountStatus = LocationInProgress;
+                location.CountStatus = location.StocktakeItems.All(i => i.CountedQuantity.HasValue)
+                    ? LocationCounted
+                    : LocationInProgress;
 
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
                 return item;
-            }
-            catch
-            {
-                await transaction.RollbackAsync();
-                throw;
-            }
-        }
-
-        public async Task<StocktakeSession> ApplyResolutionsAsync(long stocktakeSessionId, List<StocktakeResolutionParam> resolutions, long reviewedByUserId)
-        {
-            await using var transaction = await _context.Database.BeginTransactionAsync();
-            try
-            {
-                var session = await GetTrackedSessionForMutationAsync(stocktakeSessionId);
-                if (session.Status != SessionCounted && session.Status != SessionPendingApproval && session.Status != SessionInProgress)
-                    throw new InvalidOperationException("Chi co the ghi nhan xu ly chenhlech khi dot kiem da COUNTED hoac IN_PROGRESS.");
-
-                var allRecount = resolutions.All(r =>
-                    r.Resolution?.Trim().ToUpperInvariant() == ResolutionRecount);
-                if (!allRecount && session.StocktakeLocations.Any(l => l.CountStatus != LocationCounted))
-                    throw new InvalidOperationException("Van con bin chua submit hoac dang yeu cau recount.");
-
-                var anyRecount = false;
-                foreach (var resolution in resolutions)
-                {
-                    var item = session.StocktakeItems.FirstOrDefault(i => i.StocktakeItemId == resolution.StocktakeItemId)
-                        ?? throw new InvalidOperationException($"Khong tim thay dong kiem kho ID={resolution.StocktakeItemId}.");
-
-                    if (!item.CountedQuantity.HasValue)
-                        throw new InvalidOperationException("Dong kiem kho chua co so dem.");
-
-                    var value = NormalizeResolution(resolution.Resolution);
-                    item.Resolution = value;
-                    item.Notes = AppendNote(item.Notes, "Resolution", resolution.Notes);
-
-                    if (value == ResolutionRecount)
-                    {
-                        var location = session.StocktakeLocations.First(l => l.StorageLocationId == item.StorageLocationId);
-                        location.CountStatus = LocationRecountRequired;
-                        location.CountedByUserId = null;
-                        location.CountedAt = null;
-                        location.Notes = AppendNote(location.Notes, "Recount", resolution.Notes);
-
-                        item.CountedQuantity = null;
-                        item.CountedByUserId = null;
-                        item.CountedAt = null;
-                        item.AdjustmentQuantity = null;
-                        anyRecount = true;
-                    }
-                    else
-                    {
-                        var diff = CalculateDifference(item);
-                        item.AdjustmentQuantity = value == ResolutionAcceptDifference ? diff : 0;
-                    }
-                }
-
-                if (anyRecount)
-                {
-                    session.Status = SessionInProgress;
-                    session.SubmittedAt = null;
-                }
-                else if (AllVarianceItemsResolved(session))
-                {
-                    session.Status = SessionPendingApproval;
-                }
-
-                await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
-                return session;
             }
             catch
             {
@@ -636,17 +589,17 @@ namespace BMWMS.Repository.Repositories.Stocktake
             try
             {
                 var session = await GetTrackedSessionForMutationAsync(stocktakeSessionId);
-                if (session.Status != SessionPendingApproval && session.Status != SessionCounted)
-                    throw new InvalidOperationException("Dot kiem kho chua san sang phe duyet.");
+                if (session.Status != SessionPendingApproval)
+                    throw new InvalidOperationException("Phiếu kiểm kho chưa sẵn sàng để phê duyệt.");
 
                 if (session.StocktakeLocations.Any(l => l.CountStatus != LocationCounted))
-                    throw new InvalidOperationException("Van con bin chua submit hoac dang yeu cau recount.");
+                    throw new InvalidOperationException("Vẫn còn vị trí chưa nhập đủ số đếm.");
 
                 var now = DateTime.UtcNow;
                 foreach (var item in session.StocktakeItems)
                 {
                     if (!item.CountedQuantity.HasValue)
-                        throw new InvalidOperationException("Con dong kiem kho chua co so dem.");
+                        throw new InvalidOperationException("Còn dòng kiểm kho chưa có số đếm.");
 
                     var diff = CalculateDifference(item);
                     if (diff == 0)
@@ -656,11 +609,8 @@ namespace BMWMS.Repository.Repositories.Stocktake
                     }
                     else
                     {
-                        var resolution = NormalizeResolution(item.Resolution);
-                        if (resolution == ResolutionRecount)
-                            throw new InvalidOperationException("Con dong yeu cau recount, khong the phe duyet.");
-
-                        item.AdjustmentQuantity = resolution == ResolutionAcceptDifference ? diff : 0;
+                        item.Resolution = ResolutionAcceptDifference;
+                        item.AdjustmentQuantity = diff;
                     }
 
                     if (item.AdjustmentQuantity.HasValue &&
@@ -693,6 +643,7 @@ namespace BMWMS.Repository.Repositories.Stocktake
                 session.Notes = AppendNote(session.Notes, "Approve", notes);
 
                 await _context.SaveChangesAsync();
+                await ReleaseLocationLocksAsync(stocktakeSessionId);
                 if (ownedTransaction != null)
                     await ownedTransaction.CommitAsync();
                 return session;
@@ -707,6 +658,104 @@ namespace BMWMS.Repository.Repositories.Stocktake
             {
                 if (ownedTransaction != null)
                     await ownedTransaction.DisposeAsync();
+            }
+        }
+
+        public async Task<StocktakeSession> SaveSessionCountsAsync(
+            long stocktakeSessionId,
+            List<StocktakeCountUpdateParam> lines,
+            List<long> confirmedEmptyLocationIds,
+            long countedByUserId)
+        {
+            await using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
+            try
+            {
+                var session = await GetTrackedSessionForMutationAsync(stocktakeSessionId);
+                if (session.Status != SessionInProgress)
+                    throw new InvalidOperationException("Chỉ có thể nhập số lượng khi phiếu đang được kiểm.");
+                if (session.AssignedToUserId != countedByUserId)
+                    throw new UnauthorizedAccessException("Chỉ nhân viên được giao mới có thể nhập phiếu kiểm kho này.");
+
+                var duplicateIds = lines.GroupBy(line => line.StocktakeItemId)
+                    .Where(group => group.Count() > 1)
+                    .Select(group => group.Key)
+                    .ToList();
+                if (duplicateIds.Count > 0)
+                    throw new InvalidOperationException("Danh sách nhập có dòng hàng bị trùng.");
+
+                var itemById = session.StocktakeItems.ToDictionary(item => item.StocktakeItemId);
+                foreach (var line in lines)
+                {
+                    if (!itemById.TryGetValue(line.StocktakeItemId, out var item))
+                        throw new InvalidOperationException($"Dòng kiểm kho ID={line.StocktakeItemId} không thuộc phiếu này.");
+                    if (line.CountedQuantity is < 0)
+                        throw new InvalidOperationException("Số lượng thực đếm không được âm.");
+                    var quantityScale = item.ProductLot.Product.UnitOfMeasure.QuantityScale;
+                    if (line.CountedQuantity.HasValue &&
+                        decimal.Round(line.CountedQuantity.Value, quantityScale) != line.CountedQuantity.Value)
+                        throw new InvalidOperationException(
+                            $"Số lượng {item.ProductLot.Product.ProductCode} chỉ được có tối đa {quantityScale} chữ số thập phân.");
+
+                    item.CountedQuantity = line.CountedQuantity;
+                    item.CountedByUserId = line.CountedQuantity.HasValue ? countedByUserId : null;
+                    item.CountedAt = line.CountedQuantity.HasValue ? DateTime.UtcNow : null;
+                    item.Notes = line.Notes?.Trim();
+                    item.Resolution = null;
+                    item.AdjustmentQuantity = null;
+                }
+
+                var confirmedEmptySet = confirmedEmptyLocationIds.Where(id => id > 0).ToHashSet();
+                if (confirmedEmptySet.Any(id => session.StocktakeLocations.All(location => location.StorageLocationId != id)))
+                    throw new InvalidOperationException("Danh sách xác nhận vị trí trống không hợp lệ.");
+
+                foreach (var location in session.StocktakeLocations)
+                {
+                    var items = location.StocktakeItems.ToList();
+                    var isComplete = items.Count > 0
+                        ? items.All(item => item.CountedQuantity.HasValue)
+                        : confirmedEmptySet.Contains(location.StorageLocationId);
+                    location.CountStatus = isComplete ? LocationCounted : LocationInProgress;
+                    location.CountedByUserId = isComplete ? countedByUserId : null;
+                    location.CountedAt = isComplete ? DateTime.UtcNow : null;
+                }
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return session;
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }
+
+        public async Task<StocktakeSession> RejectSessionAsync(long stocktakeSessionId, long rejectedByUserId, string reason)
+        {
+            if (string.IsNullOrWhiteSpace(reason))
+                throw new InvalidOperationException("Phải nhập lý do từ chối kết quả kiểm kho.");
+
+            await using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
+            try
+            {
+                var session = await GetTrackedSessionForMutationAsync(stocktakeSessionId);
+                if (session.Status != SessionPendingApproval)
+                    throw new InvalidOperationException("Chỉ có thể từ chối phiếu đang chờ phê duyệt.");
+
+                session.Status = SessionRejected;
+                session.ApprovedByUserId = rejectedByUserId;
+                session.ApprovedAt = DateTime.UtcNow;
+                session.Notes = AppendNote(session.Notes, "Reject", reason.Trim());
+
+                await _context.SaveChangesAsync();
+                await ReleaseLocationLocksAsync(stocktakeSessionId);
+                await transaction.CommitAsync();
+                return session;
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
             }
         }
 
@@ -742,12 +791,15 @@ namespace BMWMS.Repository.Repositories.Stocktake
         {
             return await _context.StocktakeSessions
                 .Include(s => s.StocktakeLocations)
+                    .ThenInclude(l => l.StorageLocation)
+                .Include(s => s.StocktakeLocations)
                     .ThenInclude(l => l.StocktakeItems)
                         .ThenInclude(i => i.ProductLot)
                             .ThenInclude(pl => pl.Product)
+                                .ThenInclude(product => product.UnitOfMeasure)
                 .Include(s => s.StocktakeItems)
                 .FirstOrDefaultAsync(s => s.StocktakeSessionId == stocktakeSessionId)
-                ?? throw new InvalidOperationException("Khong tim thay phien kiem kho.");
+                ?? throw new InvalidOperationException("Không tìm thấy phiếu kiểm kho.");
         }
 
         private async Task ValidateAssignableUserAsync(long userId)
@@ -756,12 +808,16 @@ namespace BMWMS.Repository.Repositories.Stocktake
                 .AsNoTracking()
                 .Include(u => u.Role)
                 .FirstOrDefaultAsync(u => u.UserId == userId && u.Status == "ACTIVE")
-                ?? throw new InvalidOperationException("Khong tim thay nhan vien phu trach hoat dong.");
+                ?? throw new InvalidOperationException("Không tìm thấy nhân viên phụ trách đang hoạt động.");
 
             var roleCode = user.Role?.RoleCode;
-            if (roleCode != "SYSTEM_ADMIN" && roleCode != "WAREHOUSE_MANAGER" && roleCode != "WAREHOUSE_STAFF")
-                throw new InvalidOperationException("Nhan vien phu trach khong thuoc nhom kho.");
+            if (roleCode != "WAREHOUSE_STAFF")
+                throw new InvalidOperationException("Người phụ trách phải có vai trò nhân viên kho.");
         }
+
+        private Task<int> ReleaseLocationLocksAsync(long stocktakeSessionId) =>
+            _context.Database.ExecuteSqlInterpolatedAsync(
+                $"DELETE FROM dbo.StocktakeLocationLocks WHERE StocktakeSessionID = {stocktakeSessionId}");
 
         private static IQueryable<StocktakeSession> ApplyStatusFilter(IQueryable<StocktakeSession> query, string? status)
         {
@@ -771,30 +827,9 @@ namespace BMWMS.Repository.Repositories.Stocktake
             var st = status.Trim().ToUpperInvariant();
             return st switch
             {
-                "HISTORY" => query.Where(s => s.Status == SessionCompleted || s.Status == SessionCancelled),
+                "HISTORY" => query.Where(s => s.Status == SessionCompleted || s.Status == SessionCancelled || s.Status == SessionRejected),
                 _ => query.Where(s => s.Status == st)
             };
-        }
-
-        private static string NormalizeResolution(string? resolution)
-        {
-            var value = resolution?.Trim().ToUpperInvariant();
-            return value switch
-            {
-                ResolutionAcceptDifference => ResolutionAcceptDifference,
-                ResolutionNoAdjustment => ResolutionNoAdjustment,
-                ResolutionRecount => ResolutionRecount,
-                _ => throw new InvalidOperationException("Resolution khong hop le.")
-            };
-        }
-
-        private static bool AllVarianceItemsResolved(StocktakeSession session)
-        {
-            return session.StocktakeItems.All(i =>
-            {
-                var diff = CalculateDifference(i);
-                return diff == 0 || (!string.IsNullOrWhiteSpace(i.Resolution) && i.Resolution != ResolutionRecount);
-            });
         }
 
         private static decimal CalculateDifference(StocktakeItem item)

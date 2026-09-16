@@ -58,7 +58,7 @@ namespace BMWMS.Web.Services
             if (!response.IsSuccessStatusCode)
             {
                 var error = await response.Content.ReadAsStringAsync();
-                throw new InvalidOperationException($"Lỗi tạo thông số: {error}");
+                throw new InvalidOperationException(ParseError(error, "Không thể tạo thuộc tính sản phẩm."));
             }
             return await response.Content.ReadFromJsonAsync<ProductAttributeDto>(_jsonOptions);
         }
@@ -69,7 +69,7 @@ namespace BMWMS.Web.Services
             if (!response.IsSuccessStatusCode)
             {
                 var error = await response.Content.ReadAsStringAsync();
-                throw new InvalidOperationException($"Lỗi cập nhật thông số: {error}");
+                throw new InvalidOperationException(ParseError(error, "Không thể cập nhật thuộc tính sản phẩm."));
             }
         }
 
@@ -79,8 +79,24 @@ namespace BMWMS.Web.Services
             if (!response.IsSuccessStatusCode)
             {
                 var error = await response.Content.ReadAsStringAsync();
-                throw new InvalidOperationException($"Lỗi xóa thông số: {error}");
+                throw new InvalidOperationException(ParseError(error, "Không thể xóa thuộc tính sản phẩm."));
             }
+        }
+
+        private static string ParseError(string body, string fallback)
+        {
+            try
+            {
+                var json = JsonSerializer.Deserialize<JsonElement>(body);
+                if (json.TryGetProperty("message", out var message))
+                    return message.GetString() ?? fallback;
+                if (json.TryGetProperty("title", out var title))
+                    return title.GetString() ?? fallback;
+            }
+            catch (JsonException)
+            {
+            }
+            return string.IsNullOrWhiteSpace(body) ? fallback : body;
         }
     }
 }

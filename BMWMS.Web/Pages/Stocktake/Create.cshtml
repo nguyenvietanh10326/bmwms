@@ -2,7 +2,7 @@
 @model BMWMS.Web.Pages.Stocktake.CreateModel
 @{
     Layout = "_AdminLayout";
-    ViewData["Title"] = "Tạo Phiên Kiểm Kho";
+    ViewData["Title"] = "Tạo phiếu kiểm kho";
     ViewData["ActivePage"] = "Stocktake";
 }
 
@@ -19,7 +19,7 @@
 
     --sh-xs:0 1px 2px rgba(16,23,42,.05);
     --sh-sm:0 1px 2px rgba(16,23,42,.04),0 4px 10px -4px rgba(16,23,42,.07);
-    --r-sm:8px; --r-md:12px; --r-lg:16px;
+    --r-sm:6px; --r-md:8px; --r-lg:12px;
     --ease:cubic-bezier(.4,0,.2,1);
   }
   
@@ -62,22 +62,15 @@
 <div class="transfer-page" style="max-width: 1000px; margin: 0 auto;">
     <div class="pagehead">
         <div>
-            <div class="breadcrumb">Nghiệp vụ kho / Kiểm kho / Tạo phiên</div>
-            <h1>Tạo Phiên Kiểm Kho</h1>
-            <p>Thiết lập kiểm đếm toàn bộ hoặc định kỳ theo khu vực, nhóm sản phẩm.</p>
+            <div class="breadcrumb">Nghiệp vụ kho / Kiểm kho / Tạo phiếu</div>
+            <h1>Tạo phiếu kiểm kho</h1>
+            <p>Giao nhiệm vụ kiểm kho theo toàn kho, khu vực hoặc nhóm sản phẩm.</p>
         </div>
         <div style="display: flex; gap: 10px;">
             <a href="/Stocktake/Index" class="btn btn-light">Hủy bỏ</a>
-            <button type="button" class="btn btn-primary" onclick="submitForm()">Tạo phiên</button>
+            <button type="button" class="btn btn-primary" onclick="submitForm()">Tạo phiếu</button>
         </div>
     </div>
-
-    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
-    {
-        <div class="alert alert-danger" style="border-radius: var(--r-sm); padding: 12px 16px; font-size: 13px; margin-bottom: 16px;">
-            <i class="ri-error-warning-line" style="margin-right: 6px;"></i>@Model.ErrorMessage
-        </div>
-    }
 
     <form method="post" id="createForm">
         @Html.AntiForgeryToken()
@@ -86,7 +79,7 @@
             <h3 style="font-size:15px; font-weight:700; color:var(--ink); margin-top:0; margin-bottom:18px;">Thông tin chung</h3>
             <div class="grid2">
                 <div class="field">
-                    <label>Mã phiên kiểm kho</label>
+                    <label>Mã phiếu kiểm kho</label>
                     <input type="text" value="Tự động sinh khi tạo" disabled />
                 </div>
                 <div class="field">
@@ -105,8 +98,8 @@
                 </div>
                 <div class="field">
                     <label>Người phụ trách</label>
-                    <select asp-for="AssignedToUserId">
-                        <option value="">-- Để trống sẽ tự nhận --</option>
+                    <select asp-for="AssignedToUserId" required>
+                        <option value="">-- Chọn nhân viên kho --</option>
                         @foreach (var user in Model.StaffUsers)
                         {
                             <option value="@user.UserId">@user.FullName (@user.RoleName)</option>
@@ -129,15 +122,15 @@
                 <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer;">
                     <input type="radio" name="CountScope" id="scopeFull" value="FULL" checked onchange="toggleScope()" style="margin-top: 4px;" />
                     <div>
-                        <div style="font-weight: 600; font-size: 14px;">Kiểm kê toàn bộ (Full Stock Count)</div>
-                        <div style="font-size: 12px; color: var(--ink-3); max-width: 300px;">Hệ thống sẽ tự động quét và thêm tất cả các vị trí (Bin) đang hoạt động trong kho vào danh sách kiểm đếm.</div>
+                        <div style="font-weight: 600; font-size: 14px;">Kiểm toàn bộ kho</div>
+                        <div style="font-size: 12px; color: var(--ink-3); max-width: 300px;">Hệ thống đưa tất cả vị trí đang hoạt động trong kho vào phiếu kiểm.</div>
                     </div>
                 </label>
                 
                 <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer;">
                     <input type="radio" name="CountScope" id="scopeCycle" value="CYCLE" onchange="toggleScope()" style="margin-top: 4px;" />
                     <div>
-                        <div style="font-weight: 600; font-size: 14px;">Kiểm kê theo khu vực (Zone/Rack)</div>
+                        <div style="font-weight: 600; font-size: 14px;">Kiểm theo khu vực</div>
                         <div style="font-size: 12px; color: var(--ink-3); max-width: 300px;">Kiểm kê định kỳ tại một số khu vực hoặc kệ nhất định.</div>
                     </div>
                 </label>
@@ -145,7 +138,7 @@
                 <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer;">
                     <input type="radio" name="CountScope" id="scopeProductGroup" value="PRODUCT_GROUP" onchange="toggleScope()" style="margin-top: 4px;" />
                     <div>
-                        <div style="font-weight: 600; font-size: 14px;">Kiểm kê theo nhóm hàng</div>
+                        <div style="font-weight: 600; font-size: 14px;">Kiểm theo nhóm hàng</div>
                         <div style="font-size: 12px; color: var(--ink-3); max-width: 300px;">Kiểm kê dựa trên các nhóm sản phẩm được chọn.</div>
                     </div>
                 </label>
@@ -187,7 +180,7 @@
             <div id="locationResultsSection" style="display: none;">
                 <div class="field">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <label>Vị trí (Bin) kết quả <span style="color:#dc2626;">*</span></label>
+                        <label>Vị trí kiểm kho <span style="color:#dc2626;">*</span></label>
                         <span id="location-count" style="font-size: 12px; font-weight: 600; color: var(--accent-600);">@Model.Locations.Count vị trí khả dụng</span>
                     </div>
                     
@@ -200,7 +193,7 @@
                         }
                     </select>
                     <div style="font-size: 11.5px; color: var(--ink-3); margin-top: 6px;">
-                        <i class="ri-information-line"></i> Tự động chọn tất cả Bin hiển thị sau khi lọc. Bạn có thể giữ nút <code>Ctrl</code> (hoặc <code>Cmd</code>) để bỏ chọn bớt.
+                        <i class="ri-information-line"></i> Hệ thống tự chọn tất cả vị trí sau khi lọc. Giữ <code>Ctrl</code> để thay đổi nhiều lựa chọn.
                     </div>
                 </div>
             </div>

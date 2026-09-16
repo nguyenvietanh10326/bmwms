@@ -41,29 +41,19 @@ namespace BMWMS.Business.Services.StockOperations
                     throw new InvalidOperationException("Chỉ xác nhận phiếu đã được quản lý duyệt.");
                 if (order.AssignedToUserId != staffId)
                     throw new UnauthorizedAccessException("Chỉ nhân viên kho được giao mới được xác nhận chuyển kho.");
-                if (dto?.Items == null || dto.Items.Count != order.TransferOrderDetails.Count ||
-                    dto.Items.GroupBy(item => item.TransferOrderDetailId).Any(group => group.Count() != 1) ||
-                    dto.Items.Any(item => order.TransferOrderDetails.All(detail => detail.TransferOrderDetailId != item.TransferOrderDetailId)))
-                    throw new ArgumentException("Phải xác nhận đúng một lần cho từng dòng của phiếu chuyển kho.");
+                dto ??= new ConfirmTransferDto();
 
                 var allocations = new List<CapacityAllocationDto>();
                 var sourceKeys = new List<(long ProductId, long LotId, long LocationId, decimal Qty)>();
                 var confirmedItems = new List<TransferConfirmItemParam>();
-                var changedDestination = false;
-                var hasShortfall = false;
                 foreach (var detail in order.TransferOrderDetails)
                 {
-                    var inputItem = dto.Items.Single(item => item.TransferOrderDetailId == detail.TransferOrderDetailId);
-                    var destId = inputItem.DestinationLocationId ?? detail.DestinationLocationId ?? 0;
-                    var confirmQuantity = inputItem.ActualMovedQuantity;
-                    if (confirmQuantity < 0 || confirmQuantity > detail.RequestedQuantity)
-                        throw new ArgumentException($"Số thực chuyển của {detail.Product?.ProductCode} phải từ 0 đến số dự kiến.");
+                    var destId = detail.DestinationLocationId ?? 0;
+                    var confirmQuantity = detail.RequestedQuantity;
                     if (confirmQuantity > 0 && detail.Product != null)
                         QuantityRules.EnsureValid(detail.Product, confirmQuantity, "Số thực chuyển");
                     if (destId <= 0 || destId == detail.SourceLocationId)
                         throw new ArgumentException("Vị trí đích phải khác vị trí nguồn và còn tồn tại.");
-                    changedDestination |= destId != detail.DestinationLocationId;
-                    hasShortfall |= confirmQuantity < detail.RequestedQuantity;
                     confirmedItems.Add(new TransferConfirmItemParam {
                         TransferOrderDetailId = detail.TransferOrderDetailId,
                         ActualMovedQuantity = confirmQuantity,
@@ -79,10 +69,6 @@ namespace BMWMS.Business.Services.StockOperations
                 }
                 if (sourceKeys.Count == 0)
                     throw new ArgumentException("Không có hàng thực chuyển; hãy hủy phiếu thay vì xác nhận rỗng.");
-                if (hasShortfall && (dto.ShortfallReason?.Trim().Length ?? 0) < 5)
-                    throw new ArgumentException("Chuyển thiếu phải ghi lý do ít nhất 5 ký tự.");
-                if (changedDestination && (dto.DestinationChangeReason?.Trim().Length ?? 0) < 5)
-                    throw new ArgumentException("Đổi vị trí đích phải ghi lý do ít nhất 5 ký tự.");
 
                 var destinationIds = confirmedItems.Where(item => item.ActualMovedQuantity > 0)
                     .Select(item => item.DestinationLocationId!.Value).Distinct().ToArray();

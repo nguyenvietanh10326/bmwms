@@ -1,0 +1,53 @@
+@using BMWMS.Web.Helpers
+@model BMWMS.Web.Models.StocktakeSessionDetailModel
+@{
+    var emptyLocations = Model.Locations.Where(location => location.TotalItems == 0).ToList();
+}
+<section class="stocktake-section stocktake-count-sheet">
+    <div class="stocktake-section__heading"><div><h2>Nhập số lượng kiểm kho</h2><p>Nhập số lượng thực tế cho toàn bộ sản phẩm và vị trí trong phiếu.</p></div></div>
+    <form method="post" asp-route-id="@Model.StocktakeSessionId" id="stocktakeCountForm">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="id" value="@Model.StocktakeSessionId" />
+        <div class="table-responsive">
+            <table class="table table-hover stocktake-table stocktake-entry-table">
+                <thead><tr><th>Vị trí</th><th>Sản phẩm</th><th>Lô</th><th class="text-end">Tồn snapshot</th><th style="width:190px">Số lượng thực đếm</th><th>Ghi chú</th></tr></thead>
+                <tbody>
+                @for (var index = 0; index < Model.Items.Count; index++)
+                {
+                    var item = Model.Items[index];
+                    <tr>
+                        <td><span class="location-chip">@item.LocationCode</span><small>@item.LocationPath</small></td>
+                        <td><strong>@item.ProductCode</strong><small>@item.ProductName · @item.UnitName</small></td>
+                        <td>@item.LotNumber</td>
+                        <td class="text-end snapshot-quantity">@FormatHelper.FormatQuantity(item.BookQuantity ?? 0, item.QuantityScale)</td>
+                        <td>
+                            <input type="hidden" name="Lines[@index].StocktakeItemId" value="@item.StocktakeItemId" />
+                            <input type="number" class="form-control form-control-sm text-end counted-input" name="Lines[@index].CountedQuantity"
+                                   value="@(item.CountedQuantity?.ToString(System.Globalization.CultureInfo.InvariantCulture))"
+                                   min="0" step="@(item.QuantityScale == 0 ? "1" : "0." + new string('0', item.QuantityScale - 1) + "1")"
+                                   inputmode="decimal" aria-label="Số lượng thực đếm @item.ProductCode tại @item.LocationCode" />
+                        </td>
+                        <td><input class="form-control form-control-sm" name="Lines[@index].Notes" value="@item.Notes" maxlength="1000" /></td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+        @if (emptyLocations.Count > 0)
+        {
+            <div class="empty-location-panel">
+                <h3>Vị trí không có tồn snapshot</h3><p>Xác nhận thực tế vị trí trống trước khi gửi phiếu.</p>
+                <div class="empty-location-grid">
+                @foreach (var location in emptyLocations)
+                {
+                    <label class="form-check"><input class="form-check-input" type="checkbox" name="ConfirmedEmptyLocationIds" value="@location.StorageLocationId" checked="@(location.CountStatus == "COUNTED" ? "checked" : null)" /><span><strong>@location.LocationCode</strong><small>@location.LocationPath</small></span></label>
+                }
+                </div>
+            </div>
+        }
+        <div class="stocktake-form-actions">
+            <span><i class="ri-lock-line"></i>Các vị trí vẫn bị khóa cho đến khi phiếu hoàn tất hoặc bị từ chối.</span>
+            <div><button class="btn btn-light" type="submit" asp-page-handler="SaveCounts"><i class="ri-save-line"></i>Lưu nháp</button><button class="btn btn-primary" type="submit" asp-page-handler="Submit"><i class="ri-send-plane-line"></i>Hoàn tất và gửi</button></div>
+        </div>
+    </form>
+</section>
