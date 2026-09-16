@@ -134,6 +134,7 @@ namespace BMWMS.Business.DTOs.Stocktake
     {
         public long StocktakeSessionId { get; set; }
         public string StocktakeNumber { get; set; } = string.Empty;
+        public string SessionStatus { get; set; } = string.Empty;
         public long WarehouseId { get; set; }
         public string WarehouseCode { get; set; } = string.Empty;
         public string WarehouseName { get; set; } = string.Empty;
@@ -162,6 +163,7 @@ namespace BMWMS.Business.DTOs.Stocktake
         public int UnitOfMeasureId { get; set; }
         public string UnitCode { get; set; } = string.Empty;
         public string UnitName { get; set; } = string.Empty;
+        public byte QuantityScale { get; set; }
         public long ProductLotId { get; set; }
         public string LotNumber { get; set; } = string.Empty;
         public DateOnly? ExpiryDate { get; set; }
@@ -174,19 +176,18 @@ namespace BMWMS.Business.DTOs.Stocktake
         public bool IsUnexpected { get; set; }
     }
 
+    public class SaveStocktakeSessionCountsDto
+    {
+        public List<StocktakeCountLineDto> Lines { get; set; } = new();
+        public List<long> ConfirmedEmptyLocationIds { get; set; } = new();
+    }
+
     public class UnexpectedStocktakeItemDto
     {
         public long StorageLocationId { get; set; }
         public long ProductId { get; set; }
         public long ProductLotId { get; set; }
         public decimal CountedQuantity { get; set; }
-        public string? Notes { get; set; }
-    }
-
-    public class StocktakeResolutionDto
-    {
-        public long StocktakeItemId { get; set; }
-        public string Resolution { get; set; } = string.Empty;
         public string? Notes { get; set; }
     }
 

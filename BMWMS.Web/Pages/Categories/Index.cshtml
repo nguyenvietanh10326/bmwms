@@ -769,8 +769,6 @@
 
             pageItems.forEach((attr, idx) => {
                 const assigned = currentAssignedMap.get(attr.productAttributeId);
-                const isCapacityAttribute = attr.attributeCode === 'STORAGE_VOLUME_M3_PER_BASE_UOM'
-                    || attr.attributeCode === 'STORAGE_WEIGHT_KG_PER_BASE_UOM';
                 const isChecked = !!assigned;
                 const isRequired = assigned ? assigned.isRequired : false;
                 const displayOrder = assigned ? assigned.displayOrder : (startIndex + idx + 1);
@@ -793,7 +791,6 @@
                     </td>
                     <td>
                         <div class="fw-bold text-dark">${attr.attributeName}</div>
-                        ${isCapacityAttribute ? '<div class="text-warning-emphasis small mt-1">Hệ số lưu kho tùy chọn theo nhóm</div>' : ''}
                         ${optionsHint}
                     </td>
                     <td>
@@ -838,21 +835,6 @@
             
             const payload = Array.from(currentAssignedMap.values());
             
-            // Validation
-            const enabledCodes = new Set();
-            payload.forEach(p => {
-                const attr = allSystemAttributes.find(a => a.productAttributeId === p.productAttributeId);
-                if (attr) enabledCodes.add(attr.attributeCode);
-            });
-            
-            const usesPhysicalFactor = enabledCodes.has('STORAGE_VOLUME_M3_PER_BASE_UOM')
-                || enabledCodes.has('STORAGE_WEIGHT_KG_PER_BASE_UOM');
-            if (usesPhysicalFactor &&
-                (!enabledCodes.has('STORAGE_FACTOR_BASIS') || !enabledCodes.has('STORAGE_FACTOR_REFERENCE'))) {
-                alert('Khi bật hệ số kg/m3, cần bật cả Căn cứ xác định và Nguồn tham chiếu hệ số lưu kho.');
-                return;
-            }
-
             btn.disabled = true;
             btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Đang lưu...';
 

@@ -58,6 +58,7 @@ namespace BMWMS.Business.Services.StockOperations
                 ProductCode = i.Product?.ProductCode ?? string.Empty,
                 ProductName = i.Product?.ProductName ?? string.Empty,
                 UnitName = i.Product?.UnitOfMeasure?.UnitName ?? string.Empty,
+                QuantityScale = i.Product?.UnitOfMeasure?.QuantityScale ?? 0,
                 ProductLotId = i.ProductLotId,
                 LotNumber = i.ProductLot?.LotNumber ?? string.Empty,
                 ExpiryDate = i.ProductLot?.ExpiryDate,

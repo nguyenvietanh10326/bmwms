@@ -1,0 +1,8 @@
+@using BMWMS.Web.Helpers
+@model BMWMS.Web.Models.StocktakeSessionDetailModel
+<section class="stocktake-section"><div class="stocktake-section__heading"><div><h2>Kết quả kiểm kho</h2><p>So sánh tồn sổ và số lượng thực tế đã gửi.</p></div></div><div class="table-responsive"><table class="table stocktake-table"><thead><tr><th>Vị trí</th><th>Sản phẩm / lô</th><th class="text-end">Tồn sổ</th><th class="text-end">Thực đếm</th><th class="text-end">Chênh lệch</th></tr></thead><tbody>
+@foreach (var item in Model.Items)
+{
+    <tr class="@(item.DifferenceQuantity != 0 ? "stocktake-row--variance" : null)"><td>@item.LocationCode</td><td><strong>@item.ProductCode</strong><small>@item.ProductName · Lô @item.LotNumber</small></td><td class="text-end">@FormatHelper.FormatQuantity(item.BookQuantity ?? 0, item.QuantityScale)</td><td class="text-end">@FormatHelper.FormatQuantity(item.CountedQuantity ?? 0, item.QuantityScale)</td><td class="text-end fw-semibold">@FormatHelper.FormatQuantity(item.DifferenceQuantity ?? 0, item.QuantityScale)</td></tr>
+}
+</tbody></table></div></section>

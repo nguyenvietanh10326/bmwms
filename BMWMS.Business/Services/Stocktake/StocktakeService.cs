@@ -19,15 +19,14 @@ namespace BMWMS.Business.Services.Stocktake
         private const string SessionPendingApproval = "PENDING_APPROVAL";
         private const string SessionCompleted = "COMPLETED";
         private const string SessionCancelled = "CANCELLED";
+        private const string SessionRejected = "REJECTED";
 
         private const string LocationPending = "PENDING";
         private const string LocationInProgress = "IN_PROGRESS";
         private const string LocationCounted = "COUNTED";
-        private const string LocationRecountRequired = "RECOUNT_REQUIRED";
 
         private const string ResolutionAcceptDifference = "ACCEPT_DIFFERENCE";
         private const string ResolutionNoAdjustment = "NO_ADJUSTMENT";
-        private const string ResolutionRecount = "RECOUNT";
 
         private readonly IStocktakeRepository _stocktakeRepo;
         private readonly BmwmsContext _context;
@@ -129,7 +128,7 @@ namespace BMWMS.Business.Services.Stocktake
             if (session == null || !CanAccess(session, currentUserId, canManage))
                 return null;
 
-            return MapSessionDetail(session, includeBookQuantities: canManage);
+            return MapSessionDetail(session, includeBookQuantities: true);
         }
 
         public async Task<StocktakeCountTaskDto?> GetCountTaskAsync(long stocktakeSessionId, long storageLocationId, long currentUserId, bool canManage)
@@ -143,6 +142,7 @@ namespace BMWMS.Business.Services.Stocktake
             {
                 StocktakeSessionId = location.StocktakeSessionId,
                 StocktakeNumber = location.StocktakeSession.StocktakeNumber,
+                SessionStatus = location.StocktakeSession.Status,
                 WarehouseId = location.StocktakeSession.WarehouseId,
                 WarehouseCode = location.StocktakeSession.Warehouse?.WarehouseCode ?? string.Empty,
                 WarehouseName = location.StocktakeSession.Warehouse?.WarehouseName ?? string.Empty,
@@ -165,9 +165,11 @@ namespace BMWMS.Business.Services.Stocktake
         public async Task<StocktakeActionResultDto> CreateSessionAsync(CreateStocktakeSessionDto dto, long createdByUserId)
         {
             if (dto.WarehouseId <= 0)
-                return Fail("WarehouseId khong hop le.");
+                return Fail("Kho không hợp lệ.");
             if (dto.PlannedDate == default)
-                return Fail("PlannedDate khong hop le.");
+                return Fail("Ngày dự kiến không hợp lệ.");
+            if (!dto.AssignedToUserId.HasValue || dto.AssignedToUserId.Value <= 0)
+                return Fail("Phải chọn nhân viên kho phụ trách.");
 
             try
             {
@@ -179,7 +181,7 @@ namespace BMWMS.Business.Services.Stocktake
                     dto.Notes,
                     dto.StorageLocationIds ?? new List<long>());
 
-                return Success(session, $"Da tao dot kiem kho {session.StocktakeNumber}.");
+                return Success(session, $"Đã tạo phiếu kiểm kho {session.StocktakeNumber}.");
             }
             catch (Exception ex)
             {
@@ -192,7 +194,7 @@ namespace BMWMS.Business.Services.Stocktake
             try
             {
                 var session = await _stocktakeRepo.StartSessionAsync(stocktakeSessionId, startedByUserId);
-                return Success(session, $"Da bat dau dot kiem kho {session.StocktakeNumber} va tao snapshot ton kho.");
+                return Success(session, $"Đã bắt đầu phiếu {session.StocktakeNumber} và chụp tồn snapshot.");
             }
             catch (Exception ex)
             {
@@ -205,7 +207,7 @@ namespace BMWMS.Business.Services.Stocktake
             try
             {
                 var session = await _stocktakeRepo.CancelSessionAsync(stocktakeSessionId, cancelledByUserId, notes);
-                return Success(session, $"Da huy dot kiem kho {session.StocktakeNumber}.");
+                return Success(session, $"Đã hủy phiếu kiểm kho {session.StocktakeNumber}.");
             }
             catch (Exception ex)
             {
@@ -215,9 +217,9 @@ namespace BMWMS.Business.Services.Stocktake
 
         public async Task<StocktakeActionResultDto> SaveCountsAsync(long stocktakeSessionId, long storageLocationId, List<StocktakeCountLineDto> lines, long countedByUserId, bool canManage, string? notes = null)
         {
-            var access = await EnsureAccessAsync(stocktakeSessionId, countedByUserId, canManage);
+            var access = await EnsureAccessAsync(stocktakeSessionId, countedByUserId, canManage: false);
             if (!access)
-                return Fail("Khong co quyen nhap so dem cho dot kiem kho nay.", stocktakeSessionId);
+                return Fail("Bạn không có quyền nhập số đếm cho phiếu này.", stocktakeSessionId);
 
             try
             {
@@ -229,7 +231,7 @@ namespace BMWMS.Business.Services.Stocktake
                 }).ToList();
 
                 var session = await _stocktakeRepo.SaveCountsAsync(stocktakeSessionId, storageLocationId, updates, countedByUserId, notes);
-                return Success(session, "Da luu so dem.");
+                return Success(session, "Đã lưu số đếm.");
             }
             catch (Exception ex)
             {
@@ -237,16 +239,19 @@ namespace BMWMS.Business.Services.Stocktake
             }
         }
 
-        public async Task<StocktakeActionResultDto> SubmitLocationAsync(long stocktakeSessionId, long storageLocationId, long submittedByUserId, bool canManage, string? notes)
+        public async Task<StocktakeActionResultDto> SubmitSessionAsync(long stocktakeSessionId, long submittedByUserId)
         {
-            var access = await EnsureAccessAsync(stocktakeSessionId, submittedByUserId, canManage);
+            var access = await EnsureAccessAsync(stocktakeSessionId, submittedByUserId, canManage: false);
             if (!access)
-                return Fail("Khong co quyen submit bin nay.", stocktakeSessionId);
+                return Fail("Bạn không có quyền gửi kết quả phiếu kiểm kho này.", stocktakeSessionId);
 
             try
             {
-                var session = await _stocktakeRepo.SubmitLocationAsync(stocktakeSessionId, storageLocationId, submittedByUserId, notes);
-                return Success(session, "Da submit bin kiem dem.");
+                var session = await _stocktakeRepo.SubmitSessionAsync(stocktakeSessionId, submittedByUserId);
+                var message = session.Status == SessionCompleted
+                    ? "Tất cả số đếm đều khớp. Phiếu kiểm kho đã hoàn tất."
+                    : "Đã gửi toàn bộ kết quả chênh lệch cho quản lý phê duyệt.";
+                return Success(session, message);
             }
             catch (Exception ex)
             {
@@ -256,9 +261,9 @@ namespace BMWMS.Business.Services.Stocktake
 
         public async Task<StocktakeActionResultDto> AddUnexpectedItemAsync(long stocktakeSessionId, UnexpectedStocktakeItemDto dto, long countedByUserId, bool canManage)
         {
-            var access = await EnsureAccessAsync(stocktakeSessionId, countedByUserId, canManage);
+            var access = await EnsureAccessAsync(stocktakeSessionId, countedByUserId, canManage: false);
             if (!access)
-                return Fail("Khong co quyen them hang phat sinh cho dot kiem kho nay.", stocktakeSessionId);
+                return Fail("Bạn không có quyền thêm hàng phát sinh vào phiếu này.", stocktakeSessionId);
 
             try
             {
@@ -274,37 +279,10 @@ namespace BMWMS.Business.Services.Stocktake
                 return new StocktakeActionResultDto
                 {
                     Success = true,
-                    Message = "Da them hang phat sinh vao dot kiem kho.",
+                    Message = "Đã thêm hàng phát sinh vào phiếu kiểm kho.",
                     StocktakeSessionId = item.StocktakeSessionId,
                     Status = SessionInProgress
                 };
-            }
-            catch (Exception ex)
-            {
-                return Fail(ex.Message, stocktakeSessionId);
-            }
-        }
-
-        public async Task<StocktakeActionResultDto> ApplyResolutionsAsync(long stocktakeSessionId, List<StocktakeResolutionDto> resolutions, long reviewedByUserId)
-        {
-            try
-            {
-                var repoParams = (resolutions ?? new List<StocktakeResolutionDto>())
-                    .Select(r => new StocktakeResolutionParam
-                    {
-                        StocktakeItemId = r.StocktakeItemId,
-                        Resolution = r.Resolution,
-                        Notes = r.Notes
-                    })
-                    .ToList();
-
-                var session = await _stocktakeRepo.ApplyResolutionsAsync(stocktakeSessionId, repoParams, reviewedByUserId);
-                var message = session.Status == SessionInProgress
-                    ? "Da mo recount cho bin lien quan."
-                    : session.Status == SessionPendingApproval
-                        ? "Da ghi nhan xu ly chenhlech, san sang phe duyet."
-                        : "Da luu xu ly chenhlech.";
-                return Success(session, message);
             }
             catch (Exception ex)
             {
@@ -324,18 +302,18 @@ namespace BMWMS.Business.Services.Stocktake
                     .AsNoTracking()
                     .Include(session => session.StocktakeItems)
                     .FirstOrDefaultAsync(session => session.StocktakeSessionId == stocktakeSessionId)
-                    ?? throw new InvalidOperationException("Không tìm thấy đợt kiểm kho.");
+                    ?? throw new InvalidOperationException("Không tìm thấy phiếu kiểm kho.");
 
-                var positiveAdjustments = snapshot.StocktakeItems
+                if (snapshot.Status != SessionPendingApproval)
+                    throw new InvalidOperationException("Chỉ có thể phê duyệt phiếu đang chờ xử lý chênh lệch.");
+
+                var adjustments = snapshot.StocktakeItems
                     .Select(item => new
                     {
                         Item = item,
-                        Adjustment = item.AdjustmentQuantity ??
-                            (string.Equals(item.Resolution, ResolutionAcceptDifference, StringComparison.OrdinalIgnoreCase)
-                                ? (item.CountedQuantity ?? 0) - item.BookQuantity
-                                : 0)
+                        Adjustment = (item.CountedQuantity ?? 0) - item.BookQuantity
                     })
-                    .Where(row => row.Adjustment > 0)
+                    .Where(row => row.Adjustment != 0)
                     .Select(row => new CapacityAllocationDto
                     {
                         StorageLocationId = row.Item.StorageLocationId,
@@ -345,10 +323,10 @@ namespace BMWMS.Business.Services.Stocktake
                     .ToList();
 
                 var evaluations = new Dictionary<long, LocationCapacityEvaluationDto>();
-                if (_capacityOptions.Enabled && positiveAdjustments.Count > 0)
+                if (_capacityOptions.Enabled && adjustments.Count > 0)
                 {
                     evaluations = (await _capacityEvaluationService.EvaluateAsync(
-                            positiveAdjustments,
+                            adjustments,
                             acquireLocationLocks: true))
                         .ToDictionary(pair => pair.Key, pair => pair.Value);
                     EnsureStocktakeCapacityDecision(
@@ -356,6 +334,9 @@ namespace BMWMS.Business.Services.Stocktake
                         request.AcknowledgeCapacityWarning,
                         request.CapacityWarningReason);
                 }
+
+                await _context.Database.ExecuteSqlInterpolatedAsync(
+                    $"EXEC sys.sp_set_session_context @key=N'StocktakeSessionID', @value={stocktakeSessionId}");
 
                 var session = await _stocktakeRepo.ApproveSessionAsync(
                     stocktakeSessionId,
@@ -371,7 +352,7 @@ namespace BMWMS.Business.Services.Stocktake
                     {
                         session.StocktakeNumber,
                         session.Status,
-                        PositiveAdjustments = positiveAdjustments,
+                        Adjustments = adjustments,
                         CapacityEnabled = _capacityOptions.Enabled,
                         CapacityEvaluations = evaluations.Values,
                         WarningAcknowledged = request.AcknowledgeCapacityWarning,
@@ -380,11 +361,74 @@ namespace BMWMS.Business.Services.Stocktake
                 });
                 await _context.SaveChangesAsync();
                 await dbTransaction.CommitAsync();
-                return Success(session, $"Đã phê duyệt và hoàn tất đợt kiểm kho {session.StocktakeNumber}.");
+                return Success(session, $"Đã khớp tồn và hoàn tất phiếu kiểm kho {session.StocktakeNumber}.");
             }
             catch (Exception ex)
             {
                 await dbTransaction.RollbackAsync();
+                return Fail(ex.Message, stocktakeSessionId);
+            }
+            finally
+            {
+                await _context.Database.ExecuteSqlRawAsync(
+                    "EXEC sys.sp_set_session_context @key=N'StocktakeSessionID', @value=NULL");
+            }
+        }
+
+        public async Task<StocktakeActionResultDto> SaveSessionCountsAsync(
+            long stocktakeSessionId,
+            SaveStocktakeSessionCountsDto request,
+            long countedByUserId)
+        {
+            var access = await EnsureAccessAsync(stocktakeSessionId, countedByUserId, canManage: false);
+            if (!access)
+                return Fail("Bạn không có quyền nhập phiếu kiểm kho này.", stocktakeSessionId);
+
+            try
+            {
+                var updates = request.Lines.Select(line => new StocktakeCountUpdateParam
+                {
+                    StocktakeItemId = line.StocktakeItemId,
+                    CountedQuantity = line.CountedQuantity,
+                    Notes = line.Notes
+                }).ToList();
+                var session = await _stocktakeRepo.SaveSessionCountsAsync(
+                    stocktakeSessionId,
+                    updates,
+                    request.ConfirmedEmptyLocationIds,
+                    countedByUserId);
+                return Success(session, "Đã lưu số lượng kiểm kho.");
+            }
+            catch (Exception ex)
+            {
+                return Fail(ex.Message, stocktakeSessionId);
+            }
+        }
+
+        public async Task<StocktakeActionResultDto> RejectSessionAsync(
+            long stocktakeSessionId,
+            long rejectedByUserId,
+            string? reason)
+        {
+            try
+            {
+                var session = await _stocktakeRepo.RejectSessionAsync(
+                    stocktakeSessionId,
+                    rejectedByUserId,
+                    reason ?? string.Empty);
+                await _auditLogService.StageAsync(new AuditEventDto
+                {
+                    UserId = rejectedByUserId,
+                    ActionType = "REJECT_STOCKTAKE",
+                    EntityName = AuditEntities.StocktakeSession,
+                    EntityId = session.StocktakeSessionId.ToString(),
+                    NewValues = new { session.Status, Reason = reason?.Trim() }
+                });
+                await _context.SaveChangesAsync();
+                return Success(session, "Đã từ chối kết quả kiểm kho và mở khóa các vị trí.");
+            }
+            catch (Exception ex)
+            {
                 return Fail(ex.Message, stocktakeSessionId);
             }
         }
@@ -466,15 +510,15 @@ namespace BMWMS.Business.Services.Stocktake
                 TotalLocations = locations.Count,
                 CountedLocations = locations.Count(l => l.CountStatus == LocationCounted),
                 PendingLocations = locations.Count(l => l.CountStatus == LocationPending || l.CountStatus == LocationInProgress),
-                RecountLocations = locations.Count(l => l.CountStatus == LocationRecountRequired),
+                RecountLocations = 0,
                 TotalItems = items.Count,
                 CountedItems = items.Count(i => i.CountedQuantity.HasValue),
                 VarianceItems = items.Count(i => HasVariance(i)),
                 TotalDifferenceQuantity = items.Sum(i => CalculateDifferenceOrZero(i)),
                 Notes = session.Notes,
                 CanStart = session.Status == SessionScheduled,
-                CanCancel = session.Status != SessionCompleted && session.Status != SessionCancelled,
-                CanReview = session.Status == SessionCounted || session.Status == SessionPendingApproval,
+                CanCancel = session.Status != SessionCompleted && session.Status != SessionCancelled && session.Status != SessionRejected,
+                CanReview = session.Status == SessionPendingApproval,
                 CanApprove = CanApproveSession(session)
             };
         }
@@ -549,14 +593,13 @@ namespace BMWMS.Business.Services.Stocktake
                 Notes = location.Notes,
                 TotalItems = items.Count,
                 CountedItems = items.Count(i => i.CountedQuantity.HasValue),
-                RecountItems = items.Count(i => i.Resolution == ResolutionRecount),
+                RecountItems = 0,
                 TotalDifferenceQuantity = items.Sum(i => CalculateDifferenceOrZero(i)),
                 CanCount = sessionStatus == SessionInProgress &&
                     (location.CountStatus == LocationPending ||
                      location.CountStatus == LocationInProgress ||
-                     location.CountStatus == LocationRecountRequired),
-                CanSubmit = sessionStatus == SessionInProgress &&
-                    location.CountStatus != LocationCounted
+                     location.CountStatus == LocationCounted),
+                CanSubmit = false
             };
         }
 
@@ -580,6 +623,7 @@ namespace BMWMS.Business.Services.Stocktake
                 UnitOfMeasureId = product?.UnitOfMeasureId ?? 0,
                 UnitCode = product?.UnitOfMeasure?.UnitCode ?? string.Empty,
                 UnitName = product?.UnitOfMeasure?.UnitName ?? string.Empty,
+                QuantityScale = product?.UnitOfMeasure?.QuantityScale ?? 0,
                 ProductLotId = item.ProductLotId,
                 LotNumber = item.ProductLot?.LotNumber ?? string.Empty,
                 ExpiryDate = item.ProductLot?.ExpiryDate,
@@ -597,12 +641,13 @@ namespace BMWMS.Business.Services.Stocktake
         {
             return status switch
             {
-                SessionScheduled => ("Da len lich", "bg-secondary"),
-                SessionInProgress => ("Dang kiem", "bg-primary"),
-                SessionCounted => ("Da dem xong", "bg-info text-dark"),
-                SessionPendingApproval => ("Cho phe duyet", "bg-warning text-dark"),
-                SessionCompleted => ("Hoan tat", "bg-success"),
-                SessionCancelled => ("Da huy", "bg-danger"),
+                SessionScheduled => ("Đã lên lịch", "bg-secondary"),
+                SessionInProgress => ("Đang kiểm", "bg-primary"),
+                SessionCounted => ("Đã đếm xong", "bg-info text-dark"),
+                SessionPendingApproval => ("Chờ phê duyệt", "bg-warning text-dark"),
+                SessionCompleted => ("Hoàn tất", "bg-success"),
+                SessionCancelled => ("Đã hủy", "bg-danger"),
+                SessionRejected => ("Đã từ chối", "bg-danger"),
                 _ => (status, "bg-secondary")
             };
         }
@@ -611,10 +656,9 @@ namespace BMWMS.Business.Services.Stocktake
         {
             return status switch
             {
-                LocationPending => ("Cho dem", "bg-secondary"),
-                LocationInProgress => ("Dang dem", "bg-primary"),
-                LocationCounted => ("Da submit", "bg-success"),
-                LocationRecountRequired => ("Can dem lai", "bg-warning text-dark"),
+                LocationPending => ("Chờ nhập", "bg-secondary"),
+                LocationInProgress => ("Đang nhập", "bg-primary"),
+                LocationCounted => ("Đã nhập đủ", "bg-success"),
                 _ => (status, "bg-secondary")
             };
         }
@@ -626,11 +670,7 @@ namespace BMWMS.Business.Services.Stocktake
 
         private static bool CanApproveSession(StocktakeSession session)
         {
-            if (session.Status == SessionPendingApproval)
-                return true;
-
-            return session.Status == SessionCounted &&
-                session.StocktakeItems.All(i => !HasVariance(i));
+            return session.Status == SessionPendingApproval;
         }
 
         private static decimal CalculateDifferenceOrZero(StocktakeItem item)

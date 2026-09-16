@@ -161,7 +161,7 @@ namespace BMWMS.Repository.Repositories.StockOperations
 
             var products = await _context.Products
                 .Where(p => productIds.Contains(p.ProductId))
-                .Select(p => new { p.ProductId, p.ProductCode, p.ProductName, p.Status })
+                .Select(p => new { p.ProductId, p.ProductCode, p.ProductName, p.Status, p.UnitOfMeasure.QuantityScale, p.UnitOfMeasure.UnitName })
                 .ToListAsync();
             var lots = await _context.ProductLots
                 .Where(l => lotIds.Contains(l.ProductLotId))
@@ -223,6 +223,13 @@ namespace BMWMS.Repository.Repositories.StockOperations
                 }
                 if (!string.Equals(product.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase))
                     errors.Add($"{rowLabel}: Sản phẩm {product.ProductCode} không ở trạng thái ACTIVE.");
+                if (item.value.Quantity > 0 && decimal.Round(item.value.Quantity, product.QuantityScale) != item.value.Quantity)
+                {
+                    var rule = product.QuantityScale == 0
+                        ? "số nguyên"
+                        : $"tối đa {product.QuantityScale} chữ số thập phân";
+                    errors.Add($"{rowLabel}: Số lượng {product.ProductCode} phải là {rule} theo đơn vị {product.UnitName}.");
+                }
 
                 if (lot == null)
                     errors.Add($"{rowLabel}: Lô hàng không tồn tại.");

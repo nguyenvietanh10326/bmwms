@@ -136,4 +136,12 @@ public class ProductAttributeRepository : IProductAttributeRepository
         bool usedInProduct = await _context.ProductAttributeValues.AnyAsync(pav => pav.ProductAttributeId == id);
         return usedInGroup || usedInProduct;
     }
+
+    public Task<bool> IsCodeExistsAsync(string attributeCode, long? excludeId = null)
+    {
+        var normalized = attributeCode.Trim().ToUpper();
+        return _context.ProductAttributes.AnyAsync(attribute =>
+            attribute.AttributeCode == normalized &&
+            (!excludeId.HasValue || attribute.ProductAttributeId != excludeId.Value));
+    }
 }

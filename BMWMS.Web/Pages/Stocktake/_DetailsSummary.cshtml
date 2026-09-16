@@ -1,0 +1,3 @@
+@model BMWMS.Web.Models.StocktakeSessionDetailModel
+@{ var progress = Model.TotalLocations == 0 ? 0 : Model.CountedLocations * 100 / Model.TotalLocations; }
+<section class="stocktake-summary"><div><span>Tiến độ nhập</span><strong>@Model.CountedLocations/@Model.TotalLocations vị trí</strong><div class="progress"><div class="progress-bar" style="width:@progress%"></div></div></div><div><span>Dòng đã nhập</span><strong>@Model.CountedItems/@Model.TotalItems</strong></div><div><span>Chênh lệch</span><strong class="@(Model.VarianceItems > 0 ? "text-danger" : "text-success")">@Model.VarianceItems dòng</strong></div><div><span>Thời điểm bắt đầu</span><strong>@(Model.StartedAt?.ToString("dd/MM/yyyy HH:mm") ?? "Chưa bắt đầu")</strong></div></section>
