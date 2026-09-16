@@ -35,7 +35,8 @@ namespace BMWMS.Business.Services.Inventory
                 long salesOrderId)
         {
             var salesOrder = await _salesOrderRepository.GetByIdAsync(salesOrderId);
-            if (salesOrder == null)
+            if (salesOrder == null || salesOrder.Status is not
+                ("CONFIRMED" or "APPROVED" or "ALLOCATED" or "PARTIALLY_FULFILLED"))
             {
                 return null;
             }
@@ -54,6 +55,13 @@ namespace BMWMS.Business.Services.Inventory
                 var availableForNewOutbound = Math.Max(
                     0,
                     detail.OrderedQuantity - detail.FulfilledQuantity - plannedButNotIssued);
+                var activeReserved = await _context.InventoryReservations
+                    .Where(reservation => reservation.SalesOrderDetailId == detail.SalesOrderDetailId &&
+                                          (reservation.Status == "ACTIVE" || reservation.Status == "PARTIALLY_CONSUMED"))
+                    .SumAsync(reservation => reservation.ReservedQuantity - reservation.ConsumedQuantity);
+                availableForNewOutbound = Math.Max(0, Math.Min(
+                    availableForNewOutbound,
+                    activeReserved - plannedButNotIssued));
                 if (availableForNewOutbound <= 0)
                     continue;
 
@@ -82,8 +90,8 @@ namespace BMWMS.Business.Services.Inventory
                     // Số lượng khách đặt
                     Quantity = detail.OrderedQuantity,
 
-                    // Số lượng có thể lập phiếu xuất. Với SO cũ chưa có reservation,
-                    // CreateOutboundOrder sẽ giữ bù tồn kho trong transaction trước khi tạo phiếu.
+                    // Số lượng còn có thể lập đợt xuất. Việc giữ tồn phải hoàn tất
+                    // ở bước Quản lý kho duyệt SO; Outbound không tự giữ bù.
                     ReservedQuantity = availableForNewOutbound,
 
                     // Đơn vị tính
@@ -131,12 +139,18 @@ namespace BMWMS.Business.Services.Inventory
         public async Task<List<SalesOrderApiResponse>> GetConfirmedSalesOrdersAsync()
         {
             var salesOrders = await _salesOrderRepository.GetConfirmedSalesOrdersAsync();
-
-            return salesOrders.Select(so => new SalesOrderApiResponse
+            var result = new List<SalesOrderApiResponse>();
+            foreach (var so in salesOrders)
             {
-                SalesOrderId = so.SalesOrderId,
-                SalesOrderNumber = so.SalesOrderNumber
-            }).ToList();
+                var detail = await GetSalesOrderDetailForOutboundAsync(so.SalesOrderId);
+                if (detail?.Items.Count > 0)
+                    result.Add(new SalesOrderApiResponse
+                    {
+                        SalesOrderId = so.SalesOrderId,
+                        SalesOrderNumber = so.SalesOrderNumber
+                    });
+            }
+            return result;
         }
         public async Task<PagedResult<SalesOrderListDto>> GetPagedAsync(SalesOrderSearchCriteria criteria)
         {
@@ -401,6 +415,10 @@ namespace BMWMS.Business.Services.Inventory
           long confirmedByUserId)
         {
             await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+            var approver = await _context.Users.Include(user => user.Role)
+                .FirstOrDefaultAsync(user => user.UserId == confirmedByUserId && user.Status == "ACTIVE");
+            if (approver?.Role?.RoleCode is not ("WAREHOUSE_MANAGER" or "SYSTEM_ADMIN"))
+                return (false, "Chỉ Quản lý kho được duyệt SO và giữ tồn.");
             var order = await _salesOrderRepository.GetByIdAsync(salesOrderId);
 
             if (order == null)
@@ -448,6 +466,18 @@ namespace BMWMS.Business.Services.Inventory
 
             if (order.Status is not ("DRAFT" or "CONFIRMED" or "ALLOCATED"))
                 return (false, "Chỉ có thể hủy đơn bán hàng ở trạng thái Nháp hoặc Đã xác nhận!");
+
+            var actor = await _context.Users.Include(user => user.Role)
+                .FirstOrDefaultAsync(user => user.UserId == userId && user.Status == "ACTIVE");
+            var permittedRoles = order.Status == "DRAFT"
+                ? new[] { "SALES_STAFF", "SYSTEM_ADMIN" }
+                : new[] { "WAREHOUSE_MANAGER", "SYSTEM_ADMIN" };
+            if (actor?.Role == null || !permittedRoles.Contains(actor.Role.RoleCode))
+                return (false, "Sales chỉ hủy SO nháp; SO đã duyệt phải do quản lý kho hủy.");
+            if (order.SalesOrderDetails.Any(detail => detail.FulfilledQuantity > 0) ||
+                await _context.OutboundOrders.AnyAsync(outbound => outbound.SalesOrderId == salesOrderId &&
+                    (outbound.Status == "DRAFT" || outbound.Status == "ASSIGNED" || outbound.Status == "IN_PROGRESS")))
+                return (false, "SO đã giao hàng hoặc còn đợt xuất đang xử lý. Không được hủy và giải phóng tồn của đợt xuất đó.");
 
             await ReleaseReservationsAsync(salesOrderId, userId);
             order.Status = "CANCELLED";

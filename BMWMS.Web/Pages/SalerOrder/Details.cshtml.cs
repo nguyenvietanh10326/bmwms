@@ -1,10 +1,12 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.Authorization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace BMWMS.Web.Pages.SaleOrder
 {
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,SALES_STAFF")]
     public class DetailsModel : PageModel
     {
         private readonly IHttpClientFactory _httpClientFactory;
@@ -44,6 +46,8 @@ namespace BMWMS.Web.Pages.SaleOrder
 
         public async Task<IActionResult> OnPostConfirmAsync(long id)
         {
+            if (!User.IsInRole("WAREHOUSE_MANAGER") && !User.IsInRole("SYSTEM_ADMIN"))
+                return Forbid();
             var client = _httpClientFactory.CreateClient("ApiClient");
             var response = await client.PostAsync($"api/SalesOrders/{id}/confirm", null);
             if (response.IsSuccessStatusCode)

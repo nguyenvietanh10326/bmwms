@@ -7,7 +7,7 @@ using System.Text.Json;
 
 namespace BMWMS.Web.Pages.OutboundOrders;
 
-[Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,SALES_STAFF,PURCHASING_STAFF")]
+[Authorize(Roles = "WAREHOUSE_STAFF,WAREHOUSE_MANAGER,SYSTEM_ADMIN")]
 public class CreateModel : PageModel
 {
     private readonly IHttpClientFactory _httpClientFactory;
@@ -16,11 +16,15 @@ public class CreateModel : PageModel
     [BindProperty] public OutboundOrderVM Input { get; set; } = new();
     public List<SelectListItem> SalesOrderOptions { get; set; } = new();
     public List<SelectListItem> PurchaseOrderOptions { get; set; } = new();
+    public List<SelectListItem> AssigneeOptions { get; set; } = new();
 
-    public async Task OnGetAsync(long? selectedSalesOrderId, long? selectedPurchaseOrderId)
+    public async Task OnGetAsync(long? selectedSalesOrderId, long? selectedPurchaseOrderId, long? salesOrderId = null, long? purchaseOrderId = null)
     {
+        // Chấp nhận cả tên query cũ để các liên kết từ màn SO/PO không bị gãy.
+        selectedSalesOrderId ??= salesOrderId;
+        selectedPurchaseOrderId ??= purchaseOrderId;
         Input.ExpectedIssueDate = DateTime.Today;
-        var isPurchaseReturn = User.IsInRole("PURCHASING_STAFF");
+        var isPurchaseReturn = User.IsInRole("WAREHOUSE_MANAGER") || User.IsInRole("SYSTEM_ADMIN");
         Input.SourceType = isPurchaseReturn ? "PURCHASE_RETURN" : "SALES_ORDER";
         Input.SalesOrderId = isPurchaseReturn ? null : selectedSalesOrderId;
         Input.PurchaseOrderId = isPurchaseReturn ? selectedPurchaseOrderId : null;
@@ -30,25 +34,29 @@ public class CreateModel : PageModel
     }
 
     public async Task<IActionResult> OnGetSalesOrderDetailAsync(long id)
-        => User.IsInRole("SALES_STAFF")
+        => User.IsInRole("WAREHOUSE_STAFF")
             ? await ProxyJsonAsync($"api/OutboundOrders/sales-order/{id}")
             : Forbid();
 
     public async Task<IActionResult> OnGetPurchaseOrderDetailAsync(long id)
-        => User.IsInRole("PURCHASING_STAFF")
+        => User.IsInRole("WAREHOUSE_MANAGER") || User.IsInRole("SYSTEM_ADMIN")
             ? await ProxyJsonAsync($"api/OutboundOrders/purchase-order/{id}/return")
             : Forbid();
 
     public async Task<IActionResult> OnPostAsync()
     {
-        var requiredSourceType = User.IsInRole("PURCHASING_STAFF") ? "PURCHASE_RETURN" : "SALES_ORDER";
+        var requiredSourceType = User.IsInRole("WAREHOUSE_STAFF") ? "SALES_ORDER" : "PURCHASE_RETURN";
         Input.SourceType = requiredSourceType;
         if (Input.SourceType == "SALES_ORDER" && !Input.SalesOrderId.HasValue)
             ModelState.AddModelError(string.Empty, "Vui lòng chọn đơn bán hàng (SO).");
         if (Input.SourceType == "PURCHASE_RETURN" && !Input.PurchaseOrderId.HasValue)
             ModelState.AddModelError(string.Empty, "Vui lòng chọn đơn mua hàng (PO) cần trả nhà cung cấp.");
+        if (Input.SourceType == "PURCHASE_RETURN" && !Input.AssignedToUserId.HasValue)
+            ModelState.AddModelError(nameof(Input.AssignedToUserId), "Vui lòng chọn Nhân viên kho thực hiện đợt trả hàng.");
         if (Input.Items == null || Input.Items.Count == 0)
             ModelState.AddModelError(string.Empty, "Đơn tham chiếu không còn mặt hàng có thể xuất.");
+        if (Input.Items?.Any(item => item.RequestedQuantity < 0) == true)
+            ModelState.AddModelError(string.Empty, "Số lượng xuất không được âm.");
         var selectedItems = (Input.Items ?? new List<OutboundOrderItemVM>())
             .Where(item => item.RequestedQuantity > 0)
             .ToList();
@@ -68,9 +76,9 @@ public class CreateModel : PageModel
             SalesOrderId = Input.SourceType == "SALES_ORDER" ? Input.SalesOrderId : null,
             PurchaseOrderId = Input.SourceType == "PURCHASE_RETURN" ? Input.PurchaseOrderId : null,
             ExpectedIssueDate = Input.ExpectedIssueDate.ToString("yyyy-MM-dd"),
-            AssignedToUserId = null,
+            AssignedToUserId = Input.SourceType == "PURCHASE_RETURN" ? Input.AssignedToUserId : null,
             Notes = Input.Notes,
-            IsSubmit = false,
+            IsSubmit = true,
             Items = selectedItems.Select(i => new OutboundOrderItemRequest
             {
                 ProductId = i.ProductId,
@@ -84,7 +92,9 @@ public class CreateModel : PageModel
             var response = await _httpClientFactory.CreateClient("ApiClient").PostAsJsonAsync("api/OutboundOrders", payload);
             if (response.IsSuccessStatusCode)
             {
-                TempData["SuccessMessage"] = "Đã tạo phiếu xuất Nháp. Quản lý kho cần duyệt và phân công trước khi xử lý.";
+                TempData["SuccessMessage"] = Input.SourceType == "SALES_ORDER"
+                    ? "Đã tạo và tự nhận đợt xuất bán. Phiếu sẵn sàng để kiểm tra hàng vật lý."
+                    : "Đã tạo lệnh trả nhà cung cấp và phân công Nhân viên kho.";
                 return RedirectToPage("./Index");
             }
             var error = await response.Content.ReadFromJsonAsync<ApiErrorResponse>();
@@ -115,7 +125,7 @@ public class CreateModel : PageModel
     private async Task LoadDropdownsAsync()
     {
         var client = _httpClientFactory.CreateClient("ApiClient");
-        if (User.IsInRole("SALES_STAFF"))
+        if (User.IsInRole("WAREHOUSE_STAFF"))
         {
             try
             {
@@ -125,7 +135,7 @@ public class CreateModel : PageModel
             catch { SalesOrderOptions = new(); }
         }
 
-        if (User.IsInRole("PURCHASING_STAFF"))
+        if (User.IsInRole("WAREHOUSE_MANAGER") || User.IsInRole("SYSTEM_ADMIN"))
         {
             try
             {
@@ -133,12 +143,21 @@ public class CreateModel : PageModel
                 PurchaseOrderOptions = purchases.Select(x => new SelectListItem($"{x.PurchaseOrderNumber} — {x.SupplierName}", x.PurchaseOrderId.ToString())).ToList();
             }
             catch { PurchaseOrderOptions = new(); }
+
+            try
+            {
+                var staff = await client.GetFromJsonAsync<List<UserOptionDto>>("api/OutboundOrders/staff") ?? new();
+                AssigneeOptions = staff.Select(x => new SelectListItem(x.FullName ?? x.Username, x.UserId.ToString())).ToList();
+            }
+            catch { AssigneeOptions = new(); }
         }
 
         SalesOrderOptions.Insert(0, new SelectListItem(
             SalesOrderOptions.Count == 0 ? "-- Không có SO đã xác nhận có thể xuất --" : "-- Chọn SO đã xác nhận --", ""));
         PurchaseOrderOptions.Insert(0, new SelectListItem(
             PurchaseOrderOptions.Count == 0 ? "-- Không có PO đã cất kho còn hàng để trả --" : "-- Chọn PO đã nhập kho --", ""));
+        AssigneeOptions.Insert(0, new SelectListItem(
+            AssigneeOptions.Count == 0 ? "-- Không có Nhân viên kho đang rảnh --" : "-- Chọn Nhân viên kho --", ""));
     }
 
     private async Task LoadSalesOrderDetailAsync(long id)

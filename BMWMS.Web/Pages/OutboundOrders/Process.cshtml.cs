@@ -41,6 +41,9 @@ namespace BMWMS.Web.Pages.OutboundOrders
             var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
             Order = JsonSerializer.Deserialize<OutboundOrderProcessDto>(json, options) ?? new();
 
+            if (Order.Status != "ISSUING")
+                return RedirectToPage("./Details", new { id });
+
             return Page();
         }
 
@@ -55,7 +58,24 @@ namespace BMWMS.Web.Pages.OutboundOrders
             if (response.IsSuccessStatusCode)
             {
                 var result = await response.Content.ReadFromJsonAsync<ApiMessageDto>();
-                return new JsonResult(new { success = true, message = result?.Message ?? "Đã ghi nhận đợt xuất hàng." });
+                var outboundOrderId = requests.First().OutboundOrderId;
+                // The shipment has committed; a failed refresh must not report it as failed.
+                OutboundOrderDetailDto? detail = null;
+                try
+                {
+                    var detailResponse = await client.GetAsync($"api/OutboundOrders/{outboundOrderId}");
+                    if (detailResponse.IsSuccessStatusCode)
+                        detail = await detailResponse.Content.ReadFromJsonAsync<OutboundOrderDetailDto>();
+                }
+                catch (HttpRequestException) { }
+                catch (JsonException) { }
+                SuccessMessage = result?.Message ?? "Đã ghi nhận đợt xuất hàng.";
+                return new JsonResult(new
+                {
+                    success = true,
+                    message = SuccessMessage,
+                    completed = detail?.Status == "ISSUED"
+                });
             }
 
             ApiMessageDto? error = null;
@@ -109,6 +129,7 @@ namespace BMWMS.Web.Pages.OutboundOrders
         public string UnitName { get; set; } = string.Empty;
         public byte QuantityScale { get; set; }
         public bool TrackLot { get; set; }
+        public string RotationMethod { get; set; } = "FIFO";
         public decimal RequestedQuantity { get; set; }
         public decimal IssuedQuantity { get; set; }
         public decimal RemainingQuantity { get; set; }
@@ -150,6 +171,8 @@ namespace BMWMS.Web.Pages.OutboundOrders
         public decimal PickQuantity { get; set; }
         public string Notes { get; set; } = string.Empty;
         public string? DeviationReason { get; set; }
+        public bool PhysicalCheckConfirmed { get; set; }
+        public bool PackingConfirmed { get; set; }
     }
     public class ApiMessageDto { public string Message { get; set; } = string.Empty; }
     #endregion

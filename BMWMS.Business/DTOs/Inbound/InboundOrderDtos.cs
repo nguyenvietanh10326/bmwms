@@ -275,6 +275,10 @@ public class PutawayLocationDto
     public bool IsDefault { get; set; }
     public bool CapacityEvaluationEnabled { get; set; }
     public string CapacityStatus { get; set; } = "DISABLED";
+    public decimal? MaxCapacityQuantity { get; set; }
+    public decimal? CurrentCapacityQuantity { get; set; }
+    public decimal? ProjectedCapacityQuantity { get; set; }
+    public string? CapacityUnitName { get; set; }
     public decimal? MaxWeightKg { get; set; }
     public decimal? CurrentWeightKg { get; set; }
     public decimal? ProjectedWeightKg { get; set; }

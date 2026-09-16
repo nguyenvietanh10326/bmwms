@@ -53,6 +53,7 @@ namespace BMWMS.Business.DTOs.Inventory
         public DateTime? ApprovedAt { get; set; }
         public string? CompletionType { get; set; }
         public string? CompletionReason { get; set; }
+        public bool CanCloseSalesRemainder { get; set; }
         public DateTime? CompletedAt { get; set; }
         public string? CancellationReason { get; set; }
         public string Status { get; set; } = null!;
@@ -233,6 +234,7 @@ namespace BMWMS.Business.DTOs.Inventory
             public string UnitName { get; set; } = null!;
             public byte QuantityScale { get; set; }
             public bool TrackLot { get; set; }
+            public string RotationMethod { get; set; } = "FIFO";
 
             // Mối quan hệ so sánh [SL Yêu cầu] vs [SL Đã Pick]
             public decimal RequestedQuantity { get; set; }
@@ -282,6 +284,8 @@ namespace BMWMS.Business.DTOs.Inventory
             public decimal PickQuantity { get; set; }
             public string? Notes { get; set; }
             public string? DeviationReason { get; set; }
+            public bool PhysicalCheckConfirmed { get; set; }
+            public bool PackingConfirmed { get; set; }
         }
     
 }

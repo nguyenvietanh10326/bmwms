@@ -27,7 +27,6 @@ namespace BMWMS.Web.Pages.OutboundOrders
         public List<SelectListItem> StatusOptions { get; set; } = new()
         {
             new SelectListItem { Text = "-- Tất cả trạng thái --", Value = "" },
-            new SelectListItem { Text = "Nháp (DRAFT)", Value = "DRAFT" },
             new SelectListItem { Text = "Sẵn sàng xuất", Value = "READY" },
             new SelectListItem { Text = "Đang xuất hàng", Value = "ISSUING" },
             new SelectListItem { Text = "Đã xuất", Value = "ISSUED" },

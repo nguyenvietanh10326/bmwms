@@ -10,10 +10,10 @@
     @if (!string.IsNullOrWhiteSpace(Model.SuccessMessage)) { <div class="alert alert-success">@Model.SuccessMessage</div> }
     @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage)) { <div class="alert alert-danger">@Model.ErrorMessage</div> }
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <div><h3 class="mb-1">Phiếu xuất kho</h3><div class="text-muted">Theo dõi luồng bán hàng theo SO và trả hàng nhà cung cấp theo PO.</div></div>
-        @if (User.IsInRole("SALES_STAFF") || User.IsInRole("PURCHASING_STAFF"))
+        <div><h3 class="mb-1">Phiếu xuất kho</h3><div class="text-muted">SO/PO được phê duyệt → tạo đợt xuất Sẵn sàng → kiểm tra, lấy, đóng gói và bàn giao → ghi nhận thực xuất.</div></div>
+        @if (User.IsInRole("WAREHOUSE_STAFF") || User.IsInRole("WAREHOUSE_MANAGER") || User.IsInRole("SYSTEM_ADMIN"))
         {
-            <a asp-page="./Create" class="btn btn-primary">Tạo phiếu xuất</a>
+            <a asp-page="./Create" class="btn btn-primary">@(User.IsInRole("WAREHOUSE_STAFF") ? "Nhận đợt xuất từ SO" : "Tạo lệnh trả NCC")</a>
         }
     </div>
 
@@ -36,8 +36,15 @@
                 <td>@item.SourceReference</td><td>@item.PartnerName</td><td>@item.ExpectedIssueDate.ToString("dd/MM/yyyy")</td>
                 <td><span class="badge @StatusClass(item.Status)">@StatusLabel(item.Status)</span></td>
                 <td class="text-end">@item.LineCount dòng</td>
-                <td class="text-end"><a asp-page="./Details" asp-route-id="@item.OutboundOrderId" class="btn btn-sm btn-outline-primary">Chi tiết</a>
-                    @if (User.IsInRole("WAREHOUSE_STAFF") && (item.Status is "READY" or "ISSUING")) { <a asp-page="./Process" asp-route-id="@item.OutboundOrderId" class="btn btn-sm btn-primary">Xuất hàng</a> }
+                <td class="text-end">
+                    @if ((User.IsInRole("WAREHOUSE_MANAGER") || User.IsInRole("SYSTEM_ADMIN")) && item.Status == "DRAFT")
+                    { <a asp-page="./Details" asp-route-id="@item.OutboundOrderId" class="btn btn-sm btn-primary">Duyệt &amp; phân công</a> }
+                    else if (User.IsInRole("WAREHOUSE_STAFF") && item.Status == "READY")
+                    { <a asp-page="./Details" asp-route-id="@item.OutboundOrderId" class="btn btn-sm btn-primary">Bắt đầu xử lý</a> }
+                    else if (User.IsInRole("WAREHOUSE_STAFF") && item.Status == "ISSUING")
+                    { <a asp-page="./Process" asp-route-id="@item.OutboundOrderId" class="btn btn-sm btn-warning">Tiếp tục lấy hàng</a> }
+                    else
+                    { <a asp-page="./Details" asp-route-id="@item.OutboundOrderId" class="btn btn-sm btn-outline-primary">@(item.Status == "ISSUED" ? "Xem kết quả" : "Chi tiết")</a> }
                 </td>
             </tr>
         }
