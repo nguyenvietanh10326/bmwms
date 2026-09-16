@@ -70,6 +70,7 @@ public class InboundOrderDetailDto
 
 public class InboundOrderItemDto
 {
+    public decimal? SourceDeliveredQuantity { get; set; }
     public long InboundOrderItemId { get; set; }
     public long ProductId { get; set; }
     public string ProductCode { get; set; } = string.Empty;

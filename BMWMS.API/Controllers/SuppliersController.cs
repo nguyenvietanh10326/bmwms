@@ -67,6 +67,10 @@ public class SuppliersController : ControllerBase
         {
             return BadRequest(ex.Message);
         }
+        catch (Microsoft.EntityFrameworkCore.DbUpdateException ex) when (ex.InnerException is Microsoft.Data.SqlClient.SqlException sql && sql.Number is 2601 or 2627)
+        {
+            return Conflict(new { message = "Email hoặc mã nhà cung cấp đã tồn tại. Vui lòng kiểm tra lại." });
+        }
         catch (Exception ex)
         {
             return StatusCode(500, ex.InnerException?.Message ?? ex.Message);
@@ -92,6 +96,10 @@ public class SuppliersController : ControllerBase
         catch (InvalidOperationException ex)
         {
             return BadRequest(ex.Message);
+        }
+        catch (Microsoft.EntityFrameworkCore.DbUpdateException ex) when (ex.InnerException is Microsoft.Data.SqlClient.SqlException sql && sql.Number is 2601 or 2627)
+        {
+            return Conflict(new { message = "Email hoặc mã nhà cung cấp đã tồn tại. Vui lòng kiểm tra lại." });
         }
         catch (Exception ex)
         {
