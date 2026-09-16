@@ -2,7 +2,7 @@
 @model BMWMS.Web.Pages.Transfer.CreateModel
 @{
     Layout = "_AdminLayout";
-    ViewData["Title"] = Model.IsEditMode ? "Cáº­p nháº­t phiáº¿u chuyá»ƒn kho" : "Táº¡o phiáº¿u chuyá»ƒn kho";
+    ViewData["Title"] = Model.IsEditMode ? "Cập nhật phiếu chuyển kho" : "Tạo phiếu chuyển kho";
     ViewData["ActivePage"] = "Transfer";
 }
 
@@ -20,9 +20,9 @@
 
 <div class="transfer-page">
     <div class="breadcrumb">
-        <a href="/Transfer/Index" style="color:var(--ink-3); text-decoration:none;">Äiá»u chuyá»ƒn kho</a>
+        <a href="/Transfer/Index" style="color:var(--ink-3); text-decoration:none;">Điều chuyển kho</a>
         <span style="margin:0 4px;">/</span>
-        <span>@(Model.IsEditMode ? "Cáº­p nháº­t" : "Táº¡o má»›i")</span>
+        <span>@(Model.IsEditMode ? "Cập nhật" : "Tạo mới")</span>
     </div>
 
     @if (!string.IsNullOrEmpty(Model.ErrorMessage))
@@ -32,40 +32,40 @@
 
     <form method="post" id="transfer-form" class="transfer-form">
         <div class="card">
-            <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 15px;">ThÃ´ng tin chung</h3>
+            <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 15px;">Thông tin chung</h3>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                 <div class="field">
-                    <label>Kho hÃ ng (Nguá»“n & ÄÃ­ch)</label>
-                    <input type="text" value="Kho ChÃ­nh" disabled />
+                    <label>Kho hàng (Nguồn & Đích)</label>
+                    <input type="text" value="Kho Chính" disabled />
                 </div>
                 <div class="field">
-                    <label>NgÃ y dá»± kiáº¿n hoÃ n thÃ nh</label>
+                    <label>Ngày dự kiến hoàn thành</label>
                     <input type="date" name="dueDate" value="@(Model.EditingOrder?.DueDate?.ToString("yyyy-MM-dd"))" />
                 </div>
             </div>
             <div class="field">
-                <label>Ghi chÃº</label>
+                <label>Ghi chú</label>
                 <textarea name="notes" rows="3">@(Model.EditingOrder?.Notes)</textarea>
             </div>
             <div style="display: flex; gap: 10px; margin-top: 10px;">
-                <a href="/Transfer/Index" class="btn btn-light">Há»§y</a>
-                <button type="submit" name="action" value="draft" class="btn btn-primary">LÆ°u phiáº¿u (DRAFT)</button>
+                <a href="/Transfer/Index" class="btn btn-light">Hủy</a>
+                <button type="submit" name="action" value="draft" class="btn btn-primary">Lưu phiếu (DRAFT)</button>
             </div>
         </div>
 
         <div class="card">
             <div style="display:flex; justify-content:space-between; align-items:center;">
-                <h3 style="font-size: 16px; font-weight: 700;">Chi tiáº¿t hÃ ng hÃ³a</h3>
-                <button type="button" onclick="addItemRow()" class="btn btn-light">+ ThÃªm dÃ²ng</button>
+                <h3 style="font-size: 16px; font-weight: 700;">Chi tiết hàng hóa</h3>
+                <button type="button" onclick="addItemRow()" class="btn btn-light">+ Thêm dòng</button>
             </div>
             
             <table id="items-table">
                 <thead>
                     <tr>
-                        <th style="width: 30%">Sáº£n pháº©m Tá»“n Kho (Vá»‹ trÃ­ nguá»“n)</th>
-                        <th style="width: 15%">Tá»“n kho</th>
-                        <th style="width: 25%">Vá»‹ trÃ­ Ä‘Ã­ch</th>
-                        <th style="width: 20%">S.LÆ°á»£ng chuyá»ƒn</th>
+                        <th style="width: 30%">Sản phẩm Tồn Kho (Vị trí nguồn)</th>
+                        <th style="width: 15%">Tồn kho</th>
+                        <th style="width: 25%">Vị trí đích</th>
+                        <th style="width: 20%">S.Lượng chuyển</th>
                         <th style="width: 10%"></th>
                     </tr>
                 </thead>
@@ -76,18 +76,18 @@
     </form>
 </div>
 
-<!-- Modal chá»n tá»“n kho -->
+<!-- Modal chọn tồn kho -->
 <div class="modal fade" id="inventoryModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Chá»n tá»“n kho tÃ¬m tháº¥y</h5>
+                <h5 class="modal-title">Chọn tồn kho tìm thấy</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <div class="input-group mb-3">
-                    <input type="text" id="invSearch" class="form-control" placeholder="Nháº­p mÃ£ sp..." />
-                    <button type="button" class="btn btn-dark" onclick="searchInv()">TÃ¬m</button>
+                    <input type="text" id="invSearch" class="form-control" placeholder="Nhập mã sp..." />
+                    <button type="button" class="btn btn-dark" onclick="searchInv()">Tìm</button>
                 </div>
                 <div id="invResults"></div>
             </div>
@@ -125,15 +125,14 @@
                         });
                         </text>
                     }
-                } else {
-                    addItemRow();
-                }
+                } else { <text>
+                    addItemRow();</text> }
             } catch(e) { console.error(e); }
         }
 
         function addItemRow() {
             const ri = rowIdx++;
-            let locOpts = '<option value="">-- Chá»n --</option>';
+            let locOpts = '<option value="">-- Chọn --</option>';
             locations.forEach(l => {
                 if(l.isPutawayAllowed) locOpts += `<option value="${l.locationId}">${l.locationCode} - ${l.locationName}</option>`;
             });
@@ -145,7 +144,7 @@
                         <input type="hidden" name="productIds" id="pid-${ri}" required />
                         <input type="hidden" name="productLotIds" id="plid-${ri}" required />
                         <input type="hidden" name="sourceLocationIds" id="sloc-${ri}" required />
-                        <input type="text" class="form-control form-control-sm" id="pinfo-${ri}" readonly placeholder="Báº¥m kÃ­nh lÃºp chá»n ->" />
+                        <input type="text" class="form-control form-control-sm" id="pinfo-${ri}" readonly placeholder="Bấm kính lúp chọn ->" />
                     </div>
                 </td>
                 <td><span id="onhand-${ri}">0</span></td>
@@ -158,7 +157,7 @@
 
         function addExistingRow(data) {
             const ri = rowIdx++;
-            let locOpts = '<option value="">-- Chá»n --</option>';
+            let locOpts = '<option value="">-- Chọn --</option>';
             locations.forEach(l => {
                 if(l.isPutawayAllowed) {
                     const sel = l.locationId == data.dloc ? 'selected' : '';
@@ -186,12 +185,12 @@
 
         function searchInv() {
             let html = '<div class="list-group">';
-            html += '<div class="alert alert-info">Chá»©c nÄƒng tÃ¬m kiáº¿m káº¿t ná»‘i tá»›i Backend. Dá»¯ liá»‡u giáº£ láº­p Ä‘á»ƒ Test:</div>';
-            html += `<button type="button" class="list-group-item list-group-item-action" onclick="selectInv(1, 1, 1, 'SP001', 'MÃ¡y bÆ¡m', 'LOC-A1', 100)">
-                [LOC-A1] SP001 - MÃ¡y bÆ¡m (Tá»“n: 100)
+            html += '<div class="alert alert-info">Chức năng tìm kiếm kết nối tới Backend. Dữ liệu giả lập để Test:</div>';
+            html += `<button type="button" class="list-group-item list-group-item-action" onclick="selectInv(1, 1, 1, 'SP001', 'Máy bơm', 'LOC-A1', 100)">
+                [LOC-A1] SP001 - Máy bơm (Tồn: 100)
             </button>`;
-            html += `<button type="button" class="list-group-item list-group-item-action" onclick="selectInv(2, 2, 2, 'SP002', 'á»ng nÆ°á»›c', 'LOC-A2', 500)">
-                [LOC-A2] SP002 - á»ng nÆ°á»›c (Tá»“n: 500)
+            html += `<button type="button" class="list-group-item list-group-item-action" onclick="selectInv(2, 2, 2, 'SP002', 'Ống nước', 'LOC-A2', 500)">
+                [LOC-A2] SP002 - Ống nước (Tồn: 500)
             </button>`;
             html += '</div>';
             $('#invResults').html(html);

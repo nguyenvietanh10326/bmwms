@@ -28,7 +28,7 @@ namespace BMWMS.Web.Pages.Transfer
 
         public async Task<IActionResult> OnGetAsync(long id)
         {
-            if (id <= 0) return RedirectToPage(""/Transfer/Index"");
+            if (id <= 0) return RedirectToPage("/Transfer/Index");
             Id = id;
             Order = await _transferSvc.GetOrderByIdAsync(id);
             if (Order == null) return NotFound();
@@ -48,17 +48,17 @@ namespace BMWMS.Web.Pages.Transfer
         public async Task<IActionResult> OnPostApproveAsync(long id, string? notes)
         {
             var res = await _transferSvc.ApproveOrderAsync(id, notes);
-            if (res.Success) SuccessMessage = ""� ã phê duyệt phiếu thành công."";
+            if (res.Success) SuccessMessage = "Đã phê duyệt phiếu thành công.";
             else ErrorMessage = res.Message;
-            return RedirectToPage(""/Transfer/Details"", new { id });
+            return RedirectToPage("/Transfer/Details", new { id });
         }
 
         public async Task<IActionResult> OnPostCancelAsync(long id, string? notes)
         {
             var res = await _transferSvc.CancelOrderAsync(id, notes);
-            if (res.Success) SuccessMessage = ""� ã hủy phiếu thành công."";
+            if (res.Success) SuccessMessage = "Đã hủy phiếu thành công.";
             else ErrorMessage = res.Message;
-            return RedirectToPage(""/Transfer/Details"", new { id });
+            return RedirectToPage("/Transfer/Details", new { id });
         }
 
         public async Task<IActionResult> OnPostConfirmAsync(
@@ -80,17 +80,17 @@ namespace BMWMS.Web.Pages.Transfer
             }
 
             var res = await _transferSvc.ConfirmTransferAsync(id, req);
-            if (res.Success) SuccessMessage = ""� ã xác nhận cât hàng và hoàn thành chuyển kho."";
+            if (res.Success) SuccessMessage = "Đã xác nhận cất hàng và hoàn thành chuyển kho.";
             else ErrorMessage = res.Message;
             
-            return RedirectToPage(""/Transfer/Details"", new { id });
+            return RedirectToPage("/Transfer/Details", new { id });
         }
 
         private void CheckUserRole()
         {
-            var roleCode = HttpContext.Session.GetString(""RoleCode"")?.ToUpper() ?? """";
-            IsManager = roleCode.Contains(""ADMIN"") || roleCode.Contains(""MANAGER"") || roleCode == ""WAREHOUSE_MANAGER"";
-            IsStaff = roleCode.Contains(""STAFF"") || roleCode == ""WAREHOUSE_STAFF"" || IsManager; // Manager can also be staff for testing
+            var roleCode = HttpContext.Session.GetString("RoleCode")?.ToUpper() ?? "";
+            IsManager = roleCode.Contains("ADMIN") || roleCode.Contains("MANAGER") || roleCode == "WAREHOUSE_MANAGER";
+            IsStaff = roleCode.Contains("STAFF") || roleCode == "WAREHOUSE_STAFF" || IsManager;
         }
     }
 }

@@ -1,6 +1,5 @@
-﻿using System.Text;
+using System.Text;
 using System.Text.Json;
-using System.Web;
 
 namespace BMWMS.Web.Services
 {
@@ -11,7 +10,7 @@ namespace BMWMS.Web.Services
 
         public TransferApiService(IHttpClientFactory httpClientFactory)
         {
-            _httpClient = httpClientFactory.CreateClient(""BmwmsApi"");
+            _httpClient = httpClientFactory.CreateClient("BmwmsApi");
         }
 
         #region DTOs
@@ -31,18 +30,18 @@ namespace BMWMS.Web.Services
         public class TransferOrderDto
         {
             public long TransferOrderId { get; set; }
-            public string TransferOrderNumber { get; set; } = """";
-            public string TransferType { get; set; } = """";
-            public string Status { get; set; } = """";
-            public string StatusLabel { get; set; } = """";
-            public string StatusCss { get; set; } = """";
-            public string WarehouseName { get; set; } = """";
-            public string SourceLocationSummary { get; set; } = """";
-            public string DestinationLocationSummary { get; set; } = """";
+            public string TransferOrderNumber { get; set; } = "";
+            public string TransferType { get; set; } = "";
+            public string Status { get; set; } = "";
+            public string StatusLabel { get; set; } = "";
+            public string StatusCss { get; set; } = "";
+            public string WarehouseName { get; set; } = "";
+            public string SourceLocationSummary { get; set; } = "";
+            public string DestinationLocationSummary { get; set; } = "";
             public int TotalItems { get; set; }
             public decimal TotalRequestedQuantity { get; set; }
             public decimal TotalMovedQuantity { get; set; }
-            public string CreatedByName { get; set; } = """";
+            public string CreatedByName { get; set; } = "";
             public string? ApprovedByName { get; set; }
             public string? AssignedToName { get; set; }
             public string? ConfirmedByName { get; set; }
@@ -56,15 +55,15 @@ namespace BMWMS.Web.Services
         public class TransferOrderDetailViewDto
         {
             public long TransferOrderId { get; set; }
-            public string TransferOrderNumber { get; set; } = """";
-            public string TransferType { get; set; } = """";
-            public string Status { get; set; } = """";
-            public string StatusLabel { get; set; } = """";
-            public string WarehouseName { get; set; } = """";
+            public string TransferOrderNumber { get; set; } = "";
+            public string TransferType { get; set; } = "";
+            public string Status { get; set; } = "";
+            public string StatusLabel { get; set; } = "";
+            public string WarehouseName { get; set; } = "";
             public DateOnly RequestedDate { get; set; }
             public DateOnly? DueDate { get; set; }
             public string? Notes { get; set; }
-            public string CreatedByName { get; set; } = """";
+            public string CreatedByName { get; set; } = "";
             public DateTime CreatedAt { get; set; }
             public string? ApprovedByName { get; set; }
             public DateTime? ApprovedAt { get; set; }
@@ -86,14 +85,14 @@ namespace BMWMS.Web.Services
             public long TransferOrderDetailId { get; set; }
             public long ProductId { get; set; }
             public long ProductLotId { get; set; }
-            public string ProductCode { get; set; } = """";
-            public string ProductName { get; set; } = """";
-            public string UnitName { get; set; } = """";
-            public string LotNumber { get; set; } = """";
+            public string ProductCode { get; set; } = "";
+            public string ProductName { get; set; } = "";
+            public string UnitName { get; set; } = "";
+            public string LotNumber { get; set; } = "";
             public long SourceLocationId { get; set; }
-            public string SourceLocationCode { get; set; } = """";
+            public string SourceLocationCode { get; set; } = "";
             public long DestLocationId { get; set; }
-            public string DestLocationCode { get; set; } = """";
+            public string DestLocationCode { get; set; } = "";
             public decimal RequestedQuantity { get; set; }
             public decimal MovedQuantity { get; set; }
             public byte QuantityScale { get; set; }
@@ -152,7 +151,7 @@ namespace BMWMS.Web.Services
         public class TransferResultDto
         {
             public bool Success { get; set; }
-            public string Message { get; set; } = """";
+            public string Message { get; set; } = "";
             public long? TransferOrderId { get; set; }
             public string? TransferOrderNumber { get; set; }
         }
@@ -169,21 +168,21 @@ namespace BMWMS.Web.Services
         public class LocationOptionDto
         {
             public long LocationId { get; set; }
-            public string LocationCode { get; set; } = """";
-            public string LocationName { get; set; } = """";
+            public string LocationCode { get; set; } = "";
+            public string LocationName { get; set; } = "";
             public bool IsPutawayAllowed { get; set; }
-            public string DisplayLabel => string.IsNullOrWhiteSpace(LocationName) ? LocationCode : $""{LocationCode} - {LocationName}"";
+            public string DisplayLabel => string.IsNullOrWhiteSpace(LocationName) ? LocationCode : $"{LocationCode} - {LocationName}";
         }
 
         public class TransferInventoryItemDto
         {
             public long InventoryId { get; set; }
             public long ProductId { get; set; }
-            public string ProductCode { get; set; } = """";
-            public string ProductName { get; set; } = """";
-            public string UnitName { get; set; } = """";
+            public string ProductCode { get; set; } = "";
+            public string ProductName { get; set; } = "";
+            public string UnitName { get; set; } = "";
             public long ProductLotId { get; set; }
-            public string LotNumber { get; set; } = """";
+            public string LotNumber { get; set; } = "";
             public DateOnly? ExpiryDate { get; set; }
             public decimal AvailableQuantity { get; set; }
             public byte QuantityScale { get; set; }
@@ -192,8 +191,23 @@ namespace BMWMS.Web.Services
         public class BinCapacityCheckDto
         {
             public bool IsValid { get; set; }
-            public string CapacityStatus { get; set; } = """";
-            public string Message { get; set; } = """";
+            public string CapacityStatus { get; set; } = "";
+            public string Message { get; set; } = "";
+        }
+        
+        public class ZoneOptionDto
+        {
+            public long ZoneId { get; set; }
+            public string ZoneCode { get; set; } = "";
+            public string ZoneName { get; set; } = "";
+        }
+
+        public class RackOptionDto
+        {
+            public long RackId { get; set; }
+            public string RackCode { get; set; } = "";
+            public string RackName { get; set; } = "";
+            public long? ZoneId { get; set; }
         }
         #endregion
 
@@ -202,10 +216,10 @@ namespace BMWMS.Web.Services
         {
             try
             {
-                var query = $""api/transfers?pageIndex={filter.PageIndex}&pageSize={filter.PageSize}"";
-                if (!string.IsNullOrWhiteSpace(filter.Keyword)) query += $""&keyword={Uri.EscapeDataString(filter.Keyword.Trim())}"";
-                if (!string.IsNullOrWhiteSpace(filter.Status)) query += $""&status={Uri.EscapeDataString(filter.Status.Trim())}"";
-                if (filter.WarehouseId.HasValue && filter.WarehouseId > 0) query += $""&warehouseId={filter.WarehouseId.Value}"";
+                var query = $"api/transfers?pageIndex={filter.PageIndex}&pageSize={filter.PageSize}";
+                if (!string.IsNullOrWhiteSpace(filter.Keyword)) query += $"&keyword={Uri.EscapeDataString(filter.Keyword.Trim())}";
+                if (!string.IsNullOrWhiteSpace(filter.Status)) query += $"&status={Uri.EscapeDataString(filter.Status.Trim())}";
+                if (filter.WarehouseId.HasValue && filter.WarehouseId > 0) query += $"&warehouseId={filter.WarehouseId.Value}";
                 
                 var response = await _httpClient.GetAsync(query);
                 if (!response.IsSuccessStatusCode) return new TransferOrderPagedResultDto();
@@ -218,7 +232,7 @@ namespace BMWMS.Web.Services
         {
             try
             {
-                var response = await _httpClient.GetAsync($""api/transfers/{id}"");
+                var response = await _httpClient.GetAsync($"api/transfers/{id}");
                 if (!response.IsSuccessStatusCode) return null;
                 return await response.Content.ReadFromJsonAsync<TransferOrderDetailViewDto>(_jsonOpts);
             }
@@ -229,8 +243,8 @@ namespace BMWMS.Web.Services
         {
             try
             {
-                var content = new StringContent(JsonSerializer.Serialize(request), Encoding.UTF8, ""application/json"");
-                var response = await _httpClient.PostAsync(""api/transfers/create"", content);
+                var content = new StringContent(JsonSerializer.Serialize(request), Encoding.UTF8, "application/json");
+                var response = await _httpClient.PostAsync("api/transfers/create", content);
                 if (response.IsSuccessStatusCode)
                     return await response.Content.ReadFromJsonAsync<TransferResultDto>(_jsonOpts) ?? new TransferResultDto { Success = false };
                 return new TransferResultDto { Success = false, Message = await response.Content.ReadAsStringAsync() };
@@ -242,8 +256,8 @@ namespace BMWMS.Web.Services
         {
             try
             {
-                var content = new StringContent(JsonSerializer.Serialize(request), Encoding.UTF8, ""application/json"");
-                var response = await _httpClient.PutAsync($""api/transfers/{id}"", content);
+                var content = new StringContent(JsonSerializer.Serialize(request), Encoding.UTF8, "application/json");
+                var response = await _httpClient.PutAsync($"api/transfers/{id}", content);
                 if (response.IsSuccessStatusCode)
                     return await response.Content.ReadFromJsonAsync<TransferResultDto>(_jsonOpts) ?? new TransferResultDto { Success = false };
                 return new TransferResultDto { Success = false, Message = await response.Content.ReadAsStringAsync() };
@@ -256,8 +270,8 @@ namespace BMWMS.Web.Services
             try
             {
                 var dto = new ApproveTransferDto { TransferOrderId = id, Notes = notes };
-                var content = new StringContent(JsonSerializer.Serialize(dto), Encoding.UTF8, ""application/json"");
-                var response = await _httpClient.PostAsync($""api/transfers/{id}/approve"", content);
+                var content = new StringContent(JsonSerializer.Serialize(dto), Encoding.UTF8, "application/json");
+                var response = await _httpClient.PostAsync($"api/transfers/{id}/approve", content);
                 if (response.IsSuccessStatusCode)
                     return await response.Content.ReadFromJsonAsync<TransferResultDto>(_jsonOpts) ?? new TransferResultDto { Success = false };
                 return new TransferResultDto { Success = false, Message = await response.Content.ReadAsStringAsync() };
@@ -270,8 +284,8 @@ namespace BMWMS.Web.Services
             try
             {
                 var dto = new CancelTransferDto { Notes = notes };
-                var content = new StringContent(JsonSerializer.Serialize(dto), Encoding.UTF8, ""application/json"");
-                var response = await _httpClient.PostAsync($""api/transfers/{id}/cancel"", content);
+                var content = new StringContent(JsonSerializer.Serialize(dto), Encoding.UTF8, "application/json");
+                var response = await _httpClient.PostAsync($"api/transfers/{id}/cancel", content);
                 if (response.IsSuccessStatusCode)
                     return await response.Content.ReadFromJsonAsync<TransferResultDto>(_jsonOpts) ?? new TransferResultDto { Success = false };
                 return new TransferResultDto { Success = false, Message = await response.Content.ReadAsStringAsync() };
@@ -283,8 +297,8 @@ namespace BMWMS.Web.Services
         {
             try
             {
-                var content = new StringContent(JsonSerializer.Serialize(request), Encoding.UTF8, ""application/json"");
-                var response = await _httpClient.PostAsync($""api/transfers/{id}/confirm"", content);
+                var content = new StringContent(JsonSerializer.Serialize(request), Encoding.UTF8, "application/json");
+                var response = await _httpClient.PostAsync($"api/transfers/{id}/confirm", content);
                 if (response.IsSuccessStatusCode)
                     return await response.Content.ReadFromJsonAsync<TransferResultDto>(_jsonOpts) ?? new TransferResultDto { Success = false };
                 return new TransferResultDto { Success = false, Message = await response.Content.ReadAsStringAsync() };
@@ -296,7 +310,7 @@ namespace BMWMS.Web.Services
         {
             try
             {
-                var response = await _httpClient.GetAsync($""api/transfers/locations?warehouseId={warehouseId}"");
+                var response = await _httpClient.GetAsync($"api/transfers/locations?warehouseId={warehouseId}");
                 if (!response.IsSuccessStatusCode) return new();
                 return await response.Content.ReadFromJsonAsync<List<LocationOptionDto>>(_jsonOpts) ?? new();
             }
@@ -307,13 +321,36 @@ namespace BMWMS.Web.Services
         {
             try
             {
-                var response = await _httpClient.GetAsync($""api/transfers/location-inventory?locationId={locationId}"");
+                var response = await _httpClient.GetAsync($"api/transfers/location-inventory?locationId={locationId}");
                 if (!response.IsSuccessStatusCode) return new();
                 return await response.Content.ReadFromJsonAsync<List<TransferInventoryItemDto>>(_jsonOpts) ?? new();
+            }
+            catch { return new(); }
+        }
+        
+        public async Task<List<ZoneOptionDto>> GetZonesAsync(long warehouseId = 1)
+        {
+            try
+            {
+                var response = await _httpClient.GetAsync($"api/transfers/zones?warehouseId={warehouseId}");
+                if (!response.IsSuccessStatusCode) return new();
+                return await response.Content.ReadFromJsonAsync<List<ZoneOptionDto>>(_jsonOpts) ?? new();
+            }
+            catch { return new(); }
+        }
+
+        public async Task<List<RackOptionDto>> GetRacksAsync(long warehouseId = 1, long? zoneId = null)
+        {
+            try
+            {
+                var url = $"api/transfers/racks?warehouseId={warehouseId}";
+                if (zoneId.HasValue && zoneId.Value > 0) url += $"&zoneId={zoneId.Value}";
+                var response = await _httpClient.GetAsync(url);
+                if (!response.IsSuccessStatusCode) return new();
+                return await response.Content.ReadFromJsonAsync<List<RackOptionDto>>(_jsonOpts) ?? new();
             }
             catch { return new(); }
         }
         #endregion
     }
 }
-
