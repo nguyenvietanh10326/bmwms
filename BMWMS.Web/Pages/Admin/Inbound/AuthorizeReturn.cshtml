@@ -1,0 +1,40 @@
+@page
+@model BMWMS.Web.Pages.Admin.Inbound.AuthorizeReturnModel
+@using BMWMS.Web.Helpers
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Duyệt nhận hàng khách trả";
+    var sourceLines = Model.Source?.Items.Where(i => i.RemainingQuantity > 0).ToList();
+}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between mb-3"><h3>Duyệt nhận hàng khách trả</h3><a asp-page="./Index" class="btn btn-outline-secondary">Danh sách phiếu nhập</a></div>
+    <div asp-validation-summary="All" class="alert alert-danger"></div>
+    <form method="get" class="card border-0 shadow-sm mb-3"><div class="card-body row g-3 align-items-end">
+        <div class="col-md-5"><label class="form-label">Tìm SO</label><input id="returnOrderSearch" type="search" class="form-control" placeholder="Mã SO hoặc khách hàng" /></div>
+        <div class="col-md-5"><label class="form-label">SO đã giao hàng</label><select asp-for="SalesOrderId" asp-items="Model.Orders" class="form-select" id="returnOrder"><option value="">Chọn SO</option></select></div>
+        <div class="col-md-2"><button class="btn btn-primary">Chọn đơn</button></div>
+    </div></form>
+    @if (sourceLines != null && sourceLines.Any())
+    {
+        <form method="post" onsubmit="return confirm('Chấp thuận số lượng nhận trả và giao lệnh cho nhân viên đã chọn?');">
+            <input asp-for="SalesOrderId" type="hidden" />
+            <div class="card border-0 shadow-sm mb-3"><div class="card-body row g-3">
+                <div class="col-md-6"><label class="form-label">Nhân viên kho thực hiện</label><select asp-for="StaffId" asp-items="Model.Staff" class="form-select" required><option value="">Chọn nhân viên kho đang rảnh</option></select></div>
+                <div class="col-md-6"><label class="form-label">Ngày dự kiến nhận trả</label><input asp-for="ReceiptDate" type="date" class="form-control" required /></div>
+                <div class="col-12"><label class="form-label">Lý do và căn cứ chấp thuận với khách</label><textarea asp-for="Reason" class="form-control" minlength="10" maxlength="500" required></textarea></div>
+            </div></div>
+            <div class="card border-0 shadow-sm"><div class="table-responsive"><table class="table align-middle mb-0">
+                <thead class="table-light"><tr><th>Vật tư</th><th>Đơn vị</th><th class="text-end">Còn có thể trả</th><th>Số lượng chấp thuận</th></tr></thead><tbody>
+                @for (var i = 0; i < sourceLines.Count; i++)
+                {
+                    var line = sourceLines[i];
+                    <tr><td>@line.ProductCode — @line.ProductName<input name="Lines[@i].ProductId" value="@line.ProductId" type="hidden" /></td><td>@line.UnitName</td><td class="text-end">@FormatHelper.FormatQuantity(line.RemainingQuantity, line.QuantityScale)</td>
+                    <td><input name="Lines[@i].Quantity" type="number" class="form-control text-end" min="0" max="@(line.RemainingQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture))" step="@(line.QuantityScale == 0 ? "1" : "0." + new string('0', line.QuantityScale - 1) + "1")" value="@(Model.Lines.FirstOrDefault(l => l.ProductId == line.ProductId)?.Quantity.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "0")" required /></td></tr>
+                }
+                </tbody></table></div><div class="card-footer bg-white text-end"><button class="btn btn-primary">Duyệt và giao lệnh nhận trả</button></div></div>
+        </form>
+    }
+</div>
+@section Scripts {
+<script>document.getElementById('returnOrderSearch').addEventListener('input', e => { const keyword = e.target.value.trim().toLocaleLowerCase('vi'); Array.from(document.getElementById('returnOrder').options).forEach(o => o.hidden = !!o.value && !o.selected && !o.text.toLocaleLowerCase('vi').includes(keyword)); });</script>
+}

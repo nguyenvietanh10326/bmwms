@@ -125,7 +125,7 @@ public class SupplierRepository : ISupplierRepository
         return (items, totalCount);
     }
 
-    public async Task<(IEnumerable<InboundOrder> Items, int TotalCount)> GetSupplierInboundHistoryAsync(long supplierId, string? keyword, string? status, long? warehouseId, DateTime? fromDate, DateTime? toDate, int pageIndex, int pageSize)
+    public async Task<(IEnumerable<InboundOrder> Items, int TotalCount)> GetSupplierInboundHistoryAsync(long supplierId, string? keyword, string? status, long? warehouseId, DateTime? fromDate, DateTime? toDate, int pageIndex, int pageSize, string? sortOrder = null)
     {
         var query = _context.InboundOrders
             .Include(x => x.PurchaseOrder)
@@ -155,18 +155,20 @@ public class SupplierRepository : ISupplierRepository
 
         if (fromDate.HasValue)
         {
-            var from = fromDate.Value.Date;
-            query = query.Where(x => x.CreatedAt >= from);
+            var from = DateOnly.FromDateTime(fromDate.Value.Date);
+            query = query.Where(x => x.ExpectedReceiptDate >= from);
         }
 
         if (toDate.HasValue)
         {
-            var to = toDate.Value.Date.AddDays(1).AddTicks(-1);
-            query = query.Where(x => x.CreatedAt <= to);
+            var to = DateOnly.FromDateTime(toDate.Value.Date);
+            query = query.Where(x => x.ExpectedReceiptDate <= to);
         }
 
         var totalCount = await query.CountAsync();
-        var items = await query.OrderByDescending(x => x.CreatedAt)
+        var ordered = sortOrder == "oldest" ? query.OrderBy(x => x.CreatedAt).ThenBy(x => x.InboundOrderId)
+            : query.OrderByDescending(x => x.CreatedAt).ThenByDescending(x => x.InboundOrderId);
+        var items = await ordered
             .Skip((pageIndex - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();

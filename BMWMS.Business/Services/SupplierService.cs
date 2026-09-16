@@ -238,7 +238,7 @@ public class SupplierService : ISupplierService
         if (supplier == null) throw new ArgumentException($"Nhà cung cấp {supplierCode} không tồn tại.");
 
         var (items, totalCount) = await _supplierRepository.GetSupplierInboundHistoryAsync(
-            supplier.SupplierId, filter.Keyword, filter.Status, filter.WarehouseId, filter.FromDate, filter.ToDate, filter.PageIndex, filter.PageSize);
+            supplier.SupplierId, filter.Keyword, filter.Status, filter.WarehouseId, filter.FromDate, filter.ToDate, Math.Max(1, filter.PageIndex), Math.Clamp(filter.PageSize, 1, 100), filter.SortOrder);
 
         var dtos = items.Select(io => new SupplierInboundHistoryResponseDto
         {
@@ -248,7 +248,7 @@ public class SupplierService : ISupplierService
             WarehouseName = io.Warehouse?.WarehouseName,
             Status = io.Status,
             CreatedAt = io.CreatedAt,
-            ReceiptDate = io.ConfirmedAt,
+            ReceiptDate = io.Status == "COMPLETED" ? io.ExpectedReceiptDate.ToDateTime(TimeOnly.MinValue) : null,
             ResponsibleStaffName = io.AssignedToUser?.FullName ?? io.CreatedByUser?.FullName,
             LineCount = io.InboundOrderItems.Count
         }).ToList();
@@ -279,7 +279,7 @@ public class SupplierService : ISupplierService
             Status = order.Status,
             CreatedAt = order.CreatedAt,
             ExpectedDate = order.ExpectedReceiptDate.ToDateTime(TimeOnly.MinValue),
-            ReceiptDate = order.ConfirmedAt,
+            ReceiptDate = order.Status == "COMPLETED" ? order.ExpectedReceiptDate.ToDateTime(TimeOnly.MinValue) : null,
             ResponsibleStaffName = order.AssignedToUser?.FullName ?? order.CreatedByUser?.FullName,
             Items = order.InboundOrderItems.Select(d => new SupplierInboundHistoryItemDto
             {

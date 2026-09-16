@@ -1,0 +1,29 @@
+@page "{id:long}"
+@model BMWMS.Web.Pages.Admin.Inbound.ReturnReceiptModel
+@using BMWMS.Web.Helpers
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Ghi nhận hàng khách trả";
+}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between mb-3"><div><h3>Ghi nhận hàng khách trả</h3><span class="text-muted">@Model.Order.InboundOrderNumber · @Model.Order.SourceReference · @Model.Order.PartnerName</span></div><a asp-page="./Details" asp-route-id="@Model.Order.InboundOrderId" class="btn btn-outline-secondary">Chi tiết phiếu</a></div>
+    <div class="alert alert-warning">Chỉ ghi số hàng đủ điều kiện nhập lại kho. Hàng hỏng hoặc không được chấp thuận nhận trả không được cộng tồn.</div>
+    <form method="post" onsubmit="return confirm('Chốt số thực nhận của đợt này và chuyển sang cất hàng?');">
+        <div asp-validation-summary="All" class="alert alert-danger"></div>
+        <div class="card border-0 shadow-sm mb-3"><div class="card-body row g-3">
+            <div class="col-md-4"><label class="form-label">Ngày nhận thực tế</label><input asp-for="ReceiptDate" type="date" class="form-control" required max="@DateTime.Today.ToString("yyyy-MM-dd")" /></div>
+            <div class="col-md-8"><label class="form-label">Lý do nếu nhận chưa đủ số đã duyệt</label><input asp-for="ShortageReason" class="form-control" maxlength="500" /></div>
+        </div></div>
+        <div class="card border-0 shadow-sm"><div class="table-responsive"><table class="table align-middle mb-0">
+            <thead class="table-light"><tr><th>Vật tư</th><th>Đơn vị</th><th class="text-end">Đã duyệt</th><th>Thực nhận</th><th>Ngày sản xuất</th><th>Hạn sử dụng</th></tr></thead><tbody>
+            @for (var i = 0; i < Model.Order.Items.Count; i++)
+            {
+                var item = Model.Order.Items[i];
+                <tr><td>@item.ProductCode — @item.ProductName<input name="Lines[@i].InboundOrderItemId" type="hidden" value="@item.InboundOrderItemId" /></td><td>@item.UnitName</td><td class="text-end">@FormatHelper.FormatQuantity(item.ExpectedQuantity, item.QuantityScale)</td>
+                <td><input name="Lines[@i].ActualQuantity" type="number" class="form-control text-end" min="0" max="@(item.ExpectedQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture))" step="@(item.QuantityScale == 0 ? "1" : "0." + new string('0', item.QuantityScale - 1) + "1")" value="@(Model.Lines.FirstOrDefault(l => l.InboundOrderItemId == item.InboundOrderItemId)?.ActualQuantity?.ToString(System.Globalization.CultureInfo.InvariantCulture))" required /></td>
+                <td><input name="Lines[@i].ManufactureDate" type="date" class="form-control" value="@(Model.Lines.FirstOrDefault(l => l.InboundOrderItemId == item.InboundOrderItemId)?.ManufactureDate?.ToString("yyyy-MM-dd"))" /></td>
+                <td><input name="Lines[@i].ExpiryDate" type="date" class="form-control" value="@(Model.Lines.FirstOrDefault(l => l.InboundOrderItemId == item.InboundOrderItemId)?.ExpiryDate?.ToString("yyyy-MM-dd"))" /></td></tr>
+            }
+            </tbody></table></div><div class="card-footer bg-white text-end"><button class="btn btn-primary">Chốt thực nhận và cất hàng</button></div></div>
+    </form>
+</div>

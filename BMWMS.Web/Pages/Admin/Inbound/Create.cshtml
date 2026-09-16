@@ -7,7 +7,7 @@
     var initialPurchaseOrders = Model.InitialPurchaseOrders.ToList();
     var followUpPurchaseOrders = Model.FollowUpPurchaseOrders.ToList();
     var canCreatePurchase = User.IsInRole("WAREHOUSE_STAFF");
-    var canCreateSalesReturn = User.IsInRole("WAREHOUSE_STAFF");
+    var canCreateSalesReturn = false;
 }
 
 <style>

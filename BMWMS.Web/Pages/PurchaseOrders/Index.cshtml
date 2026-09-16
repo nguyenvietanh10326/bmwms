@@ -59,7 +59,7 @@
     <div class="ib-header">
         <h1 class="ib-title">Đơn mua hàng</h1>
         <div class="ib-actions">
-            <a href="/PurchaseOrders/Create" class="btn-primary">+ Tạo đơn mua hàng</a>
+            @if (User.IsInRole("SYSTEM_ADMIN") || User.IsInRole("PURCHASING_STAFF")) { <a href="/PurchaseOrders/Create" class="btn-primary">+ Tạo đơn mua hàng</a> }
         </div>
     </div>
 
@@ -86,7 +86,7 @@
             <button type="submit" class="btn btn-dark" style="background:#233a6b; color:#fff; border:none; padding:9px 16px; border-radius:6px; font-weight:500;">Tìm kiếm</button>
             <a href="/PurchaseOrders/Index" class="btn btn-sub" style="padding: 9px 16px; border: 1px solid var(--line); border-radius: 6px; font-weight: 500; font-size: 14px; text-decoration: none; color: var(--ink-2); background: #fff;">Đặt lại</a>
         </div>
-    </form>
+    <div class="col-md-3 filter-group"><label class="form-label">Sắp xếp</label><select asp-for="SortOrder" class="form-select"><option value="newest">Mới nhất</option><option value="oldest">Cũ nhất</option></select></div></form>
 
 
 
@@ -137,7 +137,7 @@
             <div style="display:flex; justify-content:center; gap:8px; padding:16px; border-top:1px solid var(--line);">
                 @for (int i = 1; i <= Model.TotalPages; i++)
                 {
-                    <a href="?searchTerm=@Model.SearchTerm&status=@Model.Status&pageIndex=@i" 
+                    <a asp-page="./Index" asp-route-searchTerm="@Model.SearchTerm" asp-route-status="@Model.Status" asp-route-pageIndex="@i" asp-route-SortOrder="@Model.SortOrder"
                        class="btn-outline" 
                        style="padding:6px 12px; border-radius:4px; text-decoration:none; @(i == Model.PageIndex ? "background:var(--accent); color:#fff; border-color:var(--accent);" : "color:var(--ink); border:1px solid var(--line);")">
                         @i

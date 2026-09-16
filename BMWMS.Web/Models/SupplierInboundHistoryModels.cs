@@ -5,6 +5,7 @@ namespace BMWMS.Web.Models;
 
 public class SupplierInboundHistoryFilterModel
 {
+    public string SortOrder { get; set; } = "newest";
     public string? Keyword { get; set; }
     public string? Status { get; set; }
     public long? WarehouseId { get; set; }
@@ -48,6 +49,6 @@ public class SupplierInboundHistoryItemModel
     public string ProductCode { get; set; } = null!;
     public string ProductName { get; set; } = null!;
     public string UnitName { get; set; } = null!;
-    public int ExpectedQuantity { get; set; }
-    public int ReceivedQuantity { get; set; }
+    public decimal ExpectedQuantity { get; set; }
+    public decimal ReceivedQuantity { get; set; }
 }

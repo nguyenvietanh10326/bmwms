@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace BMWMS.Web.Pages.PurchaseOrders;
 
-[Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF")]
+[Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF,ACCOUNTANT,DIRECTOR")]
 public class IndexModel : PageModel
 {
     private readonly PurchaseOrderApiService _apiService;
@@ -28,6 +28,7 @@ public class IndexModel : PageModel
     [BindProperty(SupportsGet = true)]
     public int PageIndex { get; set; } = 1;
 
+    [BindProperty(SupportsGet = true)] public string SortOrder { get; set; } = "newest";
     public int PageSize { get; set; } = 20;
     
     public List<PurchaseOrderListDto> Orders { get; set; } = new();
@@ -39,6 +40,7 @@ public class IndexModel : PageModel
         {
             SearchTerm = SearchTerm,
             Status = Status,
+            SortOrder = SortOrder,
             PageIndex = PageIndex,
             PageSize = PageSize
         };

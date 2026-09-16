@@ -45,7 +45,7 @@ namespace BMWMS.Web.Services
 
         public async Task<PagedResultDto<PurchaseOrderListDto>?> GetPagedPurchaseOrdersAsync(PurchaseOrderFilterDto filter)
         {
-            var queryString = $"?SearchTerm={filter.SearchTerm}&Status={filter.Status}&PageIndex={filter.PageIndex}&PageSize={filter.PageSize}";
+            var queryString = $"?SearchTerm={Uri.EscapeDataString(filter.SearchTerm ?? "")}&Status={Uri.EscapeDataString(filter.Status ?? "")}&PageIndex={filter.PageIndex}&PageSize={filter.PageSize}&SortOrder={Uri.EscapeDataString(filter.SortOrder)}";
             return await _httpClient.GetFromJsonAsync<PagedResultDto<PurchaseOrderListDto>>($"api/PurchaseOrders{queryString}");
         }
 

@@ -32,6 +32,10 @@ public class CreateModel : PageModel
     public SelectList SalesOrders { get; set; } = new(Array.Empty<object>());
     public async Task<IActionResult> OnGetAsync(long? purchaseOrderId, long? salesOrderId, long? parentInboundOrderId)
     {
+        if (salesOrderId.HasValue) {
+            TempData["ErrorMessage"] = "Nhận khách trả phải có lệnh được Quản lý kho duyệt. Hãy mở phiếu đã giao cho bạn.";
+            return RedirectToPage("./Index");
+        }
         if (parentInboundOrderId.HasValue)
         {
             TempData["ErrorMessage"] = "Chức năng phiếu nhập bổ sung đã được loại bỏ. Hãy tạo phiếu nhập PO thông thường cho phần PO còn thiếu.";
@@ -54,6 +58,7 @@ public class CreateModel : PageModel
 
     public async Task<IActionResult> OnPostAsync(string actionType)
     {
+        if (InboundOrder.SourceType != "PURCHASE_ORDER") return Forbid();
         InboundOrder.IsSubmit = true;
 
         if (!ModelState.IsValid)
@@ -96,12 +101,7 @@ public class CreateModel : PageModel
         }
         catch { }
 
-        try
-        {
-            var returnableSos = await _inboundApiService.GetReturnableSalesOrdersAsync();
-            SalesOrders = new SelectList(returnableSos, "Id", "Name");
-        }
-        catch { }
+
     }
 
     public async Task<IActionResult> OnGetPoDetailsAsync(long poId)
@@ -113,9 +113,7 @@ public class CreateModel : PageModel
 
     public async Task<IActionResult> OnGetSoDetailsAsync(long soId)
     {
-        var result = await _inboundApiService.GetSalesOrderForInboundAsync(soId);
-        if (result == null) return NotFound();
-        return new JsonResult(result);
+        return await Task.FromResult<IActionResult>(Forbid());
     }
 
 }
