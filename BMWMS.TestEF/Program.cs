@@ -3,7 +3,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using BMWMS.Repository.Models;
-using BMWMS.Repository.Repositories.StockOperations;
 
 namespace BMWMS.TestEF {
     class Program {
@@ -11,35 +10,62 @@ namespace BMWMS.TestEF {
             var optionsBuilder = new DbContextOptionsBuilder<BmwmsContext>();
             optionsBuilder.UseSqlServer(""Server=REALITY\\REALITY;Database=BMWMS;User Id=sa;Password=123;TrustServerCertificate=True"");
             using var context = new BmwmsContext(optionsBuilder.Options);
-            var repo = new TransferRepository(context);
             
             try {
-                // Find a draft transfer order if any
-                var draft = await context.TransferOrders.FirstOrDefaultAsync(o => o.Status == ""DRAFT"");
-                if (draft != null) {
-                    Console.WriteLine(""Approving draft "" + draft.TransferOrderId);
-                    await repo.ApproveOrderAsync(draft.TransferOrderId, draft.CreatedByUserId, ""Test approve"");
-                    Console.WriteLine(""Approve success"");
-                } else {
-                    Console.WriteLine(""No draft found."");
-                    // Try to find an approved one to confirm
-                    var app = await context.TransferOrders.Include(o => o.TransferOrderDetails).FirstOrDefaultAsync(o => o.Status == ""APPROVED"");
-                    if (app != null) {
-                        Console.WriteLine(""Confirming approved "" + app.TransferOrderId);
-                        var confirmParams = app.TransferOrderDetails.Select(d => new BMWMS.Repository.Interfaces.StockOperations.TransferConfirmItemParam {
-                            TransferOrderDetailId = d.TransferOrderDetailId,
-                            ActualMovedQuantity = d.RequestedQuantity,
-                            DestinationLocationId = d.DestinationLocationId
-                        }).ToList();
-                        await repo.ConfirmTransferAsync(app.TransferOrderId, app.CreatedByUserId, confirmParams, null, null, ""test"");
-                        Console.WriteLine(""Confirm success"");
-                    } else {
-                        Console.WriteLine(""No approved found either."");
-                    }
-                }
+                // Let's just create a dummy order to see if it saves
+                var user = await context.Users.FirstOrDefaultAsync();
+                var wh = await context.Warehouses.FirstOrDefaultAsync();
+                var prod = await context.Products.FirstOrDefaultAsync();
+                var lot = await context.ProductLots.FirstOrDefaultAsync();
+                var loc = await context.StorageLocations.FirstOrDefaultAsync();
+                var loc2 = await context.StorageLocations.OrderByDescending(x => x.StorageLocationId).FirstOrDefaultAsync();
+
+                var order = new TransferOrder {
+                    TransferOrderNumber = ""TEST-"" + DateTime.Now.Ticks,
+                    TransferType = ""INTERNAL_LOCATION"",
+                    SourceWarehouseId = wh.WarehouseId,
+                    DestinationWarehouseId = wh.WarehouseId,
+                    RequestedDate = new DateOnly(2023, 1, 1),
+                    Status = ""DRAFT"",
+                    CreatedByUserId = user.UserId,
+                    AssignedToUserId = user.UserId,
+                    CreatedAt = DateTime.UtcNow
+                };
+                order.TransferOrderDetails.Add(new TransferOrderDetail {
+                    ProductId = prod.ProductId,
+                    ProductLotId = lot?.ProductLotId,
+                    SourceLocationId = loc.StorageLocationId,
+                    DestinationLocationId = loc2.StorageLocationId,
+                    RequestedQuantity = 10,
+                    MovedQuantity = 0
+                });
+
+                context.TransferOrders.Add(order);
+                await context.SaveChangesAsync();
+                Console.WriteLine(""Create SUCCESS"");
+
+                order.Status = ""APPROVED"";
+                order.ApprovedByUserId = user.UserId;
+                order.ApprovedAt = DateTime.UtcNow;
+                
+                context.InventoryTransactions.Add(new InventoryTransaction {
+                    TransactionType = ""RESERVE"",
+                    ProductId = prod.ProductId,
+                    StorageLocationId = loc.StorageLocationId,
+                    ProductLotId = lot.ProductLotId,
+                    OnHandDelta = 0,
+                    ReservedDelta = 10,
+                    TransferOrderDetailId = order.TransferOrderDetails.First().TransferOrderDetailId,
+                    PerformedByUserId = user.UserId,
+                    TransactionAt = DateTime.UtcNow
+                });
+
+                await context.SaveChangesAsync();
+                Console.WriteLine(""Approve SUCCESS"");
+            } catch (DbUpdateException ex) {
+                Console.WriteLine(""DbUpdateException: "" + ex.InnerException?.Message);
             } catch (Exception ex) {
-                Console.WriteLine(""ERROR: "" + ex.Message);
-                if (ex.InnerException != null) Console.WriteLine(""INNER: "" + ex.InnerException.Message);
+                Console.WriteLine(""Exception: "" + ex.Message);
             }
         }
     }
