@@ -48,8 +48,7 @@ namespace BMWMS.Business.Services
                 Description = g.Description,
                 Status = g.Status,
                 ProductCount = g.Products.Count,
-                AttributeCount = g.ProductGroupAttributes.Count(pga =>
-                    ProductAttributePolicy.IsAllowed(pga.ProductAttribute.AttributeCode)),
+                AttributeCount = g.ProductGroupAttributes.Count,
                 CreatedAt = g.CreatedAt,
                 UpdatedAt = g.UpdatedAt
             }).ToList();
@@ -75,8 +74,7 @@ namespace BMWMS.Business.Services
                 Description = g.Description,
                 Status = g.Status,
                 ProductCount = g.Products.Count,
-                AttributeCount = g.ProductGroupAttributes.Count(pga =>
-                    ProductAttributePolicy.IsAllowed(pga.ProductAttribute.AttributeCode)),
+                AttributeCount = g.ProductGroupAttributes.Count,
                 CreatedAt = g.CreatedAt,
                 UpdatedAt = g.UpdatedAt
             }).ToList();
@@ -96,12 +94,10 @@ namespace BMWMS.Business.Services
                 Description = group.Description,
                 Status = group.Status,
                 ProductCount = group.Products.Count,
-                AttributeCount = group.ProductGroupAttributes.Count(pga =>
-                    ProductAttributePolicy.IsAllowed(pga.ProductAttribute.AttributeCode)),
+                AttributeCount = group.ProductGroupAttributes.Count,
                 CreatedAt = group.CreatedAt,
                 UpdatedAt = group.UpdatedAt,
                 Attributes = group.ProductGroupAttributes
-                    .Where(pga => ProductAttributePolicy.IsAllowed(pga.ProductAttribute.AttributeCode))
                     .Select(pga => new GroupAttributeConfigDto
                 {
                     ProductAttributeId = pga.ProductAttributeId,
@@ -130,7 +126,6 @@ namespace BMWMS.Business.Services
         {
             var groupAttrs = await _productGroupRepository.GetAttributesByGroupIdAsync(productGroupId);
             return groupAttrs
-                .Where(pga => ProductAttributePolicy.IsAllowed(pga.ProductAttribute.AttributeCode))
                 .Select(pga => new GroupAttributeConfigDto
             {
                 ProductAttributeId = pga.ProductAttributeId,
@@ -157,8 +152,7 @@ namespace BMWMS.Business.Services
         public async Task<List<ProductAttributeDto>> GetAllAttributesAsync()
         {
             var attrs = await _productGroupRepository.GetAllAttributesAsync();
-            return attrs.Where(a => ProductAttributePolicy.IsAllowed(a.AttributeCode))
-                .Select(a => new ProductAttributeDto
+            return attrs.Select(a => new ProductAttributeDto
             {
                 ProductAttributeId = a.ProductAttributeId,
                 AttributeCode = a.AttributeCode,
@@ -250,8 +244,7 @@ namespace BMWMS.Business.Services
                 attrs = await BuildValidatedGroupAttributesAsync(
                     productGroupId,
                     existingAttributes
-                        .Where(attribute => attribute.ProductAttribute.Status == "ACTIVE" &&
-                                            ProductAttributePolicy.IsAllowed(attribute.ProductAttribute.AttributeCode))
+                        .Where(attribute => attribute.ProductAttribute.Status == "ACTIVE" )
                         .Select(ToAssignmentDto));
             }
 
@@ -285,8 +278,7 @@ namespace BMWMS.Business.Services
                 attrs = await BuildValidatedGroupAttributesAsync(
                     productGroupId,
                     existingAttributes
-                        .Where(attribute => attribute.ProductAttribute.Status == "ACTIVE" &&
-                                            ProductAttributePolicy.IsAllowed(attribute.ProductAttribute.AttributeCode))
+                        .Where(attribute => attribute.ProductAttribute.Status == "ACTIVE" )
                         .Select(ToAssignmentDto));
             }
 
@@ -358,7 +350,6 @@ namespace BMWMS.Business.Services
         {
             var allAttributes = await _productGroupRepository.GetAllAttributesAsync();
             var activeAttributeIds = allAttributes
-                .Where(attribute => ProductAttributePolicy.IsAllowed(attribute.AttributeCode))
                 .Select(attribute => attribute.ProductAttributeId)
                 .ToHashSet();
             var submitted = assignments.ToList();
