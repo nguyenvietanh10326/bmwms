@@ -133,6 +133,7 @@ namespace BMWMS.Web.Models
     {
         public long StocktakeSessionId { get; set; }
         public string StocktakeNumber { get; set; } = string.Empty;
+        public string SessionStatus { get; set; } = string.Empty;
         public long WarehouseId { get; set; }
         public string WarehouseCode { get; set; } = string.Empty;
         public string WarehouseName { get; set; } = string.Empty;
@@ -173,19 +174,18 @@ namespace BMWMS.Web.Models
         public bool IsUnexpected { get; set; }
     }
 
+    public class SaveStocktakeSessionCountsModel
+    {
+        public List<StocktakeCountLineModel> Lines { get; set; } = new();
+        public List<long> ConfirmedEmptyLocationIds { get; set; } = new();
+    }
+
     public class UnexpectedStocktakeItemModel
     {
         public long StorageLocationId { get; set; }
         public long ProductId { get; set; }
         public long ProductLotId { get; set; }
         public decimal CountedQuantity { get; set; }
-        public string? Notes { get; set; }
-    }
-
-    public class StocktakeResolutionModel
-    {
-        public long StocktakeItemId { get; set; }
-        public string Resolution { get; set; } = string.Empty;
         public string? Notes { get; set; }
     }
 

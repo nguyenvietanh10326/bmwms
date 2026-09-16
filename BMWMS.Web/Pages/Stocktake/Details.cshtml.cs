@@ -22,7 +22,10 @@ namespace BMWMS.Web.Pages.Stocktake
         public long Id { get; set; }
 
         [BindProperty]
-        public List<StocktakeResolutionModel> Resolutions { get; set; } = new();
+        public List<StocktakeCountLineModel> Lines { get; set; } = new();
+
+        [BindProperty]
+        public List<long> ConfirmedEmptyLocationIds { get; set; } = new();
 
         [TempData]
         public string? SuccessMessage { get; set; }
@@ -48,8 +51,8 @@ namespace BMWMS.Web.Pages.Stocktake
         public async Task<IActionResult> OnPostStartAsync(long id)
         {
             CheckRole();
-            if (!IsManager)
-                return Deny(id, "Bạn không có quyền bắt đầu đợt kiểm kho.");
+            if (!IsStaff || IsManager)
+                return Deny(id, "Bạn không có quyền bắt đầu phiếu kiểm kho.");
 
             var result = await _stocktakeService.StartSessionAsync(id);
             TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] = result.Message;
@@ -61,49 +64,57 @@ namespace BMWMS.Web.Pages.Stocktake
         {
             CheckRole();
             if (!IsManager)
-                return Deny(id, "Bạn không có quyền huỷ đợt kiểm kho.");
+                return Deny(id, "Bạn không có quyền hủy phiếu kiểm kho.");
 
             var result = await _stocktakeService.CancelSessionAsync(id, notes);
             TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] = result.Message;
             return RedirectToPage("/Stocktake/Details", new { id });
         }
 
-        // BP-05: Warehouse Manager — Request recount / investigation per bin
-        public async Task<IActionResult> OnPostRequestRecountAsync(long id, long locationId)
+        public async Task<IActionResult> OnPostSaveCountsAsync(long id)
         {
             CheckRole();
-            if (!IsManager)
-                return Deny(id, "Bạn không có quyền yêu cầu đếm lại.");
+            if (!IsStaff || IsManager)
+                return Deny(id, "Bạn không có quyền nhập phiếu kiểm kho.");
 
-            var result = await _stocktakeService.RequestRecountAsync(id, locationId);
+            var result = await _stocktakeService.SaveSessionCountsAsync(id, new SaveStocktakeSessionCountsModel
+            {
+                Lines = Lines,
+                ConfirmedEmptyLocationIds = ConfirmedEmptyLocationIds
+            });
             TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] = result.Message;
             return RedirectToPage("/Stocktake/Details", new { id });
         }
 
-        // BP-05: Warehouse Manager — Save resolutions for variance lines (PENDING_APPROVAL state)
-        public async Task<IActionResult> OnPostResolutionsAsync(long id)
+        public async Task<IActionResult> OnPostSubmitAsync(long id)
         {
             CheckRole();
-            if (!IsManager)
-                return Deny(id, "Bạn không có quyền review chênh lệch.");
+            if (!IsStaff || IsManager)
+                return Deny(id, "Bạn không có quyền gửi kết quả phiếu kiểm kho.");
 
-            var cleaned = Resolutions
-                .Where(r => r.StocktakeItemId > 0 && !string.IsNullOrWhiteSpace(r.Resolution))
-                .ToList();
+            var saveResult = await _stocktakeService.SaveSessionCountsAsync(id, new SaveStocktakeSessionCountsModel
+            {
+                Lines = Lines,
+                ConfirmedEmptyLocationIds = ConfirmedEmptyLocationIds
+            });
+            if (!saveResult.Success)
+            {
+                TempData["ErrorMessage"] = saveResult.Message;
+                return RedirectToPage("/Stocktake/Details", new { id });
+            }
 
-            var result = await _stocktakeService.ApplyResolutionsAsync(id, cleaned);
-            TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] = result.Message;
+            var submitResult = await _stocktakeService.SubmitSessionAsync(id);
+            TempData[submitResult.Success ? "SuccessMessage" : "ErrorMessage"] = submitResult.Message;
             return RedirectToPage("/Stocktake/Details", new { id });
         }
 
-        // BP-05: Warehouse Manager — Submit for approval (COUNTED → PENDING_APPROVAL)
-        public async Task<IActionResult> OnPostSubmitForReviewAsync(long id)
+        public async Task<IActionResult> OnPostRejectAsync(long id, string? reason)
         {
             CheckRole();
             if (!IsManager)
-                return Deny(id, "Bạn không có quyền gửi phê duyệt.");
+                return Deny(id, "Bạn không có quyền từ chối phiếu kiểm kho.");
 
-            var result = await _stocktakeService.SubmitForReviewAsync(id);
+            var result = await _stocktakeService.RejectSessionAsync(id, reason ?? string.Empty);
             TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] = result.Message;
             return RedirectToPage("/Stocktake/Details", new { id });
         }
@@ -139,7 +150,7 @@ namespace BMWMS.Web.Pages.Stocktake
         {
             var roleCode = HttpContext.Session.GetString("RoleCode")?.ToUpperInvariant() ?? string.Empty;
             IsManager = roleCode == "SYSTEM_ADMIN" || roleCode == "WAREHOUSE_MANAGER" || roleCode.Contains("MANAGER") || roleCode.Contains("ADMIN");
-            IsStaff = IsManager || roleCode == "WAREHOUSE_STAFF";
+            IsStaff = roleCode == "WAREHOUSE_STAFF";
         }
     }
 }

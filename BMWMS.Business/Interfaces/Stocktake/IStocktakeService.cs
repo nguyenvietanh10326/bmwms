@@ -16,9 +16,10 @@ namespace BMWMS.Business.Interfaces.Stocktake
         Task<StocktakeActionResultDto> StartSessionAsync(long stocktakeSessionId, long startedByUserId);
         Task<StocktakeActionResultDto> CancelSessionAsync(long stocktakeSessionId, long cancelledByUserId, string? notes);
         Task<StocktakeActionResultDto> SaveCountsAsync(long stocktakeSessionId, long storageLocationId, List<StocktakeCountLineDto> lines, long countedByUserId, bool canManage, string? notes = null);
-        Task<StocktakeActionResultDto> SubmitLocationAsync(long stocktakeSessionId, long storageLocationId, long submittedByUserId, bool canManage, string? notes);
+        Task<StocktakeActionResultDto> SaveSessionCountsAsync(long stocktakeSessionId, SaveStocktakeSessionCountsDto request, long countedByUserId);
+        Task<StocktakeActionResultDto> SubmitSessionAsync(long stocktakeSessionId, long submittedByUserId);
         Task<StocktakeActionResultDto> AddUnexpectedItemAsync(long stocktakeSessionId, UnexpectedStocktakeItemDto dto, long countedByUserId, bool canManage);
-        Task<StocktakeActionResultDto> ApplyResolutionsAsync(long stocktakeSessionId, List<StocktakeResolutionDto> resolutions, long reviewedByUserId);
         Task<StocktakeActionResultDto> ApproveSessionAsync(long stocktakeSessionId, long approvedByUserId, StocktakeNoteDto request);
+        Task<StocktakeActionResultDto> RejectSessionAsync(long stocktakeSessionId, long rejectedByUserId, string? reason);
     }
 }

@@ -197,24 +197,35 @@ namespace BMWMS.Web.Services
             }
         }
 
-        public async Task<StocktakeActionResultModel> SubmitLocationAsync(long id, long locationId, string? notes)
+        public async Task<StocktakeActionResultModel> SubmitSessionAsync(long id)
         {
             try
             {
-                var response = await _httpClient.PostAsJsonAsync(
-                    $"api/stocktakes/{id}/locations/{locationId}/submit",
-                    new StocktakeNoteModel { Notes = notes });
+                var response = await _httpClient.PostAsync($"api/stocktakes/{id}/submit", null);
                 if (!response.IsSuccessStatusCode)
                 {
                     var error = await response.Content.ReadAsStringAsync();
-                    Console.WriteLine($"[StocktakeApi] SubmitLocation failed: {response.StatusCode} - {error}");
+                    Console.WriteLine($"[StocktakeApi] SubmitSession failed: {response.StatusCode} - {error}");
                 }
                 return await ReadActionResultAsync(response);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[StocktakeApi] SubmitLocation exception: {ex.Message}");
+                Console.WriteLine($"[StocktakeApi] SubmitSession exception: {ex.Message}");
                 return Failure($"Loi ket noi: {ex.Message}");
+            }
+        }
+
+        public async Task<StocktakeActionResultModel> SaveSessionCountsAsync(long id, SaveStocktakeSessionCountsModel request)
+        {
+            try
+            {
+                var response = await _httpClient.PutAsJsonAsync($"api/stocktakes/{id}/counts", request);
+                return await ReadActionResultAsync(response);
+            }
+            catch (Exception ex)
+            {
+                return Failure($"Lỗi kết nối: {ex.Message}");
             }
         }
 
@@ -223,45 +234,6 @@ namespace BMWMS.Web.Services
             try
             {
                 var response = await _httpClient.PostAsJsonAsync($"api/stocktakes/{id}/unexpected-items", request);
-                return await ReadActionResultAsync(response);
-            }
-            catch (Exception ex)
-            {
-                return Failure($"Loi ket noi: {ex.Message}");
-            }
-        }
-
-        public async Task<StocktakeActionResultModel> RequestRecountAsync(long id, long locationId)
-        {
-            try
-            {
-                var response = await _httpClient.PostAsync($"api/stocktakes/{id}/locations/{locationId}/request-recount", null);
-                return await ReadActionResultAsync(response);
-            }
-            catch (Exception ex)
-            {
-                return Failure($"Loi ket noi: {ex.Message}");
-            }
-        }
-
-        public async Task<StocktakeActionResultModel> SubmitForReviewAsync(long id)
-        {
-            try
-            {
-                var response = await _httpClient.PostAsync($"api/stocktakes/{id}/submit-review", null);
-                return await ReadActionResultAsync(response);
-            }
-            catch (Exception ex)
-            {
-                return Failure($"Loi ket noi: {ex.Message}");
-            }
-        }
-
-        public async Task<StocktakeActionResultModel> ApplyResolutionsAsync(long id, List<StocktakeResolutionModel> resolutions)
-        {
-            try
-            {
-                var response = await _httpClient.PutAsJsonAsync($"api/stocktakes/{id}/resolutions", resolutions);
                 return await ReadActionResultAsync(response);
             }
             catch (Exception ex)
@@ -285,12 +257,27 @@ namespace BMWMS.Web.Services
             }
         }
 
+        public async Task<StocktakeActionResultModel> RejectSessionAsync(long id, string reason)
+        {
+            try
+            {
+                var response = await _httpClient.PostAsJsonAsync(
+                    $"api/stocktakes/{id}/reject",
+                    new StocktakeNoteModel { Notes = reason });
+                return await ReadActionResultAsync(response);
+            }
+            catch (Exception ex)
+            {
+                return Failure($"Loi ket noi: {ex.Message}");
+            }
+        }
+
         private static async Task<StocktakeActionResultModel> ReadActionResultAsync(HttpResponseMessage response)
         {
             if (response.IsSuccessStatusCode)
             {
                 return await response.Content.ReadFromJsonAsync<StocktakeActionResultModel>(JsonOptions)
-                    ?? Failure("Khong doc duoc phan hoi API.");
+                    ?? Failure("Không đọc được phản hồi từ hệ thống.");
             }
 
             var body = await response.Content.ReadAsStringAsync();
@@ -309,7 +296,7 @@ namespace BMWMS.Web.Services
             {
             }
 
-            return string.IsNullOrWhiteSpace(body) ? "API tra ve loi khong xac dinh." : body;
+            return string.IsNullOrWhiteSpace(body) ? "Hệ thống trả về lỗi không xác định." : body;
         }
 
         private static StocktakeActionResultModel Failure(string message)

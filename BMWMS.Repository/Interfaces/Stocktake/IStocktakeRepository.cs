@@ -9,13 +9,6 @@ namespace BMWMS.Repository.Interfaces.Stocktake
         public string? Notes { get; set; }
     }
 
-    public class StocktakeResolutionParam
-    {
-        public long StocktakeItemId { get; set; }
-        public string Resolution { get; set; } = string.Empty;
-        public string? Notes { get; set; }
-    }
-
     public interface IStocktakeRepository
     {
         Task<List<Warehouse>> GetActiveWarehousesAsync();
@@ -41,9 +34,10 @@ namespace BMWMS.Repository.Interfaces.Stocktake
         Task<StocktakeSession> CancelSessionAsync(long stocktakeSessionId, long cancelledByUserId, string? notes);
         Task<StocktakeLocation?> GetLocationCountTaskAsync(long stocktakeSessionId, long storageLocationId);
         Task<StocktakeSession> SaveCountsAsync(long stocktakeSessionId, long storageLocationId, List<StocktakeCountUpdateParam> lines, long countedByUserId, string? notes);
-        Task<StocktakeSession> SubmitLocationAsync(long stocktakeSessionId, long storageLocationId, long submittedByUserId, string? notes);
+        Task<StocktakeSession> SaveSessionCountsAsync(long stocktakeSessionId, List<StocktakeCountUpdateParam> lines, List<long> confirmedEmptyLocationIds, long countedByUserId);
+        Task<StocktakeSession> SubmitSessionAsync(long stocktakeSessionId, long submittedByUserId);
         Task<StocktakeItem> AddUnexpectedItemAsync(long stocktakeSessionId, long storageLocationId, long productId, long productLotId, decimal countedQuantity, long countedByUserId, string? notes);
-        Task<StocktakeSession> ApplyResolutionsAsync(long stocktakeSessionId, List<StocktakeResolutionParam> resolutions, long reviewedByUserId);
         Task<StocktakeSession> ApproveSessionAsync(long stocktakeSessionId, long approvedByUserId, string? notes);
+        Task<StocktakeSession> RejectSessionAsync(long stocktakeSessionId, long rejectedByUserId, string reason);
     }
 }

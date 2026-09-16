@@ -16,11 +16,10 @@ namespace BMWMS.Web.Services
         Task<StocktakeActionResultModel> StartSessionAsync(long id);
         Task<StocktakeActionResultModel> CancelSessionAsync(long id, string? notes);
         Task<StocktakeActionResultModel> SaveCountsAsync(long id, long locationId, List<StocktakeCountLineModel> lines);
-        Task<StocktakeActionResultModel> SubmitLocationAsync(long id, long locationId, string? notes);
+        Task<StocktakeActionResultModel> SaveSessionCountsAsync(long id, SaveStocktakeSessionCountsModel request);
+        Task<StocktakeActionResultModel> SubmitSessionAsync(long id);
         Task<StocktakeActionResultModel> AddUnexpectedItemAsync(long id, UnexpectedStocktakeItemModel request);
-        Task<StocktakeActionResultModel> RequestRecountAsync(long id, long locationId);
-        Task<StocktakeActionResultModel> SubmitForReviewAsync(long id);
-        Task<StocktakeActionResultModel> ApplyResolutionsAsync(long id, List<StocktakeResolutionModel> resolutions);
         Task<StocktakeActionResultModel> ApproveSessionAsync(long id, StocktakeNoteModel request);
+        Task<StocktakeActionResultModel> RejectSessionAsync(long id, string reason);
     }
 }
