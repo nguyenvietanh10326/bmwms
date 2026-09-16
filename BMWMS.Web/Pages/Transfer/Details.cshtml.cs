@@ -65,15 +65,30 @@ namespace BMWMS.Web.Pages.Transfer
             long id,
             List<long> detailIds,
             List<long> destinationLocationIds,
+            List<decimal> actualMovedQuantities,
+            string? shortfallReason,
+            string? destinationChangeReason,
+            bool acknowledgeCapacityWarning,
+            string? capacityWarningReason,
             string? notes)
         {
-            var req = new ConfirmTransferDto { Notes = notes };
+            if (detailIds == null || detailIds.Count == 0 || destinationLocationIds.Count != detailIds.Count ||
+                actualMovedQuantities.Count != detailIds.Count)
+            {
+                ErrorMessage = "Dữ liệu xác nhận từng dòng hàng không đầy đủ. Vui lòng tải lại phiếu.";
+                return RedirectToPage("/Transfer/Details", new { id });
+            }
+            var req = new ConfirmTransferDto {
+                Notes = notes, ShortfallReason = shortfallReason, DestinationChangeReason = destinationChangeReason,
+                AcknowledgeCapacityWarning = acknowledgeCapacityWarning, CapacityWarningReason = capacityWarningReason
+            };
             for (int i = 0; i < detailIds.Count; i++)
             {
                 req.Items.Add(new ConfirmTransferItemDto
                 {
                     TransferOrderDetailId = detailIds[i],
-                    DestinationLocationId = destinationLocationIds[i]
+                    DestinationLocationId = destinationLocationIds[i],
+                    ActualMovedQuantity = actualMovedQuantities[i]
                 });
             }
 
@@ -87,8 +102,8 @@ namespace BMWMS.Web.Pages.Transfer
         private void CheckUserRole()
         {
             var roleCode = HttpContext.Session.GetString("RoleCode")?.ToUpper() ?? "";
-            IsManager = roleCode.Contains("ADMIN") || roleCode.Contains("MANAGER") || roleCode == "WAREHOUSE_MANAGER";
-            IsStaff = roleCode.Contains("STAFF") || roleCode == "WAREHOUSE_STAFF" || IsManager;
+            IsManager = roleCode is "SYSTEM_ADMIN" or "WAREHOUSE_MANAGER";
+            IsStaff = roleCode == "WAREHOUSE_STAFF";
         }
     }
 }

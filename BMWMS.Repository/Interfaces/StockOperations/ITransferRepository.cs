@@ -53,7 +53,7 @@ namespace BMWMS.Repository.Interfaces.StockOperations
             string? notes);
 
         Task<TransferOrder> ApproveOrderAsync(long transferOrderId, long approvedByUserId, string? notes);
-        Task<TransferOrder> CancelOrderAsync(long transferOrderId, long cancelledByUserId, string? notes);
+        Task<TransferOrder> CancelOrderAsync(long transferOrderId, long cancelledByUserId, string? notes, bool isManager);
         
         Task<TransferOrder> ConfirmTransferAsync(
             long transferOrderId, 

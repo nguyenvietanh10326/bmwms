@@ -28,7 +28,7 @@ namespace BMWMS.Business.Services.StockOperations
 
         public async Task<TransferResultDto> CancelTransferAsync(long actorId, long transferOrderId, string? notes, bool isManager)
         {
-            var order = await _repository.CancelOrderAsync(transferOrderId, actorId, notes);
+            var order = await _repository.CancelOrderAsync(transferOrderId, actorId, notes, isManager);
             await _auditLogService.RecordAsync(new AuditEventDto { UserId = actorId, ActionType = "CANCEL_TRANSFER", EntityName = "TransferOrder", EntityId = order.TransferOrderId.ToString() });
             return new TransferResultDto { Success = true, Message = "Hủy phiếu thành công." };
         }

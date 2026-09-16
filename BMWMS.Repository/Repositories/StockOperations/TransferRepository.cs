@@ -366,7 +366,7 @@ namespace BMWMS.Repository.Repositories.StockOperations
 
         public async Task<TransferOrder> ApproveOrderAsync(long transferOrderId, long approvedByUserId, string? notes)
         {
-            await using var tx = await _context.Database.BeginTransactionAsync(IsolationLevel.ReadCommitted);
+            await using var tx = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
             try
             {
                 var order = await _context.TransferOrders.Include(o => o.TransferOrderDetails)
@@ -462,9 +462,9 @@ namespace BMWMS.Repository.Repositories.StockOperations
             }
         }
 
-        public async Task<TransferOrder> CancelOrderAsync(long transferOrderId, long cancelledByUserId, string? notes)
+        public async Task<TransferOrder> CancelOrderAsync(long transferOrderId, long cancelledByUserId, string? notes, bool isManager)
         {
-            await using var tx = await _context.Database.BeginTransactionAsync(IsolationLevel.ReadCommitted);
+            await using var tx = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
             try
             {
                 var order = await _context.TransferOrders.Include(o => o.TransferOrderDetails)
@@ -472,6 +472,9 @@ namespace BMWMS.Repository.Repositories.StockOperations
                 if (order == null) throw new ArgumentException("Không tìm thấy phiếu");
                 if (order.Status == StatusCompleted || order.Status == StatusCancelled) 
                     throw new InvalidOperationException("Không thể hủy phiếu đã hoàn thành hoặc đã hủy.");
+                if (isManager ? order.Status is not (StatusDraft or StatusApproved) :
+                    order.Status != StatusDraft || order.CreatedByUserId != cancelledByUserId)
+                    throw new UnauthorizedAccessException("Chỉ người tạo được hủy phiếu nháp; chỉ Quản lý kho được hủy phiếu đã duyệt.");
 
                 var oldStatus = order.Status;
                 order.Status = StatusCancelled;
@@ -536,6 +539,12 @@ namespace BMWMS.Repository.Repositories.StockOperations
                 
             if (order == null) throw new ArgumentException("Phiếu không tồn tại.");
             if (order.Status != StatusApproved) throw new InvalidOperationException("Chỉ xác nhận phiếu APPROVED.");
+            if (order.AssignedToUserId != staffUserId)
+                throw new UnauthorizedAccessException("Chỉ nhân viên kho được giao mới được xác nhận chuyển kho.");
+            if (items.Count != order.TransferOrderDetails.Count ||
+                items.GroupBy(item => item.TransferOrderDetailId).Any(group => group.Count() != 1) ||
+                items.Any(item => order.TransferOrderDetails.All(detail => detail.TransferOrderDetailId != item.TransferOrderDetailId)))
+                throw new ArgumentException("Dữ liệu xác nhận không khớp các dòng phiếu chuyển kho.");
 
             order.Status = StatusCompleted;
             order.ConfirmedByUserId = staffUserId;

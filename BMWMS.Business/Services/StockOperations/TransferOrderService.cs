@@ -36,7 +36,7 @@ namespace BMWMS.Business.Services.StockOperations
                 SourceLocationSummary = string.Join(", ", o.TransferOrderDetails.Select(d => d.SourceLocationId).Distinct()), // Simplified
                 DestinationLocationSummary = string.Join(", ", o.TransferOrderDetails.Select(d => d.DestinationLocationId).Distinct()),
                 Status = o.Status,
-                StatusLabel = o.Status switch { "DRAFT" => "Nháp", "APPROVED" => "Đã duyệt", "COMPLETED" => "Hoàn thành", "CANCELLED" => "Đã hủy", _ => o.Status },
+                StatusLabel = o.Status switch { "DRAFT" => "Nháp", "APPROVED" => "Đã duyệt", "ASSIGNED" => "Phiếu cũ - chỉ xem", "COMPLETED" => "Hoàn thành", "CANCELLED" => "Đã hủy", _ => o.Status },
                 StatusCss = o.Status switch { "DRAFT" => "secondary", "APPROVED" => "primary", "COMPLETED" => "success", "CANCELLED" => "danger", _ => "secondary" },
                 CreatedByName = o.CreatedByUser?.FullName ?? o.CreatedByUser?.Username ?? "",
                 ApprovedByName = o.ApprovedByUser?.FullName,
@@ -73,7 +73,7 @@ namespace BMWMS.Business.Services.StockOperations
                 TransferOrderNumber = order.TransferOrderNumber,
                 TransferType = order.TransferType,
                 Status = order.Status,
-                StatusLabel = order.Status switch { "DRAFT" => "Nháp", "APPROVED" => "Đã duyệt", "COMPLETED" => "Hoàn thành", "CANCELLED" => "Đã hủy", _ => order.Status },
+                StatusLabel = order.Status switch { "DRAFT" => "Nháp", "APPROVED" => "Đã duyệt", "ASSIGNED" => "Phiếu cũ - chỉ xem", "COMPLETED" => "Hoàn thành", "CANCELLED" => "Đã hủy", _ => order.Status },
                 WarehouseName = order.SourceWarehouse?.WarehouseName ?? "",
                 RequestedDate = order.RequestedDate,
                 DueDate = order.DueDate,
@@ -129,20 +129,22 @@ namespace BMWMS.Business.Services.StockOperations
             if (itemErrors.Any())
                 return new TransferResultDto { Success = false, Message = string.Join("\n", itemErrors) };
 
-            var allocations = dto.Items.Select(i => new CapacityAllocationDto
+            var allocations = dto.Items.SelectMany(i => new[]
             {
-                StorageLocationId = i.DestLocationId,
-                ProductId = i.ProductId,
-                Quantity = i.Quantity
+                new CapacityAllocationDto { StorageLocationId = i.DestLocationId, ProductId = i.ProductId, Quantity = i.Quantity },
+                new CapacityAllocationDto { StorageLocationId = i.SourceLocationId, ProductId = i.ProductId, Quantity = -i.Quantity }
             }).ToList();
 
             // Validate capacity without locking
             var evaluations = await _capacityService.EvaluateAsync(allocations, acquireLocationLocks: false);
-            var exceededLocs = evaluations.Values.Where(e => e.OverallStatus == CapacityEvaluationStatuses.Exceeded).Select(e => e.LocationCode).ToList();
+            var destinationIds = dto.Items.Select(i => i.DestLocationId).ToHashSet();
+            var exceededLocs = evaluations.Values.Where(e => destinationIds.Contains(e.StorageLocationId) &&
+                e.OverallStatus == CapacityEvaluationStatuses.Exceeded).Select(e => e.LocationCode).ToList();
             if (exceededLocs.Any())
                 return new TransferResultDto { Success = false, Message = $"Vị trí đích đã vượt quá sức chứa: {string.Join(", ", exceededLocs)}" };
 
-            var hasUnverified = evaluations.Values.Any(e => e.OverallStatus == CapacityEvaluationStatuses.Unknown || e.OverallStatus == CapacityEvaluationStatuses.NotConfigured);
+            var hasUnverified = evaluations.Values.Any(e => destinationIds.Contains(e.StorageLocationId) &&
+                (e.OverallStatus == CapacityEvaluationStatuses.Unknown || e.OverallStatus == CapacityEvaluationStatuses.NotConfigured));
             var notes = dto.Notes;
             if (hasUnverified)
                 notes = string.IsNullOrWhiteSpace(notes) ? "[CAPACITY_UNVERIFIED]" : notes + "\n[CAPACITY_UNVERIFIED]";
@@ -170,15 +172,16 @@ namespace BMWMS.Business.Services.StockOperations
             if (itemErrors.Any())
                 return new TransferResultDto { Success = false, Message = string.Join("\n", itemErrors) };
 
-            var allocations = dto.Items.Select(i => new CapacityAllocationDto
+            var allocations = dto.Items.SelectMany(i => new[]
             {
-                StorageLocationId = i.DestLocationId,
-                ProductId = i.ProductId,
-                Quantity = i.Quantity
+                new CapacityAllocationDto { StorageLocationId = i.DestLocationId, ProductId = i.ProductId, Quantity = i.Quantity },
+                new CapacityAllocationDto { StorageLocationId = i.SourceLocationId, ProductId = i.ProductId, Quantity = -i.Quantity }
             }).ToList();
 
             var evaluations = await _capacityService.EvaluateAsync(allocations, acquireLocationLocks: false);
-            var exceededLocs = evaluations.Values.Where(e => e.OverallStatus == CapacityEvaluationStatuses.Exceeded).Select(e => e.LocationCode).ToList();
+            var destinationIds = dto.Items.Select(i => i.DestLocationId).ToHashSet();
+            var exceededLocs = evaluations.Values.Where(e => destinationIds.Contains(e.StorageLocationId) &&
+                e.OverallStatus == CapacityEvaluationStatuses.Exceeded).Select(e => e.LocationCode).ToList();
             if (exceededLocs.Any())
                 return new TransferResultDto { Success = false, Message = $"Vị trí đích đã vượt quá sức chứa: {string.Join(", ", exceededLocs)}" };
 

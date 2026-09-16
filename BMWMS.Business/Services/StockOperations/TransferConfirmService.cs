@@ -5,6 +5,7 @@ using BMWMS.Business.Interfaces.StockOperations;
 using BMWMS.Business.Interfaces;
 using BMWMS.Business.DTOs.Capacity;
 using BMWMS.Business.DTOs.Audit;
+using BMWMS.Business.Common;
 using BMWMS.Repository.Interfaces.StockOperations;
 using BMWMS.Repository.Models;
 
@@ -31,39 +32,74 @@ namespace BMWMS.Business.Services.StockOperations
 
         public async Task<TransferResultDto> ConfirmAsync(long staffId, long transferOrderId, ConfirmTransferDto dto)
         {
-            // === LAYER 1: DB Transaction Serializable ===
             await using var tx = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
             try
             {
                 var order = await _repository.GetOrderWithDetailsAsync(transferOrderId);
                 if (order == null) throw new ArgumentException("Phiếu không tồn tại.");
+                if (order.Status != "APPROVED")
+                    throw new InvalidOperationException("Chỉ xác nhận phiếu đã được quản lý duyệt.");
+                if (order.AssignedToUserId != staffId)
+                    throw new UnauthorizedAccessException("Chỉ nhân viên kho được giao mới được xác nhận chuyển kho.");
+                if (dto?.Items == null || dto.Items.Count != order.TransferOrderDetails.Count ||
+                    dto.Items.GroupBy(item => item.TransferOrderDetailId).Any(group => group.Count() != 1) ||
+                    dto.Items.Any(item => order.TransferOrderDetails.All(detail => detail.TransferOrderDetailId != item.TransferOrderDetailId)))
+                    throw new ArgumentException("Phải xác nhận đúng một lần cho từng dòng của phiếu chuyển kho.");
 
                 var allocations = new List<CapacityAllocationDto>();
                 var sourceKeys = new List<(long ProductId, long LotId, long LocationId, decimal Qty)>();
-
-                foreach (var inputItem in dto.Items)
+                var confirmedItems = new List<TransferConfirmItemParam>();
+                var changedDestination = false;
+                var hasShortfall = false;
+                foreach (var detail in order.TransferOrderDetails)
                 {
-                    var detail = order.TransferOrderDetails.FirstOrDefault(d => d.TransferOrderDetailId == inputItem.TransferOrderDetailId);
-                    if (detail == null) continue;
-
+                    var inputItem = dto.Items.Single(item => item.TransferOrderDetailId == detail.TransferOrderDetailId);
                     var destId = inputItem.DestinationLocationId ?? detail.DestinationLocationId ?? 0;
-                    var confirmQuantity = detail.RequestedQuantity;
+                    var confirmQuantity = inputItem.ActualMovedQuantity;
+                    if (confirmQuantity < 0 || confirmQuantity > detail.RequestedQuantity)
+                        throw new ArgumentException($"Số thực chuyển của {detail.Product?.ProductCode} phải từ 0 đến số dự kiến.");
+                    if (confirmQuantity > 0 && detail.Product != null)
+                        QuantityRules.EnsureValid(detail.Product, confirmQuantity, "Số thực chuyển");
+                    if (destId <= 0 || destId == detail.SourceLocationId)
+                        throw new ArgumentException("Vị trí đích phải khác vị trí nguồn và còn tồn tại.");
+                    changedDestination |= destId != detail.DestinationLocationId;
+                    hasShortfall |= confirmQuantity < detail.RequestedQuantity;
+                    confirmedItems.Add(new TransferConfirmItemParam {
+                        TransferOrderDetailId = detail.TransferOrderDetailId,
+                        ActualMovedQuantity = confirmQuantity,
+                        DestinationLocationId = destId
+                    });
                     if (confirmQuantity > 0)
                     {
-                        allocations.Add(new CapacityAllocationDto
-                        {
-                            StorageLocationId = destId,
-                            ProductId = detail.ProductId,
-                            Quantity = confirmQuantity
-                        });
-                        
+                        allocations.Add(new CapacityAllocationDto { StorageLocationId = destId, ProductId = detail.ProductId, Quantity = confirmQuantity });
+                        // The source is freed by the same physical movement. Evaluate the net Bin/Rack/Zone change.
+                        allocations.Add(new CapacityAllocationDto { StorageLocationId = detail.SourceLocationId!.Value, ProductId = detail.ProductId, Quantity = -confirmQuantity });
                         sourceKeys.Add((detail.ProductId, detail.ProductLotId ?? 0, detail.SourceLocationId ?? 0, confirmQuantity));
                     }
                 }
+                if (sourceKeys.Count == 0)
+                    throw new ArgumentException("Không có hàng thực chuyển; hãy hủy phiếu thay vì xác nhận rỗng.");
+                if (hasShortfall && (dto.ShortfallReason?.Trim().Length ?? 0) < 5)
+                    throw new ArgumentException("Chuyển thiếu phải ghi lý do ít nhất 5 ký tự.");
+                if (changedDestination && (dto.DestinationChangeReason?.Trim().Length ?? 0) < 5)
+                    throw new ArgumentException("Đổi vị trí đích phải ghi lý do ít nhất 5 ký tự.");
 
-                // === LAYER 2: UPDLOCK trên Inventory source ===
-                // Sort to avoid deadlocks: ProductId -> LotId -> LocationId
-                var sortedSources = sourceKeys.OrderBy(k => k.ProductId).ThenBy(k => k.LotId).ThenBy(k => k.LocationId).ToList();
+                var destinationIds = confirmedItems.Where(item => item.ActualMovedQuantity > 0)
+                    .Select(item => item.DestinationLocationId!.Value).Distinct().ToArray();
+                var destinations = await _context.StorageLocations.AsNoTracking()
+                    .Where(location => destinationIds.Contains(location.StorageLocationId))
+                    .ToDictionaryAsync(location => location.StorageLocationId);
+                foreach (var destinationId in destinationIds)
+                {
+                    if (!destinations.TryGetValue(destinationId, out var destination) ||
+                        destination.WarehouseId != order.DestinationWarehouseId || destination.RackId == null ||
+                        !destination.IsPutawayAllowed || destination.Status is "BLOCKED" or "INACTIVE")
+                        throw new InvalidOperationException("Vị trí đích đã đổi, bị khóa hoặc không thuộc kho hiện tại. Vui lòng chọn lại Bin.");
+                }
+
+                var sortedSources = sourceKeys.GroupBy(key => new { key.ProductId, key.LotId, key.LocationId })
+                    .Select(group => (group.Key.ProductId, group.Key.LotId, group.Key.LocationId, Qty: group.Sum(item => item.Qty)))
+                    .OrderBy(key => key.ProductId).ThenBy(key => key.LotId).ThenBy(key => key.LocationId).ToList();
                 foreach (var src in sortedSources)
                 {
                     // UPDLOCK and HOLDLOCK to protect this row against other concurrent reads/writes
@@ -84,41 +120,25 @@ namespace BMWMS.Business.Services.StockOperations
                         throw new InvalidOperationException($"Tồn kho thực tế tại nguồn không đủ để xuất: yêu cầu {src.Qty}, thực tế {inv.OnHandQuantity}.");
                 }
 
-                // === LAYER 3: UPDLOCK/HOLDLOCK trên Zone -> Rack -> Location đích ===
                 if (allocations.Any())
                 {
                     var evaluations = await _capacityService.EvaluateAsync(allocations, acquireLocationLocks: true);
-                    var exceededLocs = evaluations.Values
+                    var exceededLocs = evaluations.Values.Where(e => destinationIds.Contains(e.StorageLocationId))
                         .Where(e => e.OverallStatus == CapacityEvaluationStatuses.Exceeded)
                         .Select(e => e.LocationCode)
                         .ToList();
 
                     if (exceededLocs.Any())
-                    {
-                        if (!dto.AcknowledgeCapacityWarning)
-                        {
-                            return new TransferResultDto
-                            {
-                                Success = false,
-                                Message = $"Vị trí đích đã bị đầy bởi một giao dịch khác: {string.Join(", ", exceededLocs)}.\nVui lòng đổi vị trí đích và điền lý do."
-                            };
-                        }
-                    }
+                        throw new InvalidOperationException($"Vị trí đích vượt sức chứa: {string.Join(", ", exceededLocs)}. Không thể xác nhận dù đã đánh dấu cảnh báo.");
+                    var unknown = evaluations.Values.Where(e => destinationIds.Contains(e.StorageLocationId))
+                        .Where(e => e.OverallStatus is CapacityEvaluationStatuses.Unknown or CapacityEvaluationStatuses.NotConfigured)
+                        .Select(e => e.LocationCode).ToList();
+                    if (unknown.Any() && (!dto.AcknowledgeCapacityWarning || (dto.CapacityWarningReason?.Trim().Length ?? 0) < 5))
+                        throw new InvalidOperationException($"Chưa xác định sức chứa tại {string.Join(", ", unknown)}; cần xác nhận và ghi lý do ít nhất 5 ký tự.");
                 }
 
-                var repoParams = dto.Items.Select(i =>
-                {
-                    var detail = order.TransferOrderDetails.First(d => d.TransferOrderDetailId == i.TransferOrderDetailId);
-                    return new TransferConfirmItemParam
-                    {
-                        TransferOrderDetailId = i.TransferOrderDetailId,
-                        ActualMovedQuantity = detail.RequestedQuantity,
-                        DestinationLocationId = i.DestinationLocationId
-                    };
-                }).ToList();
-
                 var confirmedOrder = await _repository.ConfirmTransferAsync(
-                    transferOrderId, staffId, repoParams, dto.DestinationChangeReason, dto.ShortfallReason, dto.Notes);
+                    transferOrderId, staffId, confirmedItems, dto.DestinationChangeReason, dto.ShortfallReason, dto.Notes);
 
                 await _auditLogService.RecordAsync(new AuditEventDto { UserId = staffId, ActionType = "CONFIRM_TRANSFER", EntityName = "TransferOrder", EntityId = transferOrderId.ToString() });
 
@@ -126,7 +146,7 @@ namespace BMWMS.Business.Services.StockOperations
 
                 return new TransferResultDto { Success = true, Message = "Xác nhận chuyển kho thành công." };
             }
-            catch (Exception ex)
+            catch
             {
                 await tx.RollbackAsync();
                 throw;
