@@ -1,0 +1,20 @@
+@model BMWMS.Web.Models.StocktakeSessionDetailModel
+@{
+    var isManager = (bool?)ViewData["IsManager"] == true;
+    var isStaff = (bool?)ViewData["IsStaff"] == true && !isManager;
+}
+<div class="stocktake-actions">
+    <span class="stocktake-status stocktake-status--@Model.Status.ToLowerInvariant()">@Model.StatusLabel</span>
+    @if (isStaff && Model.Status == "SCHEDULED") { <form method="post" asp-page-handler="Start" asp-route-id="@Model.StocktakeSessionId"><button class="btn btn-primary" type="submit"><i class="ri-play-line"></i>Bắt đầu kiểm</button></form> }
+    @if (isManager && Model.Status == "PENDING_APPROVAL")
+    {
+        <button class="btn btn-success" type="button" data-bs-toggle="modal" data-bs-target="#approveModal"><i class="ri-check-double-line"></i>Khớp tồn kho</button>
+        <button class="btn btn-outline-danger" type="button" data-bs-toggle="modal" data-bs-target="#rejectModal"><i class="ri-close-line"></i>Từ chối</button>
+    }
+    @if (isManager && Model.CanCancel) { <form method="post" asp-page-handler="Cancel" asp-route-id="@Model.StocktakeSessionId"><input type="hidden" name="notes" value="Quản lý hủy phiếu" /><button class="btn btn-light" type="submit"><i class="ri-delete-bin-line"></i>Hủy phiếu</button></form> }
+</div>
+@if (isManager && Model.Status == "PENDING_APPROVAL")
+{
+    <div class="modal fade" id="approveModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><form method="post" asp-page-handler="Approve" asp-route-id="@Model.StocktakeSessionId"><div class="modal-header"><h2 class="modal-title fs-5">Khớp tồn kho</h2><button class="btn-close" type="button" data-bs-dismiss="modal"></button></div><div class="modal-body"><p>Hệ thống sẽ ghi toàn bộ chênh lệch và kiểm tra sức chứa trước khi hoàn tất.</p><label class="form-label" for="approveNotes">Ghi chú</label><textarea class="form-control" id="approveNotes" name="notes" rows="3"></textarea></div><div class="modal-footer"><button class="btn btn-light" type="button" data-bs-dismiss="modal">Đóng</button><button class="btn btn-success" type="submit">Xác nhận khớp tồn</button></div></form></div></div></div>
+    <div class="modal fade" id="rejectModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><form method="post" asp-page-handler="Reject" asp-route-id="@Model.StocktakeSessionId"><div class="modal-header"><h2 class="modal-title fs-5">Từ chối kết quả</h2><button class="btn-close" type="button" data-bs-dismiss="modal"></button></div><div class="modal-body"><p>Phiếu sẽ kết thúc ở trạng thái từ chối và các vị trí sẽ được mở khóa.</p><label class="form-label" for="rejectReason">Lý do <span class="text-danger">*</span></label><textarea class="form-control" id="rejectReason" name="reason" rows="3" required></textarea></div><div class="modal-footer"><button class="btn btn-light" type="button" data-bs-dismiss="modal">Đóng</button><button class="btn btn-danger" type="submit">Từ chối phiếu</button></div></form></div></div></div>
+}

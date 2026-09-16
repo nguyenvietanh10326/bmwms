@@ -46,9 +46,6 @@ namespace BMWMS.Web.Pages.Stocktake
 
         public bool IsManager { get; set; }
 
-        [TempData]
-        public string? ErrorMessage { get; set; }
-
         public async Task<IActionResult> OnGetAsync()
         {
             if (!CheckManager())
@@ -93,7 +90,7 @@ namespace BMWMS.Web.Pages.Stocktake
 
             if (WarehouseId <= 0)
             {
-                ErrorMessage = "Chon warehouse truoc khi tao dot kiem kho.";
+                TempData["ErrorMessage"] = "Vui lòng chọn kho trước khi tạo phiếu kiểm kho.";
                 return Page();
             }
 
@@ -108,7 +105,7 @@ namespace BMWMS.Web.Pages.Stocktake
 
             if (!result.Success)
             {
-                ErrorMessage = result.Message;
+                TempData["ErrorMessage"] = result.Message;
                 return Page();
             }
 
