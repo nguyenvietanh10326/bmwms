@@ -9,16 +9,18 @@ public class AuthApiService
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<AuthApiService> _logger;
+    private readonly IHostEnvironment _environment;
 
     private static readonly JsonSerializerOptions _json = new()
     {
         PropertyNameCaseInsensitive = true
     };
 
-    public AuthApiService(IHttpClientFactory factory, ILogger<AuthApiService> logger)
+    public AuthApiService(IHttpClientFactory factory, ILogger<AuthApiService> logger, IHostEnvironment environment)
     {
         _httpClient = factory.CreateClient("ApiClient");
         _logger = logger;
+        _environment = environment;
     }
 
     public record LoginResult(
@@ -81,8 +83,16 @@ public class AuthApiService
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogError(ex, "Không kết nối được API khi đăng nhập");
-            return new LoginResult(false, null, "Không thể kết nối đến máy chủ. Vui lòng thử lại.", "server", null);
+            _logger.LogError(ex, "Không kết nối được API {ApiBaseUrl} khi đăng nhập", _httpClient.BaseAddress);
+            var message = _environment.IsDevelopment()
+                ? $"Không thể kết nối BMWMS.API tại {_httpClient.BaseAddress}. Trong Visual Studio, chọn profile chạy cả BMWMS.API và BMWMS.Web; xem Output nếu API không khởi động được."
+                : "Không thể kết nối đến máy chủ. Vui lòng thử lại.";
+            return new LoginResult(false, null, message, "server", null);
+        }
+        catch (TaskCanceledException ex)
+        {
+            _logger.LogError(ex, "API đăng nhập không phản hồi trong thời gian cho phép");
+            return new LoginResult(false, null, "Máy chủ phản hồi quá chậm. Vui lòng kiểm tra API và kết nối database rồi thử lại.", "server", null);
         }
         catch (Exception ex)
         {
