@@ -172,7 +172,7 @@ namespace BMWMS.Web.Pages.Transfer
             {
                 if (action == "assign" && result.TransferOrderId.HasValue)
                 {
-                    var assignResult = await _transferSvc.ApproveOrderAsync(result.TransferOrderId.Value, request.AssignedToUserId, "T·∫°o v√† giao lu√¥n");
+                    var assignResult = await _transferSvc.ApproveOrderAsync(result.TransferOrderId.Value, "T?o v‡ giao luÙn");
                     if (!assignResult.Success)
                     {
                         TransferSuccess = false;

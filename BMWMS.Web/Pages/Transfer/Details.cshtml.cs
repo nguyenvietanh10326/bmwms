@@ -35,7 +35,7 @@ namespace BMWMS.Web.Pages.Transfer
             Order = await _transferSvc.GetOrderByIdAsync(id);
             if (Order == null) return NotFound();
             CheckUserRole();
-            if (Order.CanReceive)
+            if (Order.CanConfirm)
             {
                 DestinationLocations = (await _transferSvc.GetLocationsAsync(1))
                     .Where(location => location.IsPutawayAllowed)
@@ -44,62 +44,48 @@ namespace BMWMS.Web.Pages.Transfer
             return Page();
         }
 
-        // ── Manager Approve ──────────────────────────────────────────────────
-        public async Task<IActionResult> OnPostApproveAsync(long id, long? assignedToUserId, string? notes)
+        public async Task<IActionResult> OnPostApproveAsync(long id, string? notes)
         {
             CheckUserRole();
             if (!IsManager)
             {
-                TempData["ErrorMessage"] = "Bạn không có quyền phê duyệt phiếu này.";
+                TempData["ErrorMessage"] = "Bạn không có quyền duyệt phiếu này.";
                 return RedirectToPage("/Transfer/Details", new { id });
             }
-            var result = await _transferSvc.ApproveOrderAsync(id, assignedToUserId, notes);
+            var result = await _transferSvc.ApproveOrderAsync(id, notes);
             TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] = result.Message;
             return RedirectToPage("/Transfer/Details", new { id });
         }
 
-        // ── Manager Reject ───────────────────────────────────────────────────
-        public async Task<IActionResult> OnPostRejectAsync(long id, string? notes)
+        public async Task<IActionResult> OnPostCancelAsync(long id, string? notes)
         {
             CheckUserRole();
-            if (!IsManager)
-            {
-                TempData["ErrorMessage"] = "Bạn không có quyền từ chối phiếu này.";
-                return RedirectToPage("/Transfer/Details", new { id });
-            }
-            var result = await _transferSvc.RejectOrderAsync(id, notes);
+            var result = await _transferSvc.CancelOrderAsync(id, notes);
             TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] = result.Message;
             return RedirectToPage("/Transfer/Details", new { id });
         }
 
-        // ── Staff Confirm Transfer ────────────────────────────────────────────
-        public async Task<IActionResult> OnPostConfirmAsync(long id, string? notes)
-        {
-            CheckUserRole();
-            // Both staff and manager can confirm
-            var result = await _transferSvc.ConfirmTransferAsync(id, notes);
-            TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] = result.Message;
-            return RedirectToPage("/Transfer/Details", new { id });
-        }
-
-        public async Task<IActionResult> OnPostIssueAsync(
+        public async Task<IActionResult> OnPostConfirmAsync(
             long id,
             string? notes,
             List<long> detailIds,
             List<decimal> actualMovedQuantities,
+            List<long> destinationLocationIds,
             bool acknowledgeCapacityWarning,
-            string? capacityWarningReason)
+            string? capacityWarningReason,
+            string? destinationChangeReason,
+            string? shortfallReason)
         {
             CheckUserRole();
             if (!IsStaff)
             {
-                TempData["ErrorMessage"] = "Ban khong co quyen xac nhan xuat phieu nay.";
+                TempData["ErrorMessage"] = "Bạn không có quyền xác nhận phiếu này.";
                 return RedirectToPage("/Transfer/Details", new { id });
             }
 
-            if (detailIds.Count != actualMovedQuantities.Count)
+            if (detailIds.Count != actualMovedQuantities.Count || detailIds.Count != destinationLocationIds.Count)
             {
-                TempData["ErrorMessage"] = "Dữ liệu số lượng thực chuyển không hợp lệ.";
+                TempData["ErrorMessage"] = "Dữ liệu xác nhận không hợp lệ.";
                 return RedirectToPage("/Transfer/Details", new { id });
             }
 
@@ -108,52 +94,25 @@ namespace BMWMS.Web.Pages.Transfer
                 Notes = notes,
                 AcknowledgeCapacityWarning = acknowledgeCapacityWarning,
                 CapacityWarningReason = capacityWarningReason,
+                DestinationChangeReason = destinationChangeReason,
+                ShortfallReason = shortfallReason,
                 Items = detailIds.Select((detailId, index) => new ConfirmTransferItemDto
                 {
                     TransferOrderDetailId = detailId,
-                    ActualMovedQuantity = actualMovedQuantities[index]
+                    ActualMovedQuantity = actualMovedQuantities[index],
+                    DestinationLocationId = destinationLocationIds[index]
                 }).ToList()
             };
-            var result = await _transferSvc.ConfirmIssueAsync(id, request);
-            TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] = result.Message;
-            return RedirectToPage("/Transfer/Details", new { id });
-        }
 
-        public async Task<IActionResult> OnPostReceiveAsync(
-            long id,
-            string? notes,
-            List<long> receiptDetailIds,
-            List<long> receiptDestinationIds,
-            bool acknowledgeCapacityWarning,
-            string? capacityWarningReason,
-            string? destinationChangeReason)
-        {
-            CheckUserRole();
-            if (!IsStaff)
+            var result = await _transferSvc.ConfirmTransferAsync(id, request);
+            if (!result.Success && result.Message.Contains("đã bị đầy"))
             {
-                TempData["ErrorMessage"] = "Ban khong co quyen xac nhan nhap phieu nay.";
-                return RedirectToPage("/Transfer/Details", new { id });
+                TempData["ErrorMessage"] = result.Message;
             }
-
-            if (receiptDetailIds.Count != receiptDestinationIds.Count)
+            else
             {
-                TempData["ErrorMessage"] = "Dữ liệu vị trí đích không hợp lệ.";
-                return RedirectToPage("/Transfer/Details", new { id });
+                TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] = result.Message;
             }
-
-            var result = await _transferSvc.ConfirmReceiptAsync(id, new ConfirmTransferDto
-            {
-                Notes = notes,
-                AcknowledgeCapacityWarning = acknowledgeCapacityWarning,
-                CapacityWarningReason = capacityWarningReason,
-                DestinationChangeReason = destinationChangeReason,
-                Items = receiptDetailIds.Select((detailId, index) => new ConfirmTransferItemDto
-                {
-                    TransferOrderDetailId = detailId,
-                    DestinationLocationId = receiptDestinationIds[index]
-                }).ToList()
-            });
-            TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] = result.Message;
             return RedirectToPage("/Transfer/Details", new { id });
         }
 

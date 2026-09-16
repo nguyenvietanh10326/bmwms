@@ -92,7 +92,9 @@ namespace BMWMS.Web.Services
             public DateTime? ConfirmedAt { get; set; }
             public bool InventoryPosted { get; set; }
             public bool CanEdit { get; set; }
+            public bool CanCancel { get; set; }
             public bool CanApprove { get; set; }
+            public bool CanConfirm { get; set; }
             public bool CanReject { get; set; }
             public bool CanIssue { get; set; }
             public bool CanReceive { get; set; }
@@ -170,6 +172,7 @@ namespace BMWMS.Web.Services
             public bool AcknowledgeCapacityWarning { get; set; }
             public string? CapacityWarningReason { get; set; }
             public string? DestinationChangeReason { get; set; }
+            public string? ShortfallReason { get; set; }
         }
 
         public class ConfirmTransferItemDto
@@ -177,6 +180,11 @@ namespace BMWMS.Web.Services
             public long TransferOrderDetailId { get; set; }
             public decimal ActualMovedQuantity { get; set; }
             public long? DestinationLocationId { get; set; }
+        }
+
+        public class CancelTransferDto
+        {
+            public string? Notes { get; set; }
         }
 
         public class ZoneOptionDto
@@ -380,11 +388,11 @@ namespace BMWMS.Web.Services
             catch (Exception ex) { return new TransferResultDto { Success = false, Message = $"Loi ket noi: {ex.Message}" }; }
         }
 
-        public async Task<TransferResultDto> ApproveOrderAsync(long id, long? assignedToUserId, string? notes)
+        public async Task<TransferResultDto> ApproveOrderAsync(long id, string? notes)
         {
             try
             {
-                var json = JsonSerializer.Serialize(new ApproveTransferDto { TransferOrderId = id, AssignedToUserId = assignedToUserId, Notes = notes });
+                var json = JsonSerializer.Serialize(new ApproveTransferDto { TransferOrderId = id, Notes = notes });
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
                 var response = await _httpClient.PostAsync($"api/transfers/{id}/approve", content);
                 if (response.IsSuccessStatusCode)
@@ -395,13 +403,13 @@ namespace BMWMS.Web.Services
             catch (Exception ex) { return new TransferResultDto { Success = false, Message = $"Lỗi kết nối: {ex.Message}" }; }
         }
 
-        public async Task<TransferResultDto> RejectOrderAsync(long id, string? notes)
+        public async Task<TransferResultDto> CancelOrderAsync(long id, string? notes)
         {
             try
             {
-                var json = JsonSerializer.Serialize(new ApproveTransferDto { TransferOrderId = id, Notes = notes });
+                var json = JsonSerializer.Serialize(new CancelTransferDto { Notes = notes });
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
-                var response = await _httpClient.PostAsync($"api/transfers/{id}/reject", content);
+                var response = await _httpClient.PostAsync($"api/transfers/{id}/cancel", content);
                 if (response.IsSuccessStatusCode)
                     return await response.Content.ReadFromJsonAsync<TransferResultDto>(_jsonOpts)
                         ?? new TransferResultDto { Success = false, Message = "Lỗi đọc phản hồi." };
@@ -410,11 +418,11 @@ namespace BMWMS.Web.Services
             catch (Exception ex) { return new TransferResultDto { Success = false, Message = $"Lỗi kết nối: {ex.Message}" }; }
         }
 
-        public async Task<TransferResultDto> ConfirmTransferAsync(long id, string? notes)
+        public async Task<TransferResultDto> ConfirmTransferAsync(long id, ConfirmTransferDto request)
         {
             try
             {
-                var json = JsonSerializer.Serialize(new ConfirmTransferDto { Notes = notes });
+                var json = JsonSerializer.Serialize(request);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
                 var response = await _httpClient.PostAsync($"api/transfers/{id}/confirm", content);
                 if (response.IsSuccessStatusCode)
@@ -467,3 +475,4 @@ namespace BMWMS.Web.Services
         }
     }
 }
+
