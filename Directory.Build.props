@@ -1,0 +1,6 @@
+<Project>
+  <PropertyGroup>
+    <!-- Local diagnostic build outputs are not application source or publish content. -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);tmp\**;tmp/**</DefaultItemExcludes>
+  </PropertyGroup>
+</Project>
