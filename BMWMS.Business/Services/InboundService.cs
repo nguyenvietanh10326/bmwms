@@ -1193,7 +1193,7 @@ public class InboundService : IInboundService
             return;
 
         var activeInboundItems = purchaseOrder.InboundOrders
-            .Where(io => io.Status == "COMPLETED")
+            .Where(io => PurchaseOrderReceiptRules.IsCompletedReceipt(io.Status))
             .SelectMany(io => io.InboundOrderItems)
             .ToList();
 
@@ -1902,6 +1902,12 @@ public class InboundService : IInboundService
         if (warehouseId <= 0 || productId <= 0 || putawayQuantity < 0)
             throw new ArgumentException("Thông tin tìm vị trí xếp hàng không hợp lệ.");
 
+        var product = await _context.Products.AsNoTracking()
+            .FirstOrDefaultAsync(item => item.ProductId == productId)
+            ?? throw new ArgumentException("Sản phẩm cần xếp vị trí không còn tồn tại.");
+        var productGroup = await _context.ProductGroups.AsNoTracking()
+            .FirstOrDefaultAsync(group => group.ProductGroupId == product.ProductGroupId);
+
         var storageRules = await _context.ProductFixedLocations
             .AsNoTracking()
             .Include(rule => rule.StorageLocation)
@@ -1919,6 +1925,15 @@ public class InboundService : IInboundService
                                location.LocationType == "BIN" && location.IsPutawayAllowed &&
                                (location.Status == "ACTIVE" || location.Status == "AVAILABLE" || location.Status == "OCCUPIED"))
             .ToListAsync();
+        // Capacity is expressed in the Product Group base UOM. Evaluating an
+        // allocation against every Bin would throw on unrelated Zones and make
+        // the entire putaway picker unusable.
+        locations = locations.Where(location =>
+            productGroup?.BaseUnitOfMeasureId == product.UnitOfMeasureId &&
+            location.StorageRack?.WarehouseZone.ProductGroupId == product.ProductGroupId &&
+            location.StorageRack.WarehouseZone.Status == "ACTIVE" &&
+            location.StorageRack.Status == "ACTIVE")
+            .ToList();
 
         IReadOnlyDictionary<long, LocationCapacityEvaluationDto> capacityEvaluations =
             new Dictionary<long, LocationCapacityEvaluationDto>();
@@ -1975,6 +1990,10 @@ public class InboundService : IInboundService
                     IsDefault = preferredRule?.IsDefault ?? false,
                     CapacityEvaluationEnabled = _capacityOptions.Enabled,
                     CapacityStatus = capacityStatus,
+                    MaxCapacityQuantity = capacity?.MaxCapacityQuantity,
+                    CurrentCapacityQuantity = capacity?.CurrentQuantity,
+                    ProjectedCapacityQuantity = capacity?.ProjectedQuantity,
+                    CapacityUnitName = capacity?.UnitName,
                     MaxWeightKg = capacity?.MaxWeightKg,
                     CurrentWeightKg = capacity?.CurrentWeightKg,
                     ProjectedWeightKg = capacity?.ProjectedWeightKg,
@@ -2016,23 +2035,10 @@ public class InboundService : IInboundService
             return $"Số lượng dự kiến vượt sức chứa tại: {string.Join(", ", exceededScopes)}.";
         }
         if (capacity.OverallStatus == CapacityEvaluationStatuses.Unknown)
-        {
-            var missing = capacity.MissingWeightProductCodes
-                .Concat(capacity.MissingVolumeProductCodes)
-                .Distinct(StringComparer.OrdinalIgnoreCase);
-            var unconfiguredScopes = capacity.Scopes
-                .Where(scope => scope.OverallStatus == CapacityEvaluationStatuses.NotConfigured)
-                .Select(scope => $"{scope.ScopeType} {scope.ScopeCode}")
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToList();
-            var unconfiguredMessage = unconfiguredScopes.Count == 0
-                ? string.Empty
-                : $" Chưa cấu hình giới hạn cho: {string.Join(", ", unconfiguredScopes)}.";
-            return $"Chưa đủ hệ số lưu kho để tính sức chứa cho: {string.Join(", ", missing)}.{unconfiguredMessage}";
-        }
+            return "Không thể xác định sức chứa: vị trí chưa gán nhóm sản phẩm hoặc có hàng không thuộc nhóm/ĐVT cơ sở của Zone.";
         if (capacity.OverallStatus == CapacityEvaluationStatuses.NotConfigured)
-            return "Bin, Rack và Zone chưa cấu hình giới hạn tải trọng hoặc thể tích.";
-        return "Bin, Rack và Zone còn đủ sức chứa theo dữ liệu đã cấu hình.";
+            return "Bin, Rack hoặc Zone chưa cấu hình sức chứa tối đa theo ĐVT cơ sở của nhóm.";
+        return "Bin, Rack và Zone còn đủ sức chứa theo ĐVT cơ sở của nhóm.";
     }
 
     private static bool IsActive(string? status)
