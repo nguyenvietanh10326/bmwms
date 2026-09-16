@@ -6,6 +6,8 @@ public class SupplierUpdateRequestDto
     public string SupplierName { get; set; } = null!;
     public string? TaxCode { get; set; }
     public string PhoneNumber { get; set; } = null!;
+    [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Email nhà cung cấp là bắt buộc.")]
+    [System.ComponentModel.DataAnnotations.EmailAddress(ErrorMessage = "Email không hợp lệ.")]
     public string? Email { get; set; }
     public string Address { get; set; } = null!;
     public string RepresentativeName { get; set; } = null!;

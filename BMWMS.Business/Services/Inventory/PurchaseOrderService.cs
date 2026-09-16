@@ -172,6 +172,7 @@ namespace BMWMS.Business.Services.Inventory
             {
                 "PARTIALLYRECEIVED" or "PENDING_REMAINDER_CONFIRMATION" => "PARTIALLY_RECEIVED",
                 "PENDING_CONFIRMATION" => "CONFIRMED",
+                "CLOSED" or "RECEIVED" => "COMPLETED",
                 var value => value
             };
         }
@@ -300,7 +301,7 @@ namespace BMWMS.Business.Services.Inventory
             var po = await _poRepository.GetByIdWithDetailsAsync(purchaseOrderId);
             if (po == null) return (false, "Không tìm thấy đơn mua hàng.");
             var currentStatus = NormalizePurchaseOrderStatus(po.Status);
-            if (currentStatus is not ("PENDING_RECEIPT_REVIEW" or "PARTIALLY_RECEIVED"))
+            if (currentStatus != "PENDING_RECEIPT_REVIEW")
                 return (false, "Chỉ được kết thúc sớm PO đã nhận một phần và đang chờ quyết định.");
             if (po.InboundOrders.Any(order => order.Status is "DRAFT" or "ASSIGNED" or "IN_PROGRESS"))
                 return (false, "Còn phiếu nhập đang xử lý; phải hoàn tất hoặc hủy phiếu đó trước.");
@@ -330,7 +331,7 @@ namespace BMWMS.Business.Services.Inventory
                 return (false, $"Gửi thông báo kết thúc cho nhà cung cấp thất bại: {exception.Message}");
             }
 
-            po.Status = "CLOSED";
+            po.Status = "COMPLETED";
             po.UpdatedAt = DateTime.UtcNow;
             po.Notes = string.IsNullOrWhiteSpace(po.Notes)
                 ? $"Kết thúc khi chưa nhận đủ: {reason}"
@@ -344,7 +345,7 @@ namespace BMWMS.Business.Services.Inventory
                 OldValues = new { Status = currentStatus },
                 NewValues = new
                 {
-                    Status = "CLOSED",
+                    Status = "COMPLETED",
                     Reason = reason,
                     RecipientEmail = supplierEmail,
                     CancelledRemainder = remainderLines.Select(line => new

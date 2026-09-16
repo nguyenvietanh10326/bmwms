@@ -113,6 +113,8 @@ public class InboundService : IInboundService
             ParentInboundOrderId = order.ParentInboundOrderId,
             Items = order.InboundOrderItems.OrderBy(i => i.InboundOrderItemId).Select(i => new InboundOrderItemDto
             {
+                SourceDeliveredQuantity = order.SourceType == "SALES_RETURN"
+                    ? order.SalesOrder?.SalesOrderDetails.FirstOrDefault(d => d.ProductId == i.ProductId)?.FulfilledQuantity : null,
                 InboundOrderItemId = i.InboundOrderItemId,
                 ProductId = i.ProductId,
                 ProductCode = i.Product.ProductCode,
@@ -787,6 +789,7 @@ public class InboundService : IInboundService
             .Include(so => so.InboundOrders)
                 .ThenInclude(io => io.InboundOrderItems)
                     .ThenInclude(item => item.InboundOrderDetails)
+            .Where(so => !so.OutboundOrders.Any(o => o.Status == "PENDING_APPROVAL"))
             .Where(so => so.Status == "ISSUED"
                       || so.Status == "PARTIALLY_ISSUED"
                       || so.Status == "FULFILLED"
@@ -850,6 +853,7 @@ public class InboundService : IInboundService
             .FirstOrDefaultAsync(s => s.SalesOrderId == salesOrderId);
 
         if (so == null) return null;
+        if (await _context.OutboundOrders.AnyAsync(o => o.SalesOrderId == salesOrderId && o.Status == "PENDING_APPROVAL")) return null;
         if (NormalizeSalesOrderStatus(so.Status) is not ("ISSUED" or "PARTIALLY_ISSUED"))
             return null;
 
@@ -1759,6 +1763,10 @@ public class InboundService : IInboundService
                 if (destination.WarehouseId != order.WarehouseId || destination.LocationType != "BIN" ||
                     !destination.IsPutawayAllowed || !IsActive(destination.Status))
                     throw new InvalidOperationException($"Vị trí {destination.LocationCode} không hợp lệ để xếp hàng.");
+                if (destination.MaxCapacityQuantity is null or <= 0 ||
+                    destination.StorageRack?.MaxCapacityQuantity is null or <= 0 ||
+                    destination.StorageRack.WarehouseZone.MaxCapacityQuantity is null or <= 0)
+                    throw new InvalidOperationException($"Bin/Rack/Zone của {destination.LocationCode} phải được cấu hình sức chứa trước khi cất hàng.");
                 if (destination.StorageRack != null &&
                     (!IsActive(destination.StorageRack.Status) ||
                      !IsActive(destination.StorageRack.WarehouseZone.Status)))
@@ -1799,7 +1807,6 @@ public class InboundService : IInboundService
 
             IReadOnlyDictionary<long, LocationCapacityEvaluationDto> capacityEvaluations =
                 new Dictionary<long, LocationCapacityEvaluationDto>();
-            if (_capacityOptions.Enabled)
             {
                 capacityEvaluations = await _capacityEvaluationService.EvaluateAsync(
                     dtos.Select(allocation => new CapacityAllocationDto
@@ -1832,7 +1839,7 @@ public class InboundService : IInboundService
                     .Distinct(StringComparer.OrdinalIgnoreCase)
                     .OrderBy(code => code)
                     .ToList();
-                if (_capacityOptions.IsStrict && incomplete.Count > 0)
+                if (incomplete.Count > 0)
                     throw new InvalidOperationException(
                         $"Chưa đủ cấu hình để kiểm tra sức chứa tại: {string.Join(", ", incomplete)}.");
 
@@ -1840,7 +1847,7 @@ public class InboundService : IInboundService
                 if (requiresAcknowledgement &&
                     (!request.AcknowledgeCapacityWarning || string.IsNullOrWhiteSpace(request.CapacityWarningReason)))
                     throw new ArgumentException(
-                        "Vui lòng xác nhận cảnh báo và ghi lý do khi sức chứa chưa đủ dữ liệu hoặc chọn ngoài vị trí khuyến nghị.");
+                        "Vui lòng xác nhận và ghi lý do khi chọn ngoài vị trí khuyến nghị trong cùng nhóm sản phẩm.");
             }
 
             foreach (var allocation in dtos)
@@ -2050,19 +2057,23 @@ public class InboundService : IInboundService
             productGroup?.BaseUnitOfMeasureId == product.UnitOfMeasureId &&
             location.StorageRack?.WarehouseZone.ProductGroupId == product.ProductGroupId &&
             location.StorageRack.WarehouseZone.Status == "ACTIVE" &&
-            location.StorageRack.Status == "ACTIVE")
+            location.StorageRack.Status == "ACTIVE" &&
+            location.MaxCapacityQuantity > 0 &&
+            location.StorageRack.MaxCapacityQuantity > 0 &&
+            location.StorageRack.WarehouseZone.MaxCapacityQuantity > 0)
             .ToList();
 
         IReadOnlyDictionary<long, LocationCapacityEvaluationDto> capacityEvaluations =
             new Dictionary<long, LocationCapacityEvaluationDto>();
-        if (_capacityOptions.Enabled && locations.Count > 0)
+        if (locations.Count > 0)
         {
             capacityEvaluations = await _capacityEvaluationService.EvaluateAsync(
                 locations.Select(location => new CapacityAllocationDto
                 {
                     StorageLocationId = location.StorageLocationId,
                     ProductId = productId,
-                    Quantity = putawayQuantity
+                    // Allow a receipt to be split among bins; validate the submitted split atomically.
+                    Quantity = 0
                 }).ToList());
         }
 
@@ -2079,9 +2090,7 @@ public class InboundService : IInboundService
                 capacityEvaluations.TryGetValue(location.StorageLocationId, out var capacity);
                 var capacityStatus = capacity?.OverallStatus ?? "DISABLED";
                 var isRecommended = matchingRules.Count > 0;
-                var requiresAcknowledgement = _capacityOptions.Enabled &&
-                    (capacityStatus is CapacityEvaluationStatuses.Unknown or CapacityEvaluationStatuses.NotConfigured ||
-                     (storageRules.Count > 0 && !isRecommended));
+                var requiresAcknowledgement = storageRules.Count > 0 && !isRecommended;
                 return new PutawayLocationDto
                 {
                     StorageLocationId = location.StorageLocationId,
@@ -2106,7 +2115,7 @@ public class InboundService : IInboundService
                     HasRecommendationConfiguration = storageRules.Count > 0,
                     Priority = preferredRule?.Priority ?? int.MaxValue,
                     IsDefault = preferredRule?.IsDefault ?? false,
-                    CapacityEvaluationEnabled = _capacityOptions.Enabled,
+                    CapacityEvaluationEnabled = true,
                     CapacityStatus = capacityStatus,
                     MaxCapacityQuantity = capacity?.MaxCapacityQuantity,
                     CurrentCapacityQuantity = capacity?.CurrentQuantity,
@@ -2122,6 +2131,10 @@ public class InboundService : IInboundService
                     RequiresAcknowledgement = requiresAcknowledgement
                 };
             })
+            .Where(location => location.CapacityStatus == CapacityEvaluationStatuses.Available &&
+                location.CurrentCapacityQuantity < location.MaxCapacityQuantity &&
+                capacityEvaluations[location.StorageLocationId].Scopes.All(scope =>
+                    scope.MaxCapacityQuantity > 0 && scope.CurrentQuantity < scope.MaxCapacityQuantity))
             .OrderBy(location => location.CapacityStatus == CapacityEvaluationStatuses.Exceeded)
             .ThenByDescending(location => location.IsDefault)
             .ThenByDescending(location => location.IsRecommended)
