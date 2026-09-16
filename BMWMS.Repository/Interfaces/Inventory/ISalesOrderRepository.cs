@@ -25,7 +25,7 @@ namespace BMWMS.Repository.Interfaces.Inventory
             DateOnly? fromDate,
             DateOnly? toDate,
             int pageIndex,
-            int pageSize);
+            int pageSize, string? sortOrder = null);
 
         // 2. Lấy đơn hàng theo ID (kèm Includes cần thiết)
         Task<SalesOrder?> GetByIdAsync(long salesOrderId);
