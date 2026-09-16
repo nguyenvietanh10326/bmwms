@@ -38,13 +38,13 @@ public class OutboundOrdersController : ControllerBase
     public async Task<IActionResult> GetById(long id)
     {
         var result = await _outboundOrderService.GetOutboundOrderByIdAsync(id);
-        if (result == null) return NotFound(new { message = "Kh+¶ng t+ºm thﬂ¶—y phiﬂ¶+u xuﬂ¶—t kho." });
+        if (result == null) return NotFound(new { message = "Kh√¥ng t√¨m th·∫•y phi·∫øu xu·∫•t kho." });
         if (!CanAccessOrder(result)) return Forbid();
         return Ok(result);
     }
 
     [HttpPost]
-    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,SALES_STAFF,PURCHASING_STAFF")]
+    [Authorize(Roles = "WAREHOUSE_STAFF,WAREHOUSE_MANAGER,SYSTEM_ADMIN")]
     public async Task<IActionResult> Create([FromBody] CreateOutboundOrderRequest request)
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -56,11 +56,11 @@ public class OutboundOrdersController : ControllerBase
         }
         catch (ArgumentException ex) { return BadRequest(new { message = ex.Message }); }
         catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
-        catch { return StatusCode(500, new { message = "Kh+¶ng thﬂ+‚ tﬂ¶Ìo phiﬂ¶+u xuﬂ¶—t. Vui l+¶ng thﬂ+° lﬂ¶Ìi hoﬂ¶+c kiﬂ+‚m tra dﬂ+ª liﬂ+Áu hﬂ+Á thﬂ+Êng." }); }
+        catch { return StatusCode(500, new { message = "Kh√¥ng th·ªÉ t·∫°o phi·∫øu xu·∫•t. Vui l√≤ng th·ª≠ l·∫°i ho·∫∑c ki·ªÉm tra d·ªØ li·ªáu h·ªá th·ªëng." }); }
     }
 
     [HttpPut("{id:long}")]
-    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,SALES_STAFF,PURCHASING_STAFF")]
+    [Authorize(Roles = "SYSTEM_ADMIN")]
     public async Task<IActionResult> UpdateDraft(long id, [FromBody] UpdateOutboundOrderRequest request)
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -73,7 +73,7 @@ public class OutboundOrdersController : ControllerBase
     [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
     public async Task<IActionResult> ApproveAndAssign(long id, [FromBody] ApproveOutboundOrderRequest request)
     {
-        if (request.AssignedToUserId <= 0) return BadRequest(new { message = "Phﬂ¶˙i chﬂ+Ïn nh+Ûn vi+¨n kho -Êﬂ+‚ ph+Ûn c+¶ng." });
+        if (request.AssignedToUserId <= 0) return BadRequest(new { message = "Ph·∫£i ch·ªçn nh√¢n vi√™n kho ƒë·ªÉ ph√¢n c√¥ng." });
         if (!TryGetCurrentUserId(out var currentUserId)) return Unauthorized();
         var (success, message) = await _outboundOrderService.ApproveAndAssignAsync(id, request.AssignedToUserId, currentUserId);
         return success ? Ok(new { message }) : BadRequest(new { message });
@@ -89,7 +89,7 @@ public class OutboundOrdersController : ControllerBase
     }
 
     [HttpPost("{id:long}/cancel")]
-    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,SALES_STAFF,PURCHASING_STAFF")]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF")]
     public async Task<IActionResult> Cancel(long id, [FromBody] CancelOutboundOrderRequest request)
     {
         if (!TryGetCurrentUserId(out var currentUserId)) return Unauthorized();
@@ -98,30 +98,30 @@ public class OutboundOrdersController : ControllerBase
     }
 
     [HttpGet("sales-order/{id:long}")]
-    [Authorize(Roles = "SALES_STAFF")]
+    [Authorize(Roles = "WAREHOUSE_STAFF")]
     public async Task<ActionResult<SalesOrderDetailApiResponse>> GetSalesOrderForOutbound(long id)
     {
         var result = await _salesOrderService.GetSalesOrderDetailForOutboundAsync(id);
-        return result == null ? NotFound(new { message = "Kh+¶ng t+ºm thﬂ¶—y SO c+¶ thﬂ+‚ tﬂ¶Ìo phiﬂ¶+u xuﬂ¶—t." }) : Ok(result);
+        return result == null ? NotFound(new { message = "Kh√¥ng t√¨m th·∫•y SO ƒë·ªß ƒëi·ªÅu ki·ªán t·∫°o phi·∫øu xu·∫•t." }) : Ok(result);
     }
 
     [HttpGet("sales-orders")]
-    [Authorize(Roles = "SALES_STAFF")]
+    [Authorize(Roles = "WAREHOUSE_STAFF")]
     public async Task<ActionResult<List<SalesOrderApiResponse>>> GetConfirmedSalesOrders()
         => Ok(await _salesOrderService.GetConfirmedSalesOrdersAsync());
 
     [HttpGet("purchase-orders/returnable")]
-    [Authorize(Roles = "PURCHASING_STAFF")]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
     public async Task<ActionResult<List<PurchaseOrderReturnOptionDto>>> GetReturnablePurchaseOrders()
         => Ok(await _outboundOrderService.GetReturnablePurchaseOrdersAsync());
 
     [HttpGet("purchase-order/{id:long}/return")]
-    [Authorize(Roles = "PURCHASING_STAFF")]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
     public async Task<ActionResult<PurchaseOrderForReturnDto>> GetPurchaseOrderForReturn(long id)
     {
         var result = await _outboundOrderService.GetPurchaseOrderForReturnAsync(id);
         return result == null
-            ? NotFound(new { message = "PO kh+¶ng c+¶n h+·ng -Ê+˙ nhﬂ¶°n c+¶ thﬂ+‚ trﬂ¶˙ nh+· cung cﬂ¶—p." })
+            ? NotFound(new { message = "PO kh√¥ng c√≤n h√†ng ƒë√£ nh·∫≠n c√≥ th·ªÉ tr·∫£ nh√† cung c·∫•p." })
             : Ok(result);
     }
 
@@ -135,7 +135,7 @@ public class OutboundOrdersController : ControllerBase
     public async Task<IActionResult> GetProcessDetail(long id)
     {
         var processData = await _outboundOrderService.GetOutboundProcessDetailAsync(id);
-        if (processData == null) return NotFound(new { message = "Kh+¶ng t+ºm thﬂ¶—y phiﬂ¶+u xuﬂ¶—t kho." });
+        if (processData == null) return NotFound(new { message = "Kh√¥ng t√¨m th·∫•y phi·∫øu xu·∫•t kho." });
         if (!TryGetCurrentUserId(out var currentUserId) || processData.AssignedToUserId != currentUserId) return Forbid();
         return Ok(processData);
     }
@@ -144,7 +144,7 @@ public class OutboundOrdersController : ControllerBase
     [Authorize(Roles = "WAREHOUSE_STAFF")]
     public async Task<IActionResult> ExecutePickBatch([FromBody] List<ExecutePickItemRequest> requests)
     {
-        if (requests == null || requests.Count == 0) return BadRequest(new { message = "Phﬂ¶˙i chﬂ+Ïn +°t nhﬂ¶—t mﬂ+÷t d+¶ng lﬂ¶—y h+·ng." });
+        if (requests == null || requests.Count == 0) return BadRequest(new { message = "Ph·∫£i ch·ªçn √≠t nh·∫•t m·ªôt d√≤ng l·∫•y h√†ng." });
         if (!ModelState.IsValid) return BadRequest(ModelState);
         if (!TryGetCurrentUserId(out var currentUserId)) return Unauthorized();
         var (success, message) = await _outboundOrderService.ExecutePickBatchAsync(requests, currentUserId);
