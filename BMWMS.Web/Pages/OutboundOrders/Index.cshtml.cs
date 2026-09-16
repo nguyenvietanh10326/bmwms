@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace BMWMS.Web.Pages.OutboundOrders
 {
-    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF,SALES_STAFF,PURCHASING_STAFF")]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF,SALES_STAFF,PURCHASING_STAFF,ACCOUNTANT,DIRECTOR")]
     public class IndexModel : PageModel
     {
         private readonly IHttpClientFactory _httpClientFactory;
@@ -52,6 +52,7 @@ namespace BMWMS.Web.Pages.OutboundOrders
                 string queryString =
                     $"?Search={Uri.EscapeDataString(Filter.Search ?? "")}" +
                     $"&Status={Uri.EscapeDataString(Filter.Status ?? "")}" +
+                    $"&SourceType={Uri.EscapeDataString(Filter.SourceType ?? "")}&SortOrder={Uri.EscapeDataString(Filter.SortOrder)}" +
                     $"&PageIndex={Filter.PageIndex}" +
                     $"&PageSize={Filter.PageSize}";
 

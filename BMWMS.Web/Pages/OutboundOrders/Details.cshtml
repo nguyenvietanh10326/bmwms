@@ -37,49 +37,6 @@
 
     <partial name="_Workflow" model="Model.Order.Status" />
 
-    @if (Model.Order.Status == "DRAFT")
-    {
-        <div class="alert alert-info" role="status">
-            <strong>Việc tiếp theo:</strong>
-            @(canApprove
-                ? "Kiểm tra đơn tham chiếu, số lượng và chọn một nhân viên kho đang rảnh để duyệt phiếu."
-                : "Phiếu đang chờ Quản lý kho duyệt và phân công. Chưa được lấy hoặc trừ tồn ở bước này.")
-        </div>
-    }
-    else if (Model.Order.Status == "READY")
-    {
-        <div class="alert alert-primary" role="status">
-            <strong>Việc tiếp theo:</strong>
-            @(canStart
-                ? "Bạn đã được phân công. Hãy đối chiếu thông tin và bấm “Bắt đầu xử lý” để mở màn lấy hàng."
-                : $"Phiếu đã được duyệt và giao cho {Model.Order.AssignedToUserName ?? "nhân viên kho"}; đang chờ bắt đầu lấy hàng.")
-        </div>
-    }
-    else if (Model.Order.Status == "ISSUING")
-    {
-        <div class="alert alert-warning" role="status">
-            <strong>Việc tiếp theo:</strong>
-            @(canProcess
-                ? "Tiếp tục ghi nhận số lượng thực lấy tại từng Khu / Kệ / Bin."
-                : $"{Model.Order.AssignedToUserName ?? "Nhân viên kho"} đang thực hiện lấy và xác nhận xuất hàng.")
-        </div>
-    }
-    else if (Model.Order.CanCloseSalesRemainder)
-    {
-        <div class="alert alert-warning" role="status">
-            <strong>Đợt xuất đã kết thúc; SO còn phần chưa giao.</strong>
-            SO vẫn còn nhu cầu chưa giao. Sales trao đổi với khách ngoài hệ thống; nếu khách nhận tiếp thì Nhân viên kho tạo đợt xuất mới, nếu khách dừng nhận thì Sales ghi nhận đóng phần còn lại.
-        </div>
-    }
-    else if (Model.Order.SourceType == "PURCHASE_RETURN" && Model.Order.Status == "ISSUED" && Model.Order.CompletionType == "PARTIAL")
-    {
-        <div class="alert alert-warning" role="status">
-            <strong>Đợt trả nhà cung cấp đã kết thúc một phần.</strong>
-            Phần giữ tồn chưa trả của đợt này đã được giải phóng. Purchasing trao đổi với NCC ngoài hệ thống;
-            nếu tiếp tục trả, Quản lý kho tạo đợt mới từ cùng PO và phân công nhân viên. Không tự mở lại nhu cầu mua hàng.
-        </div>
-    }
-
     <div class="card shadow-sm border-0 mb-3"><div class="card-body">
         <div class="row g-3">
             <div class="col-md-3"><div class="text-muted small">Trạng thái</div><strong>@StatusLabel(Model.Order.Status)</strong></div>
@@ -93,7 +50,7 @@
             @if (Model.Order.SourceType == "PURCHASE_RETURN")
             {
                 <div class="col-md-3"><div class="text-muted small">Người quyết định trả NCC</div><span>@(Model.Order.ApprovedByUserName ?? "—")</span></div>
-                <div class="col-md-3"><div class="text-muted small">Thời điểm tạo lệnh</div><span>@(Model.Order.ApprovedAt?.ToString("dd/MM/yyyy HH:mm") ?? "—")</span></div>
+                <div class="col-md-3"><div class="text-muted small">Thời điểm duyệt</div><span>@(Model.Order.ApprovedAt?.ToString("dd/MM/yyyy HH:mm") ?? "—")</span></div>
             }
             @if (Model.Order.Status == "ISSUED")
             {
@@ -112,7 +69,7 @@
             <div class="card-header bg-primary-subtle fw-semibold">Bước 2 — Duyệt và phân công</div>
             <div class="card-body">
                 <form method="post" asp-page-handler="Approve" asp-route-id="@Model.Order.OutboundOrderId" class="row g-2 align-items-end">
-                    <div class="col-md-8"><label class="form-label">Nhân viên kho đang rảnh</label><select name="assignedToUserId" asp-items="Model.AssigneeOptions" class="form-select" required></select><div class="form-text">Mỗi nhân viên chỉ nhận một nhiệm vụ nhập/xuất đang hoạt động. Khi duyệt, hệ thống kiểm tra lại nguồn hàng; với phiếu trả NCC, hệ thống giữ đúng hàng đã nhập từ PO tham chiếu.</div></div>
+                    <div class="col-md-8"><label class="form-label">Nhân viên kho đang rảnh</label><select name="assignedToUserId" asp-items="Model.AssigneeOptions" class="form-select" required></select></div>
                     <div class="col-md-4"><button class="btn btn-primary w-100" @(Model.AssigneeOptions.All(option => string.IsNullOrWhiteSpace(option.Value)) ? "disabled" : null)>Duyệt và phân công</button></div>
                 </form>
             </div>

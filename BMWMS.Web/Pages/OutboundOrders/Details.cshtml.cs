@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace BMWMS.Web.Pages.OutboundOrders
 {
-    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF,SALES_STAFF,PURCHASING_STAFF")]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF,SALES_STAFF,PURCHASING_STAFF,ACCOUNTANT,DIRECTOR")]
     public class DetailsModel : PageModel
     {
         private readonly IHttpClientFactory _httpClientFactory;

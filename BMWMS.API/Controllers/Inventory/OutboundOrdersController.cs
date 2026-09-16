@@ -8,7 +8,7 @@ namespace BMWMS.API.Controllers.Inventory;
 
 [Route("api/[controller]")]
 [ApiController]
-[Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF,SALES_STAFF,PURCHASING_STAFF")]
+[Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF,SALES_STAFF,PURCHASING_STAFF,ACCOUNTANT,DIRECTOR")]
 public class OutboundOrdersController : ControllerBase
 {
     private readonly IOutboundOrderService _outboundOrderService;
@@ -23,13 +23,13 @@ public class OutboundOrdersController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetOutboundOrders([FromQuery] OutboundOrderQueryFilter filter)
     {
-        if (User.IsInRole("WAREHOUSE_STAFF"))
+        if (!CanReadAllOrders && User.IsInRole("WAREHOUSE_STAFF"))
         {
             if (!TryGetCurrentUserId(out var currentUserId)) return Unauthorized();
             filter.AssignedToUserId = currentUserId;
         }
-        else if (User.IsInRole("SALES_STAFF")) filter.SourceType = "SALES_ORDER";
-        else if (User.IsInRole("PURCHASING_STAFF")) filter.SourceType = "PURCHASE_RETURN";
+        else if (!CanReadAllOrders && User.IsInRole("SALES_STAFF")) filter.SourceType = "SALES_ORDER";
+        else if (!CanReadAllOrders && User.IsInRole("PURCHASING_STAFF")) filter.SourceType = "PURCHASE_RETURN";
 
         return Ok(await _outboundOrderService.GetOutboundOrdersAsync(filter));
     }
@@ -169,9 +169,11 @@ public class OutboundOrdersController : ControllerBase
         return success ? Ok(new { message }) : BadRequest(new { message });
     }
 
+    private bool CanReadAllOrders => User.IsInRole("SYSTEM_ADMIN") || User.IsInRole("WAREHOUSE_MANAGER") || User.IsInRole("ACCOUNTANT") || User.IsInRole("DIRECTOR");
+
     private bool CanAccessOrder(OutboundOrderDetailDto order)
     {
-        if (User.IsInRole("SYSTEM_ADMIN") || User.IsInRole("WAREHOUSE_MANAGER")) return true;
+        if (CanReadAllOrders) return true;
         if (User.IsInRole("WAREHOUSE_STAFF"))
             return TryGetCurrentUserId(out var currentUserId) && order.AssignedToUserId == currentUserId;
         return (User.IsInRole("SALES_STAFF") && order.SourceType == "SALES_ORDER") ||
