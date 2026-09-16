@@ -84,8 +84,5 @@ namespace BMWMS.API.Controllers.StockOperations
         public IActionResult LegacyReject() => BadRequest("Luồng từ chối đã được thay thế bằng Hủy (Cancel).");
     }
 
-    public class CancelTransferDto
-    {
-        public string? Notes { get; set; }
-    }
-}
+
+

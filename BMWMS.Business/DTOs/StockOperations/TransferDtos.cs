@@ -156,6 +156,8 @@ namespace BMWMS.Business.DTOs.StockOperations
         public string? Notes { get; set; }
     }
 
+    public class CancelTransferDto { public string? Notes { get; set; } }
+
     public class ConfirmTransferDto
     {
         public string? Notes { get; set; }
@@ -262,3 +264,4 @@ namespace BMWMS.Business.DTOs.StockOperations
         public string? TransferOrderNumber { get; set; }
     }
 }
+
