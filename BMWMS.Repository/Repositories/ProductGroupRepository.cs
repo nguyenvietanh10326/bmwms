@@ -58,6 +58,7 @@ namespace BMWMS.Repository.Repositories
                 .Where(g => g.Status == "ACTIVE")
                 .Include(g => g.Products)
                 .Include(g => g.ProductGroupAttributes)
+                    .ThenInclude(pga => pga.ProductAttribute)
                 .OrderBy(g => g.GroupCode)
                 .AsNoTracking()
                 .ToListAsync();

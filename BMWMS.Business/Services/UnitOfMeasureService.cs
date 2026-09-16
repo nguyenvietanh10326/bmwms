@@ -1,4 +1,4 @@
-﻿using BMWMS.Business.Common;
+using BMWMS.Business.Common;
 using BMWMS.Business.DTOs.Product;
 using BMWMS.Business.Interfaces;
 using BMWMS.Repository.Interfaces;
@@ -46,7 +46,9 @@ namespace BMWMS.Business.Services
         public async Task<int> CreateAsync(CreateUnitOfMeasureDto dto)
         {
             if (await _repository.ExistsByCodeAsync(dto.UnitCode))
-                throw new InvalidOperationException($"M� �VT '{dto.UnitCode}' d� t?n t?i.");
+                throw new InvalidOperationException($"Mã đơn vị tính '{dto.UnitCode}' đã tồn tại.");
+            if (dto.QuantityScale > 4)
+                throw new InvalidOperationException("Độ chính xác số lượng không vượt quá 4 chữ số thập phân.");
 
             var entity = new UnitsOfMeasure
             {
@@ -63,10 +65,16 @@ namespace BMWMS.Business.Services
         public async Task UpdateAsync(int id, UpdateUnitOfMeasureDto dto)
         {
             var entity = await _repository.GetByIdAsync(id);
-            if (entity == null) throw new InvalidOperationException("Kh�ng t�m th?y �VT");
+            if (entity == null) throw new InvalidOperationException("Không tìm thấy đơn vị tính.");
 
             if (await _repository.ExistsByCodeAsync(dto.UnitCode, id))
-                throw new InvalidOperationException($"M� �VT '{dto.UnitCode}' d� t?n t?i.");
+                throw new InvalidOperationException($"Mã đơn vị tính '{dto.UnitCode}' đã tồn tại.");
+            if (dto.QuantityScale > 4)
+                throw new InvalidOperationException("Độ chính xác số lượng không vượt quá 4 chữ số thập phân.");
+            if (await _repository.IsInUseAsync(id) &&
+                (entity.QuantityScale != dto.QuantityScale || entity.Status != dto.Status))
+                throw new InvalidOperationException(
+                    "Đơn vị tính đang được dùng trong sản phẩm/nhóm sản phẩm; không được đổi độ chính xác hoặc ngừng sử dụng.");
 
             entity.UnitCode = dto.UnitCode;
             entity.UnitName = dto.UnitName;
@@ -79,10 +87,10 @@ namespace BMWMS.Business.Services
         public async Task DeleteAsync(int id)
         {
             var entity = await _repository.GetByIdAsync(id);
-            if (entity == null) throw new InvalidOperationException("Kh�ng t�m th?y �VT");
+            if (entity == null) throw new InvalidOperationException("Không tìm thấy đơn vị tính.");
 
             if (await _repository.IsInUseAsync(id))
-                throw new InvalidOperationException("�VT n�y dang du?c s? d?ng, kh�ng th? x�a");
+                throw new InvalidOperationException("Đơn vị tính đang được sử dụng, không thể xóa.");
 
             await _repository.DeleteAsync(entity);
         }
