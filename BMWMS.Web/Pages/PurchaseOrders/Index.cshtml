@@ -76,9 +76,7 @@
                 <option value="CONFIRMED" selected="@(Model.Status == "CONFIRMED")">Đã xác nhận</option>
                 <option value="PENDING_RECEIPT_REVIEW" selected="@(Model.Status == "PENDING_RECEIPT_REVIEW")">Chờ duyệt nhận tiếp</option>
                 <option value="PARTIALLY_RECEIVED" selected="@(Model.Status == "PARTIALLY_RECEIVED")">Đã nhận một phần</option>
-                <option value="COMPLETED" selected="@(Model.Status == "COMPLETED")">Hoàn tất nhận đủ</option>
-                <option value="CLOSED" selected="@(Model.Status == "CLOSED")">Đã kết thúc nhận</option>
-                <option value="REJECTED" selected="@(Model.Status == "REJECTED")">NCC từ chối</option>
+                <option value="COMPLETED" selected="@(Model.Status == "COMPLETED")">Hoàn tất</option>
                 <option value="CANCELLED" selected="@(Model.Status == "CANCELLED")">Đã hủy</option>
             </select>
         </div>
@@ -157,9 +155,9 @@
         "PENDING_RECEIPT_REVIEW" => "Chờ duyệt nhận tiếp",
         "PENDING_REMAINDER_CONFIRMATION" => "Đã nhận một phần",
         "PARTIALLY_RECEIVED" => "Đã nhận một phần",
-        "RECEIVED" or "COMPLETED" => "Hoàn tất nhận đủ",
-        "CLOSED" => "Đã kết thúc nhận",
-        "REJECTED" => "NCC từ chối",
+        "RECEIVED" or "COMPLETED" => "Hoàn tất",
+        "CLOSED" => "Hoàn tất",
+        "REJECTED" => "Đã hủy (dữ liệu cũ)",
         "CANCELLED" => "Đã hủy",
         _ => status
     };

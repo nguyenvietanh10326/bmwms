@@ -78,6 +78,10 @@ public class SupplierRepository : ISupplierRepository
         return await _context.Suppliers.AnyAsync(s => s.TaxCode == taxCode);
     }
 
+    public Task<bool> CheckEmailExistsAsync(string email, long? excludeSupplierId = null) =>
+        _context.Suppliers.AnyAsync(s => (!excludeSupplierId.HasValue || s.SupplierId != excludeSupplierId.Value) &&
+            s.Email != null && s.Email.Trim().ToLower() == email.Trim().ToLower());
+
     public async Task AddAsync(Supplier supplier)
     {
         await _context.Suppliers.AddAsync(supplier);
@@ -134,7 +138,7 @@ public class SupplierRepository : ISupplierRepository
             .Include(x => x.AssignedToUser)
             .Include(x => x.CreatedByUser)
             .Include(x => x.InboundOrderItems)
-            .Where(x => x.PurchaseOrder != null && x.PurchaseOrder.SupplierId == supplierId)
+            .Where(x => x.Status == "COMPLETED" && x.PurchaseOrder != null && x.PurchaseOrder.SupplierId == supplierId)
             .AsQueryable();
 
         if (!string.IsNullOrEmpty(keyword))
@@ -187,7 +191,7 @@ public class SupplierRepository : ISupplierRepository
             .Include(x => x.InboundOrderItems)
                 .ThenInclude(d => d.Product)
                     .ThenInclude(p => p.UnitOfMeasure)
-            .FirstOrDefaultAsync(x => x.InboundOrderNumber == inboundOrderNumber && x.PurchaseOrder != null && x.PurchaseOrder.SupplierId == supplierId);
+            .FirstOrDefaultAsync(x => x.Status == "COMPLETED" && x.InboundOrderNumber == inboundOrderNumber && x.PurchaseOrder != null && x.PurchaseOrder.SupplierId == supplierId);
     }
 
     public async Task AssignProductsAsync(long supplierId, List<long> productIds)

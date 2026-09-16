@@ -49,6 +49,5 @@ public class ReturnReceiptModel(InboundApiService inbound, IHttpClientFactory fa
 public class ReturnReceiptLine {
     public long InboundOrderItemId { get; set; }
     [Required(ErrorMessage = "Nhập số thực nhận cho mỗi mặt hàng; nhập 0 nếu chưa nhận.")] public decimal? ActualQuantity { get; set; }
-    public DateOnly? ManufactureDate { get; set; }
     public DateOnly? ExpiryDate { get; set; }
 }

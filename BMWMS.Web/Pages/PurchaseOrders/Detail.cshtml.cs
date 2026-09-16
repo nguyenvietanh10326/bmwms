@@ -90,9 +90,9 @@ public class DetailModel : PageModel
         "PENDING_RECEIPT_REVIEW" => "Chờ duyệt nhận tiếp",
         "PENDING_REMAINDER_CONFIRMATION" => "Đã nhận một phần",
         "PARTIALLY_RECEIVED" => "Đã nhận một phần",
-        "COMPLETED" or "RECEIVED" => "Hoàn tất nhận đủ",
-        "CLOSED" => "Đã kết thúc nhận",
-        "REJECTED" => "NCC từ chối",
+        "COMPLETED" or "RECEIVED" => "Hoàn tất",
+        "CLOSED" => "Hoàn tất",
+        "REJECTED" => "Đã hủy (dữ liệu cũ)",
         "CANCELLED" => "Đã hủy",
         _ => "Không xác định"
     };

@@ -88,6 +88,7 @@ public class SupplierService : ISupplierService
 
     public async Task<long> CreateSupplierAsync(SupplierCreateRequestDto dto, long creatorId, string? ipAddress)
     {
+        dto.Email = await ValidateEmailAsync(dto.Email);
         // Validation
         if (await _supplierRepository.CheckSupplierCodeExistsAsync(dto.SupplierCode))
         {
@@ -140,6 +141,8 @@ public class SupplierService : ISupplierService
         {
             throw new InvalidOperationException("Không thể chỉnh sửa nhà cung cấp ở trạng thái hiện tại.");
         }
+
+        dto.Email = await ValidateEmailAsync(dto.Email, supplier.SupplierId);
 
         if (supplier.SupplierCode != dto.SupplierCode)
         {
@@ -298,5 +301,16 @@ public class SupplierService : ISupplierService
         if (supplier == null) throw new ArgumentException($"Nhà cung cấp {supplierCode} không tồn tại.");
 
         await _supplierRepository.AssignProductsAsync(supplier.SupplierId, dto.ProductIds);
+    }
+
+    private async Task<string> ValidateEmailAsync(string? email, long? excludeSupplierId = null)
+    {
+        var normalized = email?.Trim().ToLowerInvariant();
+        if (string.IsNullOrWhiteSpace(normalized) || normalized.Length > 150 ||
+            !new System.ComponentModel.DataAnnotations.EmailAddressAttribute().IsValid(normalized))
+            throw new ArgumentException("Nhập email nhà cung cấp hợp lệ (tối đa 150 ký tự).");
+        if (await _supplierRepository.CheckEmailExistsAsync(normalized, excludeSupplierId))
+            throw new ArgumentException("Email đã được sử dụng bởi nhà cung cấp khác.");
+        return normalized;
     }
 }

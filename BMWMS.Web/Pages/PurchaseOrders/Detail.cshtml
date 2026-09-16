@@ -18,7 +18,7 @@
         Model.Order?.Status == "PENDING_RECEIPT_REVIEW" &&
         remainingLineCount > 0 && plannedLineCount == 0;
     var canCloseLegacyPartial = (User.IsInRole("SYSTEM_ADMIN") || User.IsInRole("WAREHOUSE_MANAGER")) &&
-        Model.Order?.Status == "PARTIALLY_RECEIVED" &&
+        Model.Order?.Status == "PENDING_RECEIPT_REVIEW" &&
         remainingLineCount > 0 && plannedLineCount == 0;
 }
 
