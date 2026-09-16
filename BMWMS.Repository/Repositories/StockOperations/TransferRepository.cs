@@ -115,7 +115,7 @@ namespace BMWMS.Repository.Repositories.StockOperations
             var order = new TransferOrder
             {
                 TransferOrderNumber = $"BT-{now:yyyyMMdd}-{now:HHmmssfff}",
-                TransferType = "BIN_TRANSFER",
+                TransferType = "INTERNAL_LOCATION",
                 SourceWarehouseId = warehouseId,
                 DestinationWarehouseId = warehouseId,
                 RequestedDate = DateOnly.FromDateTime(now),
@@ -361,3 +361,4 @@ namespace BMWMS.Repository.Repositories.StockOperations
         }
     }
 }
+
