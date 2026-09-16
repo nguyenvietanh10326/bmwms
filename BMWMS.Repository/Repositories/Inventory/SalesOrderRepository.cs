@@ -118,7 +118,7 @@ namespace BMWMS.Repository.Repositories.Inventory
             DateOnly? fromDate,
             DateOnly? toDate,
             int pageIndex,
-            int pageSize)
+            int pageSize, string? sortOrder = null)
         {
             var query = _context.SalesOrders
                 .Include(so => so.Customer)
@@ -164,9 +164,9 @@ namespace BMWMS.Repository.Repositories.Inventory
 
             int totalCount = await query.CountAsync();
 
-            var items = await query
-                .OrderByDescending(x => x.OrderDate)
-                .ThenByDescending(x => x.SalesOrderNumber)
+            var ordered = sortOrder == "oldest" ? query.OrderBy(x => x.CreatedAt).ThenBy(x => x.SalesOrderId)
+                : query.OrderByDescending(x => x.CreatedAt).ThenByDescending(x => x.SalesOrderId);
+            var items = await ordered
                 .Skip((pageIndex - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();

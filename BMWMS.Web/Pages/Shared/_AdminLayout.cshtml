@@ -8,6 +8,7 @@
     <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css" rel="stylesheet">
     <link href="~/css/dashboard.css" rel="stylesheet" asp-append-version="true" />
+    <style>.validation-summary-valid { display: none; }</style>
     @RenderSection("Styles", required: false)
 </head>
 <body>
@@ -28,6 +29,7 @@
                 var isSales = currentRole == "SALES_STAFF";
                 var isWhManager = currentRole == "WAREHOUSE_MANAGER";
                 var isWhStaff = currentRole == "WAREHOUSE_STAFF";
+                var isReadOnly = currentRole is "ACCOUNTANT" or "DIRECTOR";
             }
             <!-- 1. TỔNG QUAN -->
             <div class="nav-section">
@@ -92,7 +94,7 @@
             <div class="nav-section">
                 <div class="nav-section-label">ĐƠN HÀNG</div>
 
-                @if (isSysAdmin || isWhManager || isPurchasing)
+                @if (isSysAdmin || isWhManager || isPurchasing || isReadOnly)
                 {
                     var isPurchaseOrderActive = Context.Request.Path.StartsWithSegments("/PurchaseOrders");
                     <div class="nav-item nav-item-has-sub @(isPurchaseOrderActive ? "expanded active" : "")" onclick="toggleSubmenu(this)">
@@ -111,7 +113,7 @@
                     </div>
                 }
 
-                @if (isSysAdmin || isWhManager || isSales)
+                @if (isSysAdmin || isWhManager || isSales || isReadOnly)
                 {
                     var isSalesOrderActive = Context.Request.Path.StartsWithSegments("/sales-orders");
                     <div class="nav-item nav-item-has-sub @(isSalesOrderActive ? "expanded active" : "")" onclick="toggleSubmenu(this)">
@@ -168,21 +170,21 @@
                         <a href="/Admin/Inbound/Create" class="nav-sub-item @(Context.Request.Path == "/Admin/Inbound/Create" ? "active" : "")">Ghi nhận đợt nhập</a>
                     }
                 </div>
+                @if (isWhManager || isSysAdmin) { <a href="/Admin/Inbound/AuthorizeReturn" class="nav-sub-item">Duyệt nhận khách trả</a> }
                 @{
                     var isOutboundActive = Context.Request.Path.StartsWithSegments("/OutboundOrders");
                 }
-                <a href="/OutboundOrders/Index" class="nav-item @(isOutboundActive ? "active" : "")">
-                    <i class="ri-upload-2-line nav-item-icon"></i>
-                    Xuất kho (Outbound)
-                </a>
-                @if (isWhStaff)
-                {
-                    var isMyTasksActive = Context.Request.Path.StartsWithSegments("/Warehouse/MyTasks");
-                    <a href="/Warehouse/MyTasks" class="nav-item @(isMyTasksActive ? "active" : "")">
-                        <i class="ri-task-line nav-item-icon"></i>
-                        Nhiệm vụ của tôi
-                    </a>
-                }
+                <div class="nav-item nav-item-has-sub @(isOutboundActive ? "expanded active" : "")" onclick="toggleSubmenu(this)">
+                    <div class="nav-item-main"><i class="ri-upload-2-line nav-item-icon"></i>Xuất kho (Outbound)</div>
+                    <i class="ri-arrow-right-s-line nav-item-arrow"></i>
+                </div>
+                <div class="nav-submenu @(isOutboundActive ? "expanded" : "")">
+                    <a href="/OutboundOrders/Index" class="nav-sub-item @(Context.Request.Path == "/OutboundOrders/Index" ? "active" : "")">Danh sách phiếu xuất</a>
+                    @if (isWhStaff || isWhManager || isSysAdmin)
+                    {
+                        <a href="/OutboundOrders/Create" class="nav-sub-item @(Context.Request.Path == "/OutboundOrders/Create" ? "active" : "")">@(isWhStaff ? "Tạo phiếu xuất bán" : "Duyệt lệnh trả NCC")</a>
+                    }
+                </div>
                 <!-- Chuyển vị trí nội bộ -->
                 @{
                     var isTransferActive = Context.Request.Path.StartsWithSegments("/Transfer");

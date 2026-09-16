@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace BMWMS.Web.Pages.SalesOrders
 {
+    [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,SALES_STAFF,ACCOUNTANT,DIRECTOR")]
     public class IndexModel : PageModel
     {
         private readonly IHttpClientFactory _httpClientFactory;
@@ -31,6 +32,7 @@ namespace BMWMS.Web.Pages.SalesOrders
 
         [BindProperty(SupportsGet = true)]
         public int PageSize { get; set; } = 10;
+        [BindProperty(SupportsGet = true)] public string SortOrder { get; set; } = "newest";
 
         public PagedResult<SalesOrderListDto> PagedResult { get; set; } = new();
 
@@ -83,6 +85,7 @@ namespace BMWMS.Web.Pages.SalesOrders
             {
                 Keyword = Keyword?.Trim(),
                 Status = Status,
+                SortOrder = SortOrder,
                 FromDate = FromDate,
                 ToDate = ToDate,
                 PageIndex = PageIndex,
@@ -99,7 +102,7 @@ namespace BMWMS.Web.Pages.SalesOrders
                     $"&FromDate={Uri.EscapeDataString(criteria.FromDate?.ToString("yyyy-MM-dd") ?? string.Empty)}" +
                     $"&ToDate={Uri.EscapeDataString(criteria.ToDate?.ToString("yyyy-MM-dd") ?? string.Empty)}" +
                     $"&PageIndex={criteria.PageIndex}" +
-                    $"&PageSize={criteria.PageSize}";
+                    $"&PageSize={criteria.PageSize}&SortOrder={Uri.EscapeDataString(criteria.SortOrder)}";
 
                 var response = await client.GetAsync($"api/SalesOrders{queryString}");
 

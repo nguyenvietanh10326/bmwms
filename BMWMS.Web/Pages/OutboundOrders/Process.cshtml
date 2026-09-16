@@ -22,12 +22,7 @@
 
     <partial name="_Workflow" model="Model.Order.Status" />
 
-    <div class="alert alert-info">
-        <strong>@(isSale ? "Xuất bán theo SO" : "Trả hàng nhà cung cấp theo PO"):</strong>
-        @Model.Order.SourceReference — @Model.Order.PartnerName.
-        Chọn một hoặc nhiều vị trí của nhiều mặt hàng trong cùng lần ghi nhận. Hệ thống chỉ trừ tồn khi toàn bộ lựa chọn hợp lệ;
-        nếu một dòng sai, cả lần ghi nhận được hủy.
-    </div>
+
 
     <div class="card border-0 shadow-sm mb-3">
         <div class="card-body row g-3">
@@ -64,7 +59,7 @@
 
                 <div class="fw-semibold mb-2">Phân bổ lấy hàng</div>
                 @if (item.AvailableLocations.Count == 0)
-                { <div class="alert alert-warning mb-0">Không còn nguồn hàng hợp lệ để lấy cho mặt hàng này. Kiểm tra hạn dùng, trạng thái vị trí và giữ tồn. Nếu chưa xuất hàng, có thể hủy đợt; nếu đã xuất một phần, kết thúc đợt và báo quản lý xử lý chênh lệch tồn.</div> }
+                { <div class="alert alert-warning mb-0">Không còn hàng đủ điều kiện tại vị trí kho. Báo quản lý trước khi tiếp tục hoặc kết thúc đợt.</div> }
                 else
                 {
                     <div class="table-responsive"><table class="table table-sm align-middle">
@@ -103,11 +98,11 @@
         <div class="sticky-bottom bg-body border-top py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
             <div>
                 <div id="batchError" class="text-danger small"></div>
-                <div class="mt-2"><label for="deviationReason" class="form-label small mb-1">Lý do lấy khác đề xuất</label><input id="deviationReason" class="form-control form-control-sm" minlength="10" maxlength="500" placeholder="Bắt buộc khi đổi thứ tự vị trí so với gợi ý" /><div class="form-text">FIFO/FEFO là gợi ý tác nghiệp. Giao ít hơn nhưng vẫn theo thứ tự đề xuất không cần lý do đổi vị trí.</div></div>
+                <div class="mt-2"><label for="deviationReason" class="form-label small mb-1">Lý do lấy khác đề xuất</label><input id="deviationReason" class="form-control" minlength="10" maxlength="500" placeholder="Bắt buộc khi đổi thứ tự vị trí so với gợi ý" /></div>
                 @if (Model.Order.Items.Any(item => item.IssuedQuantity > 0) &&
                      Model.Order.Items.Any(item => item.RemainingQuantity > 0))
                 {
-                    <form method="post" asp-page-handler="Complete" asp-route-id="@Model.Order.OutboundOrderId" class="mt-2" onsubmit="return confirm('Hoàn tất đợt xuất theo số lượng thực tế đã ghi nhận? Phần còn lại của đơn tham chiếu vẫn được giữ để xử lý sau.');">
+                    <form method="post" asp-page-handler="Complete" asp-route-id="@Model.Order.OutboundOrderId" class="mt-2" onsubmit="return confirm('Hoàn tất đợt xuất theo số lượng thực tế đã ghi nhận? Phần chưa trả NCC sẽ được giải phóng giữ tồn; phần SO chưa giao vẫn chờ xử lý.');">
                         <div class="input-group"><input name="reason" class="form-control" minlength="10" maxlength="500" placeholder="Lý do kết thúc đợt khi còn thiếu" required /><button class="btn btn-outline-warning">Hoàn tất đợt giao một phần</button></div>
                     </form>
                 }
@@ -121,11 +116,10 @@
     <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
         <div class="modal-header"><h5 class="modal-title">Xác nhận trừ tồn kho</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
         <div class="modal-body">
-            <p class="mb-2">Hệ thống sẽ ghi nhận đồng thời tất cả các dòng đã chọn. Nếu một dòng không còn hợp lệ, toàn bộ lần ghi nhận sẽ bị hủy.</p>
+            <p class="mb-2">Kiểm tra số thực giao trước khi xác nhận trừ tồn.</p>
             <div id="batchSummary" class="small mb-3"></div>
             <div class="form-check mb-2"><input class="form-check-input shipment-check" type="checkbox" id="physicalCheck"><label class="form-check-label" for="physicalCheck">Đã đối chiếu đúng sản phẩm, số lượng và hàng vật lý đủ điều kiện xuất</label></div>
             <div class="form-check"><input class="form-check-input shipment-check" type="checkbox" id="packingCheck"><label class="form-check-label" for="packingCheck">Đã hoàn tất đóng gói/chằng buộc và sẵn sàng bàn giao</label></div>
-            <div class="form-text mt-2">Nút xác nhận là điểm ghi nhận Ship: hệ thống trừ tồn theo số thực bàn giao. Hàng hỏng hoặc không đạt không được đưa vào số thực xuất.</div>
             <div id="shipmentError" class="text-danger small mt-2"></div>
         </div>
         <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Kiểm tra lại</button><button type="button" id="submitBatch" class="btn btn-primary">Xác nhận xuất và trừ tồn</button></div>
