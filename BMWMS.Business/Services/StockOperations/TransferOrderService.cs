@@ -25,7 +25,7 @@ namespace BMWMS.Business.Services.StockOperations
 
         public async Task<TransferOrderPagedResultDto> GetPagedOrdersAsync(string? keyword, string? status, long? warehouseId, int pageIndex, int pageSize, long? currentStaffId)
         {
-            var (items, total, draft, approved, completed, cancelled) = await _repository.GetPagedOrdersAsync(keyword, status, warehouseId, pageIndex, pageSize);
+            var (items, total, draft, approved, completed, cancelled) = await _repository.GetPagedOrdersAsync(keyword, status, warehouseId, pageIndex, pageSize, currentStaffId);
 
             var list = items.Select(o => new TransferOrderListDto
             {
@@ -63,6 +63,7 @@ namespace BMWMS.Business.Services.StockOperations
         {
             var order = await _repository.GetOrderWithDetailsAsync(transferOrderId);
             if (order == null) return null;
+            if (!isManager && order.CreatedByUserId != currentUserId && order.AssignedToUserId != currentUserId) return null;
 
             var inventoryPosted = order.TransferOrderDetails.Any(d => d.InventoryTransactions.Any());
 
@@ -113,6 +114,21 @@ namespace BMWMS.Business.Services.StockOperations
 
         public async Task<TransferResultDto> CreateOrderAsync(long staffId, CreateTransferOrderDto dto)
         {
+            var validationErrors = ValidateRequestShape(dto);
+            if (validationErrors.Any())
+                return new TransferResultDto { Success = false, Message = string.Join("\n", validationErrors) };
+
+            var repoParams = dto.Items.Select(i => new TransferItemParam
+            {
+                ProductId = i.ProductId, ProductLotId = i.ProductLotId,
+                SourceLocationId = i.SourceLocationId, DestLocationId = i.DestLocationId,
+                Quantity = i.Quantity
+            }).ToList();
+
+            var itemErrors = await _repository.ValidateTransferItemsAsync(dto.WarehouseId, repoParams);
+            if (itemErrors.Any())
+                return new TransferResultDto { Success = false, Message = string.Join("\n", itemErrors) };
+
             var allocations = dto.Items.Select(i => new CapacityAllocationDto
             {
                 StorageLocationId = i.DestLocationId,
@@ -131,13 +147,6 @@ namespace BMWMS.Business.Services.StockOperations
             if (hasUnverified)
                 notes = string.IsNullOrWhiteSpace(notes) ? "[CAPACITY_UNVERIFIED]" : notes + "\n[CAPACITY_UNVERIFIED]";
 
-            var repoParams = dto.Items.Select(i => new TransferItemParam
-            {
-                ProductId = i.ProductId, ProductLotId = i.ProductLotId,
-                SourceLocationId = i.SourceLocationId, DestLocationId = i.DestLocationId,
-                Quantity = i.Quantity
-            }).ToList();
-
             var order = await _repository.CreatePendingOrderAsync(dto.WarehouseId, dto.DueDate, repoParams, staffId, notes);
             await _auditLogService.RecordAsync(new AuditEventDto { UserId = staffId, ActionType = "CREATE_TRANSFER", EntityName = "TransferOrder", EntityId = order.TransferOrderId.ToString() });
 
@@ -146,6 +155,10 @@ namespace BMWMS.Business.Services.StockOperations
 
         public async Task<TransferResultDto> UpdateDraftOrderAsync(long staffId, UpdateTransferOrderDto dto)
         {
+            var validationErrors = ValidateRequestShape(dto);
+            if (validationErrors.Any())
+                return new TransferResultDto { Success = false, Message = string.Join("\n", validationErrors) };
+
             var repoParams = dto.Items.Select(i => new TransferItemParam
             {
                 ProductId = i.ProductId, ProductLotId = i.ProductLotId,
@@ -153,10 +166,38 @@ namespace BMWMS.Business.Services.StockOperations
                 Quantity = i.Quantity
             }).ToList();
 
+            var itemErrors = await _repository.ValidateTransferItemsAsync(dto.WarehouseId, repoParams);
+            if (itemErrors.Any())
+                return new TransferResultDto { Success = false, Message = string.Join("\n", itemErrors) };
+
+            var allocations = dto.Items.Select(i => new CapacityAllocationDto
+            {
+                StorageLocationId = i.DestLocationId,
+                ProductId = i.ProductId,
+                Quantity = i.Quantity
+            }).ToList();
+
+            var evaluations = await _capacityService.EvaluateAsync(allocations, acquireLocationLocks: false);
+            var exceededLocs = evaluations.Values.Where(e => e.OverallStatus == CapacityEvaluationStatuses.Exceeded).Select(e => e.LocationCode).ToList();
+            if (exceededLocs.Any())
+                return new TransferResultDto { Success = false, Message = $"Vị trí đích đã vượt quá sức chứa: {string.Join(", ", exceededLocs)}" };
+
             var order = await _repository.UpdateDraftOrderAsync(dto.TransferOrderId, dto.WarehouseId, dto.DueDate, repoParams, staffId, dto.Notes);
             await _auditLogService.RecordAsync(new AuditEventDto { UserId = staffId, ActionType = "UPDATE_TRANSFER", EntityName = "TransferOrder", EntityId = order.TransferOrderId.ToString() });
 
             return new TransferResultDto { Success = true, Message = "Cập nhật phiếu thành công." };
+        }
+
+        private static List<string> ValidateRequestShape(CreateTransferOrderDto dto)
+        {
+            var errors = new List<string>();
+            if (dto.WarehouseId <= 0)
+                errors.Add("Kho hàng không hợp lệ.");
+            if (dto.Items == null || dto.Items.Count == 0)
+                errors.Add("Vui lòng thêm ít nhất 1 sản phẩm.");
+            if (dto.DueDate.HasValue && dto.DueDate.Value < DateOnly.FromDateTime(DateTime.UtcNow.Date))
+                errors.Add("Ngày dự kiến hoàn thành không được nhỏ hơn hôm nay.");
+            return errors;
         }
     }
 }

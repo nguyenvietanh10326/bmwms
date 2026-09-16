@@ -29,6 +29,8 @@ namespace BMWMS.Web.Pages.Transfer
 
         public async Task<IActionResult> OnGetAsync()
         {
+            if (!IsWarehouseStaff()) return RedirectToPage("/Transfer/Index");
+
             Warehouses = await _warehouseSvc.GetWarehousesAsync();
             if (IsEditMode)
             {
@@ -42,6 +44,34 @@ namespace BMWMS.Web.Pages.Transfer
             return Page();
         }
 
+        public async Task<IActionResult> OnGetZonesAsync(long? productId)
+        {
+            return new JsonResult(await _transferSvc.GetZonesAsync(1, productId));
+        }
+
+        public async Task<IActionResult> OnGetRacksAsync(long? zoneId, long? productId)
+        {
+            return new JsonResult(await _transferSvc.GetRacksAsync(1, zoneId, productId));
+        }
+
+        public async Task<IActionResult> OnGetLocationsAsync(long? zoneId, long? rackId, long? productId)
+        {
+            return new JsonResult(await _transferSvc.GetLocationsAsync(1, zoneId, rackId, productId));
+        }
+
+        public async Task<IActionResult> OnGetLocationInventoryAsync(long locationId)
+        {
+            if (locationId <= 0) return new JsonResult(new List<TransferInventoryItemDto>());
+            return new JsonResult(await _transferSvc.GetLocationInventoryAsync(locationId));
+        }
+
+        public async Task<IActionResult> OnGetValidateDestinationAsync(long locationId, long productId, decimal quantity)
+        {
+            if (locationId <= 0 || productId <= 0 || quantity <= 0)
+                return new JsonResult(new BinCapacityCheckDto { IsValid = false, Message = "Du lieu kiem tra khong hop le." });
+            return new JsonResult(await _transferSvc.ValidateDestinationAsync(locationId, productId, quantity));
+        }
+
         public async Task<IActionResult> OnPostAsync(
             string action,
             DateOnly? dueDate,
@@ -52,9 +82,20 @@ namespace BMWMS.Web.Pages.Transfer
             List<long> destLocationIds,
             List<decimal> quantities)
         {
+            if (!IsWarehouseStaff()) return RedirectToPage("/Transfer/Index");
+
             if (productIds == null || productIds.Count == 0)
             {
                 ErrorMessage = "Vui lòng thêm ít nhất 1 sản phẩm.";
+                return RedirectToPage("/Transfer/Create", new { id = Id });
+            }
+
+            if (productLotIds.Count != productIds.Count ||
+                sourceLocationIds.Count != productIds.Count ||
+                destLocationIds.Count != productIds.Count ||
+                quantities.Count != productIds.Count)
+            {
+                ErrorMessage = "Dữ liệu chi tiết phiếu không hợp lệ. Vui lòng kiểm tra lại các dòng hàng.";
                 return RedirectToPage("/Transfer/Create", new { id = Id });
             }
 
@@ -93,6 +134,12 @@ namespace BMWMS.Web.Pages.Transfer
                 ErrorMessage = result.Message;
                 return RedirectToPage("/Transfer/Create", new { id = Id });
             }
+        }
+
+        private bool IsWarehouseStaff()
+        {
+            var roleCode = HttpContext.Session.GetString("RoleCode")?.ToUpperInvariant() ?? "";
+            return roleCode == "WAREHOUSE_STAFF" || roleCode.Contains("STAFF");
         }
     }
 }

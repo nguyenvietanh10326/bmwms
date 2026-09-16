@@ -239,6 +239,9 @@ namespace BMWMS.Business.DTOs.StockOperations
         public bool IsValid { get; set; }
         public string Message { get; set; } = string.Empty;
         public string CapacityStatus { get; set; } = "NOT_CONFIGURED";
+        public decimal? CurrentQuantity { get; set; }
+        public decimal? ProjectedQuantity { get; set; }
+        public decimal? MaxCapacityQuantity { get; set; }
         public decimal? CurrentWeightKg { get; set; }
         public decimal? ProjectedWeightKg { get; set; }
         public decimal? MaxWeightKg { get; set; }

@@ -20,18 +20,22 @@ namespace BMWMS.Repository.Interfaces.StockOperations
 
     public interface ITransferRepository
     {
-        Task<List<WarehouseZone>> GetZonesByWarehouseAsync(long warehouseId = 1);
-        Task<List<StorageRack>> GetRacksByZoneAsync(long warehouseId, long? zoneId = null);
+        Task<List<WarehouseZone>> GetZonesByWarehouseAsync(long warehouseId = 1, long? productId = null);
+        Task<List<StorageRack>> GetRacksByZoneAsync(long warehouseId, long? zoneId = null, long? productId = null);
         Task<List<BMWMS.Repository.Models.Inventory>> GetInventoriesByLocationAsync(long locationId);
         Task<StorageLocation?> GetLocationWithInventoryAsync(long locationId);
-        Task<List<StorageLocation>> GetActiveLocationsByWarehouseAsync(long warehouseId = 1, long? zoneId = null, long? rackId = null);
+        Task<List<StorageLocation>> GetActiveLocationsByWarehouseAsync(long warehouseId = 1, long? zoneId = null, long? rackId = null, long? productId = null);
         Task<List<Warehouse>> GetAllWarehousesAsync();
         Task<List<User>> GetStaffUsersAsync();
 
         Task<(List<TransferOrder> Items, int TotalCount, int DraftCount, int ApprovedCount, int CompletedCount, int CancelledCount)>
-            GetPagedOrdersAsync(string? keyword, string? status, long? warehouseId, int pageIndex, int pageSize);
+            GetPagedOrdersAsync(string? keyword, string? status, long? warehouseId, int pageIndex, int pageSize, long? currentStaffId);
 
         Task<TransferOrder?> GetOrderWithDetailsAsync(long transferOrderId);
+
+        Task<IReadOnlyList<string>> ValidateTransferItemsAsync(
+            long warehouseId,
+            IReadOnlyCollection<TransferItemParam> items);
 
         Task<TransferOrder> CreatePendingOrderAsync(
             long warehouseId,

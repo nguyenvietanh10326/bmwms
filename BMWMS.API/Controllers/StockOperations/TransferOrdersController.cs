@@ -19,7 +19,7 @@ namespace BMWMS.API.Controllers.StockOperations
         }
 
         private long CurrentUserId => long.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
-        private bool IsManager => User.IsInRole("WAREHOUSE_MANAGER");
+        private bool IsManager => User.IsInRole("WAREHOUSE_MANAGER") || User.IsInRole("SYSTEM_ADMIN");
 
         [HttpGet]
         public async Task<IActionResult> GetPaged(
@@ -42,6 +42,7 @@ namespace BMWMS.API.Controllers.StockOperations
         }
 
         [HttpPost("create")]
+        [Authorize(Roles = "WAREHOUSE_STAFF")]
         public async Task<IActionResult> CreateOrder([FromBody] CreateTransferOrderDto dto)
         {
             try
@@ -57,6 +58,7 @@ namespace BMWMS.API.Controllers.StockOperations
         }
 
         [HttpPut("{id:long}")]
+        [Authorize(Roles = "WAREHOUSE_STAFF")]
         public async Task<IActionResult> UpdateDraftOrder(long id, [FromBody] UpdateTransferOrderDto dto)
         {
             try

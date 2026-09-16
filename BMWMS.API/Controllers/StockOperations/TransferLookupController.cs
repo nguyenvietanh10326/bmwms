@@ -19,13 +19,13 @@ namespace BMWMS.API.Controllers.StockOperations
         }
 
         [HttpGet("zones")]
-        public async Task<IActionResult> GetZones([FromQuery] long warehouseId = 1) => Ok(await _service.GetZonesAsync(warehouseId));
+        public async Task<IActionResult> GetZones([FromQuery] long warehouseId = 1, [FromQuery] long? productId = null) => Ok(await _service.GetZonesAsync(warehouseId, productId));
 
         [HttpGet("racks")]
-        public async Task<IActionResult> GetRacks([FromQuery] long warehouseId = 1, [FromQuery] long? zoneId = null) => Ok(await _service.GetRacksAsync(warehouseId, zoneId));
+        public async Task<IActionResult> GetRacks([FromQuery] long warehouseId = 1, [FromQuery] long? zoneId = null, [FromQuery] long? productId = null) => Ok(await _service.GetRacksAsync(warehouseId, zoneId, productId));
 
         [HttpGet("locations")]
-        public async Task<IActionResult> GetLocations([FromQuery] long warehouseId = 1, [FromQuery] long? zoneId = null, [FromQuery] long? rackId = null) => Ok(await _service.GetLocationsAsync(warehouseId, zoneId, rackId));
+        public async Task<IActionResult> GetLocations([FromQuery] long warehouseId = 1, [FromQuery] long? zoneId = null, [FromQuery] long? rackId = null, [FromQuery] long? productId = null) => Ok(await _service.GetLocationsAsync(warehouseId, zoneId, rackId, productId));
 
         [HttpGet("location-inventory")]
         public async Task<IActionResult> GetLocationInventory([FromQuery] long locationId) => Ok(await _service.GetLocationInventoryAsync(locationId));

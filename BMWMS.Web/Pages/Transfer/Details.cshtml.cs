@@ -64,7 +64,6 @@ namespace BMWMS.Web.Pages.Transfer
         public async Task<IActionResult> OnPostConfirmAsync(
             long id,
             List<long> detailIds,
-            List<decimal> actualMovedQuantities,
             List<long> destinationLocationIds,
             string? notes)
         {
@@ -74,7 +73,6 @@ namespace BMWMS.Web.Pages.Transfer
                 req.Items.Add(new ConfirmTransferItemDto
                 {
                     TransferOrderDetailId = detailIds[i],
-                    ActualMovedQuantity = actualMovedQuantities[i],
                     DestinationLocationId = destinationLocationIds[i]
                 });
             }

@@ -47,16 +47,17 @@ namespace BMWMS.Business.Services.StockOperations
                     if (detail == null) continue;
 
                     var destId = inputItem.DestinationLocationId ?? detail.DestinationLocationId ?? 0;
-                    if (inputItem.ActualMovedQuantity > 0)
+                    var confirmQuantity = detail.RequestedQuantity;
+                    if (confirmQuantity > 0)
                     {
                         allocations.Add(new CapacityAllocationDto
                         {
                             StorageLocationId = destId,
                             ProductId = detail.ProductId,
-                            Quantity = inputItem.ActualMovedQuantity
+                            Quantity = confirmQuantity
                         });
                         
-                        sourceKeys.Add((detail.ProductId, detail.ProductLotId ?? 0, detail.SourceLocationId ?? 0, inputItem.ActualMovedQuantity));
+                        sourceKeys.Add((detail.ProductId, detail.ProductLotId ?? 0, detail.SourceLocationId ?? 0, confirmQuantity));
                     }
                 }
 
@@ -105,11 +106,15 @@ namespace BMWMS.Business.Services.StockOperations
                     }
                 }
 
-                var repoParams = dto.Items.Select(i => new TransferConfirmItemParam
+                var repoParams = dto.Items.Select(i =>
                 {
-                    TransferOrderDetailId = i.TransferOrderDetailId,
-                    ActualMovedQuantity = i.ActualMovedQuantity,
-                    DestinationLocationId = i.DestinationLocationId
+                    var detail = order.TransferOrderDetails.First(d => d.TransferOrderDetailId == i.TransferOrderDetailId);
+                    return new TransferConfirmItemParam
+                    {
+                        TransferOrderDetailId = i.TransferOrderDetailId,
+                        ActualMovedQuantity = detail.RequestedQuantity,
+                        DestinationLocationId = i.DestinationLocationId
+                    };
                 }).ToList();
 
                 var confirmedOrder = await _repository.ConfirmTransferAsync(

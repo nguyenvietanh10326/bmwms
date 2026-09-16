@@ -21,10 +21,10 @@ namespace BMWMS.API.Controllers.StockOperations
         }
 
         private long CurrentUserId => long.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
-        private bool IsManager => User.IsInRole("WAREHOUSE_MANAGER");
+        private bool IsManager => User.IsInRole("WAREHOUSE_MANAGER") || User.IsInRole("SYSTEM_ADMIN");
 
         [HttpPost("{id:long}/approve")]
-        [Authorize(Roles = "WAREHOUSE_MANAGER")]
+        [Authorize(Roles = "WAREHOUSE_MANAGER,SYSTEM_ADMIN")]
         public async Task<IActionResult> ApproveTransfer(long id, [FromBody] ApproveTransferDto dto)
         {
             try

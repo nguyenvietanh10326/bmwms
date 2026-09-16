@@ -26,9 +26,9 @@ namespace BMWMS.Business.Interfaces.StockOperations
 
     public interface ITransferLookupService
     {
-        Task<List<ZoneOptionDto>> GetZonesAsync(long warehouseId = 1);
-        Task<List<RackOptionDto>> GetRacksAsync(long warehouseId, long? zoneId = null);
-        Task<List<LocationOptionDto>> GetLocationsAsync(long warehouseId = 1, long? zoneId = null, long? rackId = null);
+        Task<List<ZoneOptionDto>> GetZonesAsync(long warehouseId = 1, long? productId = null);
+        Task<List<RackOptionDto>> GetRacksAsync(long warehouseId, long? zoneId = null, long? productId = null);
+        Task<List<LocationOptionDto>> GetLocationsAsync(long warehouseId = 1, long? zoneId = null, long? rackId = null, long? productId = null);
         Task<List<TransferInventoryItemDto>> GetLocationInventoryAsync(long locationId);
         Task<BinCapacityCheckDto> ValidateDestinationAsync(long locationId, long productId, decimal requestedQuantity);
         Task<List<StaffOptionDto>> GetStaffUsersAsync();

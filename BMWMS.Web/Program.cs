@@ -41,6 +41,7 @@ builder.Services.AddRazorPages(options =>
     options.Conventions.AuthorizeFolder("/Categories");
     options.Conventions.AuthorizeFolder("/Inventory");
     options.Conventions.AuthorizeFolder("/StorageLocations");
+    options.Conventions.AuthorizeFolder("/Transfer");
 
     // Role-specific pages
     options.Conventions.AuthorizeFolder("/Admin/Users", "AdminOnly");

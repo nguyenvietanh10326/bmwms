@@ -19,14 +19,35 @@ namespace BMWMS.Repository.Repositories.StockOperations
             _context = context;
         }
 
-        public async Task<List<WarehouseZone>> GetZonesByWarehouseAsync(long warehouseId = 1) =>
-            await _context.WarehouseZones.Where(z => z.WarehouseId == warehouseId).ToListAsync();
-
-        public async Task<List<StorageRack>> GetRacksByZoneAsync(long warehouseId, long? zoneId = null)
+        public async Task<List<WarehouseZone>> GetZonesByWarehouseAsync(long warehouseId = 1, long? productId = null)
         {
-            var q = _context.StorageRacks.Where(r => r.WarehouseId == warehouseId);
+            var q = _context.WarehouseZones.Where(z => z.WarehouseId == warehouseId);
+            if (productId.HasValue && productId.Value > 0)
+            {
+                var groupId = await _context.Products
+                    .Where(p => p.ProductId == productId.Value)
+                    .Select(p => (long?)p.ProductGroupId)
+                    .FirstOrDefaultAsync();
+                q = groupId.HasValue ? q.Where(z => z.ProductGroupId == groupId.Value) : q.Where(z => false);
+            }
+            return await q.OrderBy(z => z.ZoneCode).ToListAsync();
+        }
+
+        public async Task<List<StorageRack>> GetRacksByZoneAsync(long warehouseId, long? zoneId = null, long? productId = null)
+        {
+            var q = _context.StorageRacks
+                .Include(r => r.WarehouseZone)
+                .Where(r => r.WarehouseId == warehouseId);
             if (zoneId.HasValue) q = q.Where(r => r.ZoneId == zoneId.Value);
-            return await q.ToListAsync();
+            if (productId.HasValue && productId.Value > 0)
+            {
+                var groupId = await _context.Products
+                    .Where(p => p.ProductId == productId.Value)
+                    .Select(p => (long?)p.ProductGroupId)
+                    .FirstOrDefaultAsync();
+                q = groupId.HasValue ? q.Where(r => r.WarehouseZone.ProductGroupId == groupId.Value) : q.Where(r => false);
+            }
+            return await q.OrderBy(r => r.RackCode).ToListAsync();
         }
 
         public async Task<List<BMWMS.Repository.Models.Inventory>> GetInventoriesByLocationAsync(long locationId) =>
@@ -38,12 +59,23 @@ namespace BMWMS.Repository.Repositories.StockOperations
                 .Include(l => l.Inventories).ThenInclude(i => i.ProductLot)
                 .FirstOrDefaultAsync(l => l.StorageLocationId == locationId);
 
-        public async Task<List<StorageLocation>> GetActiveLocationsByWarehouseAsync(long warehouseId = 1, long? zoneId = null, long? rackId = null)
+        public async Task<List<StorageLocation>> GetActiveLocationsByWarehouseAsync(long warehouseId = 1, long? zoneId = null, long? rackId = null, long? productId = null)
         {
-            var q = _context.StorageLocations.Where(l => l.WarehouseId == warehouseId && l.Status != "BLOCKED");
+            var q = _context.StorageLocations
+                .Include(l => l.StorageRack)
+                .ThenInclude(r => r.WarehouseZone)
+                .Where(l => l.WarehouseId == warehouseId && l.Status != "BLOCKED");
             if (zoneId.HasValue) q = q.Where(l => l.StorageRack.ZoneId == zoneId.Value);
             if (rackId.HasValue) q = q.Where(l => l.RackId == rackId.Value);
-            return await q.ToListAsync();
+            if (productId.HasValue && productId.Value > 0)
+            {
+                var groupId = await _context.Products
+                    .Where(p => p.ProductId == productId.Value)
+                    .Select(p => (long?)p.ProductGroupId)
+                    .FirstOrDefaultAsync();
+                q = groupId.HasValue ? q.Where(l => l.StorageRack!.WarehouseZone.ProductGroupId == groupId.Value) : q.Where(l => false);
+            }
+            return await q.OrderBy(l => l.LocationCode).ToListAsync();
         }
 
         public async Task<List<Warehouse>> GetAllWarehousesAsync() => await _context.Warehouses.ToListAsync();
@@ -52,7 +84,7 @@ namespace BMWMS.Repository.Repositories.StockOperations
             await _context.Users.Include(u => u.Role).Where(u => u.Role.RoleCode == "WAREHOUSE_STAFF" && u.Status == "ACTIVE").ToListAsync();
 
         public async Task<(List<TransferOrder> Items, int TotalCount, int DraftCount, int ApprovedCount, int CompletedCount, int CancelledCount)>
-            GetPagedOrdersAsync(string? keyword, string? status, long? warehouseId, int pageIndex, int pageSize)
+            GetPagedOrdersAsync(string? keyword, string? status, long? warehouseId, int pageIndex, int pageSize, long? currentStaffId)
         {
             var query = _context.TransferOrders
                 .Include(o => o.CreatedByUser)
@@ -70,6 +102,9 @@ namespace BMWMS.Repository.Repositories.StockOperations
             if (warehouseId.HasValue)
                 query = query.Where(o => o.SourceWarehouseId == warehouseId.Value || o.DestinationWarehouseId == warehouseId.Value);
 
+            if (currentStaffId.HasValue)
+                query = query.Where(o => o.CreatedByUserId == currentStaffId.Value || o.AssignedToUserId == currentStaffId.Value);
+
             var counts = await query.GroupBy(o => o.Status).Select(g => new { Status = g.Key, Count = g.Count() }).ToListAsync();
             var totalCount = counts.Sum(x => x.Count);
             var draftCount = counts.FirstOrDefault(x => x.Status == StatusDraft)?.Count ?? 0;
@@ -83,6 +118,163 @@ namespace BMWMS.Repository.Repositories.StockOperations
             var items = await query.OrderByDescending(o => o.CreatedAt).Skip(pageIndex * pageSize).Take(pageSize).ToListAsync();
 
             return (items, totalCount, draftCount, approvedCount, completedCount, cancelledCount);
+        }
+
+        public async Task<IReadOnlyList<string>> ValidateTransferItemsAsync(
+            long warehouseId,
+            IReadOnlyCollection<TransferItemParam> items)
+        {
+            var errors = new List<string>();
+            if (items == null || items.Count == 0)
+            {
+                errors.Add("Phiếu chuyển kho phải có ít nhất 1 dòng hàng.");
+                return errors;
+            }
+
+            for (var i = 0; i < items.Count; i++)
+            {
+                var item = items.ElementAt(i);
+                var rowLabel = $"Dòng {i + 1}";
+
+                if (item.ProductId <= 0)
+                    errors.Add($"{rowLabel}: Chưa chọn sản phẩm.");
+                if (item.ProductLotId <= 0)
+                    errors.Add($"{rowLabel}: Chưa chọn lô hàng.");
+                if (item.SourceLocationId <= 0)
+                    errors.Add($"{rowLabel}: Chưa chọn vị trí nguồn.");
+                if (item.DestLocationId <= 0)
+                    errors.Add($"{rowLabel}: Chưa chọn vị trí đích.");
+                if (item.Quantity <= 0)
+                    errors.Add($"{rowLabel}: Số lượng chuyển phải lớn hơn 0.");
+                if (item.SourceLocationId > 0 && item.SourceLocationId == item.DestLocationId)
+                    errors.Add($"{rowLabel}: Vị trí nguồn và đích không được trùng nhau.");
+            }
+
+            if (errors.Any()) return errors;
+
+            var productIds = items.Select(i => i.ProductId).Distinct().ToList();
+            var lotIds = items.Select(i => i.ProductLotId).Distinct().ToList();
+            var locationIds = items
+                .SelectMany(i => new[] { i.SourceLocationId, i.DestLocationId })
+                .Distinct()
+                .ToList();
+
+            var products = await _context.Products
+                .Where(p => productIds.Contains(p.ProductId))
+                .Select(p => new { p.ProductId, p.ProductCode, p.ProductName, p.Status })
+                .ToListAsync();
+            var lots = await _context.ProductLots
+                .Where(l => lotIds.Contains(l.ProductLotId))
+                .Select(l => new { l.ProductLotId, l.ProductId, l.LotNumber, l.Status })
+                .ToListAsync();
+            var locations = await _context.StorageLocations
+                .Where(l => locationIds.Contains(l.StorageLocationId))
+                .Select(l => new
+                {
+                    l.StorageLocationId,
+                    l.WarehouseId,
+                    l.LocationCode,
+                    l.Status,
+                    l.IsPickable,
+                    l.IsPutawayAllowed
+                })
+                .ToListAsync();
+
+            var sourceGroups = items
+                .GroupBy(i => new { i.ProductId, i.ProductLotId, i.SourceLocationId })
+                .Select(g => new
+                {
+                    g.Key.ProductId,
+                    g.Key.ProductLotId,
+                    g.Key.SourceLocationId,
+                    Quantity = g.Sum(x => x.Quantity)
+                })
+                .ToList();
+
+            var sourceProductIds = sourceGroups.Select(g => g.ProductId).Distinct().ToList();
+            var sourceLotIds = sourceGroups.Select(g => g.ProductLotId).Distinct().ToList();
+            var sourceLocationIds = sourceGroups.Select(g => g.SourceLocationId).Distinct().ToList();
+            var inventories = await _context.Inventories
+                .Where(i =>
+                    sourceProductIds.Contains(i.ProductId) &&
+                    sourceLotIds.Contains(i.ProductLotId) &&
+                    sourceLocationIds.Contains(i.StorageLocationId))
+                .Select(i => new
+                {
+                    i.ProductId,
+                    i.ProductLotId,
+                    i.StorageLocationId,
+                    AvailableQuantity = i.AvailableQuantity ?? (i.OnHandQuantity - i.ReservedQuantity)
+                })
+                .ToListAsync();
+
+            foreach (var item in items.Select((value, index) => new { value, index }))
+            {
+                var rowLabel = $"Dòng {item.index + 1}";
+                var product = products.FirstOrDefault(p => p.ProductId == item.value.ProductId);
+                var lot = lots.FirstOrDefault(l => l.ProductLotId == item.value.ProductLotId);
+                var source = locations.FirstOrDefault(l => l.StorageLocationId == item.value.SourceLocationId);
+                var dest = locations.FirstOrDefault(l => l.StorageLocationId == item.value.DestLocationId);
+
+                if (product == null)
+                {
+                    errors.Add($"{rowLabel}: Sản phẩm không tồn tại.");
+                    continue;
+                }
+                if (!string.Equals(product.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase))
+                    errors.Add($"{rowLabel}: Sản phẩm {product.ProductCode} không ở trạng thái ACTIVE.");
+
+                if (lot == null)
+                    errors.Add($"{rowLabel}: Lô hàng không tồn tại.");
+                else
+                {
+                    if (lot.ProductId != item.value.ProductId)
+                        errors.Add($"{rowLabel}: Lô {lot.LotNumber} không thuộc sản phẩm {product.ProductCode}.");
+                    if (!string.Equals(lot.Status, "AVAILABLE", StringComparison.OrdinalIgnoreCase))
+                        errors.Add($"{rowLabel}: Lô {lot.LotNumber} không khả dụng.");
+                }
+
+                if (source == null)
+                    errors.Add($"{rowLabel}: Vị trí nguồn không tồn tại.");
+                else
+                {
+                    if (source.WarehouseId != warehouseId)
+                        errors.Add($"{rowLabel}: Vị trí nguồn {source.LocationCode} không thuộc kho đã chọn.");
+                    if (!source.IsPickable)
+                        errors.Add($"{rowLabel}: Vị trí nguồn {source.LocationCode} không cho phép lấy hàng.");
+                    if (source.Status is "BLOCKED" or "INACTIVE")
+                        errors.Add($"{rowLabel}: Vị trí nguồn {source.LocationCode} đang {source.Status}.");
+                }
+
+                if (dest == null)
+                    errors.Add($"{rowLabel}: Vị trí đích không tồn tại.");
+                else
+                {
+                    if (dest.WarehouseId != warehouseId)
+                        errors.Add($"{rowLabel}: Vị trí đích {dest.LocationCode} không thuộc kho đã chọn.");
+                    if (!dest.IsPutawayAllowed)
+                        errors.Add($"{rowLabel}: Vị trí đích {dest.LocationCode} không cho phép cất hàng.");
+                    if (dest.Status is "BLOCKED" or "INACTIVE")
+                        errors.Add($"{rowLabel}: Vị trí đích {dest.LocationCode} đang {dest.Status}.");
+                }
+            }
+
+            foreach (var group in sourceGroups)
+            {
+                var inventory = inventories.FirstOrDefault(i =>
+                    i.ProductId == group.ProductId &&
+                    i.ProductLotId == group.ProductLotId &&
+                    i.StorageLocationId == group.SourceLocationId);
+                var available = inventory?.AvailableQuantity ?? 0;
+                if (available < group.Quantity)
+                {
+                    var productCode = products.FirstOrDefault(p => p.ProductId == group.ProductId)?.ProductCode ?? group.ProductId.ToString();
+                    var locationCode = locations.FirstOrDefault(l => l.StorageLocationId == group.SourceLocationId)?.LocationCode ?? group.SourceLocationId.ToString();
+                    errors.Add($"Tồn khả dụng tại {locationCode} cho {productCode} không đủ: yêu cầu {group.Quantity}, khả dụng {available}.");
+                }
+            }
+
+            return errors;
         }
 
         public async Task<TransferOrder?> GetOrderWithDetailsAsync(long transferOrderId)
@@ -182,6 +374,47 @@ namespace BMWMS.Repository.Repositories.StockOperations
                 if (order == null) throw new ArgumentException("Không tìm thấy phiếu");
                 if (order.Status != StatusDraft) throw new InvalidOperationException("Chỉ duyệt phiếu DRAFT");
 
+                var sourceGroups = order.TransferOrderDetails
+                    .GroupBy(d => new { d.ProductId, d.ProductLotId, d.SourceLocationId })
+                    .Select(g => new
+                    {
+                        g.Key.ProductId,
+                        g.Key.ProductLotId,
+                        g.Key.SourceLocationId,
+                        Quantity = g.Sum(d => d.RequestedQuantity)
+                    })
+                    .ToList();
+
+                if (sourceGroups.Any(g => !g.ProductLotId.HasValue || !g.SourceLocationId.HasValue))
+                    throw new InvalidOperationException("Chi tiết phiếu chưa đủ thông tin lô hàng hoặc vị trí nguồn.");
+
+                var productIds = sourceGroups.Select(g => g.ProductId).Distinct().ToList();
+                var lotIds = sourceGroups.Select(g => g.ProductLotId!.Value).Distinct().ToList();
+                var sourceLocationIds = sourceGroups.Select(g => g.SourceLocationId!.Value).Distinct().ToList();
+                var inventories = await _context.Inventories
+                    .Where(i =>
+                        productIds.Contains(i.ProductId) &&
+                        lotIds.Contains(i.ProductLotId) &&
+                        sourceLocationIds.Contains(i.StorageLocationId))
+                    .Select(i => new
+                    {
+                        i.ProductId,
+                        i.ProductLotId,
+                        i.StorageLocationId,
+                        AvailableQuantity = i.AvailableQuantity ?? (i.OnHandQuantity - i.ReservedQuantity)
+                    })
+                    .ToListAsync();
+
+                foreach (var group in sourceGroups)
+                {
+                    var available = inventories.FirstOrDefault(i =>
+                        i.ProductId == group.ProductId &&
+                        i.ProductLotId == group.ProductLotId &&
+                        i.StorageLocationId == group.SourceLocationId)?.AvailableQuantity ?? 0;
+                    if (available < group.Quantity)
+                        throw new InvalidOperationException($"Tồn khả dụng không đủ để duyệt phiếu: sản phẩm {group.ProductId}, vị trí {group.SourceLocationId}, yêu cầu {group.Quantity}, khả dụng {available}.");
+                }
+
                 order.Status = StatusApproved;
                 order.ApprovedByUserId = approvedByUserId;
                 order.ApprovedAt = DateTime.UtcNow;
@@ -190,6 +423,19 @@ namespace BMWMS.Repository.Repositories.StockOperations
                 // Thêm InventoryTransaction RESERVE
                 foreach (var detail in order.TransferOrderDetails)
                 {
+                    var reservation = new InventoryReservation
+                    {
+                        ProductId = detail.ProductId,
+                        StorageLocationId = detail.SourceLocationId!.Value,
+                        ProductLotId = detail.ProductLotId!.Value,
+                        ReservedQuantity = detail.RequestedQuantity,
+                        ConsumedQuantity = 0,
+                        Status = "ACTIVE",
+                        ReservedByUserId = approvedByUserId,
+                        ReservedAt = DateTime.UtcNow
+                    };
+                    _context.InventoryReservations.Add(reservation);
+
                     _context.InventoryTransactions.Add(new InventoryTransaction
                     {
                         TransactionType = "RESERVE",
@@ -199,6 +445,7 @@ namespace BMWMS.Repository.Repositories.StockOperations
                         OnHandDelta = 0,
                         ReservedDelta = detail.RequestedQuantity,
                         TransferOrderDetailId = detail.TransferOrderDetailId,
+                        InventoryReservation = reservation,
                         PerformedByUserId = approvedByUserId,
                         TransactionAt = DateTime.UtcNow
                     });
@@ -235,6 +482,10 @@ namespace BMWMS.Repository.Repositories.StockOperations
                 {
                     foreach (var detail in order.TransferOrderDetails)
                     {
+                        var reservation = await FindActiveReservationAsync(detail);
+                        if (reservation == null)
+                            throw new InvalidOperationException($"Không tìm thấy giữ tồn đang hoạt động cho chi tiết {detail.TransferOrderDetailId}.");
+
                         _context.InventoryTransactions.Add(new InventoryTransaction
                         {
                             TransactionType = "RELEASE_RESERVATION",
@@ -244,9 +495,13 @@ namespace BMWMS.Repository.Repositories.StockOperations
                             OnHandDelta = 0,
                             ReservedDelta = -detail.RequestedQuantity,
                             TransferOrderDetailId = detail.TransferOrderDetailId,
+                            InventoryReservationId = reservation.InventoryReservationId,
                             PerformedByUserId = cancelledByUserId,
                             TransactionAt = DateTime.UtcNow
                         });
+
+                        reservation.Status = "RELEASED";
+                        reservation.ReleasedAt = DateTime.UtcNow;
                     }
                 }
 
@@ -306,6 +561,12 @@ namespace BMWMS.Repository.Repositories.StockOperations
                 }
 
                 // 1. Release Reservation (trừ lại lượng đã reserve lúc Approve)
+                var reservation = await FindActiveReservationAsync(detail);
+                if (reservation != null && detail.MovedQuantity > reservation.ReservedQuantity)
+                    throw new InvalidOperationException($"So luong xac nhan vuot qua so luong da giu cho chi tiet {detail.TransferOrderDetailId}.");
+                if (reservation == null)
+                    throw new InvalidOperationException($"Không tìm thấy giữ tồn đang hoạt động cho chi tiết {detail.TransferOrderDetailId}.");
+
                 _context.InventoryTransactions.Add(new InventoryTransaction
                 {
                     TransactionType = "RELEASE_RESERVATION",
@@ -313,11 +574,16 @@ namespace BMWMS.Repository.Repositories.StockOperations
                     StorageLocationId = detail.SourceLocationId.Value,
                     ProductLotId = detail.ProductLotId.Value,
                     OnHandDelta = 0,
-                    ReservedDelta = -detail.RequestedQuantity,
+                    ReservedDelta = -reservation.ReservedQuantity,
                     TransferOrderDetailId = detail.TransferOrderDetailId,
+                    InventoryReservationId = reservation.InventoryReservationId,
                     PerformedByUserId = staffUserId,
                     TransactionAt = DateTime.UtcNow
                 });
+
+                reservation.ConsumedQuantity = detail.MovedQuantity;
+                reservation.Status = detail.MovedQuantity >= reservation.ReservedQuantity ? "CONSUMED" : "RELEASED";
+                reservation.ReleasedAt = DateTime.UtcNow;
 
                 if (detail.MovedQuantity > 0)
                 {
@@ -351,6 +617,20 @@ namespace BMWMS.Repository.Repositories.StockOperations
 
             await _context.SaveChangesAsync();
             return await GetOrderWithDetailsAsync(order.TransferOrderId) ?? order;
+        }
+
+        private async Task<InventoryReservation?> FindActiveReservationAsync(TransferOrderDetail detail)
+        {
+            return await _context.InventoryTransactions
+                .Where(t =>
+                    t.TransferOrderDetailId == detail.TransferOrderDetailId &&
+                    t.TransactionType == "RESERVE" &&
+                    t.InventoryReservation != null &&
+                    t.InventoryReservation.Status == "ACTIVE" &&
+                    t.InventoryReservation.ReservedQuantity > t.InventoryReservation.ConsumedQuantity)
+                .OrderBy(t => t.InventoryReservationId)
+                .Select(t => t.InventoryReservation)
+                .FirstOrDefaultAsync();
         }
 
         private static string? AppendNote(string? existing, string tag, string? note)

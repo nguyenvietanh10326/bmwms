@@ -196,7 +196,10 @@
                 </div>
                 <div class="nav-submenu @(isTransferActive ? "expanded" : "")">
                     <a href="/Transfer/Index" class="nav-sub-item @(Context.Request.Path == "/Transfer/Index" || Context.Request.Path == "/Transfer" ? "active" : "")">Danh sách phiếu chuyển kho</a>
-                    <a href="/Transfer/Create" class="nav-sub-item @(Context.Request.Path == "/Transfer/Create" ? "active" : "")">Tạo phiếu chuyển vị trí</a>
+                    @if (isWhStaff)
+                    {
+                        <a href="/Transfer/Create" class="nav-sub-item @(Context.Request.Path == "/Transfer/Create" ? "active" : "")">Tạo phiếu chuyển vị trí</a>
+                    }
                 </div>
 
                 <!-- Kiểm kê -->
