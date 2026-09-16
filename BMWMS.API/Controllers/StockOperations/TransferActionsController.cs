@@ -40,7 +40,6 @@ namespace BMWMS.API.Controllers.StockOperations
             }
         }
 
-        // Thay cho "reject"
         [HttpPost("{id}/cancel")]
         public async Task<IActionResult> CancelTransfer(long id, [FromBody] CancelTransferDto dto)
         {
@@ -63,7 +62,7 @@ namespace BMWMS.API.Controllers.StockOperations
             try
             {
                 var result = await _confirmService.ConfirmAsync(CurrentUserId, id, dto);
-                if (!result.Success) return BadRequest(result.Message); // Nếu bị tràn sức chứa nhưng chưa acknowledge
+                if (!result.Success) return BadRequest(result.Message); 
                 return Ok(result);
             }
             catch (Exception ex)
@@ -71,18 +70,5 @@ namespace BMWMS.API.Controllers.StockOperations
                 return BadRequest(ex.Message);
             }
         }
-
-        // Tạm thời để trống các API cũ để Web không gọi bị lỗi 404 ngay lập tức
-        // Dù Web đã đổi nhưng đề phòng cache
-        [HttpPost("{id}/issue")]
-        public IActionResult LegacyIssue() => BadRequest("Luồng xuất đã bị loại bỏ. Vui lòng dùng tính năng Xác Nhận 1 bước.");
-
-        [HttpPost("{id}/receive")]
-        public IActionResult LegacyReceive() => BadRequest("Luồng nhập đã bị loại bỏ. Vui lòng dùng tính năng Xác Nhận 1 bước.");
-
-        [HttpPost("{id}/reject")]
-        public IActionResult LegacyReject() => BadRequest("Luồng từ chối đã được thay thế bằng Hủy (Cancel).");
     }
-
-
-
+}
