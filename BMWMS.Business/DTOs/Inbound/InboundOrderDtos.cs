@@ -5,6 +5,7 @@ namespace BMWMS.Business.DTOs.Inbound;
 
 public class InboundOrderFilterDto
 {
+        public string SortOrder { get; set; } = "newest";
     public string? Keyword { get; set; }
     public string? Status { get; set; }
     public string? SourceType { get; set; }
@@ -56,6 +57,7 @@ public class InboundOrderDetailDto
     public long? AssignedToUserId { get; set; }
     public string AssignedToUserName { get; set; } = string.Empty;
     public string CreatedByUserName { get; set; } = string.Empty;
+    public string? ApprovedByUserName { get; set; }
     public string? Notes { get; set; }
     public string? CancellationReason { get; set; }
     // Parent info for additional logic
@@ -122,6 +124,21 @@ public class InboundOrderTimelineDto
     public string StatusBadge { get; set; } = string.Empty;
     public string StatusBadgeColor { get; set; } = string.Empty;
     public string PerformedBy { get; set; } = string.Empty;
+}
+
+public class RecordSalesReturnReceiptDto
+{
+    public DateOnly ReceiptDate { get; set; }
+    public string? ShortageReason { get; set; }
+    public List<SalesReturnReceiptLineDto> Items { get; set; } = new();
+}
+
+public class SalesReturnReceiptLineDto
+{
+    public long InboundOrderItemId { get; set; }
+    public decimal ActualQuantity { get; set; }
+    public DateOnly? ManufactureDate { get; set; }
+    public DateOnly? ExpiryDate { get; set; }
 }
 
 public class CreateInboundOrderDto

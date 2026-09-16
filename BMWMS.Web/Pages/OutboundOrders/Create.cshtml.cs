@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using System.ComponentModel.DataAnnotations;
-using System.Text.Json;
+using BMWMS.Web.Services;
 
 namespace BMWMS.Web.Pages.OutboundOrders;
 
@@ -52,7 +52,7 @@ public class CreateModel : PageModel
         if (Input.SourceType == "PURCHASE_RETURN" && !Input.PurchaseOrderId.HasValue)
             ModelState.AddModelError(string.Empty, "Vui lòng chọn đơn mua hàng (PO) cần trả nhà cung cấp.");
         if (Input.SourceType == "PURCHASE_RETURN" && !Input.AssignedToUserId.HasValue)
-            ModelState.AddModelError(nameof(Input.AssignedToUserId), "Vui lòng chọn Nhân viên kho thực hiện đợt trả hàng.");
+            ModelState.AddModelError("Input.AssignedToUserId", "Vui lòng chọn Nhân viên kho thực hiện đợt trả hàng.");
         if (Input.Items == null || Input.Items.Count == 0)
             ModelState.AddModelError(string.Empty, "Đơn tham chiếu không còn mặt hàng có thể xuất.");
         if (Input.Items?.Any(item => item.RequestedQuantity < 0) == true)
@@ -63,7 +63,7 @@ public class CreateModel : PageModel
         if (selectedItems.Count == 0)
             ModelState.AddModelError(string.Empty, "Vui lòng nhập số lượng lớn hơn 0 cho ít nhất một mặt hàng.");
         if (Input.SourceType == "PURCHASE_RETURN" && (Input.Notes?.Trim().Length ?? 0) < 10)
-            ModelState.AddModelError(nameof(Input.Notes), "Phiếu trả nhà cung cấp phải ghi rõ lý do (ít nhất 10 ký tự).");
+            ModelState.AddModelError("Input.Notes", "Phiếu trả nhà cung cấp phải ghi rõ lý do (ít nhất 10 ký tự).");
         if (!ModelState.IsValid)
         {
             await LoadDropdownsAsync();
@@ -97,8 +97,7 @@ public class CreateModel : PageModel
                     : "Đã tạo lệnh trả nhà cung cấp và phân công Nhân viên kho.";
                 return RedirectToPage("./Index");
             }
-            var error = await response.Content.ReadFromJsonAsync<ApiErrorResponse>();
-            ModelState.AddModelError(string.Empty, error?.Message ?? error?.Detail ?? "Không thể tạo phiếu xuất kho.");
+            ModelState.AddModelError(string.Empty, await ApiErrorReader.ReadAsync(response));
         }
         catch (Exception)
         {
@@ -208,9 +207,9 @@ public class OutboundOrderVM
 public class OutboundOrderItemVM
 {
     public long ProductId { get; set; }
-    public string ProductCode { get; set; } = string.Empty;
-    public string ProductName { get; set; } = string.Empty;
-    public string UnitName { get; set; } = string.Empty;
+    [Microsoft.AspNetCore.Mvc.ModelBinding.Validation.ValidateNever] public string ProductCode { get; set; } = string.Empty;
+    [Microsoft.AspNetCore.Mvc.ModelBinding.Validation.ValidateNever] public string ProductName { get; set; } = string.Empty;
+    [Microsoft.AspNetCore.Mvc.ModelBinding.Validation.ValidateNever] public string UnitName { get; set; } = string.Empty;
     public byte QuantityScale { get; set; }
     public bool TrackLot { get; set; }
     public decimal ReferenceQuantity { get; set; }
@@ -237,4 +236,3 @@ public class SalesOrderDetailApiResponse { public string SalesOrderNumber { get;
 public class SalesOrderLineApiResponse { public long ProductId { get; set; } public string ProductCode { get; set; } = string.Empty; public string ProductName { get; set; } = string.Empty; public string UnitName { get; set; } = string.Empty; public byte QuantityScale { get; set; } public bool TrackLot { get; set; } public decimal Quantity { get; set; } public decimal ReservedQuantity { get; set; } }
 public class PurchaseOrderDetailApiResponse { public string PurchaseOrderNumber { get; set; } = string.Empty; public string SupplierName { get; set; } = string.Empty; public List<PurchaseReturnLineApiResponse> Items { get; set; } = new(); }
 public class PurchaseReturnLineApiResponse { public long ProductId { get; set; } public string ProductCode { get; set; } = string.Empty; public string ProductName { get; set; } = string.Empty; public string UnitName { get; set; } = string.Empty; public byte QuantityScale { get; set; } public bool TrackLot { get; set; } public decimal ReceivedQuantity { get; set; } public decimal RemainingQuantity { get; set; } }
-public class ApiErrorResponse { public string? Message { get; set; } public string? Detail { get; set; } }

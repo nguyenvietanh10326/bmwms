@@ -1,0 +1,17 @@
+[
+  {
+    "Name": "BMWMS - Web HTTPS + API",
+    "Projects": [
+      {
+        "Path": "BMWMS.API\\BMWMS.API.csproj",
+        "Action": "Start",
+        "DebugTarget": "http"
+      },
+      {
+        "Path": "BMWMS.Web\\BMWMS.Web.csproj",
+        "Action": "Start",
+        "DebugTarget": "https"
+      }
+    ]
+  }
+]

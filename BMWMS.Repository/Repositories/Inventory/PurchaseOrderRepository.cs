@@ -23,7 +23,7 @@ namespace BMWMS.Repository.Repositories.Inventory
             string? status,
             long? warehouseId,
             int pageIndex,
-            int pageSize)
+            int pageSize, string? sortOrder = null)
         {
             var query = _context.PurchaseOrders
                 .Include(po => po.Supplier)
@@ -59,8 +59,9 @@ namespace BMWMS.Repository.Repositories.Inventory
             int totalCount = await query.CountAsync();
 
             // Phân trang & Sắp xếp mới nhất lên đầu
-            var items = await query
-                .OrderByDescending(po => po.CreatedAt)
+            var ordered = sortOrder == "oldest" ? query.OrderBy(po => po.CreatedAt).ThenBy(po => po.PurchaseOrderId)
+                : query.OrderByDescending(po => po.CreatedAt).ThenByDescending(po => po.PurchaseOrderId);
+            var items = await ordered
                 .Skip((pageIndex - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();

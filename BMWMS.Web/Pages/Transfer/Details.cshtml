@@ -32,6 +32,7 @@
 
     @if (!string.IsNullOrEmpty(Model.SuccessMessage)) { <div class="alert alert-success">@Model.SuccessMessage</div> }
     @if (!string.IsNullOrEmpty(Model.ErrorMessage)) { <div class="alert alert-danger">@Model.ErrorMessage</div> }
+    @if (Model.Order?.Status == "ASSIGNED") { <div class="alert alert-info">Phiếu điều chuyển phát sinh từ luồng nhập cũ được giữ để tra cứu. Không xác nhận phiếu này trong Transfer mới; đối chiếu và xử lý tại phiếu Inbound liên quan.</div> }
 
     <div class="card" style="padding: 20px; background: #fff; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 20px;">
         <div style="display:flex; justify-content:space-between; align-items:flex-start;">
@@ -150,7 +151,7 @@
                     </div>
                     <div class="modal-body p-0">
                         <div class="p-3" style="background:#f8fafc; border-bottom:1px solid #e2e8f0;">
-                            <p class="mb-0 text-muted">Kiểm tra số lượng và vị trí thực tế. Bạn có thể đổi vị trí cất hàng nếu cần.</p>
+                            <p class="mb-0 text-muted">Ghi đúng số thực chuyển (không vượt dự kiến) và vị trí đích. Hệ thống sẽ kiểm tra tồn và sức chứa trước khi chốt.</p>
                         </div>
                         <div class="p-3">
                             @foreach(var d in Model.Order.Details)
@@ -163,7 +164,14 @@
                                         </div>
                                         <input type="hidden" name="detailIds" value="@d.TransferOrderDetailId" />
                                         <div class="row g-2">
-                                            <div class="col-md-12">
+                                            <div class="col-md-4">
+                                                <label class="form-label small mb-1">Số lượng thực chuyển (@d.UnitName)</label>
+                                                <input type="number" name="actualMovedQuantities" class="form-control form-control-sm text-end"
+                                                       min="0" max="@d.RequestedQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                                       step="@(d.QuantityScale == 0 ? "1" : "0." + new string('0', d.QuantityScale - 1) + "1")"
+                                                       value="@d.RequestedQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture)" required />
+                                            </div>
+                                            <div class="col-md-8">
                                                 <label class="form-label small mb-1">Vị trí cất (Thực tế)</label>
                                                 <select name="destinationLocationIds" class="form-select form-select-sm" required>
                                                     @foreach (var loc in Model.DestinationLocations)
@@ -184,6 +192,13 @@
                                 </div>
                             }
                             <div class="mt-3">
+                                <label class="form-label small">Lý do chuyển thiếu (nếu có)</label>
+                                <input name="shortfallReason" class="form-control mb-2" maxlength="500" />
+                                <label class="form-label small">Lý do đổi vị trí đích (nếu có)</label>
+                                <input name="destinationChangeReason" class="form-control mb-2" maxlength="500" />
+                                <div class="form-check mb-2"><input type="checkbox" name="acknowledgeCapacityWarning" value="true" class="form-check-input" id="transferCapacityAck" /><label class="form-check-label" for="transferCapacityAck">Tôi đã kiểm tra vị trí chưa cấu hình sức chứa</label></div>
+                                <label class="form-label small">Lý do xác nhận vị trí chưa cấu hình sức chứa (nếu có)</label>
+                                <input name="capacityWarningReason" class="form-control mb-2" maxlength="500" />
                                 <label class="form-label small">Ghi chú</label>
                                 <textarea name="notes" class="form-control" rows="2"></textarea>
                             </div>

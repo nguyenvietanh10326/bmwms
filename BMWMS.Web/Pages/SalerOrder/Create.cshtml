@@ -28,14 +28,6 @@
         </div>
     </div>
 
-    <div class="alert alert-light border d-flex align-items-start gap-2 py-2" role="note">
-        <i class="bi bi-info-circle text-primary mt-1"></i>
-        <div class="small text-muted">
-            SO được tạo ở trạng thái <strong class="text-dark">Nháp</strong>, nhưng tồn khả dụng được giữ ngay khi lưu.
-            Tồn thực tế chỉ giảm khi nhân viên kho xác nhận xuất hàng.
-        </div>
-    </div>
-
     @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
     {
         <div class="alert alert-danger" role="alert">
@@ -43,7 +35,7 @@
         </div>
     }
 
-    <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+    <div asp-validation-summary="All" class="alert alert-danger"></div>
 
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-body p-4">

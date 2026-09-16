@@ -93,6 +93,7 @@ namespace BMWMS.Business.DTOs.Inventory
     #region 4. DTO Bộ Lọc & Phân Trang (Filter Query)
     public class PurchaseOrderFilterDto
     {
+        public string SortOrder { get; set; } = "newest";
         public string? SearchTerm { get; set; }
         public string? Status { get; set; }
         public long? WarehouseId { get; set; }

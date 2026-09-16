@@ -25,7 +25,7 @@ public class InboundRepository : IInboundRepository
         DateTime? toDate,
         long? assignedToUserId,
         int pageIndex,
-        int pageSize)
+        int pageSize, string? sortOrder = null)
     {
         var query = _context.InboundOrders
             .Include(x => x.PurchaseOrder)
@@ -92,9 +92,10 @@ public class InboundRepository : IInboundRepository
 
         var totalCount = await query.CountAsync();
 
-        var items = await query
-            .OrderByDescending(x => x.ExpectedReceiptDate)
-            .ThenByDescending(x => x.InboundOrderNumber)
+        var orderedQuery = sortOrder == "oldest"
+            ? query.OrderBy(x => x.CreatedAt).ThenBy(x => x.InboundOrderId)
+            : query.OrderByDescending(x => x.CreatedAt).ThenByDescending(x => x.InboundOrderId);
+        var items = await orderedQuery
             .Skip((pageIndex - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();
@@ -112,7 +113,7 @@ public class InboundRepository : IInboundRepository
             .Include(i => i.Warehouse)
             .Include(i => i.AssignedToUser)
             .Include(i => i.CreatedByUser)
-            .Include(i => i.ConfirmedByUser)
+            .Include(i => i.ConfirmedByUser).ThenInclude(u => u!.Role)
             .Include(i => i.CancelledByUser)
             .Include(i => i.ParentInboundOrder)
             .Include(i => i.InverseParentInboundOrder)

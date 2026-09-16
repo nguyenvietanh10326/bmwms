@@ -139,7 +139,7 @@ namespace BMWMS.Web.Pages.Transfer
         private bool IsWarehouseStaff()
         {
             var roleCode = HttpContext.Session.GetString("RoleCode")?.ToUpperInvariant() ?? "";
-            return roleCode == "WAREHOUSE_STAFF" || roleCode.Contains("STAFF");
+            return roleCode == "WAREHOUSE_STAFF";
         }
     }
 }

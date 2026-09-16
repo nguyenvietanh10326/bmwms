@@ -21,7 +21,7 @@
     .warehouse-hero{background:#fff;box-shadow:none}.zone-panel{box-shadow:none}.rack-card{background:#fff}.bin-card{background:#fff;min-height:115px;border-color:#d7e0eb;border-left:4px solid #94a3b8}.bin-card:hover{transform:none;border-color:#8aa1bd;box-shadow:0 3px 10px rgba(15,23,42,.08)}
     .bin-card.available{background:#fff;border-color:#d7e0eb;border-left-color:#15803d}.bin-card.occupied{background:#fff;border-color:#d7e0eb;border-left-color:#2563eb}.bin-card.full{background:#fff;border-color:#d7e0eb;border-left-color:#b42318}.bin-card.unknown,.bin-card.blocked{background:#f8fafc;border-color:#d7e0eb;border-left-color:#94a3b8}
     .bin-state{background:#f1f5f9;color:#334155}.bin-card.available .bin-state,.list-state.available{background:#e8f5eb;color:#166534}.bin-card.occupied .bin-state,.list-state.occupied{background:#e9f1ff;color:#1e40af}.bin-card.full .bin-state,.list-state.full{background:#fdf0ef;color:#9f2d20}.bin-card.unknown .bin-state,.list-state.unknown{background:#f1f5f9;color:#475569}
-    .zone-occupancy{margin-top:9px;max-width:350px}.zone-occupancy-top{display:flex;justify-content:space-between;gap:12px;font-size:11px;color:#475569}.zone-meter{height:6px;margin-top:5px;border-radius:999px;background:#e2e8f0;overflow:hidden}.zone-meter-fill{display:block;height:100%;border-radius:inherit;background:#2563eb}.zone-meter-fill.near{background:#b76e00}.zone-meter-fill.full{background:#b42318}
+    .bin-grid{grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}.bin-card{min-height:148px;padding:16px}.bin-code{font-size:17px}.bin-name,.capacity-line{font-size:13px}.bin-meter{display:block;width:100%;height:7px;margin:12px 0 4px;accent-color:#2563eb}.bin-card.full .bin-meter{accent-color:#b42318}.bin-card.available .bin-meter{accent-color:#15803d}
 </style>
 
 <div class="warehouse-map">
@@ -90,17 +90,9 @@
             var zoneInactive = zone.Status.Equals("INACTIVE", StringComparison.OrdinalIgnoreCase);
             var zoneBlocked = zone.Status.Equals("BLOCKED", StringComparison.OrdinalIgnoreCase);
             var zoneUsed = zone.CurrentCapacityQuantity ?? (zone.Racks.All(rack => rack.Locations.Count == 0) ? 0m : (decimal?)null);
-            var rawOccupancyPercent = zoneUsed.HasValue && zone.MaxCapacityQuantity > 0
-                ? Math.Max(0m, zoneUsed.Value * 100m / zone.MaxCapacityQuantity.Value)
-                : (decimal?)null;
-            var occupancyPercent = rawOccupancyPercent.HasValue
-                ? Math.Min(100m, rawOccupancyPercent.Value) : (decimal?)null;
-            var occupancyLabel = rawOccupancyPercent.HasValue
-                ? $"{rawOccupancyPercent.Value:0.#}% đã dùng"
-                : "Chưa đủ dữ liệu sức chứa";
             <section class="zone-panel" data-zone-id="@zone.ZoneId" data-search="@zone.ZoneCode @zone.ZoneName">
                 <header class="zone-head">
-                    <div><h2 class="node-title">Zone @zone.ZoneCode — @zone.ZoneName @if(zoneInactive){<span class="bin-state">Ngừng hoạt động</span>}else if(zoneBlocked){<span class="bin-state">Tạm khóa</span>} @if(zone.CapacityStatus.Equals("EXCEEDED", StringComparison.OrdinalIgnoreCase)){<span class="bin-state" style="color:#b42318">Vượt sức chứa</span>}else if(zone.HasMissingCapacityData){<span class="bin-state" style="color:#9a6700">Chưa cấu hình sức chứa</span>}</h2><div class="node-subtitle">@zone.Racks.Count Rack · Nhóm: @(zone.ProductGroupName ?? "Chưa chọn") · Đang dùng: @Model.FormatCapacity(zoneUsed, zone.ProductGroupId) / @Model.FormatCapacity(zone.MaxCapacityQuantity, zone.ProductGroupId) @(zone.CapacityUnitName ?? "")</div><div class="capacity-note">Đã phân bổ cho Rack: @Model.FormatCapacity(zone.AllocatedRackCapacityQuantity, zone.ProductGroupId) @(zone.CapacityUnitName ?? "")</div><div class="zone-occupancy"><div class="zone-occupancy-top"><span>Mức sử dụng Zone</span><span>@occupancyLabel</span></div><div class="zone-meter" role="meter" aria-label="Mức sử dụng Zone @zone.ZoneCode" aria-valuemin="0" aria-valuemax="100" aria-valuenow="@(occupancyPercent?.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture))" aria-valuetext="@occupancyLabel"><span class="zone-meter-fill @(occupancyPercent >= 100 ? "full" : occupancyPercent >= 85 ? "near" : "")" style="width:@(occupancyPercent?.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture) ?? "0")%"></span></div></div></div>
+                    <div><h2 class="node-title">Zone @zone.ZoneCode — @zone.ZoneName @if(zoneInactive){<span class="bin-state">Ngừng hoạt động</span>}else if(zoneBlocked){<span class="bin-state">Tạm khóa</span>} @if(zone.CapacityStatus.Equals("EXCEEDED", StringComparison.OrdinalIgnoreCase)){<span class="bin-state" style="color:#b42318">Vượt sức chứa</span>}else if(zone.HasMissingCapacityData){<span class="bin-state" style="color:#9a6700">Chưa cấu hình sức chứa</span>}</h2><div class="node-subtitle">@zone.Racks.Count Rack · Nhóm: @(zone.ProductGroupName ?? "Chưa chọn") · Đang dùng: @Model.FormatCapacity(zoneUsed, zone.ProductGroupId) / @Model.FormatCapacity(zone.MaxCapacityQuantity, zone.ProductGroupId) @(zone.CapacityUnitName ?? "")</div><div class="capacity-note">Đã phân bổ cho Rack: @Model.FormatCapacity(zone.AllocatedRackCapacityQuantity, zone.ProductGroupId) @(zone.CapacityUnitName ?? "")</div></div>
                     @if (canManage){<div class="node-actions"><button class="icon-btn" title="Sửa Zone" onclick="editZone(@zone.ZoneId)"><i class="ri-edit-line"></i></button>@if(!zoneBlocked){<button class="icon-btn" title="@(zoneInactive ? "Kích hoạt Zone" : "Ngừng sử dụng Zone")" onclick="changeNodeStatus('zone',@zone.ZoneId,@(zoneInactive ? "true" : "false"))"><i class="@(zoneInactive ? "ri-play-circle-line" : "ri-stop-circle-line")"></i></button>}</div>}
                 </header>
                 <div class="rack-list">
@@ -124,6 +116,10 @@
                                         @if (canManage){<button class="bin-edit" title="Sửa Bin" onclick="event.stopPropagation();editBin(@bin.StorageLocationId)"><i class="ri-edit-line"></i></button>}
                                         <div class="bin-code">@bin.LocationCode</div><div class="bin-name">@(string.IsNullOrWhiteSpace(bin.LocationName) ? "Ô lưu trữ" : bin.LocationName)</div><span class="bin-state">@stateLabel</span>
                                         <div class="capacity-line">@Model.FormatCapacity(bin.CurrentCapacityQuantity, zone.ProductGroupId) / @Model.FormatCapacity(bin.MaxCapacityQuantity, zone.ProductGroupId) @(zone.CapacityUnitName ?? "")</div><div class="capacity-line">@bin.StoredProductCount mặt hàng</div>
+                                        @if (bin.CurrentCapacityQuantity.HasValue && bin.MaxCapacityQuantity > 0)
+                                        {
+                                            <progress class="bin-meter" value="@(Math.Min(bin.CurrentCapacityQuantity.Value, bin.MaxCapacityQuantity.Value).ToString(System.Globalization.CultureInfo.InvariantCulture))" max="@(bin.MaxCapacityQuantity.Value.ToString(System.Globalization.CultureInfo.InvariantCulture))" aria-label="Sức chứa Bin @bin.LocationCode"></progress>
+                                        }
                                     </div>
                                 }
                             </div>

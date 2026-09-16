@@ -9,29 +9,32 @@
     @if (TempData["SuccessMessage"] is string success) { <div class="alert alert-success">@success</div> }
     @if (TempData["ErrorMessage"] is string error) { <div class="alert alert-danger">@error</div> }
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <div><h3 class="mb-1">Phiếu nhập kho</h3><div class="text-muted">Theo dõi từng lần nhận hàng theo PO hoặc nhận hàng khách trả theo SO.</div></div>
+        <div><h3 class="mb-1">Phiếu nhập kho</h3></div>
         @if (User.IsInRole("WAREHOUSE_STAFF")) { <a asp-page="./Create" class="btn btn-primary">Ghi nhận đợt nhập</a> }
+        @if (User.IsInRole("WAREHOUSE_MANAGER") || User.IsInRole("SYSTEM_ADMIN")) { <a asp-page="./AuthorizeReturn" class="btn btn-primary">Duyệt nhận khách trả</a> }
     </div>
     <form method="get" class="card border-0 shadow-sm mb-3"><div class="card-body row g-3 align-items-end">
         <div class="col-md-4"><label class="form-label">Tìm kiếm</label><input asp-for="Filter.Keyword" class="form-control" placeholder="Mã phiếu, PO, SO hoặc đối tác" /></div>
-        <div class="col-md-3"><label class="form-label">Trạng thái</label><select asp-for="Filter.Status" class="form-select"><option value="">Tất cả</option><option value="RECEIVED">Chờ cất hàng</option><option value="PUTAWAY_COMPLETED">Đã hoàn tất nhập kho</option><option value="CANCELLED">Đã hủy</option></select></div>
+        <div class="col-md-3"><label class="form-label">Trạng thái</label><select asp-for="Filter.Status" class="form-select"><option value="">Tất cả</option><option value="READY">Chờ nhận hàng</option><option value="RECEIVING">Đang ghi nhận thực nhận</option><option value="RECEIVED">Chờ cất hàng</option><option value="PUTAWAY_COMPLETED">Đã hoàn tất nhập kho</option><option value="CANCELLED">Đã hủy</option></select></div>
         <div class="col-md-2"><label class="form-label">Từ ngày</label><input asp-for="Filter.FromDate" type="date" class="form-control" /></div>
         <div class="col-md-2"><label class="form-label">Đến ngày</label><input asp-for="Filter.ToDate" type="date" class="form-control" /></div>
+        <div class="col-md-3"><label class="form-label">Phiếu tham chiếu</label><select asp-for="Filter.SourceType" class="form-select"><option value="">Tất cả</option><option value="PURCHASE_ORDER">PO</option><option value="SALES_RETURN">SO</option></select></div>
+        <div class="col-md-3"><label class="form-label">Sắp xếp</label><select asp-for="Filter.SortOrder" class="form-select"><option value="newest">Mới nhất</option><option value="oldest">Cũ nhất</option></select></div>
         <div class="col-md-1"><button class="btn btn-primary w-100">Lọc</button></div>
     </div></form>
     <div class="card border-0 shadow-sm"><div class="table-responsive"><table class="table align-middle mb-0">
-        <thead class="table-light"><tr><th>Mã phiếu</th><th>Nguồn nhập</th><th>Đối tác</th><th>Ngày nhận thực tế</th><th class="text-end">Số mặt hàng</th><th>Trạng thái</th><th></th></tr></thead>
+        <thead class="table-light"><tr><th>Mã phiếu</th><th>Nguồn nhập</th><th>Đối tác</th><th>Ngày nhận</th><th class="text-end">Số mặt hàng</th><th>Trạng thái</th><th></th></tr></thead>
         <tbody>
         @if (Model.Data.Items.Count == 0) { <tr><td colspan="7" class="text-center text-muted py-5">Không có phiếu nhập phù hợp.</td></tr> }
         @foreach (var item in Model.Data.Items)
         {
             <tr><td><a asp-page="./Details" asp-route-id="@item.InboundOrderId" class="fw-semibold text-decoration-none">@item.InboundOrderNumber</a><div class="text-muted small">@item.CreatedAt.ToString("dd/MM/yyyy HH:mm")</div></td>
             <td>@(item.SourceType == "SALES_RETURN" ? "Khách trả theo SO" : "Nhập mua theo PO")<div class="text-muted small">@item.SourceReference</div></td>
-            <td>@item.SupplierName</td><td>@item.ExpectedReceiptDate.ToString("dd/MM/yyyy")</td><td class="text-end">@item.LineCount dòng</td>
+            <td>@item.SupplierName</td><td>@item.ExpectedReceiptDate.ToString("dd/MM/yyyy")@if(item.SourceType == "SALES_RETURN" && item.Status is "READY" or "RECEIVING") { <div class="text-muted small">Dự kiến</div> }</td><td class="text-end">@item.LineCount dòng</td>
             <td><span class="badge @StatusClass(item.Status)">@StatusLabel(item.Status)</span></td><td class="text-end"><a asp-page="./Details" asp-route-id="@item.InboundOrderId" class="btn btn-sm btn-outline-primary">Chi tiết</a></td></tr>
         }
         </tbody>
-    </table></div><div class="card-footer bg-white d-flex justify-content-between"><span class="text-muted">Tổng cộng @Model.Data.TotalCount phiếu</span><span>Trang @Model.Filter.PageIndex / @totalPages</span></div></div>
+    </table></div><div class="card-footer bg-white d-flex justify-content-between"><span class="text-muted">Tổng cộng @Model.Data.TotalCount phiếu</span><div class="btn-group"><a asp-route-Filter.PageIndex="@(Model.Filter.PageIndex-1)" asp-route-Filter.Keyword="@Model.Filter.Keyword" asp-route-Filter.Status="@Model.Filter.Status" asp-route-Filter.SourceType="@Model.Filter.SourceType" asp-route-Filter.SortOrder="@Model.Filter.SortOrder" asp-route-Filter.FromDate="@Model.Filter.FromDate?.ToString("yyyy-MM-dd")" asp-route-Filter.ToDate="@Model.Filter.ToDate?.ToString("yyyy-MM-dd")" class="btn btn-outline-secondary @(Model.Filter.PageIndex <= 1 ? "disabled" : "")">Trước</a><span class="btn btn-light disabled">@Model.Filter.PageIndex / @totalPages</span><a asp-route-Filter.PageIndex="@(Model.Filter.PageIndex+1)" asp-route-Filter.Keyword="@Model.Filter.Keyword" asp-route-Filter.Status="@Model.Filter.Status" asp-route-Filter.SourceType="@Model.Filter.SourceType" asp-route-Filter.SortOrder="@Model.Filter.SortOrder" asp-route-Filter.FromDate="@Model.Filter.FromDate?.ToString("yyyy-MM-dd")" asp-route-Filter.ToDate="@Model.Filter.ToDate?.ToString("yyyy-MM-dd")" class="btn btn-outline-secondary @(Model.Filter.PageIndex >= totalPages ? "disabled" : "")">Sau</a></div></div></div>
 </div>
 @functions {
     string StatusLabel(string status) => status switch { "DRAFT" => "Chưa ghi nhận thực nhận", "READY" => "Chờ nhận hàng", "RECEIVING" => "Đang ghi nhận thực nhận", "RECEIVED" => "Chờ cất hàng", "PUTAWAY_COMPLETED" => "Đã hoàn tất nhập kho", "CANCELLED" => "Đã hủy", _ => status };

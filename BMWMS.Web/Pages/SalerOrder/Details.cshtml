@@ -41,7 +41,6 @@
             <div class="col-md-4"><div class="text-muted small">Khách hàng</div><strong>[@order?.CustomerCode] @order?.CustomerName</strong></div>
             <div class="col-md-2"><div class="text-muted small">Ngày đặt hàng</div><span>@order?.OrderDate.ToString("dd/MM/yyyy")</span></div>
             <div class="col-md-2"><div class="text-muted small">Ngày xuất dự kiến</div><span>@(order?.ExpectedIssueDate?.ToString("dd/MM/yyyy") ?? "Chưa xác định")</span></div>
-            <div class="col-md-2"><div class="text-muted small">Nguyên tắc phân bổ</div><span>@(string.IsNullOrWhiteSpace(order?.AllocationStrategy) ? "FIFO" : order.AllocationStrategy)</span></div>
             <div class="col-md-2"><div class="text-muted small">Người xác nhận</div><span>@(order?.ConfirmedByName ?? "Chưa xác nhận")</span></div>
             <div class="col-md-4"><div class="text-muted small">Người tạo</div><span>@order?.CreatedByName · @order?.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span></div>
             <div class="col-md-8"><div class="text-muted small">Ghi chú</div><span>@(string.IsNullOrWhiteSpace(order?.Notes) ? "Không có ghi chú" : order.Notes)</span></div>

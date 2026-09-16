@@ -1,4 +1,5 @@
 using BMWMS.Web.Services;
+using Microsoft.AspNetCore.Authentication;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,7 +19,7 @@ builder.Services.AddAuthentication(Microsoft.AspNetCore.Authentication.Cookies.C
     .AddCookie(options =>
     {
         options.LoginPath = "/Auth/Login";
-        options.AccessDeniedPath = "/Admin/Dashboard"; // Or a specific AccessDenied page
+        options.AccessDeniedPath = "/Auth/AccessDenied";
         options.ExpireTimeSpan = TimeSpan.FromHours(8);
     });
 
@@ -59,10 +60,13 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddTransient<TokenDelegatingHandler>();
 
 // Named HttpClient trỏ tới BMWMS.API (tự động gắn JWT Token)
+var configuredApiUrl = builder.Configuration["ApiSettings:BaseUrl"];
+if (!Uri.TryCreate(configuredApiUrl?.TrimEnd('/') + "/", UriKind.Absolute, out var apiBaseUri) ||
+    apiBaseUri.Scheme is not ("http" or "https"))
+    throw new InvalidOperationException("ApiSettings:BaseUrl phải là địa chỉ HTTP/HTTPS hợp lệ của BMWMS.API.");
 builder.Services.AddHttpClient("ApiClient", client =>
 {
-    var baseUrl = builder.Configuration["ApiSettings:BaseUrl"];
-    client.BaseAddress = new Uri(baseUrl!.TrimEnd('/') + "/");
+    client.BaseAddress = apiBaseUri;
     client.Timeout = TimeSpan.FromSeconds(30);
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 })
@@ -94,6 +98,8 @@ builder.Services.AddScoped<PurchaseOrderApiService>();
 builder.Services.AddScoped<SalesOrderApiService>();
 
 var app = builder.Build();
+if (app.Environment.IsDevelopment())
+    app.Logger.LogInformation("BMWMS.Web gọi API tại {ApiBaseUrl}. Visual Studio phải khởi động cả BMWMS.API và BMWMS.Web.", apiBaseUri);
 
 if (!app.Environment.IsDevelopment())
 {
@@ -106,6 +112,24 @@ app.UseStaticFiles();
 app.UseRouting();
 app.UseSession();
 app.UseAuthentication();
+app.Use(async (context, next) =>
+{
+    // Cookie may outlive the in-memory Session after a Web restart. Without the API token,
+    // Razor renders a seemingly authorized page with empty source lists and a login header.
+    if (context.User.Identity?.IsAuthenticated == true &&
+        !context.Request.Path.StartsWithSegments("/Auth") &&
+        (string.IsNullOrWhiteSpace(context.Session.GetString("Token")) ||
+         context.Session.GetString("RoleCode") != context.User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ||
+         context.Session.GetString("UserId") != context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value))
+    {
+        await context.SignOutAsync(Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationDefaults.AuthenticationScheme);
+        context.Session.Clear();
+        var returnUrl = Uri.EscapeDataString(context.Request.Path + context.Request.QueryString.ToString());
+        context.Response.Redirect($"/Auth/Login?ReturnUrl={returnUrl}");
+        return;
+    }
+    await next();
+});
 app.UseAuthorization();
 app.MapRazorPages();
 

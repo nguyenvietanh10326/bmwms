@@ -131,6 +131,7 @@ namespace BMWMS.Business.DTOs.Inventory
     // Request chứa các tham số lọc + phân trang
     public class OutboundOrderQueryFilter
     {
+        public string SortOrder { get; set; } = "newest";
         public string? Search { get; set; }
         public string? Status { get; set; }
         public long? WarehouseId { get; set; }

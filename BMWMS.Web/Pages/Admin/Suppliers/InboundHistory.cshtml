@@ -158,26 +158,30 @@
 </div>
 
 <div class="premium-card">
+    @if (TempData["ErrorMessage"] is string error) { <div class="alert alert-danger">@error</div> }
     <!-- Filter Form -->
     <form method="get" style="display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; align-items: flex-end;">
         <div style="flex: 2; min-width: 300px; position: relative;">
             <label class="form-label text-muted mb-2" style="font-size: 13px; font-weight: 500;">Từ khóa tìm kiếm</label>
             <i class="ri-search-line" style="position: absolute; left: 16px; bottom: 13px; color: #94a3b8; font-size: 18px;"></i>
-            <input type="text" name="Keyword" value="@Model.Filter.Keyword" class="form-control premium-input" placeholder="Tìm lệnh nhập hoặc PO" style="padding-left: 44px;">
+            <input type="text" name="Filter.Keyword" value="@Model.Filter.Keyword" class="form-control premium-input" placeholder="Tìm lệnh nhập hoặc PO" style="padding-left: 44px;">
         </div>
         
         <div style="flex: 1; min-width: 200px;">
             <label class="form-label text-muted mb-2" style="font-size: 13px; font-weight: 500;">Trạng thái</label>
-            <select name="Status" class="form-select premium-input">
+            <select name="Filter.Status" class="form-select premium-input">
                 <option value="">Tất cả trạng thái</option>
                 <option value="COMPLETED" selected="@(Model.Filter.Status == "COMPLETED")">Đã nhận</option>
-                <option value="IN_PROGRESS" selected="@(Model.Filter.Status == "IN_PROGRESS")">Đang kiểm nhận</option>
+                <option value="IN_PROGRESS" selected="@(Model.Filter.Status == "IN_PROGRESS")">Đang ghi nhận thực nhận</option>
                 <option value="ASSIGNED" selected="@(Model.Filter.Status == "ASSIGNED")">Đã phân công</option>
                 <option value="DRAFT" selected="@(Model.Filter.Status == "DRAFT")">Nháp</option>
                 <option value="CANCELLED" selected="@(Model.Filter.Status == "CANCELLED")">Đã hủy</option>
             </select>
         </div>
 
+        <div><label class="form-label">Từ ngày nhập</label><input asp-for="Filter.FromDate" type="date" class="form-control premium-input" /></div>
+        <div><label class="form-label">Đến ngày nhập</label><input asp-for="Filter.ToDate" type="date" class="form-control premium-input" /></div>
+        <div><label class="form-label">Sắp xếp phiếu</label><select asp-for="Filter.SortOrder" class="form-select premium-input"><option value="newest">Mới nhất</option><option value="oldest">Cũ nhất</option></select></div>
         <div style="display: flex; gap: 12px;">
             <button type="submit" class="premium-btn-primary d-inline-flex align-items-center">
                 <i class="ri-filter-3-line me-1"></i> Lọc
@@ -212,7 +216,7 @@
                             <td style="font-weight: 600; color: #0f172a;">@item.InboundOrderNumber</td>
                             <td><span style="background: #f1f5f9; padding: 4px 8px; border-radius: 4px; font-family: monospace; font-size: 13px;">@item.PurchaseOrderNumber</span></td>
                             <td style="font-weight: 500;">@item.SupplierName</td>
-                            <td>@(item.ReceiptDate.HasValue ? item.ReceiptDate.Value.ToLocalTime().ToString("dd/MM/yyyy") : "—")</td>
+                            <td>@(item.ReceiptDate?.ToString("dd/MM/yyyy") ?? "—")</td>
                             <td>@(item.ResponsibleStaffName ?? "—")</td>
                             <td style="text-align: center;">
                                 @if (item.Status == "COMPLETED")
@@ -272,18 +276,18 @@
             </span>
             <ul class="pagination mb-0" style="gap: 4px;">
                 <li class="page-item @(Model.Filter.PageIndex == 1 ? "disabled" : "")">
-                    <a class="page-link" style="border-radius: 8px; border: none; background: #f1f5f9; color: #475569; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;" href="?Keyword=@Model.Filter.Keyword&Status=@Model.Filter.Status&WarehouseId=@Model.Filter.WarehouseId&PageIndex=@(Model.Filter.PageIndex - 1)">
+                    <a class="page-link" style="border-radius: 8px; border: none; background: #f1f5f9; color: #475569; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;" href="?Filter.Keyword=@Uri.EscapeDataString(Model.Filter.Keyword ?? "")&Filter.Status=@Model.Filter.Status&Filter.SortOrder=@Model.Filter.SortOrder&Filter.FromDate=@Model.Filter.FromDate?.ToString("yyyy-MM-dd")&Filter.ToDate=@Model.Filter.ToDate?.ToString("yyyy-MM-dd")&Filter.PageIndex=@(Model.Filter.PageIndex - 1)">
                         <i class="ri-arrow-left-s-line"></i>
                     </a>
                 </li>
                 @for (int i = 1; i <= Model.TotalPages; i++)
                 {
                     <li class="page-item @(i == Model.Filter.PageIndex ? "active" : "")">
-                        <a class="page-link text-decoration-none" style="@(i == Model.Filter.PageIndex ? "border-radius: 8px; background: #3b82f6; border-color: #3b82f6; color: white; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; font-weight: 600;" : "border-radius: 8px; border: none; background: transparent; color: #475569; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;")" href="?Keyword=@Model.Filter.Keyword&Status=@Model.Filter.Status&WarehouseId=@Model.Filter.WarehouseId&PageIndex=@i">@i</a>
+                        <a class="page-link text-decoration-none" style="@(i == Model.Filter.PageIndex ? "border-radius: 8px; background: #3b82f6; border-color: #3b82f6; color: white; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; font-weight: 600;" : "border-radius: 8px; border: none; background: transparent; color: #475569; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;")" href="?Filter.Keyword=@Uri.EscapeDataString(Model.Filter.Keyword ?? "")&Filter.Status=@Model.Filter.Status&Filter.SortOrder=@Model.Filter.SortOrder&Filter.FromDate=@Model.Filter.FromDate?.ToString("yyyy-MM-dd")&Filter.ToDate=@Model.Filter.ToDate?.ToString("yyyy-MM-dd")&Filter.PageIndex=@i">@i</a>
                     </li>
                 }
                 <li class="page-item @(Model.Filter.PageIndex == Model.TotalPages ? "disabled" : "")">
-                    <a class="page-link" style="border-radius: 8px; border: none; background: #f1f5f9; color: #475569; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;" href="?Keyword=@Model.Filter.Keyword&Status=@Model.Filter.Status&WarehouseId=@Model.Filter.WarehouseId&PageIndex=@(Model.Filter.PageIndex + 1)">
+                    <a class="page-link" style="border-radius: 8px; border: none; background: #f1f5f9; color: #475569; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;" href="?Filter.Keyword=@Uri.EscapeDataString(Model.Filter.Keyword ?? "")&Filter.Status=@Model.Filter.Status&Filter.SortOrder=@Model.Filter.SortOrder&Filter.FromDate=@Model.Filter.FromDate?.ToString("yyyy-MM-dd")&Filter.ToDate=@Model.Filter.ToDate?.ToString("yyyy-MM-dd")&Filter.PageIndex=@(Model.Filter.PageIndex + 1)">
                         <i class="ri-arrow-right-s-line"></i>
                     </a>
                 </li>
