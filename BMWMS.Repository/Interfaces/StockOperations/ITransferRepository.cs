@@ -11,16 +11,11 @@ namespace BMWMS.Repository.Interfaces.StockOperations
         public decimal Quantity { get; set; }
     }
 
-    public class TransferIssueItemParam
+    public class TransferConfirmItemParam
     {
         public long TransferOrderDetailId { get; set; }
         public decimal ActualMovedQuantity { get; set; }
-    }
-
-    public class TransferReceiptItemParam
-    {
-        public long TransferOrderDetailId { get; set; }
-        public long DestinationLocationId { get; set; }
+        public long? DestinationLocationId { get; set; }
     }
 
     public interface ITransferRepository
@@ -33,38 +28,35 @@ namespace BMWMS.Repository.Interfaces.StockOperations
         Task<List<Warehouse>> GetAllWarehousesAsync();
         Task<List<User>> GetStaffUsersAsync();
 
-        Task<(List<TransferOrder> Items, int TotalCount, int DraftCount, int ApprovedCount, int InProgressCount, int CompletedCount, int CancelledCount)>
+        Task<(List<TransferOrder> Items, int TotalCount, int DraftCount, int ApprovedCount, int CompletedCount, int CancelledCount)>
             GetPagedOrdersAsync(string? keyword, string? status, long? warehouseId, int pageIndex, int pageSize);
 
         Task<TransferOrder?> GetOrderWithDetailsAsync(long transferOrderId);
 
         Task<TransferOrder> CreatePendingOrderAsync(
             long warehouseId,
-            long? assignedToUserId,
             DateOnly? dueDate,
             List<TransferItemParam> items,
             long createdByUserId,
             string? notes);
 
-        Task<TransferOrder> ApproveOrderAsync(long transferOrderId, long approvedByUserId, long? assignedToUserId, string? notes);
         Task<TransferOrder> UpdateDraftOrderAsync(
             long transferOrderId,
             long warehouseId,
-            long? assignedToUserId,
             DateOnly? dueDate,
             List<TransferItemParam> items,
             long updatedByUserId,
             string? notes);
-        Task<TransferOrder> RejectOrderAsync(long transferOrderId, long rejectedByUserId, string? notes);
-        Task<TransferOrder> ConfirmTransferIssueAsync(long transferOrderId, long staffUserId, IReadOnlyCollection<TransferIssueItemParam> items, string? notes);
-        Task<TransferOrder> ConfirmTransferReceiptAsync(
-            long transferOrderId,
-            long staffUserId,
-            IReadOnlyCollection<TransferReceiptItemParam> items,
-            string? destinationChangeReason,
-            string? notes);
 
-        // Backward compatible one-shot confirm endpoint for older clients.
-        Task<TransferOrder> ConfirmTransferAsync(long transferOrderId, long staffUserId, string? notes);
+        Task<TransferOrder> ApproveOrderAsync(long transferOrderId, long approvedByUserId, string? notes);
+        Task<TransferOrder> CancelOrderAsync(long transferOrderId, long cancelledByUserId, string? notes);
+        
+        Task<TransferOrder> ConfirmTransferAsync(
+            long transferOrderId, 
+            long staffUserId, 
+            IReadOnlyCollection<TransferConfirmItemParam> items, 
+            string? destinationChangeReason, 
+            string? shortfallReason, 
+            string? notes);
     }
 }

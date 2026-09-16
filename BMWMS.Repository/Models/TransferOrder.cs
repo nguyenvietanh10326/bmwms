@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace BMWMS.Repository.Models;
@@ -29,11 +29,17 @@ public partial class TransferOrder
 
     public DateTime CreatedAt { get; set; }
 
+    public long? ApprovedByUserId { get; set; }
+
+    public DateTime? ApprovedAt { get; set; }
+
     public long? ConfirmedByUserId { get; set; }
 
     public DateTime? ConfirmedAt { get; set; }
 
     public virtual User? AssignedToUser { get; set; }
+
+    public virtual User? ApprovedByUser { get; set; }
 
     public virtual User? ConfirmedByUser { get; set; }
 

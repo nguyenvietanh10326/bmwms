@@ -101,6 +101,8 @@ public partial class User
 
     public virtual ICollection<TransferOrder> TransferOrderAssignedToUsers { get; set; } = new List<TransferOrder>();
 
+    public virtual ICollection<TransferOrder> TransferOrderApprovedByUsers { get; set; } = new List<TransferOrder>();
+
     public virtual ICollection<TransferOrder> TransferOrderConfirmedByUsers { get; set; } = new List<TransferOrder>();
 
     public virtual ICollection<TransferOrder> TransferOrderCreatedByUsers { get; set; } = new List<TransferOrder>();

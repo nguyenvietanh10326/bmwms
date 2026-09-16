@@ -30,11 +30,13 @@ namespace BMWMS.Business.DTOs.StockOperations
         public string ProgressLabel { get; set; } = string.Empty;
         public string NextAction { get; set; } = string.Empty;
         public string CreatedByName { get; set; } = string.Empty;
+        public string? ApprovedByName { get; set; }
         public string? AssignedToName { get; set; }
         public string? ConfirmedByName { get; set; }
         public DateOnly RequestedDate { get; set; }
         public DateOnly? DueDate { get; set; }
         public DateTime CreatedAt { get; set; }
+        public DateTime? ApprovedAt { get; set; }
         public DateTime? ConfirmedAt { get; set; }
         public int TotalItems { get; set; }
         public decimal TotalRequestedQuantity { get; set; }
@@ -79,16 +81,17 @@ namespace BMWMS.Business.DTOs.StockOperations
         public string? Notes { get; set; }
         public string CreatedByName { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
+        public string? ApprovedByName { get; set; }
+        public DateTime? ApprovedAt { get; set; }
         public string? AssignedToName { get; set; }
         public long? AssignedToUserId { get; set; }
         public string? ConfirmedByName { get; set; }
         public DateTime? ConfirmedAt { get; set; }
         public bool InventoryPosted { get; set; }
         public bool CanEdit { get; set; }
+        public bool CanCancel { get; set; }
         public bool CanApprove { get; set; }
-        public bool CanReject { get; set; }
-        public bool CanIssue { get; set; }
-        public bool CanReceive { get; set; }
+        public bool CanConfirm { get; set; }
         public decimal TotalRequestedQuantity { get; set; }
         public decimal TotalMovedQuantity { get; set; }
         public List<TransferOrderDetailItemDto> Details { get; set; } = new();
@@ -137,7 +140,6 @@ namespace BMWMS.Business.DTOs.StockOperations
     public class CreateTransferOrderDto
     {
         public long WarehouseId { get; set; } = 1;
-        public long? AssignedToUserId { get; set; }   // Manager assign Staff
         public DateOnly? DueDate { get; set; }         // Ngày dự kiến hoàn thành
         public string? Notes { get; set; }
         public List<CreateTransferItemDto> Items { get; set; } = new();
@@ -151,7 +153,6 @@ namespace BMWMS.Business.DTOs.StockOperations
     public class ApproveTransferDto
     {
         public long TransferOrderId { get; set; }
-        public long? AssignedToUserId { get; set; }   // Có thể assign/re-assign lúc duyệt
         public string? Notes { get; set; }
     }
 
@@ -162,6 +163,7 @@ namespace BMWMS.Business.DTOs.StockOperations
         public bool AcknowledgeCapacityWarning { get; set; }
         public string? CapacityWarningReason { get; set; }
         public string? DestinationChangeReason { get; set; }
+        public string? ShortfallReason { get; set; }
     }
 
     public class ConfirmTransferItemDto
