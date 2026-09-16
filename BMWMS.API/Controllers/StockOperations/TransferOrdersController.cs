@@ -26,14 +26,14 @@ namespace BMWMS.API.Controllers.StockOperations
             [FromQuery] string? keyword,
             [FromQuery] string? status,
             [FromQuery] long? warehouseId,
-            [FromQuery] int pageIndex = 0,
+            [FromQuery] int pageIndex = 1,
             [FromQuery] int pageSize = 10)
         {
             var staffId = IsManager ? (long?)null : CurrentUserId;
-            return Ok(await _service.GetPagedOrdersAsync(keyword, status, warehouseId, pageIndex, pageSize, staffId));
+            return Ok(await _service.GetPagedOrdersAsync(keyword, status, warehouseId, (pageIndex > 0 ? pageIndex - 1 : 0), pageSize, staffId));
         }
 
-        [HttpGet("{id}")]
+        [HttpGet("{id:long}")]
         public async Task<IActionResult> GetDetail(long id)
         {
             var detail = await _service.GetOrderDetailAsync(id, CurrentUserId, IsManager);
@@ -56,7 +56,7 @@ namespace BMWMS.API.Controllers.StockOperations
             }
         }
 
-        [HttpPut("{id}")]
+        [HttpPut("{id:long}")]
         public async Task<IActionResult> UpdateDraftOrder(long id, [FromBody] UpdateTransferOrderDto dto)
         {
             try
@@ -73,3 +73,5 @@ namespace BMWMS.API.Controllers.StockOperations
         }
     }
 }
+
+
