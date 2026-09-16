@@ -10,7 +10,7 @@ namespace BMWMS.Web.Services
 
         public TransferApiService(IHttpClientFactory httpClientFactory)
         {
-            _httpClient = httpClientFactory.CreateClient("BmwmsApi");
+            _httpClient = httpClientFactory.CreateClient("ApiClient");
         }
 
         #region DTOs
@@ -90,8 +90,12 @@ namespace BMWMS.Web.Services
             public string UnitName { get; set; } = "";
             public string LotNumber { get; set; } = "";
             public long SourceLocationId { get; set; }
+            public long? SourceZoneId { get; set; }
+            public long? SourceRackId { get; set; }
             public string SourceLocationCode { get; set; } = "";
             public long DestLocationId { get; set; }
+            public long? DestZoneId { get; set; }
+            public long? DestRackId { get; set; }
             public string DestLocationCode { get; set; } = "";
             public decimal RequestedQuantity { get; set; }
             public decimal MovedQuantity { get; set; }
@@ -170,7 +174,12 @@ namespace BMWMS.Web.Services
             public long LocationId { get; set; }
             public string LocationCode { get; set; } = "";
             public string LocationName { get; set; } = "";
+            public long? ZoneId { get; set; }
+            public string ZoneCode { get; set; } = "";
+            public long? RackId { get; set; }
+            public string RackCode { get; set; } = "";
             public bool IsPutawayAllowed { get; set; }
+            public bool IsPickable { get; set; }
             public string DisplayLabel => string.IsNullOrWhiteSpace(LocationName) ? LocationCode : $"{LocationCode} - {LocationName}";
         }
 
@@ -184,6 +193,8 @@ namespace BMWMS.Web.Services
             public long ProductLotId { get; set; }
             public string LotNumber { get; set; } = "";
             public DateOnly? ExpiryDate { get; set; }
+            public decimal OnHandQuantity { get; set; }
+            public decimal ReservedQuantity { get; set; }
             public decimal AvailableQuantity { get; set; }
             public byte QuantityScale { get; set; }
         }
@@ -193,6 +204,9 @@ namespace BMWMS.Web.Services
             public bool IsValid { get; set; }
             public string CapacityStatus { get; set; } = "";
             public string Message { get; set; } = "";
+            public decimal? CurrentQuantity { get; set; }
+            public decimal? ProjectedQuantity { get; set; }
+            public decimal? MaxCapacityQuantity { get; set; }
         }
         
         public class ZoneOptionDto
@@ -306,11 +320,15 @@ namespace BMWMS.Web.Services
             catch (Exception ex) { return new TransferResultDto { Success = false, Message = ex.Message }; }
         }
 
-        public async Task<List<LocationOptionDto>> GetLocationsAsync(long warehouseId = 1)
+        public async Task<List<LocationOptionDto>> GetLocationsAsync(long warehouseId = 1, long? zoneId = null, long? rackId = null, long? productId = null)
         {
             try
             {
-                var response = await _httpClient.GetAsync($"api/transfers/locations?warehouseId={warehouseId}");
+                var url = $"api/transfers/locations?warehouseId={warehouseId}";
+                if (zoneId.HasValue && zoneId.Value > 0) url += $"&zoneId={zoneId.Value}";
+                if (rackId.HasValue && rackId.Value > 0) url += $"&rackId={rackId.Value}";
+                if (productId.HasValue && productId.Value > 0) url += $"&productId={productId.Value}";
+                var response = await _httpClient.GetAsync(url);
                 if (!response.IsSuccessStatusCode) return new();
                 return await response.Content.ReadFromJsonAsync<List<LocationOptionDto>>(_jsonOpts) ?? new();
             }
@@ -328,28 +346,42 @@ namespace BMWMS.Web.Services
             catch { return new(); }
         }
         
-        public async Task<List<ZoneOptionDto>> GetZonesAsync(long warehouseId = 1)
+        public async Task<List<ZoneOptionDto>> GetZonesAsync(long warehouseId = 1, long? productId = null)
         {
             try
             {
-                var response = await _httpClient.GetAsync($"api/transfers/zones?warehouseId={warehouseId}");
+                var url = $"api/transfers/zones?warehouseId={warehouseId}";
+                if (productId.HasValue && productId.Value > 0) url += $"&productId={productId.Value}";
+                var response = await _httpClient.GetAsync(url);
                 if (!response.IsSuccessStatusCode) return new();
                 return await response.Content.ReadFromJsonAsync<List<ZoneOptionDto>>(_jsonOpts) ?? new();
             }
             catch { return new(); }
         }
 
-        public async Task<List<RackOptionDto>> GetRacksAsync(long warehouseId = 1, long? zoneId = null)
+        public async Task<List<RackOptionDto>> GetRacksAsync(long warehouseId = 1, long? zoneId = null, long? productId = null)
         {
             try
             {
                 var url = $"api/transfers/racks?warehouseId={warehouseId}";
                 if (zoneId.HasValue && zoneId.Value > 0) url += $"&zoneId={zoneId.Value}";
+                if (productId.HasValue && productId.Value > 0) url += $"&productId={productId.Value}";
                 var response = await _httpClient.GetAsync(url);
                 if (!response.IsSuccessStatusCode) return new();
                 return await response.Content.ReadFromJsonAsync<List<RackOptionDto>>(_jsonOpts) ?? new();
             }
             catch { return new(); }
+        }
+
+        public async Task<BinCapacityCheckDto> ValidateDestinationAsync(long locationId, long productId, decimal requestedQuantity)
+        {
+            try
+            {
+                var response = await _httpClient.GetAsync($"api/transfers/validate-destination?locationId={locationId}&productId={productId}&requestedQuantity={requestedQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture)}");
+                if (!response.IsSuccessStatusCode) return new BinCapacityCheckDto { IsValid = false, Message = await response.Content.ReadAsStringAsync() };
+                return await response.Content.ReadFromJsonAsync<BinCapacityCheckDto>(_jsonOpts) ?? new BinCapacityCheckDto { IsValid = false, Message = "Khong doc duoc ket qua kiem tra suc chua." };
+            }
+            catch (Exception ex) { return new BinCapacityCheckDto { IsValid = false, Message = ex.Message }; }
         }
         #endregion
     }

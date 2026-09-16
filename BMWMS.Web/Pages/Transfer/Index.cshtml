@@ -6,15 +6,28 @@
     ViewData["ActivePage"] = "Transfer";
 }
 
+<style>
+    .transfer-page select, .transfer-page .form-select {
+        padding-right: 2.5rem !important;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        overflow: hidden;
+        background-position: right .75rem center;
+    }
+</style>
+
 <div class="transfer-page">
     <div class="pagehead" style="display:flex; justify-content:space-between; align-items:flex-end;">
         <div>
             <h1>Danh sách Lệnh Điều Chuyển</h1>
             <p>Quản lý các lệnh điều chuyển nội bộ.</p>
         </div>
-        <div>
-            <a href="/Transfer/Create" class="btn btn-primary"><i class="ri-add-line"></i> Tạo phiếu mới</a>
-        </div>
+        @if (Model.IsStaff)
+        {
+            <div>
+                <a href="/Transfer/Create" class="btn btn-primary"><i class="ri-add-line"></i> Tạo phiếu mới</a>
+            </div>
+        }
     </div>
 
     @if (!string.IsNullOrEmpty(Model.SuccessMessage)) { <div class="alert alert-success">@Model.SuccessMessage</div> }

@@ -16,6 +16,7 @@ namespace BMWMS.Web.Pages.Transfer
 
         public TransferOrderPagedResultDto PagedResult { get; set; } = new();
         public bool IsManager { get; set; } = false;
+        public bool IsStaff { get; set; } = false;
 
         [BindProperty(SupportsGet = true)]
         public string? Keyword { get; set; }
@@ -53,6 +54,7 @@ namespace BMWMS.Web.Pages.Transfer
         {
             var roleCode = HttpContext.Session.GetString("RoleCode")?.ToUpper() ?? "";
             IsManager = roleCode.Contains("ADMIN") || roleCode.Contains("MANAGER") || roleCode == "WAREHOUSE_MANAGER";
+            IsStaff = roleCode.Contains("STAFF") || roleCode == "WAREHOUSE_STAFF";
         }
     }
 }

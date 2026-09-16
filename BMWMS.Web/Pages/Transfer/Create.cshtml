@@ -10,12 +10,28 @@
     .transfer-form .field { margin-bottom: 15px; }
     .transfer-form label { display: block; margin-bottom: 5px; font-weight: 500; font-size: 13px; color: #475569; }
     .transfer-form input, .transfer-form select, .transfer-form textarea { width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; }
+    .transfer-form select, .transfer-page .form-select {
+        padding-right: 2.5rem !important;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        overflow: hidden;
+        background-position: right .75rem center;
+    }
     .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
     table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
     th { text-align: left; padding: 10px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; }
     td { padding: 10px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
     .btn-remove { background: #fee2e2; color: #dc2626; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; }
     .btn-remove:hover { background: #fca5a5; }
+    .transfer-items { min-width: 1180px; }
+    .transfer-items th, .transfer-items td { min-width: 130px; }
+    .transfer-items .product-col { min-width: 260px; }
+    .transfer-items .qty-col { min-width: 120px; }
+    .transfer-items .qty-input { height: 31px; padding: 4px 8px; font-size: 0.875rem; line-height: 1.5; }
+    .transfer-items .action-col { min-width: 60px; text-align:center; }
+    .table-scroll { overflow-x: auto; }
+    .row-validation { display:block; min-height:16px; margin-top:4px; font-size:12px; color:#dc2626; }
+    .row-validation.ok { color:#16a34a; }
 </style>
 
 <div class="transfer-page">
@@ -59,55 +75,43 @@
                 <button type="button" onclick="addItemRow()" class="btn btn-light">+ Thêm dòng</button>
             </div>
             
-            <table id="items-table">
-                <thead>
-                    <tr>
-                        <th style="width: 30%">Sản phẩm Tồn Kho (Vị trí nguồn)</th>
-                        <th style="width: 15%">Tồn kho</th>
-                        <th style="width: 25%">Vị trí đích</th>
-                        <th style="width: 20%">S.Lượng chuyển</th>
-                        <th style="width: 10%"></th>
-                    </tr>
-                </thead>
-                <tbody id="items-body">
-                </tbody>
-            </table>
+            <div class="table-scroll">
+                <table id="items-table" class="transfer-items">
+                    <thead>
+                        <tr>
+                            <th>Zone nguồn</th>
+                            <th>Rack nguồn</th>
+                            <th>Bin nguồn</th>
+                            <th class="product-col">Sản phẩm / Lot</th>
+                            <th>Tồn khả dụng</th>
+                            <th>Zone đích</th>
+                            <th>Rack đích</th>
+                            <th>Bin đích</th>
+                            <th class="qty-col">S.Lượng chuyển</th>
+                            <th class="action-col"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="items-body">
+                    </tbody>
+                </table>
+            </div>
         </div>
     </form>
-</div>
-
-<!-- Modal chọn tồn kho -->
-<div class="modal fade" id="inventoryModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Chọn tồn kho tìm thấy</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="input-group mb-3">
-                    <input type="text" id="invSearch" class="form-control" placeholder="Nhập mã sp..." />
-                    <button type="button" class="btn btn-dark" onclick="searchInv()">Tìm</button>
-                </div>
-                <div id="invResults"></div>
-            </div>
-        </div>
-    </div>
 </div>
 
 @section Scripts {
     <script>
         let rowIdx = 0;
-        let locations = [];
-        let currentRow = -1;
+        let zones = [];
+        const rowInventories = {};
+        const validationTimers = {};
+        let validatedSubmit = false;
 
         async function initData() {
             try {
-                const res = await fetch('/api/transfers/locations?warehouseId=1');
-                if (res.ok) {
-                    locations = await res.json();
-                }
-                
+                const zoneRes = await fetch('/Transfer/Create?handler=Zones');
+                zones = zoneRes.ok ? await zoneRes.json() : [];
+
                 @if(Model.IsEditMode && Model.EditingOrder?.Details != null)
                 {
                     foreach(var d in Model.EditingOrder.Details)
@@ -120,7 +124,11 @@
                             dloc: @d.DestLocationId,
                             pcode: '@d.ProductCode',
                             pname: '@d.ProductName',
+                            lotNumber: '@d.LotNumber',
                             lcode: '@d.SourceLocationCode',
+                            destCode: '@d.DestLocationCode',
+                            destZoneId: @(d.DestZoneId?.ToString() ?? "null"),
+                            destRackId: @(d.DestRackId?.ToString() ?? "null"),
                             qty: @d.RequestedQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture)
                         });
                         </text>
@@ -132,88 +140,278 @@
 
         function addItemRow() {
             const ri = rowIdx++;
-            let locOpts = '<option value="">-- Chọn --</option>';
-            locations.forEach(l => {
-                if(l.isPutawayAllowed) locOpts += `<option value="${l.locationId}">${l.locationCode} - ${l.locationName}</option>`;
-            });
-
+            rowInventories[ri] = [];
             const html = `<tr id="row-${ri}">
-                <td>
-                    <div style="display:flex;gap:5px;">
-                        <button type="button" class="btn btn-light btn-sm" onclick="openInvModal(${ri})"><i class="ri-search-line"></i></button>
-                        <input type="hidden" name="productIds" id="pid-${ri}" required />
-                        <input type="hidden" name="productLotIds" id="plid-${ri}" required />
-                        <input type="hidden" name="sourceLocationIds" id="sloc-${ri}" required />
-                        <input type="text" class="form-control form-control-sm" id="pinfo-${ri}" readonly placeholder="Bấm kính lúp chọn ->" />
-                    </div>
+                <td><select id="sourceZone-${ri}" class="form-select form-select-sm" onchange="loadSourceRacks(${ri})">${zoneOptions()}</select></td>
+                <td><select id="sourceRack-${ri}" class="form-select form-select-sm" onchange="loadSourceBins(${ri})"><option value="">-- Chọn --</option></select></td>
+                <td><select name="sourceLocationIds" id="sloc-${ri}" class="form-select form-select-sm" onchange="loadInventoryForRow(${ri})" required><option value="">-- Chọn --</option></select></td>
+                <td class="product-col">
+                    <input type="hidden" name="productIds" id="pid-${ri}" required />
+                    <input type="hidden" name="productLotIds" id="plid-${ri}" required />
+                    <select id="productLot-${ri}" class="form-select form-select-sm" onchange="selectInventoryItem(${ri})" required><option value="">-- Chọn bin nguồn trước --</option></select>
                 </td>
                 <td><span id="onhand-${ri}">0</span></td>
-                <td><select name="destLocationIds" id="dloc-${ri}" class="form-select form-select-sm" required>${locOpts}</select></td>
-                <td><input type="number" name="quantities" class="form-control form-control-sm" min="0.001" step="any" required /></td>
-                <td style="text-align:center;"><button type="button" class="btn-remove" onclick="$('#row-${ri}').remove()"><i class="ri-delete-bin-line"></i></button></td>
+                <td><select id="destZone-${ri}" class="form-select form-select-sm" onchange="loadDestRacks(${ri})" disabled><option value="">-- Chọn sản phẩm --</option></select></td>
+                <td><select id="destRack-${ri}" class="form-select form-select-sm" onchange="loadDestBins(${ri})" disabled><option value="">-- Chọn --</option></select></td>
+                <td><select name="destLocationIds" id="dloc-${ri}" class="form-select form-select-sm" onchange="validateRow(${ri})" disabled required><option value="">-- Chọn --</option></select></td>
+                <td>
+                    <input type="number" name="quantities" id="qty-${ri}" class="form-control form-control-sm qty-input" min="0.001" step="any" oninput="validateRow(${ri})" required />
+                    <span id="msg-${ri}" class="row-validation"></span>
+                </td>
+                <td style="text-align:center;"><button type="button" class="btn-remove" onclick="removeItemRow(${ri})"><i class="ri-delete-bin-line"></i></button></td>
             </tr>`;
-            $('#items-body').append(html);
+            document.getElementById('items-body').insertAdjacentHTML('beforeend', html);
         }
 
         function addExistingRow(data) {
             const ri = rowIdx++;
-            let locOpts = '<option value="">-- Chọn --</option>';
-            locations.forEach(l => {
-                if(l.isPutawayAllowed) {
-                    const sel = l.locationId == data.dloc ? 'selected' : '';
-                    locOpts += `<option value="${l.locationId}" ${sel}>${l.locationCode} - ${l.locationName}</option>`;
-                }
-            });
-
+            rowInventories[ri] = [{
+                productId: data.pid,
+                productLotId: data.plid,
+                productCode: data.pcode,
+                productName: data.pname,
+                lotNumber: data.lotNumber || '',
+                availableQuantity: data.qty
+            }];
             const html = `<tr id="row-${ri}">
-                <td>
-                    <div style="display:flex;gap:5px;">
-                        <button type="button" class="btn btn-light btn-sm" onclick="openInvModal(${ri})"><i class="ri-search-line"></i></button>
-                        <input type="hidden" name="productIds" id="pid-${ri}" value="${data.pid}" required />
-                        <input type="hidden" name="productLotIds" id="plid-${ri}" value="${data.plid}" required />
-                        <input type="hidden" name="sourceLocationIds" id="sloc-${ri}" value="${data.sloc}" required />
-                        <input type="text" class="form-control form-control-sm" id="pinfo-${ri}" value="[${data.lcode}] ${data.pcode} - ${data.pname}" readonly />
-                    </div>
+                <td><select id="sourceZone-${ri}" class="form-select form-select-sm" onchange="loadSourceRacks(${ri})">${zoneOptions()}</select></td>
+                <td><select id="sourceRack-${ri}" class="form-select form-select-sm" onchange="loadSourceBins(${ri})"><option value="">-- Chọn --</option></select></td>
+                <td><select name="sourceLocationIds" id="sloc-${ri}" class="form-select form-select-sm" onchange="loadInventoryForRow(${ri})" required><option value="${data.sloc}" selected>${data.lcode}</option></select></td>
+                <td class="product-col">
+                    <input type="hidden" name="productIds" id="pid-${ri}" value="${data.pid}" required />
+                    <input type="hidden" name="productLotIds" id="plid-${ri}" value="${data.plid}" required />
+                    <select id="productLot-${ri}" class="form-select form-select-sm" onchange="selectInventoryItem(${ri})" required><option value="${data.plid}" selected>${data.pcode} - ${data.pname}</option></select>
                 </td>
-                <td><span id="onhand-${ri}">-</span></td>
-                <td><select name="destLocationIds" id="dloc-${ri}" class="form-select form-select-sm" required>${locOpts}</select></td>
-                <td><input type="number" name="quantities" value="${data.qty}" class="form-control form-control-sm" min="0.001" step="any" required /></td>
-                <td style="text-align:center;"><button type="button" class="btn-remove" onclick="$('#row-${ri}').remove()"><i class="ri-delete-bin-line"></i></button></td>
+                <td><span id="onhand-${ri}">${data.qty}</span></td>
+                <td><select id="destZone-${ri}" class="form-select form-select-sm" onchange="loadDestRacks(${ri})"><option value="">Đang tải...</option></select></td>
+                <td><select id="destRack-${ri}" class="form-select form-select-sm" onchange="loadDestBins(${ri})"><option value="">-- Chọn --</option></select></td>
+                <td><select name="destLocationIds" id="dloc-${ri}" class="form-select form-select-sm" onchange="validateRow(${ri})" required><option value="${data.dloc}" selected>${data.destCode || data.dloc}</option></select></td>
+                <td>
+                    <input type="number" name="quantities" id="qty-${ri}" value="${data.qty}" class="form-control form-control-sm qty-input" min="0.001" step="any" oninput="validateRow(${ri})" required />
+                    <span id="msg-${ri}" class="row-validation"></span>
+                </td>
+                <td style="text-align:center;"><button type="button" class="btn-remove" onclick="removeItemRow(${ri})"><i class="ri-delete-bin-line"></i></button></td>
             </tr>`;
-            $('#items-body').append(html);
+            document.getElementById('items-body').insertAdjacentHTML('beforeend', html);
+            loadDestZonesForProduct(ri, data.destZoneId, data.destRackId, data.dloc);
         }
 
-        function searchInv() {
-            let html = '<div class="list-group">';
-            html += '<div class="alert alert-info">Chức năng tìm kiếm kết nối tới Backend. Dữ liệu giả lập để Test:</div>';
-            html += `<button type="button" class="list-group-item list-group-item-action" onclick="selectInv(1, 1, 1, 'SP001', 'Máy bơm', 'LOC-A1', 100)">
-                [LOC-A1] SP001 - Máy bơm (Tồn: 100)
-            </button>`;
-            html += `<button type="button" class="list-group-item list-group-item-action" onclick="selectInv(2, 2, 2, 'SP002', 'Ống nước', 'LOC-A2', 500)">
-                [LOC-A2] SP002 - Ống nước (Tồn: 500)
-            </button>`;
-            html += '</div>';
-            $('#invResults').html(html);
+        function removeItemRow(ri) {
+            document.getElementById(`row-${ri}`)?.remove();
+            delete rowInventories[ri];
+            clearTimeout(validationTimers[ri]);
         }
 
-        function openInvModal(ri) {
-            currentRow = ri;
-            $('#invSearch').val('');
-            $('#invResults').html('');
-            searchInv();
-            var myModal = new bootstrap.Modal(document.getElementById('inventoryModal'));
-            myModal.show();
+        function zoneOptions(selectedId = '') {
+            let html = '<option value="">-- Chọn --</option>';
+            zones.forEach(z => {
+                const selected = z.zoneId == selectedId ? 'selected' : '';
+                html += `<option value="${z.zoneId}" ${selected}>${z.zoneCode} - ${z.zoneName || ''}</option>`;
+            });
+            return html;
         }
 
-        function selectInv(pid, plid, sloc, pcode, pname, lcode, onhand) {
-            $(`#pid-${currentRow}`).val(pid);
-            $(`#plid-${currentRow}`).val(plid);
-            $(`#sloc-${currentRow}`).val(sloc);
-            $(`#pinfo-${currentRow}`).val(`[${lcode}] ${pcode} - ${pname}`);
-            $(`#onhand-${currentRow}`).text(onhand);
-            
-            bootstrap.Modal.getInstance(document.getElementById('inventoryModal')).hide();
+        function optionHtml(items, valueKey, textBuilder, selectedId = '') {
+            let html = '<option value="">-- Chọn --</option>';
+            items.forEach(item => {
+                const selected = item[valueKey] == selectedId ? 'selected' : '';
+                html += `<option value="${item[valueKey]}" ${selected}>${textBuilder(item)}</option>`;
+            });
+            return html;
         }
+
+        async function loadSourceRacks(ri) {
+            await loadRacks(ri, 'source');
+            clearSelect(`sloc-${ri}`);
+            resetInventorySelection(ri);
+        }
+
+        async function loadDestRacks(ri, selectedRackId = '', selectedBinId = '') {
+            await loadRacks(ri, 'dest', selectedRackId);
+            clearSelect(`dloc-${ri}`);
+            if (selectedRackId) await loadDestBins(ri, selectedBinId);
+            validateRow(ri);
+        }
+
+        async function loadRacks(ri, prefix, selectedId = '') {
+            const zoneId = document.getElementById(`${prefix}Zone-${ri}`).value;
+            const productId = prefix === 'dest' ? document.getElementById(`pid-${ri}`).value : '';
+            const rackSelect = document.getElementById(`${prefix}Rack-${ri}`);
+            rackSelect.disabled = !zoneId;
+            rackSelect.innerHTML = '<option value="">Đang tải...</option>';
+            const res = await fetch(`/Transfer/Create?handler=Racks&zoneId=${zoneId || ''}&productId=${productId || ''}`);
+            const racks = res.ok ? await res.json() : [];
+            rackSelect.innerHTML = optionHtml(racks, 'rackId', r => `${r.rackCode} - ${r.rackName || ''}`, selectedId);
+        }
+
+        async function loadSourceBins(ri) {
+            await loadBins(ri, 'source', true);
+            resetInventorySelection(ri);
+        }
+
+        async function loadDestBins(ri, selectedBinId = '') {
+            await loadBins(ri, 'dest', false, selectedBinId);
+            validateRow(ri);
+        }
+
+        async function loadBins(ri, prefix, pickableOnly, selectedId = '') {
+            const zoneId = document.getElementById(`${prefix}Zone-${ri}`).value;
+            const rackId = document.getElementById(`${prefix}Rack-${ri}`).value;
+            const productId = prefix === 'dest' ? document.getElementById(`pid-${ri}`).value : '';
+            const selectId = prefix === 'source' ? `sloc-${ri}` : `dloc-${ri}`;
+            const binSelect = document.getElementById(selectId);
+            binSelect.disabled = !rackId;
+            binSelect.innerHTML = '<option value="">Đang tải...</option>';
+            const res = await fetch(`/Transfer/Create?handler=Locations&zoneId=${zoneId || ''}&rackId=${rackId || ''}&productId=${productId || ''}`);
+            const bins = (res.ok ? await res.json() : []).filter(l => pickableOnly ? l.isPickable : l.isPutawayAllowed);
+            binSelect.innerHTML = optionHtml(bins, 'locationId', l => `${l.locationCode} - ${l.locationName || ''}`, selectedId);
+        }
+
+        async function loadInventoryForRow(ri) {
+            resetInventorySelection(ri);
+            const locationId = document.getElementById(`sloc-${ri}`).value;
+            const productSelect = document.getElementById(`productLot-${ri}`);
+            if (!locationId) {
+                productSelect.innerHTML = '<option value="">-- Chọn bin nguồn trước --</option>';
+                return;
+            }
+            productSelect.innerHTML = '<option value="">Đang tải...</option>';
+            const res = await fetch(`/Transfer/Create?handler=LocationInventory&locationId=${locationId}`);
+            rowInventories[ri] = (res.ok ? await res.json() : []).filter(i => (i.availableQuantity || 0) > 0);
+            productSelect.innerHTML = optionHtml(rowInventories[ri], 'productLotId', i => `${i.productCode} - ${i.productName} / Lot: ${i.lotNumber || '-'} / Khả dụng: ${i.availableQuantity}`);
+        }
+
+        function selectInventoryItem(ri) {
+            const lotId = document.getElementById(`productLot-${ri}`).value;
+            const item = (rowInventories[ri] || []).find(i => i.productLotId == lotId);
+            document.getElementById(`pid-${ri}`).value = item?.productId || '';
+            document.getElementById(`plid-${ri}`).value = item?.productLotId || '';
+            document.getElementById(`onhand-${ri}`).textContent = item?.availableQuantity ?? 0;
+            const qty = document.getElementById(`qty-${ri}`);
+            qty.max = item?.availableQuantity ?? '';
+            if (item && Number(qty.value || 0) > Number(item.availableQuantity || 0)) qty.value = item.availableQuantity;
+            loadDestZonesForProduct(ri);
+            validateRow(ri);
+        }
+
+        async function loadDestZonesForProduct(ri, selectedZoneId = '', selectedRackId = '', selectedBinId = '') {
+            const productId = document.getElementById(`pid-${ri}`).value;
+            const zoneSelect = document.getElementById(`destZone-${ri}`);
+            const rackSelect = document.getElementById(`destRack-${ri}`);
+            const binSelect = document.getElementById(`dloc-${ri}`);
+            clearSelect(`destRack-${ri}`);
+            clearSelect(`dloc-${ri}`);
+            rackSelect.disabled = true;
+            binSelect.disabled = true;
+            if (!productId) {
+                zoneSelect.disabled = true;
+                zoneSelect.innerHTML = '<option value="">-- Chọn sản phẩm --</option>';
+                return;
+            }
+            zoneSelect.disabled = false;
+            zoneSelect.innerHTML = '<option value="">Đang tải...</option>';
+            const res = await fetch(`/Transfer/Create?handler=Zones&productId=${productId}`);
+            const destZones = res.ok ? await res.json() : [];
+            zoneSelect.innerHTML = optionHtml(destZones, 'zoneId', z => `${z.zoneCode} - ${z.zoneName || ''}`, selectedZoneId);
+            if (selectedZoneId) await loadDestRacks(ri, selectedRackId, selectedBinId);
+        }
+
+        function resetInventorySelection(ri) {
+            rowInventories[ri] = [];
+            document.getElementById(`pid-${ri}`).value = '';
+            document.getElementById(`plid-${ri}`).value = '';
+            document.getElementById(`onhand-${ri}`).textContent = '0';
+            document.getElementById(`productLot-${ri}`).innerHTML = '<option value="">-- Chọn bin nguồn trước --</option>';
+            document.getElementById(`qty-${ri}`).removeAttribute('max');
+            loadDestZonesForProduct(ri);
+            validateRow(ri);
+        }
+
+        function clearSelect(id) {
+            const el = document.getElementById(id);
+            if (el) el.innerHTML = '<option value="">-- Chọn --</option>';
+        }
+
+        function setRowMessage(ri, text, ok = false) {
+            const msg = document.getElementById(`msg-${ri}`);
+            if (!msg) return;
+            msg.textContent = text || '';
+            msg.classList.toggle('ok', ok);
+        }
+
+        function validateRow(ri) {
+            clearTimeout(validationTimers[ri]);
+            validationTimers[ri] = setTimeout(() => validateRowNow(ri), 250);
+        }
+
+        async function validateRowNow(ri) {
+            const qty = document.getElementById(`qty-${ri}`);
+            const productId = document.getElementById(`pid-${ri}`).value;
+            const sourceId = document.getElementById(`sloc-${ri}`).value;
+            const dest = document.getElementById(`dloc-${ri}`);
+            const destId = dest.value;
+            const available = Number(document.getElementById(`onhand-${ri}`).textContent || 0);
+            const value = Number(qty.value || 0);
+
+            qty.setCustomValidity('');
+            dest.setCustomValidity('');
+            setRowMessage(ri, '');
+
+            if (!value || value <= 0) return;
+            if (available > 0 && value > available) {
+                const text = `Số lượng chuyển không được vượt tồn khả dụng nguồn (${available}).`;
+                qty.setCustomValidity(text);
+                setRowMessage(ri, text);
+                return;
+            }
+            const productLotId = document.getElementById(`plid-${ri}`).value;
+            const rows = Array.from(document.querySelectorAll('#items-body tr')).map(row => Number(row.id.replace('row-', '')));
+            const totalFromSameSource = rows.reduce((sum, rowId) => {
+                const sameSource = document.getElementById(`sloc-${rowId}`)?.value === sourceId;
+                const sameLot = document.getElementById(`plid-${rowId}`)?.value === productLotId;
+                const rowQty = Number(document.getElementById(`qty-${rowId}`)?.value || 0);
+                return sameSource && sameLot ? sum + rowQty : sum;
+            }, 0);
+            if (available > 0 && totalFromSameSource > available) {
+                const text = `Tổng số lượng cùng bin nguồn không được vượt tồn khả dụng (${available}).`;
+                qty.setCustomValidity(text);
+                setRowMessage(ri, text);
+                return;
+            }
+            if (sourceId && destId && sourceId === destId) {
+                const text = 'Bin nguồn và bin đích không được trùng nhau.';
+                dest.setCustomValidity(text);
+                setRowMessage(ri, text);
+                return;
+            }
+            if (!productId || !destId) return;
+
+            setRowMessage(ri, 'Đang kiểm tra sức chứa...', true);
+            const res = await fetch(`/Transfer/Create?handler=ValidateDestination&locationId=${destId}&productId=${productId}&quantity=${encodeURIComponent(qty.value)}`);
+            const data = res.ok ? await res.json() : { isValid: false, message: 'Không kiểm tra được sức chứa bin đích.' };
+            if (!data.isValid) {
+                const text = data.message || 'Số lượng vượt sức chứa bin đích.';
+                qty.setCustomValidity(text);
+                dest.setCustomValidity(text);
+                setRowMessage(ri, text);
+                return;
+            }
+            setRowMessage(ri, data.message || 'Số lượng hợp lệ.', true);
+        }
+
+        document.getElementById('transfer-form').addEventListener('submit', async function (event) {
+            if (validatedSubmit) return;
+            event.preventDefault();
+            event.stopPropagation();
+            const rows = Array.from(document.querySelectorAll('#items-body tr')).map(row => Number(row.id.replace('row-', '')));
+            await Promise.all(rows.map(validateRowNow));
+            if (!this.checkValidity()) {
+                this.reportValidity();
+                return;
+            }
+            validatedSubmit = true;
+            this.requestSubmit(event.submitter);
+        });
 
         initData();
     </script>

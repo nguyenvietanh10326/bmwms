@@ -18,21 +18,21 @@ namespace BMWMS.Business.Services.StockOperations
             _capacityService = capacityService;
         }
 
-        public async Task<List<ZoneOptionDto>> GetZonesAsync(long warehouseId = 1)
+        public async Task<List<ZoneOptionDto>> GetZonesAsync(long warehouseId = 1, long? productId = null)
         {
-            var zones = await _repository.GetZonesByWarehouseAsync(warehouseId);
+            var zones = await _repository.GetZonesByWarehouseAsync(warehouseId, productId);
             return zones.Select(z => new ZoneOptionDto { ZoneId = z.ZoneId, ZoneCode = z.ZoneCode, ZoneName = z.ZoneName }).ToList();
         }
 
-        public async Task<List<RackOptionDto>> GetRacksAsync(long warehouseId, long? zoneId = null)
+        public async Task<List<RackOptionDto>> GetRacksAsync(long warehouseId, long? zoneId = null, long? productId = null)
         {
-            var racks = await _repository.GetRacksByZoneAsync(warehouseId, zoneId);
+            var racks = await _repository.GetRacksByZoneAsync(warehouseId, zoneId, productId);
             return racks.Select(r => new RackOptionDto { RackId = r.RackId, RackCode = r.RackCode, RackName = r.RackName, ZoneId = r.ZoneId }).ToList();
         }
 
-        public async Task<List<LocationOptionDto>> GetLocationsAsync(long warehouseId = 1, long? zoneId = null, long? rackId = null)
+        public async Task<List<LocationOptionDto>> GetLocationsAsync(long warehouseId = 1, long? zoneId = null, long? rackId = null, long? productId = null)
         {
-            var locs = await _repository.GetActiveLocationsByWarehouseAsync(warehouseId, zoneId, rackId);
+            var locs = await _repository.GetActiveLocationsByWarehouseAsync(warehouseId, zoneId, rackId, productId);
             return locs.Select(l => new LocationOptionDto
             {
                 LocationId = l.StorageLocationId,
@@ -87,6 +87,9 @@ namespace BMWMS.Business.Services.StockOperations
                 IsValid = result.OverallStatus != CapacityEvaluationStatuses.Exceeded,
                 CapacityStatus = result.OverallStatus.ToString(),
                 Message = result.OverallStatus == CapacityEvaluationStatuses.Exceeded ? "Vượt quá sức chứa." : "Đủ sức chứa.",
+                CurrentQuantity = result.CurrentQuantity,
+                ProjectedQuantity = result.ProjectedQuantity,
+                MaxCapacityQuantity = result.MaxCapacityQuantity,
                 CurrentWeightKg = result.CurrentWeightKg,
                 ProjectedWeightKg = result.ProjectedWeightKg,
                 MaxWeightKg = result.MaxWeightKg,
