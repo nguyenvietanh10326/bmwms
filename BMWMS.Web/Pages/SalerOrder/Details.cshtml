@@ -21,16 +21,15 @@
     </div>
       <div class="d-flex gap-2 no-print">
           <a href="/sales-orders" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Quay lại</a>
-          @if (order?.Status == "DRAFT")
+          @if (order?.Status == "DRAFT" && User.IsInRole("SALES_STAFF"))
           {
               <a href="/SalerOrder/Edit?id=@order.SalesOrderId" class="btn btn-outline-warning"><i class="bi bi-pencil me-1"></i>Chỉnh sửa</a>
-              <form method="post" asp-page-handler="Confirm" asp-route-id="@order.SalesOrderId" onsubmit="return confirm('Bạn có chắc chắn muốn xác nhận đơn hàng này? Hệ thống sẽ giữ tồn kho cho các sản phẩm.');">
-                  <button type="submit" class="btn btn-success"><i class="bi bi-check-circle me-1"></i>Xác nhận & Giữ tồn</button>
-              </form>
           }
-          else if (order?.Status == "CONFIRMED" || order?.Status == "ALLOCATED" || order?.Status == "PARTIALLY_ISSUED")
+          @if (order?.Status == "DRAFT" && (User.IsInRole("WAREHOUSE_MANAGER") || User.IsInRole("SYSTEM_ADMIN")))
           {
-              <a href="/OutboundOrders/Create?salesOrderId=@order.SalesOrderId" class="btn btn-primary"><i class="bi bi-box-arrow-right me-1"></i>Tạo Lệnh Xuất Kho</a>
+              <form method="post" asp-page-handler="Confirm" asp-route-id="@order.SalesOrderId" onsubmit="return confirm('Bạn có chắc chắn muốn xác nhận đơn hàng này? Hệ thống sẽ giữ tồn kho cho các sản phẩm.');">
+                  <button type="submit" class="btn btn-success"><i class="bi bi-check-circle me-1"></i>Duyệt SO &amp; giữ tồn</button>
+              </form>
           }
           <button type="button" class="btn btn-outline-primary" onclick="window.print()"><i class="bi bi-printer me-1"></i>In phiếu</button>
       </div>

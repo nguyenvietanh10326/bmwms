@@ -180,7 +180,7 @@ namespace BMWMS.Business.Services.Inventory
                 AreaSquareMeter = null,
                 IsPutawayAllowed = true,
                 IsPickable = true,
-                Status = "ACTIVE",
+                Status = "AVAILABLE",
                 CreatedAt = DateTime.Now
             };
 
@@ -863,7 +863,7 @@ namespace BMWMS.Business.Services.Inventory
                     .FirstOrDefault(item => item.RackId == location.RackId.Value);
                 if (rack == null || !IsUsableNodeStatus(rack.Status) || !IsUsableNodeStatus(rack.WarehouseZone?.Status))
                     return (false, "Hãy kích hoạt Zone và Rack cha trước khi kích hoạt Bin.");
-                location.Status = "ACTIVE";
+                location.Status = "AVAILABLE";
             }
 
             location.UpdatedAt = DateTime.Now;

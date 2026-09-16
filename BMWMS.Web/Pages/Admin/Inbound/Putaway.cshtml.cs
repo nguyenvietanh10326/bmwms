@@ -185,6 +185,10 @@ public class PutawayLocationOption
     public bool IsDefault { get; set; }
     public bool CapacityEvaluationEnabled { get; set; }
     public string CapacityStatus { get; set; } = "DISABLED";
+    public decimal? MaxCapacityQuantity { get; set; }
+    public decimal? CurrentCapacityQuantity { get; set; }
+    public decimal? ProjectedCapacityQuantity { get; set; }
+    public string? CapacityUnitName { get; set; }
     public decimal? MaxWeightKg { get; set; }
     public decimal? CurrentWeightKg { get; set; }
     public decimal? ProjectedWeightKg { get; set; }
@@ -200,17 +204,15 @@ public class PutawayLocationOption
     {
         "AVAILABLE" => $"Còn đủ chỗ{FormatUsage()}",
         "EXCEEDED" => $"Không đủ chỗ{FormatUsage()}",
-        "UNKNOWN" => "Chưa đủ dữ liệu tính sức chứa",
+        "UNKNOWN" => "Nhóm sản phẩm hoặc ĐVT tại vị trí không hợp lệ",
         "NOT_CONFIGURED" => "Chưa cấu hình giới hạn",
         _ => $"Đang có {FormatNumber(CurrentProductQuantity, 4)} của sản phẩm"
     };
 
     private string FormatUsage()
     {
-        if (ProjectedWeightKg.HasValue && MaxWeightKg.HasValue)
-            return $" · {FormatNumber(ProjectedWeightKg.Value, 2)}/{FormatNumber(MaxWeightKg.Value, 2)} kg";
-        if (ProjectedVolumeM3.HasValue && MaxVolumeM3.HasValue)
-            return $" · {FormatNumber(ProjectedVolumeM3.Value, 4)}/{FormatNumber(MaxVolumeM3.Value, 4)} m³";
+        if (ProjectedCapacityQuantity.HasValue && MaxCapacityQuantity.HasValue)
+            return $" · {FormatNumber(ProjectedCapacityQuantity.Value, 4)}/{FormatNumber(MaxCapacityQuantity.Value, 4)} {CapacityUnitName}";
         return string.Empty;
     }
 

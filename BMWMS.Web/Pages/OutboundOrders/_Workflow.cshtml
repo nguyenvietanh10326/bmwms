@@ -1,0 +1,102 @@
+@model string
+@{
+    var status = (Model ?? string.Empty).Trim().ToUpperInvariant();
+    var sourceType = (ViewData["OutboundSourceType"] as string ?? "SALES_ORDER").Trim().ToUpperInvariant();
+    var isReturn = sourceType == "PURCHASE_RETURN";
+    var currentStep = status switch
+    {
+        "CREATE" => 3,
+        "DRAFT" => 2,
+        "READY" or "ASSIGNED" => 3,
+        "ISSUING" or "IN_PROGRESS" => 4,
+        "ISSUED" or "COMPLETED" => 5,
+        _ => 0
+    };
+    var isCancelled = status == "CANCELLED";
+    var steps = isReturn
+        ? new[]
+        {
+            (Number: 1, Actor: "Mua hàng / NCC", Title: "Thống nhất trả hàng", Detail: "Lý do và việc NCC nhận lại hàng được xử lý ngoài hệ thống."),
+            (Number: 2, Actor: "Quản lý kho", Title: "Tạo lệnh và phân công", Detail: "Chọn PO đã nhập, số lượng có thể trả và Nhân viên kho đang rảnh."),
+            (Number: 3, Actor: "Nhân viên kho", Title: "Nhận nhiệm vụ", Detail: "Đối chiếu đúng hàng từng nhập từ PO trước khi bắt đầu."),
+            (Number: 4, Actor: "Nhân viên kho", Title: "Lấy · đóng gói · bàn giao", Detail: "Chọn vị trí, kiểm tra hàng vật lý và xác nhận số thực xuất."),
+            (Number: 5, Actor: "Hệ thống", Title: "Ghi nhận kết quả", Detail: "Trừ tồn, giải phóng giữ chỗ và lưu đủ/một phần.")
+        }
+        : new[]
+        {
+            (Number: 1, Actor: "Nhân viên bán hàng", Title: "Lập SO Nháp", Detail: "Ghi nhận khách, mặt hàng và số lượng cần giao."),
+            (Number: 2, Actor: "Quản lý kho", Title: "Duyệt SO và giữ tồn", Detail: "Kiểm tra tồn khả dụng sau khi loại phần đã được đơn khác giữ."),
+            (Number: 3, Actor: "Nhân viên kho", Title: "Tạo và tự nhận đợt xuất", Detail: "Chọn SO đủ điều kiện; Outbound vào thẳng trạng thái Sẵn sàng."),
+            (Number: 4, Actor: "Nhân viên kho", Title: "Lấy · đóng gói · bàn giao", Detail: "Đối chiếu FIFO/FEFO, vị trí, chất lượng và số thực giao."),
+            (Number: 5, Actor: "Hệ thống", Title: "Ghi nhận kết quả", Detail: "Trừ tồn; SO hoàn tất hoặc chờ đợt giao tiếp theo.")
+        };
+}
+
+<div class="card border-0 shadow-sm mb-3 outbound-workflow" aria-label="Tiến trình phiếu xuất kho">
+    <div class="card-header bg-white d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div>
+            <div class="fw-semibold">Tiến trình xử lý phiếu xuất</div>
+            <div class="text-muted small">Mỗi bước chỉ hiển thị thao tác cho đúng vai trò và đúng trạng thái phiếu.</div>
+        </div>
+        @if (isCancelled)
+        {
+            <span class="badge bg-danger">Luồng đã dừng do phiếu bị hủy</span>
+        }
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            @foreach (var step in steps)
+            {
+                var completed = !isCancelled && currentStep > step.Number;
+                var active = !isCancelled && currentStep == step.Number;
+                <div class="col-xl col-md-4 col-sm-6">
+                    <div class="workflow-step h-100 @(active ? "is-active" : completed ? "is-completed" : "")">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <span class="workflow-number">@(completed ? "✓" : step.Number.ToString())</span>
+                            <span class="small text-uppercase text-muted fw-semibold">@step.Actor</span>
+                        </div>
+                        <div class="fw-semibold mb-1">@step.Title</div>
+                        <div class="small text-muted">@step.Detail</div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<style>
+    .outbound-workflow .workflow-step {
+        border: 1px solid var(--bs-border-color);
+        border-radius: .65rem;
+        padding: .9rem;
+        background: var(--bs-body-bg);
+    }
+    .outbound-workflow .workflow-step.is-active {
+        border-color: var(--bs-primary);
+        box-shadow: inset 0 0 0 1px var(--bs-primary);
+        background: rgba(var(--bs-primary-rgb), .04);
+    }
+    .outbound-workflow .workflow-step.is-completed {
+        border-color: var(--bs-success);
+        background: rgba(var(--bs-success-rgb), .04);
+    }
+    .outbound-workflow .workflow-number {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.75rem;
+        height: 1.75rem;
+        border-radius: 50%;
+        color: var(--bs-secondary-color);
+        background: var(--bs-tertiary-bg);
+        font-weight: 700;
+    }
+    .outbound-workflow .is-active .workflow-number {
+        color: #fff;
+        background: var(--bs-primary);
+    }
+    .outbound-workflow .is-completed .workflow-number {
+        color: #fff;
+        background: var(--bs-success);
+    }
+</style>

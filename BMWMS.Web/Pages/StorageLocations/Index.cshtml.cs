@@ -1,5 +1,7 @@
 ﻿using BMWMS.Web.Models.Inventory;
 using Microsoft.AspNetCore.Mvc;
+using BMWMS.Web.Services;
+using BMWMS.Web.Helpers;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -9,11 +11,30 @@ namespace BMWMS.Web.Pages.StorageLocations
     public class IndexModel : PageModel
     {
         private readonly IHttpClientFactory _httpClientFactory;
+        private readonly ProductGroupApiService _productGroups;
+        private readonly ProductApiService _products;
 
-        public IndexModel(IHttpClientFactory httpClientFactory)
+        public IndexModel(IHttpClientFactory httpClientFactory,
+                          ProductGroupApiService productGroups, ProductApiService products)
         {
             _httpClientFactory = httpClientFactory;
+            _productGroups = productGroups;
+            _products = products;
         }
+
+        public sealed class CapacityGroupOption
+        {
+            public long ProductGroupId { get; set; }
+            public string GroupName { get; set; } = string.Empty;
+            public string UnitName { get; set; } = string.Empty;
+            public byte QuantityScale { get; set; }
+        }
+
+        public List<CapacityGroupOption> CapacityGroups { get; set; } = new();
+
+        public string FormatCapacity(decimal? quantity, long? groupId) =>
+            FormatHelper.FormatOptionalNumber(quantity,
+                CapacityGroups.FirstOrDefault(group => group.ProductGroupId == groupId)?.QuantityScale ?? 4);
 
         [BindProperty(SupportsGet = true)]
         public StorageLocationFilterDto Filter { get; set; } = new() { WarehouseId = 1 };
@@ -34,6 +55,22 @@ namespace BMWMS.Web.Pages.StorageLocations
 
             var client = _httpClientFactory.CreateClient("ApiClient");
             var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var groupRows = await _productGroups.GetAllActiveAsync();
+            var unitRows = (await _products.GetUnitsOfMeasureAsync())
+                .ToDictionary(unit => unit.UnitOfMeasureId);
+            CapacityGroups = groupRows
+                .Where(group => group.BaseUnitOfMeasureId is int unitId && unitRows.ContainsKey(unitId))
+                .Select(group =>
+                {
+                    var unit = unitRows[group.BaseUnitOfMeasureId!.Value];
+                    return new CapacityGroupOption
+                    {
+                        ProductGroupId = group.ProductGroupId,
+                        GroupName = group.GroupName,
+                        UnitName = unit.UnitName,
+                        QuantityScale = unit.QuantityScale
+                    };
+                }).ToList();
 
             using var structResponse = await client.GetAsync(
                 $"api/storagelocations/structure?warehouseId={Filter.WarehouseId}");
@@ -60,6 +97,8 @@ namespace BMWMS.Web.Pages.StorageLocations
                 ZoneCode = zone.ZoneCode,
                 ZoneName = zone.ZoneName,
                 Description = zone.Description,
+                ProductGroupId = zone.ProductGroupId,
+                MaxCapacityQuantity = zone.MaxCapacityQuantity,
                 MaxWeightKg = zone.MaxWeightKg,
                 MaxVolumeM3 = zone.MaxVolumeM3,
                 Status = zone.Status
@@ -74,6 +113,7 @@ namespace BMWMS.Web.Pages.StorageLocations
                 ZoneName = zone.ZoneName,
                 RackCode = rack.RackCode,
                 RackName = rack.RackName,
+                MaxCapacityQuantity = rack.MaxCapacityQuantity,
                 MaxWeightKg = rack.MaxWeightKg,
                 MaxVolumeM3 = rack.MaxVolumeM3,
                 Status = rack.Status

@@ -1,7 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using System.Text.Json;
+using BMWMS.Web.Models.Inventory;
+using BMWMS.Web.Models.Warehouse;
 
 namespace BMWMS.Web.Pages.Warehouse
 {
@@ -24,45 +25,32 @@ namespace BMWMS.Web.Pages.Warehouse
 
             if (response.IsSuccessStatusCode)
             {
-                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-                var apiResult = await response.Content.ReadFromJsonAsync<OutboundPagedResponse>(options);
-                
-                if (apiResult != null && apiResult.Success && apiResult.Data != null)
-                {
-                    // Filter tasks assigned to the current user that are READY or ISSUING
-                    // In a real app, this filtering should be done in the API.
-                    var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-                    if (long.TryParse(userIdClaim, out var currentUserId))
+                // API đã giới hạn theo người đang đăng nhập; phản hồi là PagedResultDto trực tiếp,
+                // không có lớp bọc success/data.
+                var apiResult = await response.Content.ReadFromJsonAsync<PagedResultDto<OutboundOrderListDto>>();
+                OutboundTasks = (apiResult?.Items ?? new List<OutboundOrderListDto>())
+                    .Where(order => order.Status is "READY" or "ISSUING")
+                    .Select(order => new OutboundTaskDto
                     {
-                        OutboundTasks = apiResult.Data.Items
-                            .Where(o => o.AssignedToUserId == currentUserId && (o.Status == "READY" || o.Status == "ISSUING"))
-                            .ToList();
-                    }
-                }
+                        OutboundOrderId = order.OutboundOrderId,
+                        OutboundOrderNumber = order.OutboundOrderNumber,
+                        PartnerName = order.PartnerName,
+                        ExpectedIssueDate = order.ExpectedIssueDate.ToDateTime(TimeOnly.MinValue),
+                        Status = order.Status
+                    })
+                    .ToList();
             }
 
             return Page();
         }
     }
 
-    public class OutboundPagedResponse
-    {
-        public bool Success { get; set; }
-        public OutboundPagedData? Data { get; set; }
-    }
-
-    public class OutboundPagedData
-    {
-        public List<OutboundTaskDto> Items { get; set; } = new();
-    }
-
     public class OutboundTaskDto
     {
         public long OutboundOrderId { get; set; }
         public string OutboundOrderNumber { get; set; } = string.Empty;
-        public string? CustomerName { get; set; }
+        public string? PartnerName { get; set; }
         public DateTime? ExpectedIssueDate { get; set; }
         public string Status { get; set; } = string.Empty;
-        public long? AssignedToUserId { get; set; }
     }
 }

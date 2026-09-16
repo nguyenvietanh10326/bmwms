@@ -4,16 +4,30 @@
 @{
     Layout = "_AdminLayout";
     ViewData["Title"] = "Tạo phiếu xuất kho";
-    var isPurchaseReturn = User.IsInRole("PURCHASING_STAFF");
+    var isPurchaseReturn = User.IsInRole("WAREHOUSE_MANAGER") || User.IsInRole("SYSTEM_ADMIN");
+    ViewData["OutboundSourceType"] = isPurchaseReturn ? "PURCHASE_RETURN" : "SALES_ORDER";
 }
 
 <div class="container-fluid py-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
             <h3 class="mb-1">Tạo phiếu xuất kho</h3>
-            <div class="text-muted">Phiếu mới được lưu ở trạng thái Nháp; Quản lý kho duyệt và phân công ở bước tiếp theo.</div>
+            <div class="text-muted">Outbound là chứng từ tác nghiệp vật lý và được tạo thẳng ở trạng thái Sẵn sàng, không có bước Nháp.</div>
         </div>
         <a asp-page="./Index" class="btn btn-outline-secondary">Danh sách phiếu xuất</a>
+    </div>
+
+    <partial name="_Workflow" model='"CREATE"' />
+
+    <div class="alert alert-info d-flex gap-2 align-items-start" role="note">
+        <i class="bi bi-info-circle mt-1"></i>
+        <div>
+            <strong>Bước hiện tại:</strong> chọn đơn tham chiếu và số lượng cần xử lý trong đợt này.
+            Thông tin đối tác, mặt hàng và giới hạn số lượng được lấy trực tiếp từ SO/PO và không thể sửa tại đây.
+            @(isPurchaseReturn
+                ? "Quản lý kho quyết định trả NCC và phân công một Nhân viên kho đang rảnh."
+                : "Nhân viên kho tự nhận đợt xuất từ SO đã được Quản lý kho duyệt và giữ tồn.")
+        </div>
     </div>
 
     <form method="post" id="outboundForm">
@@ -27,15 +41,24 @@
                         <input type="hidden" asp-for="Input.SourceType" id="sourceType" />
                         <input class="form-control" value="@(isPurchaseReturn ? "Trả hàng nhà cung cấp theo PO" : "Giao hàng bán theo SO")" readonly />
                     </div>
+                    @if (isPurchaseReturn)
+                    {
+                        <div class="col-md-4">
+                            <label class="form-label">Nhân viên kho thực hiện</label>
+                            <select asp-for="Input.AssignedToUserId" asp-items="Model.AssigneeOptions" class="form-select" required></select>
+                            <span asp-validation-for="Input.AssignedToUserId" class="text-danger"></span>
+                            <div class="form-text">Chỉ hiển thị nhân viên không có nhiệm vụ nhập/xuất đang hoạt động.</div>
+                        </div>
+                    }
                     <div class="col-md-4 source-sales @(isPurchaseReturn ? "d-none" : "")">
                         <label class="form-label">Đơn bán hàng đủ điều kiện xuất</label>
-                        <select asp-for="Input.SalesOrderId" asp-items="Model.SalesOrderOptions" class="form-select" id="salesOrder"></select>
-                        <div class="form-text">Chỉ hiển thị SO đã xác nhận và còn số lượng chưa giao/chưa nằm trong phiếu xuất đang xử lý.</div>
+                        <select asp-for="Input.SalesOrderId" asp-items="Model.SalesOrderOptions" class="form-select" id="salesOrder" aria-describedby="salesOrderHelp"></select>
+                        <div class="form-text" id="salesOrderHelp">Chỉ hiển thị SO đã xác nhận và còn số lượng chưa giao/chưa nằm trong phiếu xuất đang xử lý.</div>
                     </div>
                     <div class="col-md-4 source-purchase @(!isPurchaseReturn ? "d-none" : "")">
                         <label class="form-label">Đơn mua hàng đã nhập</label>
-                        <select asp-for="Input.PurchaseOrderId" asp-items="Model.PurchaseOrderOptions" class="form-select" id="purchaseOrder"></select>
-                        <div class="form-text">Chỉ dùng cho hàng trước đó đã được chấp nhận và xếp vào kho nhưng sau này có quyết định trả NCC. Hàng bị từ chối ngay tại cửa nhận không đi qua phiếu xuất này.</div>
+                        <select asp-for="Input.PurchaseOrderId" asp-items="Model.PurchaseOrderOptions" class="form-select" id="purchaseOrder" aria-describedby="purchaseOrderHelp"></select>
+                        <div class="form-text" id="purchaseOrderHelp">Chỉ dùng cho hàng trước đó đã được chấp nhận và xếp vào kho nhưng sau này có quyết định trả NCC. Hàng bị từ chối ngay tại cửa nhận không đi qua phiếu xuất này.</div>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Đối tác</label>
@@ -88,7 +111,8 @@
                 </table>
             </div>
             <div class="card-footer bg-white d-flex justify-content-end gap-2">
-                <button type="submit" class="btn btn-primary" @(Model.Input.Items.Count == 0 ? "disabled" : null)>Lưu phiếu Nháp</button>
+                <span class="text-muted small me-auto align-self-center" id="createHint">Chọn đơn tham chiếu để tải các mặt hàng còn có thể xuất.</span>
+                <button type="submit" id="saveDraftButton" class="btn btn-primary" @(Model.Input.Items.Count == 0 ? "disabled" : null)>@(isPurchaseReturn ? "Tạo lệnh và phân công" : "Tạo và nhận đợt xuất")</button>
             </div>
         </div>
     </form>
@@ -101,6 +125,8 @@
     const salesOrder = document.getElementById('salesOrder');
     const purchaseOrder = document.getElementById('purchaseOrder');
     const body = document.getElementById('itemsBody');
+    const saveDraftButton = document.getElementById('saveDraftButton');
+    const createHint = document.getElementById('createHint');
 
     function toggleSource() {
         const isSales = sourceType.value === 'SALES_ORDER';
@@ -109,10 +135,27 @@
     }
 
     async function loadReference(kind, id) {
+        document.getElementById('partnerName').value = '';
+        document.getElementById('sourceReference').value = '';
         if (!id) { renderItems([]); return; }
         const handler = kind === 'sales' ? 'SalesOrderDetail' : 'PurchaseOrderDetail';
-        const response = await fetch(`?handler=${handler}&id=${id}`);
-        if (!response.ok) { alert('Không tải được dữ liệu đơn tham chiếu.'); return; }
+        saveDraftButton.disabled = true;
+        createHint.textContent = 'Đang tải dữ liệu đơn tham chiếu...';
+        let response;
+        try {
+            response = await fetch(`?handler=${handler}&id=${id}`, { headers: { 'Accept': 'application/json' } });
+        } catch {
+            renderItems([]);
+            createHint.textContent = 'Mất kết nối khi tải đơn tham chiếu. Vui lòng thử lại.';
+            return;
+        }
+        if (!response.ok) {
+            renderItems([]);
+            let message = 'Không tải được dữ liệu đơn tham chiếu.';
+            try { message = (await response.json()).message || message; } catch { }
+            createHint.textContent = message;
+            return;
+        }
         const data = await response.json();
         document.getElementById('partnerName').value = kind === 'sales' ? data.customerName : data.supplierName;
         document.getElementById('sourceReference').value = kind === 'sales' ? data.salesOrderNumber : data.purchaseOrderNumber;
@@ -136,6 +179,10 @@
     }
     function renderItems(items) {
         document.getElementById('itemCount').textContent = `${items.length} mặt hàng`;
+        saveDraftButton.disabled = items.length === 0;
+        createHint.textContent = items.length
+            ? 'Phiếu sẽ chuyển thẳng sang Sẵn sàng xử lý; chưa trừ tồn kho tại bước tạo.'
+            : 'Đơn không còn mặt hàng có thể xuất.';
         if (!items.length) { body.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">Đơn không còn mặt hàng có thể xuất.</td></tr>'; return; }
         body.innerHTML = items.map((x, i) => `<tr>
             <td><input type="hidden" name="Input.Items[${i}].ProductId" value="${x.productId}"><input type="hidden" name="Input.Items[${i}].ProductCode" value="${escapeHtml(x.productCode)}">${escapeHtml(x.productCode)}</td>
