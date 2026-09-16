@@ -19,12 +19,13 @@
                         <td><span class="location-chip">@item.LocationCode</span><small>@item.LocationPath</small></td>
                         <td><strong>@item.ProductCode</strong><small>@item.ProductName · @item.UnitName</small></td>
                         <td>@item.LotNumber</td>
-                        <td class="text-end snapshot-quantity">@FormatHelper.FormatQuantity(item.BookQuantity ?? 0, 4)</td>
+                        <td class="text-end snapshot-quantity">@FormatHelper.FormatQuantity(item.BookQuantity ?? 0, item.QuantityScale)</td>
                         <td>
                             <input type="hidden" name="Lines[@index].StocktakeItemId" value="@item.StocktakeItemId" />
                             <input type="number" class="form-control form-control-sm text-end counted-input" name="Lines[@index].CountedQuantity"
                                    value="@(item.CountedQuantity?.ToString(System.Globalization.CultureInfo.InvariantCulture))"
-                                   min="0" step="0.0001" inputmode="decimal" aria-label="Số lượng thực đếm @item.ProductCode tại @item.LocationCode" />
+                                   min="0" step="@(item.QuantityScale == 0 ? "1" : "0." + new string('0', item.QuantityScale - 1) + "1")"
+                                   inputmode="decimal" aria-label="Số lượng thực đếm @item.ProductCode tại @item.LocationCode" />
                         </td>
                         <td><input class="form-control form-control-sm" name="Lines[@index].Notes" value="@item.Notes" maxlength="1000" /></td>
                     </tr>

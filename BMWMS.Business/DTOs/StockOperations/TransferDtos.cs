@@ -210,6 +210,7 @@ namespace BMWMS.Business.DTOs.StockOperations
         public string ProductCode { get; set; } = string.Empty;
         public string ProductName { get; set; } = string.Empty;
         public string UnitName { get; set; } = string.Empty;
+        public byte QuantityScale { get; set; }
         public long ProductLotId { get; set; }
         public string LotNumber { get; set; } = string.Empty;
         public DateOnly? ExpiryDate { get; set; }

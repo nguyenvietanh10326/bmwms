@@ -623,6 +623,7 @@ namespace BMWMS.Business.Services.Stocktake
                 UnitOfMeasureId = product?.UnitOfMeasureId ?? 0,
                 UnitCode = product?.UnitOfMeasure?.UnitCode ?? string.Empty,
                 UnitName = product?.UnitOfMeasure?.UnitName ?? string.Empty,
+                QuantityScale = product?.UnitOfMeasure?.QuantityScale ?? 0,
                 ProductLotId = item.ProductLotId,
                 LotNumber = item.ProductLot?.LotNumber ?? string.Empty,
                 ExpiryDate = item.ProductLot?.ExpiryDate,

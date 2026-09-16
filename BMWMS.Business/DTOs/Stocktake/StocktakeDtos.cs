@@ -163,6 +163,7 @@ namespace BMWMS.Business.DTOs.Stocktake
         public int UnitOfMeasureId { get; set; }
         public string UnitCode { get; set; } = string.Empty;
         public string UnitName { get; set; } = string.Empty;
+        public byte QuantityScale { get; set; }
         public long ProductLotId { get; set; }
         public string LotNumber { get; set; } = string.Empty;
         public DateOnly? ExpiryDate { get; set; }

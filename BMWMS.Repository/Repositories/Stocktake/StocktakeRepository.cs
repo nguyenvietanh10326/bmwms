@@ -413,6 +413,11 @@ namespace BMWMS.Repository.Repositories.Stocktake
 
                     if (line.CountedQuantity.HasValue && line.CountedQuantity.Value < 0)
                         throw new InvalidOperationException("Số lượng thực đếm không được âm.");
+                    var quantityScale = item.ProductLot.Product.UnitOfMeasure.QuantityScale;
+                    if (line.CountedQuantity.HasValue &&
+                        decimal.Round(line.CountedQuantity.Value, quantityScale) != line.CountedQuantity.Value)
+                        throw new InvalidOperationException(
+                            $"Số lượng {item.ProductLot.Product.ProductCode} chỉ được có tối đa {quantityScale} chữ số thập phân.");
 
                     item.CountedQuantity = line.CountedQuantity;
                     item.CountedByUserId = line.CountedQuantity.HasValue ? countedByUserId : null;
@@ -685,6 +690,11 @@ namespace BMWMS.Repository.Repositories.Stocktake
                         throw new InvalidOperationException($"Dòng kiểm kho ID={line.StocktakeItemId} không thuộc phiếu này.");
                     if (line.CountedQuantity is < 0)
                         throw new InvalidOperationException("Số lượng thực đếm không được âm.");
+                    var quantityScale = item.ProductLot.Product.UnitOfMeasure.QuantityScale;
+                    if (line.CountedQuantity.HasValue &&
+                        decimal.Round(line.CountedQuantity.Value, quantityScale) != line.CountedQuantity.Value)
+                        throw new InvalidOperationException(
+                            $"Số lượng {item.ProductLot.Product.ProductCode} chỉ được có tối đa {quantityScale} chữ số thập phân.");
 
                     item.CountedQuantity = line.CountedQuantity;
                     item.CountedByUserId = line.CountedQuantity.HasValue ? countedByUserId : null;
@@ -786,6 +796,7 @@ namespace BMWMS.Repository.Repositories.Stocktake
                     .ThenInclude(l => l.StocktakeItems)
                         .ThenInclude(i => i.ProductLot)
                             .ThenInclude(pl => pl.Product)
+                                .ThenInclude(product => product.UnitOfMeasure)
                 .Include(s => s.StocktakeItems)
                 .FirstOrDefaultAsync(s => s.StocktakeSessionId == stocktakeSessionId)
                 ?? throw new InvalidOperationException("Không tìm thấy phiếu kiểm kho.");
