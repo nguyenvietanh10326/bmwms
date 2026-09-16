@@ -1,547 +1,222 @@
-@page
+﻿@page
 @model BMWMS.Web.Pages.Transfer.CreateModel
 @{
     Layout = "_AdminLayout";
-    ViewData["Title"] = Model.IsEditMode ? "Sửa Phiếu Điều Chuyển Kho" : "Tạo Lệnh Điều Chuyển Kho";
+    ViewData["Title"] = Model.IsEditMode ? "Cáº­p nháº­t phiáº¿u chuyá»ƒn kho" : "Táº¡o phiáº¿u chuyá»ƒn kho";
     ViewData["ActivePage"] = "Transfer";
 }
 
 <style>
-  :root{
-    --font-ui:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-    --font-mono:"IBM Plex Mono",ui-monospace,monospace;
-
-    --navy-950:#233a6b; --navy-900:#1b2d56;
-    --accent:#3e5cf6; --accent-600:#3149d4;
-
-    --bg:#f2f3f7; --card:#ffffff; --line:#e7e9f0; --line-strong:#d7dae5;
-    --ink:#161b2e; --ink-2:#525a72; --ink-3:#8890a6; --ink-4:#aeb4c6;
-
-    --sh-xs:0 1px 2px rgba(16,23,42,.05);
-    --sh-sm:0 1px 2px rgba(16,23,42,.04),0 4px 10px -4px rgba(16,23,42,.07);
-    --r-sm:8px; --r-md:12px; --r-lg:16px;
-    --ease:cubic-bezier(.4,0,.2,1);
-  }
-  
-  .transfer-page {
-    font-family: var(--font-ui);
-    color: var(--ink);
-    font-size: 14px;
-    line-height: 1.45;
-    padding: 26px 30px 64px;
-  }
-
-  .transfer-page .pagehead{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;gap:20px;}
-  .transfer-page .pagehead h1{font-size:20px;margin:0 0 5px;font-weight:700;}
-  .transfer-page .breadcrumb{font-size:11.5px;color:var(--ink-3);margin-bottom:8px;font-weight:600;letter-spacing:.02em;text-transform:uppercase;}
-
-  .transfer-page .btn{display:inline-flex;align-items:center;gap:7px;border:none;border-radius:var(--r-sm);padding:9px 15px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;text-decoration:none;}
-  .transfer-page .btn-dark{background:var(--navy-950);color:#fff;box-shadow:var(--sh-xs);}
-  .transfer-page .btn-dark:hover{background:#1c2340;color:#fff;transform:translateY(-1px);box-shadow:var(--sh-sm);}
-  .transfer-page .btn-primary{background:#2563eb;color:#fff;box-shadow:var(--sh-xs);}
-  .transfer-page .btn-primary:hover{background:#1d4ed8;color:#fff;transform:translateY(-1px);box-shadow:var(--sh-sm);}
-  .transfer-page .btn-light{background:#fff;border:1px solid var(--line-strong);color:var(--ink);}
-  .transfer-page .btn-light:hover{border-color:var(--ink-4);background:#fafafd;}
-
-  .transfer-page .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);padding:24px;margin-bottom:16px;box-shadow:var(--sh-xs);}
-
-  .grid2 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
-  .field { display: flex; flex-direction: column; gap: 6px; }
-  .field label { font-size: 12.5px; font-weight: 600; color: var(--ink-2); }
-  .field input, .field select, .field textarea { width: 100%; padding: 9px 12px; border: 1px solid var(--line-strong); border-radius: var(--r-sm); font-size: 13px; color: var(--ink); font-family: inherit; }
-  .field input:disabled { background: var(--bg); color: var(--ink-3); }
-  .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--accent); }
-
-  /* Table styling */
-  .items-table{width:100%;border-collapse:collapse;font-size:13px; margin: 0; margin-bottom: 15px;}
-  .items-table th{text-align:left;color:var(--ink-3);font-weight:600;font-size:11px;padding:0 10px 10px;border-bottom:1px solid var(--line);}
-  .items-table td{padding:10px;border-bottom:1px solid var(--line);vertical-align:middle;}
-  .items-table input, .items-table select { width: 100%; padding: 7px 10px; border: 1px solid var(--line-strong); border-radius: 4px; font-size: 13px; }
-  .items-table .btn-remove { background: #fce3e4; color: #c1222f; padding: 6px; border-radius: 4px; border: none; cursor: pointer; }
+    .transfer-form .field { margin-bottom: 15px; }
+    .transfer-form label { display: block; margin-bottom: 5px; font-weight: 500; font-size: 13px; color: #475569; }
+    .transfer-form input, .transfer-form select, .transfer-form textarea { width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; }
+    .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
+    th { text-align: left; padding: 10px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; }
+    td { padding: 10px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+    .btn-remove { background: #fee2e2; color: #dc2626; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; }
+    .btn-remove:hover { background: #fca5a5; }
 </style>
 
 <div class="transfer-page">
-    <div class="pagehead">
-        <div>
-            <div class="breadcrumb">Nghiệp vụ kho / Điều chuyển kho / @(Model.IsEditMode ? "Sửa phiếu" : "Tạo lệnh")</div>
-            <h1>@(Model.IsEditMode ? "Sửa Phiếu Điều Chuyển Kho" : "Tạo Lệnh Điều Chuyển Kho")</h1>
-            <p>Tạo lệnh chuyển vị trí nội bộ • Người thực hiện: Quản lý kho</p>
-        </div>
-        <div style="display: flex; gap: 10px;">
-            <a href="/Transfer/Index" class="btn btn-light">Hủy bỏ</a>
-            <button type="submit" form="transfer-form" name="action" value="draft" class="btn btn-dark" onclick="return prepareSubmit()">Lưu nháp</button>
-            <button type="submit" form="transfer-form" name="action" value="assign" class="btn btn-primary" onclick="return prepareSubmit()">@(Model.IsEditMode ? "Cập nhật lệnh" : "Tạo lệnh")</button>
-        </div>
+    <div class="breadcrumb">
+        <a href="/Transfer/Index" style="color:var(--ink-3); text-decoration:none;">Äiá»u chuyá»ƒn kho</a>
+        <span style="margin:0 4px;">/</span>
+        <span>@(Model.IsEditMode ? "Cáº­p nháº­t" : "Táº¡o má»›i")</span>
     </div>
 
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger">@Model.ErrorMessage</div>
+    }
 
-
-    <form method="post" id="transfer-form">
-        @Html.AntiForgeryToken()
-        <input type="hidden" id="itemsJson" name="itemsJson" value="" />
-        <input type="hidden" name="transferOrderId" value="@Model.Id" />
-
+    <form method="post" id="transfer-form" class="transfer-form">
         <div class="card">
-            <h3 style="font-size:15px; font-weight:700; color:var(--ink); margin-top:0; margin-bottom:18px;">Thông tin lệnh chuyển</h3>
-            <div class="grid2">
+            <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 15px;">ThÃ´ng tin chung</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                 <div class="field">
-                    <label>Mã lệnh chuyển</label>
-                    <input type="text" value="Tự động sinh khi tạo" disabled />
+                    <label>Kho hÃ ng (Nguá»“n & ÄÃ­ch)</label>
+                    <input type="text" value="Kho ChÃ­nh" disabled />
                 </div>
                 <div class="field">
-                    <label>Kho hàng *</label>
-                    <input type="text" value="Kho chính" disabled />
-                </div>
-                
-                <div class="field">
-                    <label>Ngày dự kiến hoàn thành</label>
-                    <input type="date" name="dueDate" value="@Model.SelectedDueDate" min="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                    <label>NgÃ y dá»± kiáº¿n hoÃ n thÃ nh</label>
+                    <input type="date" name="dueDate" value="@(Model.EditingOrder?.DueDate?.ToString("yyyy-MM-dd"))" />
                 </div>
             </div>
-            <div class="grid2" style="margin-top:14px">
-                <div class="field" style="grid-column: span 4;">
-                    <label>Ghi chú</label>
-                    <input type="text" name="notes" value="@Model.ExistingNotes" placeholder="Nhập ghi chú cho lệnh chuyển kho..." />
-                </div>
+            <div class="field">
+                <label>Ghi chÃº</label>
+                <textarea name="notes" rows="3">@(Model.EditingOrder?.Notes)</textarea>
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <a href="/Transfer/Index" class="btn btn-light">Há»§y</a>
+                <button type="submit" name="action" value="draft" class="btn btn-primary">LÆ°u phiáº¿u (DRAFT)</button>
             </div>
         </div>
 
         <div class="card">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                <h3 style="margin:0;font-size:15px; font-weight:700; color:var(--ink);">Hàng hóa điều chuyển</h3>
-                <button type="button" onclick="addItemRow()" class="btn btn-light" style="font-size: 12px; padding: 6px 12px;">
-                    <i class="ri-add-line"></i> Thêm dòng hàng
-                </button>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h3 style="font-size: 16px; font-weight: 700;">Chi tiáº¿t hÃ ng hÃ³a</h3>
+                <button type="button" onclick="addItemRow()" class="btn btn-light">+ ThÃªm dÃ²ng</button>
             </div>
             
-            <div style="overflow-x:auto;">
-                <table class="items-table" id="items-table">
-                    <thead>
-                        <tr>
-                            <th style="width:3%;">#</th>
-                            <th style="width:10%; border-left:3px solid #f59e0b; padding-left: 10px;">Zone Nguồn</th>
-                            <th style="width:10%;">Kệ Nguồn</th>
-                            <th style="width:10%;">Ô Nguồn</th>
-                            <th style="width:18%;">Sản phẩm / Lô hàng</th>
-                            <th style="width:2%; text-align:center;">→</th>
-                            <th style="width:10%; border-left:3px solid #2563eb; padding-left: 10px;">Zone Đích</th>
-                            <th style="width:10%;">Kệ Đích</th>
-                            <th style="width:10%;">Ô Đích</th>
-                            <th style="width:10%; text-align:right;">Số lượng</th>
-                            <th style="width:4%; text-align:center;">ĐVT</th>
-                            <th style="width:3%;"></th>
-                        </tr>
-                    </thead>
-                    <tbody id="items-tbody">
-                        <!-- Rows added by JS -->
-                    </tbody>
-                </table>
-            </div>
-
-            <div id="empty-hint" style="text-align:center; padding:32px; color:#94a3b8;">
-                <i class="ri-add-box-line" style="font-size:32px; display:block; margin-bottom:8px;"></i>
-                <span>Nhấn <strong>"Thêm dòng hàng"</strong> để thêm mặt hàng cần điều chuyển</span>
-            </div>
-
-            <div id="items-summary" style="display:none; margin-top:12px; padding-top:12px; border-top:1px solid #f1f5f9; text-align:right; font-size:13px; color:#64748b;">
-                Tổng <strong id="items-count">0</strong> dòng điều chuyển
-            </div>
+            <table id="items-table">
+                <thead>
+                    <tr>
+                        <th style="width: 30%">Sáº£n pháº©m Tá»“n Kho (Vá»‹ trÃ­ nguá»“n)</th>
+                        <th style="width: 15%">Tá»“n kho</th>
+                        <th style="width: 25%">Vá»‹ trÃ­ Ä‘Ã­ch</th>
+                        <th style="width: 20%">S.LÆ°á»£ng chuyá»ƒn</th>
+                        <th style="width: 10%"></th>
+                    </tr>
+                </thead>
+                <tbody id="items-body">
+                </tbody>
+            </table>
         </div>
     </form>
 </div>
 
-<script>
-    // Global zones data from server
-    const ZONES = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
-        Model.Zones.Select(z => new { zoneId = z.ZoneId, zoneCode = z.ZoneCode, zoneName = z.ZoneName })
-    ));
-    const INITIAL_ROWS = @Html.Raw(Model.InitialRowsJson);
+<!-- Modal chá»n tá»“n kho -->
+<div class="modal fade" id="inventoryModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Chá»n tá»“n kho tÃ¬m tháº¥y</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="input-group mb-3">
+                    <input type="text" id="invSearch" class="form-control" placeholder="Nháº­p mÃ£ sp..." />
+                    <button type="button" class="btn btn-dark" onclick="searchInv()">TÃ¬m</button>
+                </div>
+                <div id="invResults"></div>
+            </div>
+        </div>
+    </div>
+</div>
 
-    let rowIndex = 0;
-    let itemRows = []; // array of row data objects
+@section Scripts {
+    <script>
+        let rowIdx = 0;
+        let locations = [];
+        let currentRow = -1;
 
-    document.addEventListener('DOMContentLoaded', () => {
-        hydrateInitialRows();
-    });
-
-    // ── Thêm 1 dòng hàng ──────────────────────────────────────────────────────
-    function addItemRow() {
-        const tbody = document.getElementById('items-tbody');
-        const emptyHint = document.getElementById('empty-hint');
-        const summary = document.getElementById('items-summary');
-
-        rowIndex++;
-        const ri = rowIndex;
-
-        const tr = document.createElement('tr');
-        tr.id = `row-${ri}`;
-        tr.innerHTML = buildRowHtml(ri);
-        tbody.appendChild(tr);
-
-        emptyHint.style.display = 'none';
-        summary.style.display = 'block';
-        updateSummary();
-
-        // Init Zone source dropdown with server data
-        initZoneDropdown(`src-zone-${ri}`, ri, 'src');
-        initZoneDropdown(`dst-zone-${ri}`, ri, 'dst');
-        return ri;
-    }
-
-    // ── Build HTML cho 1 dòng ────────────────────────────────────────────────
-    function buildRowHtml(ri) {
-        const zoneOptions = buildZoneOptions();
-        return `
-        <!-- SOURCE -->
-        <td style="font-weight:700; color:#94a3b8;">${ri}</td>
-        <td style="background:#fef9ee;">
-            <select id="src-zone-${ri}" onchange="onSrcZoneChange(${ri}, this.value)" style="border-color:#fde68a;">
-                <option value="">-- Zone --</option>
-                ${zoneOptions}
-            </select>
-        </td>
-        <td style="background:#fef9ee;">
-            <select id="src-rack-${ri}" disabled onchange="onSrcRackChange(${ri}, this.value)" style="border-color:#fde68a;">
-                <option value="">-- Kệ --</option>
-            </select>
-        </td>
-        <td style="background:#fef9ee;">
-            <select id="src-loc-${ri}" disabled onchange="onSrcLocChange(${ri}, this.value)" style="border-color:#fde68a;">
-                <option value="">-- Ô chứa --</option>
-            </select>
-        </td>
-        <td style="background:#fef9ee;">
-            <select id="src-product-${ri}" disabled onchange="onProductChange(${ri}, this.value)" style="border-color:#fde68a;">
-                <option value="">-- Chọn SP / Lô --</option>
-            </select>
-        </td>
-
-        <!-- ARROW -->
-        <td style="text-align:center; color:#94a3b8; font-size:16px;">→</td>
-
-        <!-- DEST -->
-        <td style="background:#eff6ff;">
-            <select id="dst-zone-${ri}" onchange="onDstZoneChange(${ri}, this.value)" style="border-color:#bfdbfe;">
-                <option value="">-- Zone --</option>
-                ${zoneOptions}
-            </select>
-        </td>
-        <td style="background:#eff6ff;">
-            <select id="dst-rack-${ri}" disabled onchange="onDstRackChange(${ri}, this.value)" style="border-color:#bfdbfe;">
-                <option value="">-- Kệ --</option>
-            </select>
-        </td>
-        <td style="background:#eff6ff;">
-            <select id="dst-loc-${ri}" disabled style="border-color:#bfdbfe;">
-                <option value="">-- Ô đích --</option>
-            </select>
-        </td>
-
-        <!-- QTY & UOM -->
-        <td>
-            <input type="text" id="qty-${ri}" placeholder="0" style="font-weight:700; text-align:right; width: 100%; padding: 7px 10px; border: 1px solid var(--line-strong); border-radius: 4px;" oninput="validateQty(${ri}, this)" />
-        </td>
-        <td style="text-align:center;">
-            <span id="uom-${ri}" style="font-size:12px; color:#64748b; font-weight:500;">—</span>
-        </td>
-        <td style="text-align:center;">
-            <button type="button" class="btn-remove" onclick="removeRow(${ri})">
-                <i class="ri-delete-bin-line"></i>
-            </button>
-        </td>`;
-    }
-
-    function buildZoneOptions() {
-        return ZONES.map(z => `<option value="${z.zoneId}">${z.zoneCode} - ${z.zoneName}</option>`).join('');
-    }
-
-    // ── Cascade: Source Zone → Rack ────────────────────────────────────────
-    async function onSrcZoneChange(ri, zoneId) {
-        const rackSel = document.getElementById(`src-rack-${ri}`);
-        const locSel  = document.getElementById(`src-loc-${ri}`);
-        const prodSel = document.getElementById(`src-product-${ri}`);
-        resetSelect(rackSel, '-- Kệ --');
-        resetSelect(locSel, '-- Ô chứa --');
-        resetSelect(prodSel, '-- Chọn SP / Lô --');
-        prodSel.disabled = true;
-        document.getElementById(`uom-${ri}`).textContent = '—';
-
-        if (!zoneId) { rackSel.disabled = true; locSel.disabled = true; return; }
-        rackSel.disabled = false;
-        const racks = await fetchRacks(zoneId);
-        populateSelect(rackSel, racks, r => r.rackId, r => `${r.rackCode} - ${r.rackName}`, '-- Kệ --');
-        locSel.disabled = false;
-        const locs = await fetchLocations(null, zoneId, null);
-        populateSelect(locSel, locs, l => l.locationId, l => l.locationCode, '-- Ô chứa --');
-    }
-
-    // ── Cascade: Source Rack → Location ────────────────────────────────────
-    async function onSrcRackChange(ri, rackId) {
-        const locSel  = document.getElementById(`src-loc-${ri}`);
-        const prodSel = document.getElementById(`src-product-${ri}`);
-        resetSelect(locSel, '-- Ô chứa --');
-        resetSelect(prodSel, '-- Chọn SP / Lô --');
-        prodSel.disabled = true;
-        document.getElementById(`uom-${ri}`).textContent = '—';
-
-        if (!rackId) { locSel.disabled = true; return; }
-        locSel.disabled = false;
-        const zoneId = document.getElementById(`src-zone-${ri}`).value;
-        const locs = await fetchLocations(null, zoneId || null, rackId);
-        populateSelect(locSel, locs, l => l.locationId, l => l.locationCode, '-- Ô chứa --');
-    }
-
-    // ── Source Location → load products ────────────────────────────────────
-    async function onSrcLocChange(ri, locationId) {
-        const prodSel = document.getElementById(`src-product-${ri}`);
-        resetSelect(prodSel, '-- Chọn SP / Lô --');
-        prodSel.disabled = true;
-        document.getElementById(`uom-${ri}`).textContent = '—';
-
-        if (!locationId) return;
-        
-        const products = await fetchLocationInventory(locationId);
-        if (!products || products.length === 0) {
-            prodSel.innerHTML = '<option value="">-- Ô này đang trống --</option>';
-            return;
+        async function initData() {
+            try {
+                const res = await fetch('/api/transfers/locations?warehouseId=1');
+                if (res.ok) {
+                    locations = await res.json();
+                }
+                
+                @if(Model.IsEditMode && Model.EditingOrder?.Details != null)
+                {
+                    foreach(var d in Model.EditingOrder.Details)
+                    {
+                        <text>
+                        addExistingRow({
+                            pid: @d.ProductId,
+                            plid: @d.ProductLotId,
+                            sloc: @d.SourceLocationId,
+                            dloc: @d.DestLocationId,
+                            pcode: '@d.ProductCode',
+                            pname: '@d.ProductName',
+                            lcode: '@d.SourceLocationCode',
+                            qty: @d.RequestedQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                        });
+                        </text>
+                    }
+                } else {
+                    addItemRow();
+                }
+            } catch(e) { console.error(e); }
         }
 
-        prodSel.disabled = false;
-        prodSel.innerHTML = '<option value="">-- Chọn SP / Lô --</option>' +
-            products.map(p =>
-                `<option value="${p.productId}|${p.productLotId}"
-                         data-unit="${p.unitName}"
-                         data-avail="${p.availableQuantity}"
-                         data-lot="${p.lotNumber}">
-                    ${p.productCode} — ${p.productName} (Lô: ${p.lotNumber}) | Khả dụng: ${p.availableQuantity}
-                </option>`
-            ).join('');
-    }
+        function addItemRow() {
+            const ri = rowIdx++;
+            let locOpts = '<option value="">-- Chá»n --</option>';
+            locations.forEach(l => {
+                if(l.isPutawayAllowed) locOpts += `<option value="${l.locationId}">${l.locationCode} - ${l.locationName}</option>`;
+            });
 
-    // ── Product changed → update UOM ──────────────────────────────────────
-    function onProductChange(ri, val) {
-        const sel = document.getElementById(`src-product-${ri}`);
-        const selectedOpt = sel.options[sel.selectedIndex];
-        const unit = selectedOpt?.dataset.unit || '—';
-        const avail = selectedOpt?.dataset.avail || '';
-        document.getElementById(`uom-${ri}`).textContent = unit;
-        const qtyInput = document.getElementById(`qty-${ri}`);
-        // if (avail) qtyInput.max = avail;
-        if (qtyInput.value) validateQty(ri, qtyInput);
-    }
-
-    function validateQty(ri, input) {
-        input.value = input.value.replace(/[^0-9.,]/g, '');
-        let qtyStr = input.value.replace(',', '.');
-        if (!qtyStr) return;
-        const qty = parseFloat(qtyStr);
-        const sel = document.getElementById(`src-product-${ri}`);
-        if (!sel || sel.selectedIndex <= 0) return;
-        const availStr = sel.options[sel.selectedIndex]?.dataset.avail;
-        if (availStr && !isNaN(qty)) {
-            const avail = parseFloat(availStr);
-            if (qty > avail) {
-                alert(`Số lượng nhập vượt quá khả dụng (${avail})!`);
-                input.value = avail;
-            }
+            const html = `<tr id="row-${ri}">
+                <td>
+                    <div style="display:flex;gap:5px;">
+                        <button type="button" class="btn btn-light btn-sm" onclick="openInvModal(${ri})"><i class="ri-search-line"></i></button>
+                        <input type="hidden" name="productIds" id="pid-${ri}" required />
+                        <input type="hidden" name="productLotIds" id="plid-${ri}" required />
+                        <input type="hidden" name="sourceLocationIds" id="sloc-${ri}" required />
+                        <input type="text" class="form-control form-control-sm" id="pinfo-${ri}" readonly placeholder="Báº¥m kÃ­nh lÃºp chá»n ->" />
+                    </div>
+                </td>
+                <td><span id="onhand-${ri}">0</span></td>
+                <td><select name="destLocationIds" id="dloc-${ri}" class="form-select form-select-sm" required>${locOpts}</select></td>
+                <td><input type="number" name="quantities" class="form-control form-control-sm" min="0.001" step="any" required /></td>
+                <td style="text-align:center;"><button type="button" class="btn-remove" onclick="$('#row-${ri}').remove()"><i class="ri-delete-bin-line"></i></button></td>
+            </tr>`;
+            $('#items-body').append(html);
         }
-    }
 
-    // ── Cascade: Dest Zone → Rack ──────────────────────────────────────────
-    async function onDstZoneChange(ri, zoneId) {
-        const rackSel = document.getElementById(`dst-rack-${ri}`);
-        const locSel  = document.getElementById(`dst-loc-${ri}`);
-        resetSelect(rackSel, '-- Kệ --');
-        resetSelect(locSel, '-- Ô đích --');
+        function addExistingRow(data) {
+            const ri = rowIdx++;
+            let locOpts = '<option value="">-- Chá»n --</option>';
+            locations.forEach(l => {
+                if(l.isPutawayAllowed) {
+                    const sel = l.locationId == data.dloc ? 'selected' : '';
+                    locOpts += `<option value="${l.locationId}" ${sel}>${l.locationCode} - ${l.locationName}</option>`;
+                }
+            });
 
-        if (!zoneId) { rackSel.disabled = true; locSel.disabled = true; return; }
-        rackSel.disabled = false;
-        const racks = await fetchRacks(zoneId);
-        populateSelect(rackSel, racks, r => r.rackId, r => `${r.rackCode} - ${r.rackName}`, '-- Kệ --');
-        locSel.disabled = false;
-        const locs = await fetchLocations(null, zoneId, null);
-        populateSelect(locSel, locs, l => l.locationId, l => l.locationCode, '-- Ô đích --');
-    }
-
-    // ── Cascade: Dest Rack → Location ─────────────────────────────────────
-    async function onDstRackChange(ri, rackId) {
-        const locSel = document.getElementById(`dst-loc-${ri}`);
-        resetSelect(locSel, '-- Ô đích --');
-
-        if (!rackId) { locSel.disabled = true; return; }
-        locSel.disabled = false;
-        const zoneId = document.getElementById(`dst-zone-${ri}`).value;
-        const locs = await fetchLocations(null, zoneId || null, rackId);
-        populateSelect(locSel, locs, l => l.locationId, l => l.locationCode, '-- Ô đích --');
-    }
-
-    // ── Remove row ──────────────────────────────────────────────────────────
-    function removeRow(ri) {
-        const tr = document.getElementById(`row-${ri}`);
-        if (tr) tr.remove();
-        updateSummary();
-        if (document.getElementById('items-tbody').children.length === 0) {
-            document.getElementById('empty-hint').style.display = 'block';
-            document.getElementById('items-summary').style.display = 'none';
+            const html = `<tr id="row-${ri}">
+                <td>
+                    <div style="display:flex;gap:5px;">
+                        <button type="button" class="btn btn-light btn-sm" onclick="openInvModal(${ri})"><i class="ri-search-line"></i></button>
+                        <input type="hidden" name="productIds" id="pid-${ri}" value="${data.pid}" required />
+                        <input type="hidden" name="productLotIds" id="plid-${ri}" value="${data.plid}" required />
+                        <input type="hidden" name="sourceLocationIds" id="sloc-${ri}" value="${data.sloc}" required />
+                        <input type="text" class="form-control form-control-sm" id="pinfo-${ri}" value="[${data.lcode}] ${data.pcode} - ${data.pname}" readonly />
+                    </div>
+                </td>
+                <td><span id="onhand-${ri}">-</span></td>
+                <td><select name="destLocationIds" id="dloc-${ri}" class="form-select form-select-sm" required>${locOpts}</select></td>
+                <td><input type="number" name="quantities" value="${data.qty}" class="form-control form-control-sm" min="0.001" step="any" required /></td>
+                <td style="text-align:center;"><button type="button" class="btn-remove" onclick="$('#row-${ri}').remove()"><i class="ri-delete-bin-line"></i></button></td>
+            </tr>`;
+            $('#items-body').append(html);
         }
-    }
 
-    // ── Update summary count ────────────────────────────────────────────────
-    function updateSummary() {
-        const count = document.getElementById('items-tbody').children.length;
-        document.getElementById('items-count').textContent = count;
-    }
-
-    async function hydrateInitialRows() {
-        if (!Array.isArray(INITIAL_ROWS) || INITIAL_ROWS.length === 0) return;
-
-        for (const row of INITIAL_ROWS) {
-            const ri = addItemRow();
-
-            if (row.sourceZoneId) {
-                setSelectValue(`src-zone-${ri}`, row.sourceZoneId);
-                await onSrcZoneChange(ri, row.sourceZoneId);
-            }
-            if (row.sourceRackId) {
-                setSelectValue(`src-rack-${ri}`, row.sourceRackId);
-                await onSrcRackChange(ri, row.sourceRackId);
-            }
-            if (row.sourceLocationId) {
-                setSelectValue(`src-loc-${ri}`, row.sourceLocationId);
-                await onSrcLocChange(ri, row.sourceLocationId);
-            }
-            if (row.productId && row.productLotId) {
-                setSelectValue(`src-product-${ri}`, `${row.productId}|${row.productLotId}`);
-                onProductChange(ri, `${row.productId}|${row.productLotId}`);
-            }
-
-            if (row.destZoneId) {
-                setSelectValue(`dst-zone-${ri}`, row.destZoneId);
-                await onDstZoneChange(ri, row.destZoneId);
-            }
-            if (row.destRackId) {
-                setSelectValue(`dst-rack-${ri}`, row.destRackId);
-                await onDstRackChange(ri, row.destRackId);
-            }
-            if (row.destLocationId) {
-                setSelectValue(`dst-loc-${ri}`, row.destLocationId);
-            }
-            if (row.quantity) {
-                document.getElementById(`qty-${ri}`).value = row.quantity;
-            }
-            if (row.unitName) {
-                document.getElementById(`uom-${ri}`).textContent = row.unitName;
-            }
+        function searchInv() {
+            let html = '<div class="list-group">';
+            html += '<div class="alert alert-info">Chá»©c nÄƒng tÃ¬m kiáº¿m káº¿t ná»‘i tá»›i Backend. Dá»¯ liá»‡u giáº£ láº­p Ä‘á»ƒ Test:</div>';
+            html += `<button type="button" class="list-group-item list-group-item-action" onclick="selectInv(1, 1, 1, 'SP001', 'MÃ¡y bÆ¡m', 'LOC-A1', 100)">
+                [LOC-A1] SP001 - MÃ¡y bÆ¡m (Tá»“n: 100)
+            </button>`;
+            html += `<button type="button" class="list-group-item list-group-item-action" onclick="selectInv(2, 2, 2, 'SP002', 'á»ng nÆ°á»›c', 'LOC-A2', 500)">
+                [LOC-A2] SP002 - á»ng nÆ°á»›c (Tá»“n: 500)
+            </button>`;
+            html += '</div>';
+            $('#invResults').html(html);
         }
-    }
 
-    // ── Prepare submit: build JSON from table rows ──────────────────────────
-    function prepareSubmit() {
-        const tbody = document.getElementById('items-tbody');
-        const rows = tbody.querySelectorAll('tr[id^="row-"]');
-        const items = [];
-        let valid = true;
+        function openInvModal(ri) {
+            currentRow = ri;
+            $('#invSearch').val('');
+            $('#invResults').html('');
+            searchInv();
+            var myModal = new bootstrap.Modal(document.getElementById('inventoryModal'));
+            myModal.show();
+        }
 
-        rows.forEach(tr => {
-            const ri = tr.id.replace('row-', '');
-            const srcLocId  = document.getElementById(`src-loc-${ri}`)?.value;
-            const dstLocId  = document.getElementById(`dst-loc-${ri}`)?.value;
-            const productVal = document.getElementById(`src-product-${ri}`)?.value; // "productId|lotId"
+        function selectInv(pid, plid, sloc, pcode, pname, lcode, onhand) {
+            $(`#pid-${currentRow}`).val(pid);
+            $(`#plid-${currentRow}`).val(plid);
+            $(`#sloc-${currentRow}`).val(sloc);
+            $(`#pinfo-${currentRow}`).val(`[${lcode}] ${pcode} - ${pname}`);
+            $(`#onhand-${currentRow}`).text(onhand);
             
-            let qtyStr = document.getElementById(`qty-${ri}`)?.value || '0';
-            qtyStr = qtyStr.replace(',', '.');
-            const qty = parseFloat(qtyStr);
-
-            if (!srcLocId || !dstLocId || !productVal || qty <= 0) {
-                valid = false;
-                tr.style.outline = '2px solid #ef4444';
-                return;
-            }
-
-            const sel = document.getElementById(`src-product-${ri}`);
-            const availStr = sel?.options[sel.selectedIndex]?.dataset.avail;
-            if (availStr && qty > parseFloat(availStr)) {
-                valid = false;
-                tr.style.outline = '2px solid #ef4444';
-                alert(`Số lượng nhập ở dòng ${ri} vượt quá khả dụng (${availStr})!`);
-                return;
-            }
-
-            tr.style.outline = '';
-
-            const [productId, productLotId] = productVal.split('|');
-            items.push({
-                sourceLocationId: parseInt(srcLocId),
-                destLocationId:   parseInt(dstLocId),
-                productId:        parseInt(productId),
-                productLotId:     parseInt(productLotId),
-                quantity:         qty
-            });
-        });
-
-        if (!valid) {
-            alert('⚠️ Vui lòng điền đầy đủ thông tin cho tất cả các dòng hàng hóa (các dòng viền đỏ).');
-            return false;
-        }
-        if (items.length === 0) {
-            alert('⚠️ Vui lòng thêm ít nhất 1 mặt hàng cần điều chuyển.');
-            return false;
+            bootstrap.Modal.getInstance(document.getElementById('inventoryModal')).hide();
         }
 
-        document.getElementById('itemsJson').value = JSON.stringify(items);
-        return true;
-    }
-
-    // ── API Fetch helpers ──────────────────────────────────────────────────
-    function initZoneDropdown(selectId, ri, side) {}
-
-    async function fetchRacks(zoneId) {
-        try {
-            const res = await fetch(`?handler=RacksByZone&zoneId=${zoneId}`, {
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
-            });
-            if (!res.ok) return [];
-            return await res.json();
-        } catch { return []; }
-    }
-
-    async function fetchLocations(rackId, zoneId, rackIdParam) {
-        try {
-            let url = `?handler=LocationsByRack&rackId=${rackIdParam || 0}`;
-            if (zoneId) url += `&zoneId=${zoneId}`;
-            const res = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-            if (!res.ok) return [];
-            return await res.json();
-        } catch { return []; }
-    }
-
-    async function fetchLocationInventory(locationId) {
-        try {
-            const res = await fetch(`?handler=LocationInventory&locationId=${locationId}`, {
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
-            });
-            if (!res.ok) return [];
-            return await res.json();
-        } catch { return []; }
-    }
-
-    // ── DOM helpers ────────────────────────────────────────────────────────
-    function resetSelect(sel, placeholder) {
-        sel.innerHTML = `<option value="">${placeholder}</option>`;
-        sel.disabled = true;
-    }
-
-    function populateSelect(sel, items, valFn, labelFn, placeholder) {
-        sel.innerHTML = `<option value="">${placeholder}</option>` +
-            items.map(item => `<option value="${valFn(item)}">${labelFn(item)}</option>`).join('');
-    }
-
-    function setSelectValue(selectId, value) {
-        const sel = document.getElementById(selectId);
-        if (!sel) return;
-        sel.disabled = false;
-        sel.value = value?.toString() || '';
-    }
-</script>
-
+        initData();
+    </script>
+}
 
