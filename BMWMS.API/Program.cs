@@ -137,7 +137,7 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 
 // StockOperations (VietAnh)
 builder.Services.AddScoped<BMWMS.Repository.Interfaces.StockOperations.ITransferRepository, BMWMS.Repository.Repositories.StockOperations.TransferRepository>();
-builder.Services.AddScoped<BMWMS.Business.Interfaces.StockOperations.ITransferService, BMWMS.Business.Services.StockOperations.TransferService>();
+builder.Services.AddScoped<BMWMS.Business.Interfaces.StockOperations.ITransferOrderService, BMWMS.Business.Services.StockOperations.TransferOrderService>(); builder.Services.AddScoped<BMWMS.Business.Interfaces.StockOperations.ITransferApprovalService, BMWMS.Business.Services.StockOperations.TransferApprovalService>(); builder.Services.AddScoped<BMWMS.Business.Interfaces.StockOperations.ITransferConfirmService, BMWMS.Business.Services.StockOperations.TransferConfirmService>(); builder.Services.AddScoped<BMWMS.Business.Interfaces.StockOperations.ITransferLookupService, BMWMS.Business.Services.StockOperations.TransferLookupService>();
 
 // HuyNgo Services
 builder.Services.AddScoped<IPurchaseOrderRepository, PurchaseOrderRepository>();
