@@ -51,8 +51,8 @@ namespace BMWMS.Web.Pages.Transfer
 
         private void CheckUserRole()
         {
-            var roleCode = HttpContext.Session.GetString(""RoleCode"")?.ToUpper() ?? """";
-            IsManager = roleCode.Contains(""ADMIN"") || roleCode.Contains(""MANAGER"") || roleCode == ""WAREHOUSE_MANAGER"";
+            var roleCode = HttpContext.Session.GetString("RoleCode")?.ToUpper() ?? "";
+            IsManager = roleCode.Contains("ADMIN") || roleCode.Contains("MANAGER") || roleCode == "WAREHOUSE_MANAGER";
         }
     }
 }

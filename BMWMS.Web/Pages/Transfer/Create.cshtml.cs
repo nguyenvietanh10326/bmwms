@@ -33,10 +33,10 @@ namespace BMWMS.Web.Pages.Transfer
             if (IsEditMode)
             {
                 EditingOrder = await _transferSvc.GetOrderByIdAsync(Id.Value);
-                if (EditingOrder == null || EditingOrder.Status != ""DRAFT"")
+                if (EditingOrder == null || EditingOrder.Status != "DRAFT")
                 {
-                    ErrorMessage = ""Phiếu không tồn tại hoặc không ở trạng thái có thể s�a."";
-                    return RedirectToPage(""/Transfer/Index"");
+                    ErrorMessage = "Phiếu không tồn tại hoặc không ở trạng thái có thể sửa.";
+                    return RedirectToPage("/Transfer/Index");
                 }
             }
             return Page();
@@ -54,8 +54,8 @@ namespace BMWMS.Web.Pages.Transfer
         {
             if (productIds == null || productIds.Count == 0)
             {
-                ErrorMessage = ""Vui lòng thêm ít nhất 1 sản phẩm."";
-                return RedirectToPage(""/Transfer/Create"", new { id = Id });
+                ErrorMessage = "Vui lòng thêm ít nhất 1 sản phẩm.";
+                return RedirectToPage("/Transfer/Create", new { id = Id });
             }
 
             var request = new UpdateTransferOrderDto
@@ -86,12 +86,12 @@ namespace BMWMS.Web.Pages.Transfer
             {
                 TransferSuccess = true;
                 TransferMessage = result.Message;
-                return RedirectToPage(""/Transfer/Index"");
+                return RedirectToPage("/Transfer/Index");
             }
             else
             {
                 ErrorMessage = result.Message;
-                return RedirectToPage(""/Transfer/Create"", new { id = Id });
+                return RedirectToPage("/Transfer/Create", new { id = Id });
             }
         }
     }

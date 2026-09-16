@@ -1,10 +1,10 @@
-﻿@page
+@page
 @model BMWMS.Web.Pages.Transfer.DetailsModel
 @using BMWMS.Web.Helpers
 @{
-    Layout = ""_AdminLayout"";
-    ViewData[""Title""] = $""Chi tiáº¿t phiáº¿u {Model.Order?.TransferOrderNumber}"";
-    ViewData[""ActivePage""] = ""Transfer"";
+    Layout = "_AdminLayout";
+    ViewData["Title"] = $"Chi tiết phiếu {Model.Order?.TransferOrderNumber}";
+    ViewData["ActivePage"] = "Transfer";
 }
 
 <style>
@@ -16,53 +16,53 @@
     .transfer-page .b-gy { background: #e2e8f0; color: #475569; }
 </style>
 
-<div class=""transfer-page"">
-    <div class=""breadcrumb"">
-        <a href=""/Transfer/Index"" style=""color:var(--ink-3); text-decoration:none;"">Ä iá» u chuyá»ƒn kho</a>
-        <span style=""margin:0 4px;"">/</span>
-        <span>Chi tiáº¿t</span>
+<div class="transfer-page">
+    <div class="breadcrumb">
+        <a href="/Transfer/Index" style="color:var(--ink-3); text-decoration:none;">Điều chuyển kho</a>
+        <span style="margin:0 4px;">/</span>
+        <span>Chi tiết</span>
     </div>
 
-    @if (!string.IsNullOrEmpty(Model.SuccessMessage)) { <div class=""alert alert-success"">@Model.SuccessMessage</div> }
-    @if (!string.IsNullOrEmpty(Model.ErrorMessage)) { <div class=""alert alert-danger"">@Model.ErrorMessage</div> }
+    @if (!string.IsNullOrEmpty(Model.SuccessMessage)) { <div class="alert alert-success">@Model.SuccessMessage</div> }
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage)) { <div class="alert alert-danger">@Model.ErrorMessage</div> }
 
-    <div class=""card"" style=""padding: 20px; background: #fff; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 20px;"">
-        <div style=""display:flex; justify-content:space-between; align-items:flex-start;"">
+    <div class="card" style="padding: 20px; background: #fff; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 20px;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
             <div>
-                <h2 style=""font-size:20px; font-weight:700;"">Phiáº¿u Ä iá» u Chuyá»ƒn: @Model.Order?.TransferOrderNumber</h2>
-                <p style=""color:#64748b; font-size:13px;"">NgÃ y táº¡o: @Model.Order?.CreatedAt.ToString(""dd/MM/yyyy HH:mm"") bá»Ÿi @Model.Order?.CreatedByName</p>
+                <h2 style="font-size:20px; font-weight:700;">Phiếu Điều Chuyển: @Model.Order?.TransferOrderNumber</h2>
+                <p style="color:#64748b; font-size:13px;">Ngày tạo: @Model.Order?.CreatedAt.ToString("dd/MM/yyyy HH:mm") bởi @Model.Order?.CreatedByName</p>
             </div>
-            <div style=""display:flex; flex-direction:column; align-items:flex-end; gap:10px;"">
+            <div style="display:flex; flex-direction:column; align-items:flex-end; gap:10px;">
                 @{
                     var statusClass = Model.Order?.Status switch {
-                        ""DRAFT"" => ""b-y"",
-                        ""APPROVED"" => ""b-b"",
-                        ""COMPLETED"" => ""b-g"",
-                        ""CANCELLED"" => ""b-r"",
-                        _ => ""b-gy""
+                        "DRAFT" => "b-y",
+                        "APPROVED" => "b-b",
+                        "COMPLETED" => "b-g",
+                        "CANCELLED" => "b-r",
+                        _ => "b-gy"
                     };
                 }
-                <span class=""badge @statusClass"">@Model.Order?.StatusLabel</span>
-                <div class=""d-flex gap-2"">
-                    @if(Model.Order?.CanEdit == true) { <a href=""/Transfer/Create?id=@Model.Order.TransferOrderId"" class=""btn btn-sm btn-light"">Sá»a</a> }
-                    @if(Model.Order?.CanApprove == true) { <button type=""button"" class=""btn btn-sm btn-success"" data-bs-toggle=""modal"" data-bs-target=""#approveModal"">Duyá»‡t</button> }
-                    @if(Model.Order?.CanCancel == true) { <button type=""button"" class=""btn btn-sm btn-danger"" data-bs-toggle=""modal"" data-bs-target=""#cancelModal"">Há»§y</button> }
-                    @if(Model.Order?.CanConfirm == true) { <button type=""button"" class=""btn btn-sm btn-primary"" data-bs-toggle=""modal"" data-bs-target=""#confirmModal"">Thá»±c Hiá»‡n</button> }
+                <span class="badge @statusClass">@Model.Order?.StatusLabel</span>
+                <div class="d-flex gap-2">
+                    @if(Model.Order?.CanEdit == true) { <a href="/Transfer/Create?id=@Model.Order.TransferOrderId" class="btn btn-sm btn-light">Sửa</a> }
+                    @if(Model.Order?.CanApprove == true) { <button type="button" class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#approveModal">Duyệt</button> }
+                    @if(Model.Order?.CanCancel == true) { <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#cancelModal">Hủy</button> }
+                    @if(Model.Order?.CanConfirm == true) { <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#confirmModal">Thực Hiện</button> }
                 </div>
             </div>
         </div>
     </div>
 
-    <div class=""card"" style=""background:#fff; border:1px solid #e2e8f0; border-radius:12px; overflow:hidden;"">
-        <table class=""table table-hover mb-0"" style=""font-size:13px;"">
-            <thead style=""background:#f8fafc;"">
+    <div class="card" style="background:#fff; border:1px solid #e2e8f0; border-radius:12px; overflow:hidden;">
+        <table class="table table-hover mb-0" style="font-size:13px;">
+            <thead style="background:#f8fafc;">
                 <tr>
-                    <th>Sáº£n pháº©m</th>
+                    <th>Sản phẩm</th>
                     <th>Lot/Batch</th>
-                    <th>Tá»« vá»‹ trÃ­</th>
-                    <th>Ä áº¿n vá»‹ trÃ­</th>
-                    <th class=""text-end"">SL YÃªu cáº§u</th>
-                    <th class=""text-end"">SL Thá»±c táº¿</th>
+                    <th>Từ vị trí</th>
+                    <th>Đến vị trí</th>
+                    <th class="text-end">SL Yêu cầu</th>
+                    <th class="text-end">SL Thực tế</th>
                 </tr>
             </thead>
             <tbody>
@@ -73,13 +73,13 @@
                         <tr>
                             <td>
                                 <strong>@d.ProductCode</strong><br />
-                                <span style=""color:#64748b;"">@d.ProductName</span>
+                                <span style="color:#64748b;">@d.ProductName</span>
                             </td>
                             <td>@d.LotNumber</td>
-                            <td><span class=""badge b-gy"">@d.SourceLocationCode</span></td>
-                            <td><span class=""badge b-gy"">@d.DestLocationCode</span></td>
-                            <td class=""text-end fw-bold text-primary"">@FormatHelper.FormatQuantity(d.RequestedQuantity, d.QuantityScale) @d.UnitName</td>
-                            <td class=""text-end fw-bold text-success"">@FormatHelper.FormatQuantity(d.MovedQuantity, d.QuantityScale) @d.UnitName</td>
+                            <td><span class="badge b-gy">@d.SourceLocationCode</span></td>
+                            <td><span class="badge b-gy">@d.DestLocationCode</span></td>
+                            <td class="text-end fw-bold text-primary">@FormatHelper.FormatQuantity(d.RequestedQuantity, d.QuantityScale) @d.UnitName</td>
+                            <td class="text-end fw-bold text-success">@FormatHelper.FormatQuantity(d.MovedQuantity, d.QuantityScale) @d.UnitName</td>
                         </tr>
                     }
                 }
@@ -88,95 +88,95 @@
     </div>
 </div>
 
-<!-- Modal Duyá»‡t -->
-<div class=""modal fade"" id=""approveModal"" tabindex=""-1"">
-    <div class=""modal-dialog"">
-        <div class=""modal-content"">
-            <form method=""post"" asp-page-handler=""Approve"" asp-route-id=""@Model.Order?.TransferOrderId"">
-                <div class=""modal-header"">
-                    <h5 class=""modal-title"">PhÃª duyá»‡t lá»‡nh</h5>
-                    <button type=""button"" class=""btn-close"" data-bs-dismiss=""modal""></button>
+<!-- Modal Duyệt -->
+<div class="modal fade" id="approveModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="Approve" asp-route-id="@Model.Order?.TransferOrderId">
+                <div class="modal-header">
+                    <h5 class="modal-title">Phê duyệt lệnh</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class=""modal-body"">
-                    <label>Ghi chÃº (TÃ¹y chá» n)</label>
-                    <textarea name=""notes"" class=""form-control"" rows=""3""></textarea>
+                <div class="modal-body">
+                    <label>Ghi chú (Tùy chọn)</label>
+                    <textarea name="notes" class="form-control" rows="3"></textarea>
                 </div>
-                <div class=""modal-footer"">
-                    <button type=""button"" class=""btn btn-light"" data-bs-dismiss=""modal"">Ä Ã³ng</button>
-                    <button type=""submit"" class=""btn btn-success"">PhÃª duyá»‡t</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Modal Há»§y -->
-<div class=""modal fade"" id=""cancelModal"" tabindex=""-1"">
-    <div class=""modal-dialog"">
-        <div class=""modal-content"">
-            <form method=""post"" asp-page-handler=""Cancel"" asp-route-id=""@Model.Order?.TransferOrderId"">
-                <div class=""modal-header"">
-                    <h5 class=""modal-title text-danger"">Há»§y lá»‡nh chuyá»ƒn kho</h5>
-                    <button type=""button"" class=""btn-close"" data-bs-dismiss=""modal""></button>
-                </div>
-                <div class=""modal-body"">
-                    <label>LÃ½ do há»§y</label>
-                    <textarea name=""notes"" class=""form-control"" rows=""3"" required></textarea>
-                </div>
-                <div class=""modal-footer"">
-                    <button type=""button"" class=""btn btn-light"" data-bs-dismiss=""modal"">Ä Ã³ng</button>
-                    <button type=""submit"" class=""btn btn-danger"">Há»§y LÃªnh</button>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Đóng</button>
+                    <button type="submit" class="btn btn-success">Phê duyệt</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
-<!-- Modal Thá»±c Hiá»‡n (Confirm) -->
+<!-- Modal Hủy -->
+<div class="modal fade" id="cancelModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="Cancel" asp-route-id="@Model.Order?.TransferOrderId">
+                <div class="modal-header">
+                    <h5 class="modal-title text-danger">Hủy lệnh chuyển kho</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <label>Lý do hủy</label>
+                    <textarea name="notes" class="form-control" rows="3" required></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Đóng</button>
+                    <button type="submit" class="btn btn-danger">Hủy Lệnh</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Thực Hiện (Confirm) -->
 @if (Model.Order?.CanConfirm == true)
 {
-    <div class=""modal fade"" id=""confirmModal"" tabindex=""-1"">
-        <div class=""modal-dialog modal-lg"">
-            <div class=""modal-content"">
-                <form method=""post"" asp-page-handler=""Confirm"" asp-route-id=""@Model.Order.TransferOrderId"">
-                    <div class=""modal-header bg-primary text-white"">
-                        <h5 class=""modal-title"">Thá»±c hiá»‡n chuyá»ƒn kho</h5>
-                        <button type=""button"" class=""btn-close btn-close-white"" data-bs-dismiss=""modal""></button>
+    <div class="modal fade" id="confirmModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <form method="post" asp-page-handler="Confirm" asp-route-id="@Model.Order.TransferOrderId">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title">Thực hiện chuyển kho</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                     </div>
-                    <div class=""modal-body p-0"">
-                        <div class=""p-3"" style=""background:#f8fafc; border-bottom:1px solid #e2e8f0;"">
-                            <p class=""mb-0 text-muted"">Kiá»ƒm tra sá»‘ lÆ°á»£ng vÃ  vá»‹ trÃ­ thá»±c táº¿. BÃ¡n cÃ³ thá»ƒ Ä‘á»•i vá»‹ trÃ­ cáº¥t hÃ ng náº¿u cáº§n.</p>
+                    <div class="modal-body p-0">
+                        <div class="p-3" style="background:#f8fafc; border-bottom:1px solid #e2e8f0;">
+                            <p class="mb-0 text-muted">Kiểm tra số lượng và vị trí thực tế. Bán có thể đổi vị trí cất hàng nếu cần.</p>
                         </div>
-                        <div class=""p-3"">
+                        <div class="p-3">
                             @foreach(var d in Model.Order.Details)
                             {
-                                <div class=""card mb-3 shadow-sm border-0"" style=""background:#f1f5f9;"">
-                                    <div class=""card-body p-3"">
-                                        <div class=""d-flex justify-content-between mb-2"">
+                                <div class="card mb-3 shadow-sm border-0" style="background:#f1f5f9;">
+                                    <div class="card-body p-3">
+                                        <div class="d-flex justify-content-between mb-2">
                                             <strong>@d.ProductCode - @d.ProductName (Lot: @d.LotNumber)</strong>
-                                            <span class=""text-primary fw-bold"">YÃªu cáº§u: @FormatHelper.FormatQuantity(d.RequestedQuantity, d.QuantityScale) @d.UnitName</span>
+                                            <span class="text-primary fw-bold">Yêu cầu: @FormatHelper.FormatQuantity(d.RequestedQuantity, d.QuantityScale) @d.UnitName</span>
                                         </div>
-                                        <input type=""hidden"" name=""detailIds"" value=""@d.TransferOrderDetailId"" />
-                                        <div class=""row g-2"">
-                                            <div class=""col-md-6"">
-                                                <label class=""form-label small mb-1"">Sá»‘ lÆ°á»£ng thá»±c chuyá»ƒn</label>
-                                                <div class=""input-group input-group-sm"">
-                                                    <input type=""number"" name=""actualMovedQuantities"" class=""form-control"" value=""@d.RequestedQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture)"" min=""0"" max=""@d.RequestedQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture)"" step=""any"" required />
-                                                    <span class=""input-group-text"">@d.UnitName</span>
+                                        <input type="hidden" name="detailIds" value="@d.TransferOrderDetailId" />
+                                        <div class="row g-2">
+                                            <div class="col-md-6">
+                                                <label class="form-label small mb-1">Số lượng thực chuyển</label>
+                                                <div class="input-group input-group-sm">
+                                                    <input type="number" name="actualMovedQuantities" class="form-control" value="@d.RequestedQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture)" min="0" max="@d.RequestedQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture)" step="any" required />
+                                                    <span class="input-group-text">@d.UnitName</span>
                                                 </div>
                                             </div>
-                                            <div class=""col-md-6"">
-                                                <label class=""form-label small mb-1"">Vá»‹ trÃ­ cáº¥t (Thá»±c táº¿)</label>
-                                                <select name=""destinationLocationIds"" class=""form-select form-select-sm"" required>
+                                            <div class="col-md-6">
+                                                <label class="form-label small mb-1">Vị trí cất (Thực tế)</label>
+                                                <select name="destinationLocationIds" class="form-select form-select-sm" required>
                                                     @foreach (var loc in Model.DestinationLocations)
                                                     {
                                                         if (loc.LocationId == d.DestLocationId)
                                                         {
-                                                            <option value=""@loc.LocationId"" selected>@loc.DisplayLabel (Chá»‰ Ä‘á»‹nh)</option>
+                                                            <option value="@loc.LocationId" selected>@loc.DisplayLabel (Chỉ định)</option>
                                                         }
                                                         else if (loc.LocationId != d.SourceLocationId)
                                                         {
-                                                            <option value=""@loc.LocationId"">@loc.DisplayLabel</option>
+                                                            <option value="@loc.LocationId">@loc.DisplayLabel</option>
                                                         }
                                                     }
                                                 </select>
@@ -185,19 +185,18 @@
                                     </div>
                                 </div>
                             }
-                            <div class=""mt-3"">
-                                <label class=""form-label small"">Ghi chÃº</label>
-                                <textarea name=""notes"" class=""form-control"" rows=""2""></textarea>
+                            <div class="mt-3">
+                                <label class="form-label small">Ghi chú</label>
+                                <textarea name="notes" class="form-control" rows="2"></textarea>
                             </div>
                         </div>
                     </div>
-                    <div class=""modal-footer"">
-                        <button type=""button"" class=""btn btn-light"" data-bs-dismiss=""modal"">Ä Ã³ng</button>
-                        <button type=""submit"" class=""btn btn-primary""><i class=""ri-check-double-line""></i> XÃ¡c nháº­n</button>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Đóng</button>
+                        <button type="submit" class="btn btn-primary"><i class="ri-check-double-line"></i> Xác nhận</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 }
-

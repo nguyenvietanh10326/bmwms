@@ -1,19 +1,19 @@
-﻿@page
+@page
 @model BMWMS.Web.Pages.Transfer.IndexModel
 @{
     Layout = "_AdminLayout";
-    ViewData["Title"] = "Äiá»u chuyá»ƒn kho";
+    ViewData["Title"] = "Điều chuyển kho";
     ViewData["ActivePage"] = "Transfer";
 }
 
 <div class="transfer-page">
     <div class="pagehead" style="display:flex; justify-content:space-between; align-items:flex-end;">
         <div>
-            <h1>Danh sÃ¡ch Lá»‡nh Äiá»u Chuyá»ƒn</h1>
-            <p>Quáº£n lÃ½ cÃ¡c lá»‡nh Ä‘iá»u chuyá»ƒn ná»™i bá»™.</p>
+            <h1>Danh sách Lệnh Điều Chuyển</h1>
+            <p>Quản lý các lệnh điều chuyển nội bộ.</p>
         </div>
         <div>
-            <a href="/Transfer/Create" class="btn btn-primary"><i class="ri-add-line"></i> Táº¡o phiáº¿u má»›i</a>
+            <a href="/Transfer/Create" class="btn btn-primary"><i class="ri-add-line"></i> Tạo phiếu mới</a>
         </div>
     </div>
 
@@ -22,16 +22,16 @@
 
     <div class="card" style="padding: 20px; background: #fff; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 20px;">
         <form method="get" class="d-flex gap-2">
-            <input type="text" name="Keyword" value="@Model.Keyword" placeholder="Nháº­p mÃ£ phiáº¿u..." class="form-control" style="max-width:300px;" />
+            <input type="text" name="Keyword" value="@Model.Keyword" placeholder="Nhập mã phiếu..." class="form-control" style="max-width:300px;" />
             <select name="Status" class="form-select" style="max-width:200px;">
-                <option value="">-- Táº¥t cáº£ tráº¡ng thÃ¡i --</option>
-                <option value="DRAFT" selected="@(Model.Status == "DRAFT" ? "selected" : null)">NhÃ¡p (DRAFT)</option>
-                <option value="APPROVED" selected="@(Model.Status == "APPROVED" ? "selected" : null)">ÄÃ£ duyá»‡t (APPROVED)</option>
-                <option value="COMPLETED" selected="@(Model.Status == "COMPLETED" ? "selected" : null)">HoÃ n thÃ nh (COMPLETED)</option>
-                <option value="CANCELLED" selected="@(Model.Status == "CANCELLED" ? "selected" : null)">ÄÃ£ há»§y (CANCELLED)</option>
+                <option value="">-- Tất cả trạng thái --</option>
+                <option value="DRAFT" selected="@(Model.Status == "DRAFT" ? "selected" : null)">Nháp (DRAFT)</option>
+                <option value="APPROVED" selected="@(Model.Status == "APPROVED" ? "selected" : null)">Đã duyệt (APPROVED)</option>
+                <option value="COMPLETED" selected="@(Model.Status == "COMPLETED" ? "selected" : null)">Hoàn thành (COMPLETED)</option>
+                <option value="CANCELLED" selected="@(Model.Status == "CANCELLED" ? "selected" : null)">Đã hủy (CANCELLED)</option>
             </select>
-            <button type="submit" class="btn btn-dark">Lá»c</button>
-            <a href="/Transfer/Index" class="btn btn-light">XÃ³a lá»c</a>
+            <button type="submit" class="btn btn-dark">Lọc</button>
+            <a href="/Transfer/Index" class="btn btn-light">Xóa lọc</a>
         </form>
     </div>
 
@@ -39,12 +39,12 @@
         <table class="table table-hover mb-0" style="font-size:13px;">
             <thead style="background:#f8fafc;">
                 <tr>
-                    <th>MÃ£ Phiáº¿u</th>
-                    <th>NgÃ y yÃªu cáº§u</th>
-                    <th>NgÆ°á»i táº¡o</th>
-                    <th>NgÆ°á»i thá»±c hiá»‡n</th>
-                    <th>Tá»•ng S.L</th>
-                    <th>Tráº¡ng ThÃ¡i</th>
+                    <th>Mã Phiếu</th>
+                    <th>Ngày yêu cầu</th>
+                    <th>Người tạo</th>
+                    <th>Người thực hiện</th>
+                    <th>Tổng S.L</th>
+                    <th>Trạng Thái</th>
                     <th></th>
                 </tr>
             </thead>
@@ -61,14 +61,14 @@
                             <td>@item.TotalRequestedQuantity</td>
                             <td><span class="badge bg-@item.StatusCss">@item.StatusLabel</span></td>
                             <td class="text-end">
-                                <a href="/Transfer/Details?id=@item.TransferOrderId" class="btn btn-sm btn-light">Chi tiáº¿t</a>
+                                <a href="/Transfer/Details?id=@item.TransferOrderId" class="btn btn-sm btn-light">Chi tiết</a>
                             </td>
                         </tr>
                     }
                 }
                 else
                 {
-                    <tr><td colspan="7" class="text-center py-4">KhÃ´ng tÃ¬m tháº¥y dá»¯ liá»‡u.</td></tr>
+                    <tr><td colspan="7" class="text-center py-4">Không tìm thấy dữ liệu.</td></tr>
                 }
             </tbody>
         </table>
@@ -76,13 +76,12 @@
         @if(Model.PagedResult.TotalCount > 0)
         {
             <div class="p-3" style="background:#f8fafc; border-top:1px solid #e2e8f0; display:flex; justify-content:space-between;">
-                <span>Hiá»ƒn thá»‹ @(((Model.PagedResult.PageIndex - 1) * Model.PagedResult.PageSize) + 1) - @(Math.Min(Model.PagedResult.PageIndex * Model.PagedResult.PageSize, Model.PagedResult.TotalCount)) / @Model.PagedResult.TotalCount</span>
+                <span>Hiển thị @(((Model.PagedResult.PageIndex - 1) * Model.PagedResult.PageSize) + 1) - @(Math.Min(Model.PagedResult.PageIndex * Model.PagedResult.PageSize, Model.PagedResult.TotalCount)) / @Model.PagedResult.TotalCount</span>
                 <div class="d-flex gap-2">
-                    <a href="/Transfer/Index?PageIndex=@(Model.PagedResult.PageIndex - 1)&Status=@Model.Status&Keyword=@Model.Keyword" class="btn btn-sm btn-light @(Model.PagedResult.PageIndex <= 1 ? "disabled" : "")">TrÆ°á»›c</a>
+                    <a href="/Transfer/Index?PageIndex=@(Model.PagedResult.PageIndex - 1)&Status=@Model.Status&Keyword=@Model.Keyword" class="btn btn-sm btn-light @(Model.PagedResult.PageIndex <= 1 ? "disabled" : "")">Trước</a>
                     <a href="/Transfer/Index?PageIndex=@(Model.PagedResult.PageIndex + 1)&Status=@Model.Status&Keyword=@Model.Keyword" class="btn btn-sm btn-light @(Model.PagedResult.PageIndex >= Model.PagedResult.TotalPages ? "disabled" : "")">Sau</a>
                 </div>
             </div>
         }
     </div>
 </div>
-
