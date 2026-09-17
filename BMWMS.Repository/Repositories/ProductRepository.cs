@@ -244,5 +244,6 @@ namespace BMWMS.Repository.Repositories
                 .Where(attribute => ids.Contains(attribute.ProductAttributeId))
                 .ToListAsync();
         }
+
     }
 }

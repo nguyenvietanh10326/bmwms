@@ -47,7 +47,7 @@ namespace BMWMS.Business.Services.Inventory
                     statusText = "Hết hàng";
                     cssClass = "status-danger"; 
                 }
-                else if (available < 300) 
+                else if (available < 300)
                 {
                     statusText = "Sắp hết";
                     cssClass = "status-warning"; 

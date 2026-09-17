@@ -2,10 +2,10 @@ services:
   db:
     image: mcr.microsoft.com/mssql/server:2022-latest
     environment:
-      ACCEPT_EULA: "Y"
-      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?MSSQL_SA_PASSWORD is required}
+      ACCEPT_EULA: "${ACCEPT_EULA}"
+      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD}"
     ports:
-      - "${MSSQL_PORT:?MSSQL_PORT is required}:1433"
+      - "${MSSQL_PORT}:1433"
     volumes:
       - sql_data:/var/opt/mssql
     networks:
@@ -19,7 +19,7 @@ services:
 
 networks:
   bmwms:
-    name: ${BMWMS_NETWORK:?BMWMS_NETWORK is required}
+    name: ${BMWMS_NETWORK}
 
 volumes:
   sql_data:
