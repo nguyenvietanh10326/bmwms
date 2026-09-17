@@ -130,6 +130,8 @@
                                     <span class="badge border px-3 py-2 fw-normal @Model.GetStatusBadgeClass(item.Status)">
                                         @Model.GetStatusLabel(item.Status)
                                     </span>
+                                    @if (item.PendingOutboundReviewId.HasValue)
+                                    { <span class="badge bg-primary d-block mt-1">Chờ duyệt đợt xuất</span> }
                                 </td>
                                 <td class="text-center">
                                     <span class="fw-semibold">@item.ItemCount.ToString("N0")</span>
@@ -139,6 +141,10 @@
                                     <span class="text-muted small">@item.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
                                 </td>
                                 <td class="text-end pe-4">
+                                    @if (item.PendingOutboundReviewId.HasValue && (User.IsInRole("WAREHOUSE_MANAGER") || User.IsInRole("SYSTEM_ADMIN")))
+                                    {
+                                        <a href="/sales-orders/details/@item.SalesOrderId" class="btn btn-sm btn-primary">Duyệt đợt xuất</a>
+                                    }
                                     <a href="/sales-orders/details/@item.SalesOrderId" class="btn btn-sm btn-outline-primary"
                                        aria-label="Xem chi tiết đơn @item.SalesOrderNumber">
                                         <i class="bi bi-eye me-1"></i>Xem chi tiết
