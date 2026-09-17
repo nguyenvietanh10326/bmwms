@@ -52,7 +52,7 @@
   .field input:disabled { background: var(--bg); color: var(--ink-3); }
   .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--accent); }
   
-    .scope-options { display:grid; grid-template-columns:repeat(4, 1fr); gap:10px; margin-bottom:18px; }
+    .scope-options { display:grid; grid-template-columns:repeat(2, 1fr); gap:10px; margin-bottom:18px; }
     .scope-option { position:relative; }
     .scope-option input { position:absolute; opacity:0; pointer-events:none; }
     .scope-option label { display:block; height:100%; padding:14px; border:1px solid var(--line-strong); border-radius:var(--r-sm); cursor:pointer; background:#fff; }
@@ -73,7 +73,7 @@
     .table-scroll { overflow-x:auto; }
     .selection-summary { display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; color:var(--ink-2); font-size:12px; }
     .selection-summary strong { color:var(--accent-600); }
-    @@media (max-width: 760px) { .scope-options { grid-template-columns:repeat(2, 1fr); } }
+    @@media (max-width: 760px) { .scope-options { grid-template-columns:1fr; } }
   
   .filter-bar { background: #f8fafc; border: 1px solid var(--line); padding: 12px 16px; border-radius: var(--r-sm); display: flex; gap: 12px; align-items: flex-end; margin-bottom: 12px; }
   .filter-bar .field { flex: 1; }
@@ -84,7 +84,7 @@
         <div>
             <div class="breadcrumb">Nghiệp vụ kho / Kiểm kho / Tạo phiếu</div>
             <h1>Tạo phiếu kiểm kho</h1>
-            <p>Giao nhiệm vụ kiểm kho theo toàn kho, Zone, Rack hoặc Bin.</p>
+            <p>Giao nhiệm vụ kiểm kho theo toàn kho hoặc khu vực được chọn.</p>
         </div>
         <div style="display: flex; gap: 10px;">
             <a href="/Stocktake/Index" class="btn btn-light">Hủy bỏ</a>
@@ -139,27 +139,21 @@
             <h3 style="font-size:15px; font-weight:700; color:var(--ink); margin-top:0; margin-bottom:18px;">Phạm vi kiểm kê</h3>
             
             <div class="scope-options">
-                <div class="scope-option"><input type="radio" name="CountScope" id="scopeFull" value="FULL" checked onchange="toggleScope()" /><label for="scopeFull"><strong>Toàn bộ kho</strong><span>Tất cả vị trí đang hoạt động.</span></label></div>
-                <div class="scope-option"><input type="radio" name="CountScope" id="scopeZone" value="ZONE" onchange="toggleScope()" /><label for="scopeZone"><strong>Theo Zone</strong><span>Chọn một hoặc nhiều khu vực.</span></label></div>
-                <div class="scope-option"><input type="radio" name="CountScope" id="scopeRack" value="RACK" onchange="toggleScope()" /><label for="scopeRack"><strong>Theo Rack</strong><span>Chọn các kệ cần kiểm.</span></label></div>
-                <div class="scope-option"><input type="radio" name="CountScope" id="scopeBin" value="BIN" onchange="toggleScope()" /><label for="scopeBin"><strong>Theo Bin</strong><span>Chọn chính xác vị trí.</span></label></div>
+                <div class="scope-option"><input type="radio" name="CountScope" id="scopeFull" value="FULL" checked onchange="toggleScope()" /><label for="scopeFull"><strong>Kiểm toàn bộ kho</strong><span>Hệ thống đưa tất cả vị trí đang hoạt động vào phiếu.</span></label></div>
+                <div class="scope-option"><input type="radio" name="CountScope" id="scopeArea" value="AREA" onchange="toggleScope()" /><label for="scopeArea"><strong>Kiểm theo khu vực</strong><span>Chọn Zone, Rack và các Bin cần kiểm.</span></label></div>
             </div>
 
             <div id="scopePanel" class="scope-panel" style="display:none;">
-                <div id="zoneField">
-                    <div class="selection-toolbar"><h4>Chọn Zone</h4><button type="button" onclick="toggleTableSelection('zone-table', true)">Chọn tất cả</button></div>
-                    <div class="table-scroll"><table class="selection-table" id="zone-table"><thead><tr><th class="check-col"></th><th>Mã Zone</th><th>Tên Zone</th></tr></thead><tbody></tbody></table></div>
+                <div class="grid2" style="grid-template-columns:1fr 1fr; margin-bottom:16px;">
+                    <div class="field"><label for="zone-filter">Zone</label><select id="zone-filter" onchange="loadRacks()"><option value="">-- Chọn Zone --</option></select></div>
+                    <div class="field"><label for="rack-filter">Rack</label><select id="rack-filter" onchange="loadLocations()"><option value="">-- Chọn Rack --</option></select></div>
                 </div>
-                <div id="rackField">
-                    <div class="selection-toolbar"><h4>Chọn Rack</h4><button type="button" onclick="toggleTableSelection('rack-table', true)">Chọn tất cả</button></div>
-                    <div class="table-scroll"><table class="selection-table" id="rack-table"><thead><tr><th class="check-col"></th><th>Mã Rack</th><th>Tên Rack</th><th>Zone</th></tr></thead><tbody></tbody></table></div>
-                </div>
-                <div class="selection-summary"><span id="scopeHint">Chọn phạm vi để tải danh sách vị trí.</span></div>
+                <div class="selection-summary"><span id="scopeHint">Chọn Zone hoặc Rack để tải danh sách Bin.</span></div>
             </div>
 
             <div id="locationResultsSection" style="display:none;">
-                <div class="selection-toolbar"><h4>Chọn Bin kiểm kho <span style="color:#dc2626;">*</span></h4><span id="location-count" style="font-size:12px; font-weight:600; color:var(--accent-600);">@Model.Locations.Count vị trí khả dụng</span></div>
-                <div class="selection-toolbar" style="justify-content:flex-end; margin-top:0;"><button type="button" onclick="toggleTableSelection('location-table', true)">Chọn tất cả</button><button type="button" onclick="toggleTableSelection('location-table', false)">Bỏ chọn tất cả</button></div>
+                <div class="selection-toolbar"><h4>Chọn Bin kiểm kho <span style="color:#dc2626;">*</span></h4><span id="location-count" style="font-size:12px; font-weight:600; color:var(--accent-600);">0 vị trí khả dụng</span></div>
+                <div class="selection-toolbar" style="justify-content:flex-end; margin-top:0;"><button type="button" onclick="toggleBinSelection(true)">Chọn tất cả</button><button type="button" onclick="toggleBinSelection(false)">Bỏ chọn tất cả</button></div>
                 <div class="table-scroll"><table class="selection-table" id="location-table"><thead><tr><th class="check-col"></th><th>Bin</th><th>Zone</th><th>Rack</th></tr></thead><tbody></tbody></table></div>
                 <div style="font-size:11.5px; color:var(--ink-3); margin-top:6px;"><i class="ri-information-line"></i> Các dòng đã tick sẽ được đưa vào phiếu kiểm kho.</div>
                 </div>
@@ -170,50 +164,34 @@
 @section Scripts {
     <script>
         const warehouseSelect = document.getElementById('warehouse-select');
-        const zoneTable = document.getElementById('zone-table');
-        const rackTable = document.getElementById('rack-table');
+        const zoneFilter = document.getElementById('zone-filter');
+        const rackFilter = document.getElementById('rack-filter');
         const locationTable = document.getElementById('location-table');
         const locationCount = document.getElementById('location-count');
         const scopePanel = document.getElementById('scopePanel');
         const locationResultsSection = document.getElementById('locationResultsSection');
-        const zoneField = document.getElementById('zoneField');
-        const rackField = document.getElementById('rackField');
         const scopeHint = document.getElementById('scopeHint');
         const scopeFull = document.getElementById('scopeFull');
-        const scopeZone = document.getElementById('scopeZone');
-        const scopeRack = document.getElementById('scopeRack');
-        const scopeBin = document.getElementById('scopeBin');
+        const scopeArea = document.getElementById('scopeArea');
         const form = document.getElementById('createForm');
 
-        function selectedValues(table) {
-            return [...table.querySelectorAll('input[type="checkbox"]:checked')].map(input => input.value);
+        function toggleBinSelection(checked) {
+            locationTable.querySelectorAll('input[name="StorageLocationIds"]').forEach(input => input.checked = checked);
         }
 
-        function toggleTableSelection(tableId, checked) {
-            document.querySelectorAll(`#${tableId} input[type="checkbox"]`).forEach(input => input.checked = checked);
-            if (tableId === 'zone-table') loadRacks();
-            if (tableId === 'rack-table') loadLocations();
-        }
-
-        function renderEmpty(table, message) {
-            table.querySelector('tbody').innerHTML = `<tr><td colspan="4" style="color:var(--ink-3); text-align:center;">${message}</td></tr>`;
+        function renderEmpty(message) {
+            locationTable.querySelector('tbody').innerHTML = `<tr><td colspan="4" style="color:var(--ink-3); text-align:center;">${message}</td></tr>`;
         }
 
         function toggleScope() {
-            const scoped = !scopeFull.checked;
+            const scoped = scopeArea.checked;
             scopePanel.style.display = scoped ? 'block' : 'none';
-            locationResultsSection.style.display = scopeFull.checked ? 'none' : 'block';
-            zoneField.style.display = scopeZone.checked || scopeRack.checked || scopeBin.checked ? 'block' : 'none';
-            rackField.style.display = scopeZone.checked ? 'none' : 'block';
-            scopeHint.textContent = scopeZone.checked
-                ? 'Chọn Zone; hệ thống sẽ đưa toàn bộ Rack và Bin thuộc Zone vào phiếu.'
-                : scopeRack.checked
-                    ? 'Chọn một hoặc nhiều Rack; các Bin thuộc Rack sẽ được đưa vào phiếu.'
-                    : scopeBin.checked
-                        ? 'Chọn trực tiếp các Bin cần kiểm.'
-                        : 'Toàn bộ kho sẽ được kiểm khi tạo phiếu.';
+            locationResultsSection.style.display = scoped ? 'block' : 'none';
+            scopeHint.textContent = scoped
+                ? 'Chọn Zone hoặc Rack, sau đó tick các Bin cần đưa vào phiếu.'
+                : 'Toàn bộ kho sẽ được kiểm khi tạo phiếu.';
 
-            if (warehouseSelect.value && scoped) loadZones().then(() => scopeZone.checked || scopeBin.checked ? loadRacks() : loadLocations());
+            if (warehouseSelect.value && scoped) loadZones();
         }
         
         document.addEventListener('DOMContentLoaded', function() {
@@ -221,17 +199,15 @@
         });
 
         warehouseSelect?.addEventListener('change', async function () {
-            if (!scopeFull.checked) {
-                await loadZones();
-                await loadRacks();
-                await loadLocations();
-            }
+            if (scopeArea.checked) await loadZones();
         });
 
         async function loadZones() {
             const wid = warehouseSelect.value;
-            zoneTable.querySelector('tbody').innerHTML = '';
-            rackTable.querySelector('tbody').innerHTML = '';
+            zoneFilter.innerHTML = '<option value="">-- Chọn Zone --</option>';
+            rackFilter.innerHTML = '<option value="">-- Chọn Rack --</option>';
+            locationTable.querySelector('tbody').innerHTML = '';
+            locationCount.textContent = '0 vị trí khả dụng';
             if (!wid) return;
 
             try {
@@ -239,45 +215,47 @@
                 if (res.ok) {
                     const zones = await res.json();
                     zones.forEach(z => {
-                        zoneTable.querySelector('tbody').insertAdjacentHTML('beforeend', `<tr><td class="check-col"><input type="checkbox" value="${z.zoneId}" onchange="loadRacks()" /></td><td><strong>${z.zoneCode}</strong></td><td>${z.zoneName}</td></tr>`);
+                        const option = document.createElement('option');
+                        option.value = z.zoneId;
+                        option.textContent = `${z.zoneCode} - ${z.zoneName}`;
+                        zoneFilter.appendChild(option);
                     });
-                    if (!zones.length) renderEmpty(zoneTable, 'Kho chưa có Zone hoạt động.');
                 }
             } catch(e) { console.error("Error loading zones", e); }
         }
 
         async function loadRacks() {
             const wid = warehouseSelect.value;
-            rackTable.querySelector('tbody').innerHTML = '';
-            const zoneIds = selectedValues(zoneTable);
-            if (!zoneIds.length) {
-                renderEmpty(rackTable, 'Chọn Zone để tải Rack.');
-                locationTable.querySelector('tbody').innerHTML = '';
-                locationCount.textContent = '0 vị trí khả dụng';
-                return;
-            }
+            rackFilter.innerHTML = '<option value="">-- Chọn Rack --</option>';
+            locationTable.querySelector('tbody').innerHTML = '';
+            locationCount.textContent = '0 vị trí khả dụng';
+            const zoneId = zoneFilter.value;
+            if (!zoneId) return;
             try {
-                const racks = (await Promise.all(zoneIds.map(zoneId =>
-                    fetch(`?handler=RacksByZone&warehouseId=${encodeURIComponent(wid)}&zoneId=${encodeURIComponent(zoneId)}`).then(res => res.ok ? res.json() : [])
-                ))).flat();
+                const res = await fetch(`?handler=RacksByZone&warehouseId=${encodeURIComponent(wid)}&zoneId=${encodeURIComponent(zoneId)}`);
+                const racks = res.ok ? await res.json() : [];
                 racks.forEach(r => {
-                    rackTable.querySelector('tbody').insertAdjacentHTML('beforeend', `<tr><td class="check-col"><input type="checkbox" value="${r.rackId}" ${scopeZone.checked ? 'checked' : ''} onchange="loadLocations()" /></td><td><strong>${r.rackCode}</strong></td><td>${r.rackName}</td><td>${r.zoneCode || ''}</td></tr>`);
+                    const option = document.createElement('option');
+                    option.value = r.rackId;
+                    option.textContent = `${r.rackCode} - ${r.rackName}`;
+                    rackFilter.appendChild(option);
                 });
-                if (!racks.length) renderEmpty(rackTable, 'Zone chưa có Rack hoạt động.');
-                if (scopeZone.checked) loadLocations();
             } catch(e) { console.error('Error loading racks', e); }
         }
 
         async function loadLocations() {
             const wid = warehouseSelect.value;
-            const rackIds = selectedValues(rackTable);
+            const rackId = rackFilter.value;
             const tbody = locationTable.querySelector('tbody');
             tbody.innerHTML = '';
             locationCount.textContent = 'Đang tải...';
-            if (!wid) return;
+            if (!wid || !zoneFilter.value) {
+                locationCount.textContent = '0 vị trí khả dụng';
+                return;
+            }
 
             let url = `?handler=Locations&warehouseId=${encodeURIComponent(wid)}`;
-            rackIds.forEach(id => url += `&rackIds=${encodeURIComponent(id)}`);
+            if (rackId) url += `&rackIds=${encodeURIComponent(rackId)}`;
 
             try {
                 const res = await fetch(url);
@@ -285,10 +263,9 @@
                     const locations = await res.json();
                     locations.forEach(loc => {
                         const path = (loc.locationPath || loc.locationCode || '').split(' / ');
-                        const checked = scopeZone.checked || scopeRack.checked;
-                        tbody.insertAdjacentHTML('beforeend', `<tr><td class="check-col"><input type="checkbox" name="StorageLocationIds" value="${loc.locationId || loc.storageLocationId}" ${checked ? 'checked' : ''} /></td><td><strong>${path.at(-1) || loc.locationCode}</strong></td><td>${path.length > 2 ? path[0] : ''}</td><td>${path.length > 1 ? path.at(-2) : ''}</td></tr>`);
+                        tbody.insertAdjacentHTML('beforeend', `<tr><td class="check-col"><input type="checkbox" name="StorageLocationIds" value="${loc.locationId || loc.storageLocationId}" /></td><td><strong>${path.at(-1) || loc.locationCode}</strong></td><td>${path.length > 2 ? path[0] : ''}</td><td>${path.length > 1 ? path.at(-2) : ''}</td></tr>`);
                     });
-                    if (!locations.length) renderEmpty(locationTable, 'Không có Bin phù hợp với phạm vi đã chọn.');
+                    if (!locations.length) renderEmpty('Không có Bin phù hợp với phạm vi đã chọn.');
                     locationCount.textContent = `${locations.length} vị trí khả dụng`;
                 }
             } catch(e) { 
@@ -302,7 +279,7 @@
                 return;
             }
 
-            if (!scopeFull.checked) {
+            if (scopeArea.checked) {
                 const hasSelection = locationTable.querySelectorAll('input[name="StorageLocationIds"]:checked').length > 0;
                 
                 if (!hasSelection) {
