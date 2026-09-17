@@ -149,6 +149,7 @@ namespace BMWMS.Repository.Repositories.Inventory
                     "CONFIRMED" => query.Where(x => x.Status == "CONFIRMED" || x.Status == "ALLOCATED"),
                     "PARTIALLY_ISSUED" => query.Where(x => x.Status == "PARTIALLY_ISSUED" || x.Status == "PARTIALLY_FULFILLED"),
                     "ISSUED" => query.Where(x => x.Status == "ISSUED" || x.Status == "FULFILLED" || x.Status == "CLOSED"),
+                    "PENDING_OUTBOUND_REVIEW" => query.Where(x => x.OutboundOrders.Any(o => o.SourceType == "SALES_ORDER" && o.Status == "PENDING_APPROVAL")),
                     _ => query.Where(x => x.Status == status)
                 };
             }
@@ -185,6 +186,9 @@ namespace BMWMS.Repository.Repositories.Inventory
                     .ThenInclude(d => d.Product)
                         .ThenInclude(p => p.UnitOfMeasure)
                 .Include(x => x.OutboundOrders)
+                    .ThenInclude(o => o.AssignedToUser)
+                .Include(x => x.OutboundOrders)
+                    .ThenInclude(o => o.ConfirmedByUser)
                 .FirstOrDefaultAsync(x => x.SalesOrderId == salesOrderId);
         }
 

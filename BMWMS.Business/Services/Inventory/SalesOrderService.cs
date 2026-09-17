@@ -167,6 +167,13 @@ namespace BMWMS.Business.Services.Inventory
                 criteria.PageSize, criteria.SortOrder
             );
 
+            var pageIds = entities.Select(x => x.SalesOrderId).ToList();
+            var pendingReviews = await _context.OutboundOrders.AsNoTracking()
+                .Where(o => o.SourceType == "SALES_ORDER" && o.SalesOrderId.HasValue &&
+                    pageIds.Contains(o.SalesOrderId.Value) && o.Status == "PENDING_APPROVAL")
+                .Select(o => new { SalesOrderId = o.SalesOrderId!.Value, o.OutboundOrderId }).ToListAsync();
+            var reviewIds = pendingReviews.GroupBy(o => o.SalesOrderId)
+                .ToDictionary(g => g.Key, g => g.Min(o => o.OutboundOrderId));
             // Mapping từ Entity sang DTO
             var list = entities.Select(x => new SalesOrderListDto
             {
@@ -178,6 +185,7 @@ namespace BMWMS.Business.Services.Inventory
                 ExpectedIssueDate = x.ExpectedIssueDate,
                 Status = NormalizeSalesOrderStatus(x.Status),
                 ItemCount = x.SalesOrderDetails.Count,
+                PendingOutboundReviewId = reviewIds.TryGetValue(x.SalesOrderId, out var reviewId) ? reviewId : null,
                 CreatedByName = x.CreatedByUser?.FullName ?? string.Empty,
                 CreatedAt = x.CreatedAt
             }).ToList();
@@ -222,6 +230,16 @@ namespace BMWMS.Business.Services.Inventory
                 CreatedAt = entity.CreatedAt,
                 ConfirmedByName = entity.ConfirmedByUser?.FullName,
                 ConfirmedAt = entity.ConfirmedAt,
+                OutboundBatches = entity.OutboundOrders.Where(o => o.SourceType == "SALES_ORDER")
+                    .OrderBy(o => o.CreatedAt).ThenBy(o => o.OutboundOrderId)
+                    .Select(o => new SalesOrderOutboundBatchDto
+                    {
+                        OutboundOrderId = o.OutboundOrderId, OutboundOrderNumber = o.OutboundOrderNumber,
+                        Status = o.Status, CreatedAt = o.CreatedAt,
+                        AssignedToUserName = o.AssignedToUser?.FullName ?? o.AssignedToUser?.Username,
+                        ReviewedByName = o.Status == "COMPLETED" ? o.ConfirmedByUser?.FullName ?? o.ConfirmedByUser?.Username : null,
+                        ReviewedAt = o.Status == "COMPLETED" ? o.ConfirmedAt : null
+                    }).ToList(),
                 Items = entity.SalesOrderDetails.Select(d => new SalesOrderItemDtos
                 {
                     SalesOrderDetailId = d.SalesOrderDetailId,

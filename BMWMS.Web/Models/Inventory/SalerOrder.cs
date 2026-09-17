@@ -42,6 +42,7 @@ namespace BMWMS.Web.Models.Inventory
         public DateOnly? ExpectedIssueDate { get; set; }
         public string Status { get; set; } = null!;
         public int ItemCount { get; set; }
+        public long? PendingOutboundReviewId { get; set; }
         public string CreatedByName { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
     }
@@ -64,6 +65,18 @@ namespace BMWMS.Web.Models.Inventory
         public string? ConfirmedByName { get; set; }
         public DateTime? ConfirmedAt { get; set; }
         public List<SalesOrderItemDtos> Items { get; set; } = new();
+        public List<SalesOrderOutboundBatchDto> OutboundBatches { get; set; } = new();
+    }
+
+    public class SalesOrderOutboundBatchDto
+    {
+        public long OutboundOrderId { get; set; }
+        public string OutboundOrderNumber { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+        public DateTime CreatedAt { get; set; }
+        public string? AssignedToUserName { get; set; }
+        public string? ReviewedByName { get; set; }
+        public DateTime? ReviewedAt { get; set; }
     }
 
     public class SalesOrderItemDtos
