@@ -52,8 +52,28 @@
   .field input:disabled { background: var(--bg); color: var(--ink-3); }
   .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--accent); }
   
-  /* Select multiple */
-  select[multiple] { height: 160px; }
+    .scope-options { display:grid; grid-template-columns:repeat(4, 1fr); gap:10px; margin-bottom:18px; }
+    .scope-option { position:relative; }
+    .scope-option input { position:absolute; opacity:0; pointer-events:none; }
+    .scope-option label { display:block; height:100%; padding:14px; border:1px solid var(--line-strong); border-radius:var(--r-sm); cursor:pointer; background:#fff; }
+    .scope-option input:checked + label { border-color:var(--accent); background:#f3f6ff; box-shadow:0 0 0 2px rgba(62,92,246,.12); }
+    .scope-option strong { display:block; font-size:13px; margin-bottom:4px; }
+    .scope-option span { display:block; color:var(--ink-3); font-size:11.5px; }
+    .scope-panel { padding:16px; background:#f8fafc; border:1px solid var(--line); border-radius:var(--r-sm); margin-bottom:16px; }
+    .selection-table { width:100%; border-collapse:collapse; background:#fff; border:1px solid var(--line); border-radius:var(--r-sm); overflow:hidden; font-size:13px; }
+    .selection-table th, .selection-table td { padding:10px 12px; border-bottom:1px solid var(--line); text-align:left; }
+    .selection-table th { background:#f8fafc; color:var(--ink-2); font-size:11px; text-transform:uppercase; letter-spacing:.03em; }
+    .selection-table tr:last-child td { border-bottom:0; }
+    .selection-table tr:hover td { background:#f8faff; }
+    .selection-table .check-col { width:44px; text-align:center; }
+    .selection-table input[type=checkbox] { width:16px; height:16px; accent-color:var(--accent); }
+    .selection-toolbar { display:flex; justify-content:space-between; align-items:center; gap:10px; margin:16px 0 8px; }
+    .selection-toolbar h4 { margin:0; font-size:13px; }
+    .selection-toolbar button { border:0; background:transparent; color:var(--accent-600); font-size:12px; font-weight:600; cursor:pointer; }
+    .table-scroll { overflow-x:auto; }
+    .selection-summary { display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; color:var(--ink-2); font-size:12px; }
+    .selection-summary strong { color:var(--accent-600); }
+    @@media (max-width: 760px) { .scope-options { grid-template-columns:repeat(2, 1fr); } }
   
   .filter-bar { background: #f8fafc; border: 1px solid var(--line); padding: 12px 16px; border-radius: var(--r-sm); display: flex; gap: 12px; align-items: flex-end; margin-bottom: 12px; }
   .filter-bar .field { flex: 1; }
@@ -64,7 +84,7 @@
         <div>
             <div class="breadcrumb">Nghiệp vụ kho / Kiểm kho / Tạo phiếu</div>
             <h1>Tạo phiếu kiểm kho</h1>
-            <p>Giao nhiệm vụ kiểm kho theo toàn kho, khu vực hoặc nhóm sản phẩm.</p>
+            <p>Giao nhiệm vụ kiểm kho theo toàn kho, Zone, Rack hoặc Bin.</p>
         </div>
         <div style="display: flex; gap: 10px;">
             <a href="/Stocktake/Index" class="btn btn-light">Hủy bỏ</a>
@@ -118,167 +138,100 @@
         <div class="card">
             <h3 style="font-size:15px; font-weight:700; color:var(--ink); margin-top:0; margin-bottom:18px;">Phạm vi kiểm kê</h3>
             
-            <div style="margin-bottom: 20px; display: flex; gap: 30px;">
-                <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer;">
-                    <input type="radio" name="CountScope" id="scopeFull" value="FULL" checked onchange="toggleScope()" style="margin-top: 4px;" />
-                    <div>
-                        <div style="font-weight: 600; font-size: 14px;">Kiểm toàn bộ kho</div>
-                        <div style="font-size: 12px; color: var(--ink-3); max-width: 300px;">Hệ thống đưa tất cả vị trí đang hoạt động trong kho vào phiếu kiểm.</div>
-                    </div>
-                </label>
-                
-                <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer;">
-                    <input type="radio" name="CountScope" id="scopeCycle" value="CYCLE" onchange="toggleScope()" style="margin-top: 4px;" />
-                    <div>
-                        <div style="font-weight: 600; font-size: 14px;">Kiểm theo khu vực</div>
-                        <div style="font-size: 12px; color: var(--ink-3); max-width: 300px;">Kiểm kê định kỳ tại một số khu vực hoặc kệ nhất định.</div>
-                    </div>
-                </label>
-                
-                <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer;">
-                    <input type="radio" name="CountScope" id="scopeProductGroup" value="PRODUCT_GROUP" onchange="toggleScope()" style="margin-top: 4px;" />
-                    <div>
-                        <div style="font-weight: 600; font-size: 14px;">Kiểm theo nhóm hàng</div>
-                        <div style="font-size: 12px; color: var(--ink-3); max-width: 300px;">Kiểm kê dựa trên các nhóm sản phẩm được chọn.</div>
-                    </div>
-                </label>
+            <div class="scope-options">
+                <div class="scope-option"><input type="radio" name="CountScope" id="scopeFull" value="FULL" checked onchange="toggleScope()" /><label for="scopeFull"><strong>Toàn bộ kho</strong><span>Tất cả vị trí đang hoạt động.</span></label></div>
+                <div class="scope-option"><input type="radio" name="CountScope" id="scopeZone" value="ZONE" onchange="toggleScope()" /><label for="scopeZone"><strong>Theo Zone</strong><span>Chọn một hoặc nhiều khu vực.</span></label></div>
+                <div class="scope-option"><input type="radio" name="CountScope" id="scopeRack" value="RACK" onchange="toggleScope()" /><label for="scopeRack"><strong>Theo Rack</strong><span>Chọn các kệ cần kiểm.</span></label></div>
+                <div class="scope-option"><input type="radio" name="CountScope" id="scopeBin" value="BIN" onchange="toggleScope()" /><label for="scopeBin"><strong>Theo Bin</strong><span>Chọn chính xác vị trí.</span></label></div>
             </div>
 
-            <!-- Khu vực đếm theo Zone/Rack -->
-            <div id="cycleCountSection" style="display: none; padding: 16px; background: #f8fafc; border: 1px solid var(--line); border-radius: var(--r-sm); margin-bottom: 20px;">
-                <div class="grid2" style="grid-template-columns: 1fr 1fr; margin-bottom: 0;">
-                    <div class="field">
-                        <label>Lọc theo Danh mục (Zone)</label>
-                        <select id="zone-filter" onchange="loadRacks()">
-                            <option value="">-- Chọn Zone --</option>
-                        </select>
-                    </div>
-
-                    <div class="field">
-                        <label>Lọc theo Kệ (Rack)</label>
-                        <select id="rack-filter" onchange="loadLocations()">
-                            <option value="">-- Chọn Kệ --</option>
-                        </select>
-                    </div>
+            <div id="scopePanel" class="scope-panel" style="display:none;">
+                <div id="zoneField">
+                    <div class="selection-toolbar"><h4>Chọn Zone</h4><button type="button" onclick="toggleTableSelection('zone-table', true)">Chọn tất cả</button></div>
+                    <div class="table-scroll"><table class="selection-table" id="zone-table"><thead><tr><th class="check-col"></th><th>Mã Zone</th><th>Tên Zone</th></tr></thead><tbody></tbody></table></div>
                 </div>
-            </div>
-            
-            <!-- Khu vực đếm theo Nhóm Hàng -->
-            <div id="productGroupCountSection" style="display: none; padding: 16px; background: #f8fafc; border: 1px solid var(--line); border-radius: var(--r-sm); margin-bottom: 20px;">
-                <div class="field">
-                    <label>Lọc theo Nhóm hàng</label>
-                    <select id="product-group-filter" onchange="loadLocations()">
-                        <option value="">-- Chọn Nhóm Hàng --</option>
-                        @foreach (var pg in Model.ProductGroups)
-                        {
-                            <option value="@pg.ProductGroupId">@pg.GroupCode - @pg.GroupName</option>
-                        }
-                    </select>
+                <div id="rackField">
+                    <div class="selection-toolbar"><h4>Chọn Rack</h4><button type="button" onclick="toggleTableSelection('rack-table', true)">Chọn tất cả</button></div>
+                    <div class="table-scroll"><table class="selection-table" id="rack-table"><thead><tr><th class="check-col"></th><th>Mã Rack</th><th>Tên Rack</th><th>Zone</th></tr></thead><tbody></tbody></table></div>
                 </div>
+                <div class="selection-summary"><span id="scopeHint">Chọn phạm vi để tải danh sách vị trí.</span></div>
             </div>
 
-            <div id="locationResultsSection" style="display: none;">
-                <div class="field">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <label>Vị trí kiểm kho <span style="color:#dc2626;">*</span></label>
-                        <span id="location-count" style="font-size: 12px; font-weight: 600; color: var(--accent-600);">@Model.Locations.Count vị trí khả dụng</span>
-                    </div>
-                    
-                    <select asp-for="StorageLocationIds" id="location-select" multiple>
-                        @foreach (var location in Model.Locations)
-                        {
-                            <option value="@location.LocationId" selected="@(Model.StorageLocationIds.Contains(location.LocationId) ? "selected" : null)">
-                                @location.LocationPath
-                            </option>
-                        }
-                    </select>
-                    <div style="font-size: 11.5px; color: var(--ink-3); margin-top: 6px;">
-                        <i class="ri-information-line"></i> Hệ thống tự chọn tất cả vị trí sau khi lọc. Giữ <code>Ctrl</code> để thay đổi nhiều lựa chọn.
-                    </div>
+            <div id="locationResultsSection" style="display:none;">
+                <div class="selection-toolbar"><h4>Chọn Bin kiểm kho <span style="color:#dc2626;">*</span></h4><span id="location-count" style="font-size:12px; font-weight:600; color:var(--accent-600);">@Model.Locations.Count vị trí khả dụng</span></div>
+                <div class="selection-toolbar" style="justify-content:flex-end; margin-top:0;"><button type="button" onclick="toggleTableSelection('location-table', true)">Chọn tất cả</button><button type="button" onclick="toggleTableSelection('location-table', false)">Bỏ chọn tất cả</button></div>
+                <div class="table-scroll"><table class="selection-table" id="location-table"><thead><tr><th class="check-col"></th><th>Bin</th><th>Zone</th><th>Rack</th></tr></thead><tbody></tbody></table></div>
+                <div style="font-size:11.5px; color:var(--ink-3); margin-top:6px;"><i class="ri-information-line"></i> Các dòng đã tick sẽ được đưa vào phiếu kiểm kho.</div>
                 </div>
             </div>
-        </div>
     </form>
 </div>
 
 @section Scripts {
     <script>
         const warehouseSelect = document.getElementById('warehouse-select');
-        const zoneFilter = document.getElementById('zone-filter');
-        const rackFilter = document.getElementById('rack-filter');
-        const productGroupFilter = document.getElementById('product-group-filter');
-        
-        const locationSelect = document.getElementById('location-select');
+        const zoneTable = document.getElementById('zone-table');
+        const rackTable = document.getElementById('rack-table');
+        const locationTable = document.getElementById('location-table');
         const locationCount = document.getElementById('location-count');
-        
-        const cycleCountSection = document.getElementById('cycleCountSection');
-        const productGroupCountSection = document.getElementById('productGroupCountSection');
+        const scopePanel = document.getElementById('scopePanel');
         const locationResultsSection = document.getElementById('locationResultsSection');
-        
+        const zoneField = document.getElementById('zoneField');
+        const rackField = document.getElementById('rackField');
+        const scopeHint = document.getElementById('scopeHint');
         const scopeFull = document.getElementById('scopeFull');
-        const scopeCycle = document.getElementById('scopeCycle');
-        const scopeProductGroup = document.getElementById('scopeProductGroup');
-        
+        const scopeZone = document.getElementById('scopeZone');
+        const scopeRack = document.getElementById('scopeRack');
+        const scopeBin = document.getElementById('scopeBin');
         const form = document.getElementById('createForm');
 
+        function selectedValues(table) {
+            return [...table.querySelectorAll('input[type="checkbox"]:checked')].map(input => input.value);
+        }
+
+        function toggleTableSelection(tableId, checked) {
+            document.querySelectorAll(`#${tableId} input[type="checkbox"]`).forEach(input => input.checked = checked);
+            if (tableId === 'zone-table') loadRacks();
+            if (tableId === 'rack-table') loadLocations();
+        }
+
+        function renderEmpty(table, message) {
+            table.querySelector('tbody').innerHTML = `<tr><td colspan="4" style="color:var(--ink-3); text-align:center;">${message}</td></tr>`;
+        }
+
         function toggleScope() {
-            if (scopeCycle.checked) {
-                cycleCountSection.style.display = 'block';
-                productGroupCountSection.style.display = 'none';
-                locationResultsSection.style.display = 'block';
-                if (warehouseSelect.value) {
-                    loadZones();
-                }
-            } else if (scopeProductGroup.checked) {
-                cycleCountSection.style.display = 'none';
-                productGroupCountSection.style.display = 'block';
-                locationResultsSection.style.display = 'block';
-                if (warehouseSelect.value) {
-                    loadLocations();
-                }
-            } else {
-                cycleCountSection.style.display = 'none';
-                productGroupCountSection.style.display = 'none';
-                locationResultsSection.style.display = 'none';
-                if (locationSelect) {
-                    for (let i = 0; i < locationSelect.options.length; i++) {
-                        locationSelect.options[i].selected = false;
-                    }
-                }
-            }
+            const scoped = !scopeFull.checked;
+            scopePanel.style.display = scoped ? 'block' : 'none';
+            locationResultsSection.style.display = scopeFull.checked ? 'none' : 'block';
+            zoneField.style.display = scopeZone.checked || scopeRack.checked || scopeBin.checked ? 'block' : 'none';
+            rackField.style.display = scopeZone.checked ? 'none' : 'block';
+            scopeHint.textContent = scopeZone.checked
+                ? 'Chọn Zone; hệ thống sẽ đưa toàn bộ Rack và Bin thuộc Zone vào phiếu.'
+                : scopeRack.checked
+                    ? 'Chọn một hoặc nhiều Rack; các Bin thuộc Rack sẽ được đưa vào phiếu.'
+                    : scopeBin.checked
+                        ? 'Chọn trực tiếp các Bin cần kiểm.'
+                        : 'Toàn bộ kho sẽ được kiểm khi tạo phiếu.';
+
+            if (warehouseSelect.value && scoped) loadZones().then(() => scopeZone.checked || scopeBin.checked ? loadRacks() : loadLocations());
         }
         
         document.addEventListener('DOMContentLoaded', function() {
-            let hasSelection = false;
-            if (locationSelect) {
-                for (let i = 0; i < locationSelect.options.length; i++) {
-                    if (locationSelect.options[i].selected) {
-                        hasSelection = true;
-                        break;
-                    }
-                }
-            }
-            if (hasSelection) {
-                // Determine which scope is active based on existing selections if needed.
-                // Defaulting to Cycle count if there is selection for now, or just toggle Scope.
-                // Assuming FULL scope was unchecked manually before.
-            }
             toggleScope();
         });
 
         warehouseSelect?.addEventListener('change', async function () {
-            if (scopeCycle.checked) {
+            if (!scopeFull.checked) {
                 await loadZones();
-                await loadLocations();
-            } else if (scopeProductGroup.checked) {
+                await loadRacks();
                 await loadLocations();
             }
         });
 
         async function loadZones() {
             const wid = warehouseSelect.value;
-            zoneFilter.innerHTML = '<option value="">-- Chọn Zone --</option>';
-            rackFilter.innerHTML = '<option value="">-- Chọn Kệ --</option>';
+            zoneTable.querySelector('tbody').innerHTML = '';
+            rackTable.querySelector('tbody').innerHTML = '';
             if (!wid) return;
 
             try {
@@ -286,76 +239,57 @@
                 if (res.ok) {
                     const zones = await res.json();
                     zones.forEach(z => {
-                        const opt = document.createElement('option');
-                        opt.value = z.zoneId;
-                        opt.textContent = `${z.zoneCode} - ${z.zoneName}`;
-                        zoneFilter.appendChild(opt);
+                        zoneTable.querySelector('tbody').insertAdjacentHTML('beforeend', `<tr><td class="check-col"><input type="checkbox" value="${z.zoneId}" onchange="loadRacks()" /></td><td><strong>${z.zoneCode}</strong></td><td>${z.zoneName}</td></tr>`);
                     });
+                    if (!zones.length) renderEmpty(zoneTable, 'Kho chưa có Zone hoạt động.');
                 }
             } catch(e) { console.error("Error loading zones", e); }
         }
 
         async function loadRacks() {
             const wid = warehouseSelect.value;
-            const zid = zoneFilter.value;
-            rackFilter.innerHTML = '<option value="">-- Chọn Kệ --</option>';
-            
-            if (!zid) {
-                return loadLocations();
+            rackTable.querySelector('tbody').innerHTML = '';
+            const zoneIds = selectedValues(zoneTable);
+            if (!zoneIds.length) {
+                renderEmpty(rackTable, 'Chọn Zone để tải Rack.');
+                locationTable.querySelector('tbody').innerHTML = '';
+                locationCount.textContent = '0 vị trí khả dụng';
+                return;
             }
-
             try {
-                const res = await fetch(`?handler=RacksByZone&warehouseId=${encodeURIComponent(wid)}&zoneId=${encodeURIComponent(zid)}`);
-                if (res.ok) {
-                    const racks = await res.json();
-                    racks.forEach(r => {
-                        const opt = document.createElement('option');
-                        opt.value = r.rackId;
-                        opt.textContent = `${r.rackCode} - ${r.rackName}`;
-                        rackFilter.appendChild(opt);
-                    });
-                }
-            } catch(e) { console.error("Error loading racks", e); }
-            
-            loadLocations();
+                const racks = (await Promise.all(zoneIds.map(zoneId =>
+                    fetch(`?handler=RacksByZone&warehouseId=${encodeURIComponent(wid)}&zoneId=${encodeURIComponent(zoneId)}`).then(res => res.ok ? res.json() : [])
+                ))).flat();
+                racks.forEach(r => {
+                    rackTable.querySelector('tbody').insertAdjacentHTML('beforeend', `<tr><td class="check-col"><input type="checkbox" value="${r.rackId}" ${scopeZone.checked ? 'checked' : ''} onchange="loadLocations()" /></td><td><strong>${r.rackCode}</strong></td><td>${r.rackName}</td><td>${r.zoneCode || ''}</td></tr>`);
+                });
+                if (!racks.length) renderEmpty(rackTable, 'Zone chưa có Rack hoạt động.');
+                if (scopeZone.checked) loadLocations();
+            } catch(e) { console.error('Error loading racks', e); }
         }
 
         async function loadLocations() {
             const wid = warehouseSelect.value;
-            
-            let selectedRack = "";
-            let selectedGroup = "";
-            
-            if (scopeCycle.checked) {
-                selectedRack = rackFilter ? rackFilter.value : "";
-            } else if (scopeProductGroup.checked) {
-                selectedGroup = productGroupFilter ? productGroupFilter.value : "";
-            }
-            
-            locationSelect.innerHTML = '';
+            const rackIds = selectedValues(rackTable);
+            const tbody = locationTable.querySelector('tbody');
+            tbody.innerHTML = '';
             locationCount.textContent = 'Đang tải...';
             if (!wid) return;
 
             let url = `?handler=Locations&warehouseId=${encodeURIComponent(wid)}`;
-            if (selectedRack) {
-                url += `&rackIds=${encodeURIComponent(selectedRack)}`;
-            }
-            if (selectedGroup) {
-                url += `&productGroupIds=${encodeURIComponent(selectedGroup)}`;
-            }
+            rackIds.forEach(id => url += `&rackIds=${encodeURIComponent(id)}`);
 
             try {
                 const res = await fetch(url);
                 if (res.ok) {
                     const locations = await res.json();
                     locations.forEach(loc => {
-                        const opt = document.createElement('option');
-                        opt.value = loc.locationId || loc.storageLocationId;
-                        opt.textContent = loc.locationPath || loc.locationCode;
-                        opt.selected = true; // Auto select all filtered locations
-                        locationSelect.appendChild(opt);
+                        const path = (loc.locationPath || loc.locationCode || '').split(' / ');
+                        const checked = scopeZone.checked || scopeRack.checked;
+                        tbody.insertAdjacentHTML('beforeend', `<tr><td class="check-col"><input type="checkbox" name="StorageLocationIds" value="${loc.locationId || loc.storageLocationId}" ${checked ? 'checked' : ''} /></td><td><strong>${path.at(-1) || loc.locationCode}</strong></td><td>${path.length > 2 ? path[0] : ''}</td><td>${path.length > 1 ? path.at(-2) : ''}</td></tr>`);
                     });
-                    locationCount.textContent = `${locations.length} vị trí hiển thị (Đã tự động chọn)`;
+                    if (!locations.length) renderEmpty(locationTable, 'Không có Bin phù hợp với phạm vi đã chọn.');
+                    locationCount.textContent = `${locations.length} vị trí khả dụng`;
                 }
             } catch(e) { 
                 console.error("Error loading locations", e); 
@@ -368,16 +302,8 @@
                 return;
             }
 
-            if (scopeCycle.checked || scopeProductGroup.checked) {
-                let hasSelection = false;
-                if (locationSelect) {
-                    for (let i = 0; i < locationSelect.options.length; i++) {
-                        if (locationSelect.options[i].selected) {
-                            hasSelection = true;
-                            break;
-                        }
-                    }
-                }
+            if (!scopeFull.checked) {
+                const hasSelection = locationTable.querySelectorAll('input[name="StorageLocationIds"]:checked').length > 0;
                 
                 if (!hasSelection) {
                     if (typeof Toastify !== 'undefined') {
