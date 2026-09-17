@@ -23,25 +23,26 @@ namespace BMWMS.Web.Pages.SaleOrder
             var client = _httpClientFactory.CreateClient("ApiClient");
 
             // Gọi API backend lấy dữ liệu JSON
-            var response = await client.GetAsync($"api/SalesOrders/{id}");
-
-            if (response.IsSuccessStatusCode)
+            try
             {
-                var options = new JsonSerializerOptions
+                var response = await client.GetAsync($"api/SalesOrders/{id}");
+                if (response.IsSuccessStatusCode)
                 {
-                    PropertyNameCaseInsensitive = true
-                };
-
-                var apiResult = await response.Content.ReadFromJsonAsync<ApiResponse<SalesOrderDto>>(options);
-
-                if (apiResult != null && apiResult.Success)
-                {
-                    SalesOrder = apiResult.Data;
-                    return Page();
+                    var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                    var apiResult = await response.Content.ReadFromJsonAsync<ApiResponse<SalesOrderDto>>(options);
+                    if (apiResult?.Success == true && apiResult.Data != null)
+                    {
+                        SalesOrder = apiResult.Data;
+                        return Page();
+                    }
                 }
+                return NotFound();
             }
-
-            return NotFound();
+            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException)
+            {
+                TempData["ErrorMessage"] = "Không thể tải SO do lỗi kết nối. Vui lòng tải lại và kiểm tra trạng thái trước khi thao tác.";
+                return Page();
+            }
         }
 
         public async Task<IActionResult> OnPostConfirmAsync(long id)
@@ -64,6 +65,34 @@ namespace BMWMS.Web.Pages.SaleOrder
 
         public async Task<IActionResult> OnPostCancelAsync(long id, string reason) => await ChangeStateAsync(id, "cancel", reason);
         public async Task<IActionResult> OnPostRejectAsync(long id, string reason) => await ChangeStateAsync(id, "reject", reason);
+        public async Task<IActionResult> OnPostReviewOutboundCompletionAsync(int id, long outboundOrderId, string? remainderAction, string? reason)
+        {
+            if (!User.IsInRole("WAREHOUSE_MANAGER") && !User.IsInRole("SYSTEM_ADMIN")) return Forbid();
+            try
+            {
+                var loaded = await OnGetAsync(id);
+                if (loaded is not PageResult) return loaded;
+                if (SalesOrder == null) return RedirectToPage(new { id });
+                if (!SalesOrder.OutboundBatches.Any(o => o.OutboundOrderId == outboundOrderId && o.Status == "PENDING_APPROVAL"))
+                {
+                    TempData["ErrorMessage"] = "Đợt xuất không thuộc SO này hoặc đã được duyệt. Vui lòng tải lại phiếu.";
+                    return RedirectToPage(new { id });
+                }
+                var response = await _httpClientFactory.CreateClient("ApiClient")
+                    .PostAsJsonAsync($"api/OutboundOrders/{outboundOrderId}/review-completion", new { remainderAction, reason });
+                TempData[response.IsSuccessStatusCode ? "SuccessMessage" : "ErrorMessage"] = response.IsSuccessStatusCode
+                    ? (SalesOrder.Items.Any(x => x.FulfilledQuantity < x.OrderedQuantity) && remainderAction?.Trim().ToUpperInvariant() == "CONTINUE"
+                        ? "Đã duyệt đợt xuất. SO đã xuất một phần; nhân viên kho có thể tạo đợt tiếp theo cho lượng còn lại."
+                        : "Đã duyệt chốt đợt xuất. SO đã xuất và không giao tiếp phần còn lại.")
+                    : await BMWMS.Web.Services.ApiErrorReader.ReadAsync(response);
+                return RedirectToPage(new { id });
+            }
+            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException)
+            {
+                TempData["ErrorMessage"] = "Không xác định được kết quả duyệt do lỗi kết nối. Vui lòng tải lại SO và kiểm tra trạng thái trước khi thử lại.";
+                return RedirectToPage(new { id });
+            }
+        }
         private async Task<IActionResult> ChangeStateAsync(long id, string action, string reason)
         {
             if (action == "reject" && !User.IsInRole("WAREHOUSE_MANAGER") && !User.IsInRole("SYSTEM_ADMIN")) return Forbid();
@@ -101,6 +130,7 @@ namespace BMWMS.Web.Pages.SaleOrder
         public string? ConfirmedByName { get; set; }
         public DateTime? ConfirmedAt { get; set; }
         public List<SalesOrderItemDto> Items { get; set; } = new();
+        public List<BMWMS.Web.Models.Inventory.SalesOrderOutboundBatchDto> OutboundBatches { get; set; } = new();
     }
 
     public class SalesOrderItemDto

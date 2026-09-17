@@ -1101,6 +1101,12 @@ public class OutboundOrderService : IOutboundOrderService
             {
                 order.SalesOrder.Status = remaining ? (action == "CLOSE" ? "CLOSED" : "PARTIALLY_FULFILLED") : "FULFILLED";
                 order.SalesOrder.UpdatedAt = DateTime.UtcNow;
+                if (remaining && action == "CLOSE")
+                {
+                    var closureNote = $"Quản lý kết thúc phần chưa giao theo thỏa thuận với khách hàng: {reason}";
+                    order.SalesOrder.Notes = string.IsNullOrWhiteSpace(order.SalesOrder.Notes)
+                        ? closureNote : $"{order.SalesOrder.Notes}\n{closureNote}";
+                }
             }
             // Physical quantities were posted by staff. Approval must never post OUTBOUND again.
             if (order.SourceType == "PURCHASE_RETURN")
