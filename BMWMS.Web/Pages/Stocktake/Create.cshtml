@@ -11,14 +11,14 @@
     --font-ui:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
     --font-mono:"IBM Plex Mono",ui-monospace,monospace;
 
-    --navy-950:#233a6b; --navy-900:#1b2d56;
-    --accent:#3e5cf6; --accent-600:#3149d4;
+    --navy-950:#1e3a6e; --navy-900:#1e3a6e;
+    --accent:#2563eb; --accent-600:#1d4ed8;
 
-    --bg:#f2f3f7; --card:#ffffff; --line:#e7e9f0; --line-strong:#d7dae5;
-    --ink:#161b2e; --ink-2:#525a72; --ink-3:#8890a6; --ink-4:#aeb4c6;
+    --bg:#f3f4f6; --card:#ffffff; --line:#e2e8f0; --line-strong:#cbd5e1;
+    --ink:#111827; --ink-2:#475569; --ink-3:#64748b; --ink-4:#94a3b8;
 
-    --sh-xs:0 1px 2px rgba(16,23,42,.05);
-    --sh-sm:0 1px 2px rgba(16,23,42,.04),0 4px 10px -4px rgba(16,23,42,.07);
+    --sh-xs:0 1px 3px rgba(0,0,0,.05);
+    --sh-sm:0 1px 3px rgba(0,0,0,.05),0 4px 10px -4px rgba(0,0,0,.08);
     --r-sm:6px; --r-md:8px; --r-lg:12px;
     --ease:cubic-bezier(.4,0,.2,1);
   }
@@ -28,8 +28,12 @@
     color: var(--ink);
     font-size: 14px;
     line-height: 1.45;
-    padding: 26px 30px 64px;
+        width: 100%;
+        padding: 0 0 36px;
   }
+
+    .transfer-page .pagehead > div:first-child { min-width: 0; }
+    .transfer-page .pagehead p { margin: 0; color: var(--ink-2); font-size: 13px; }
 
   .transfer-page .pagehead{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;gap:20px;}
   .transfer-page .pagehead h1{font-size:20px;margin:0 0 5px;font-weight:700;}
@@ -38,17 +42,17 @@
   .transfer-page .btn{display:inline-flex;align-items:center;gap:7px;border:none;border-radius:var(--r-sm);padding:9px 15px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;text-decoration:none;}
   .transfer-page .btn-dark{background:var(--navy-950);color:#fff;box-shadow:var(--sh-xs);}
   .transfer-page .btn-dark:hover{background:#1c2340;color:#fff;transform:translateY(-1px);box-shadow:var(--sh-sm);}
-  .transfer-page .btn-primary{background:#2563eb;color:#fff;box-shadow:var(--sh-xs);}
-  .transfer-page .btn-primary:hover{background:#1d4ed8;color:#fff;transform:translateY(-1px);box-shadow:var(--sh-sm);}
+    .transfer-page .btn-primary{background:#2563eb;color:#fff;box-shadow:var(--sh-xs);}
+    .transfer-page .btn-primary:hover{background:#1d4ed8;color:#fff;transform:translateY(-1px);box-shadow:var(--sh-sm);}
   .transfer-page .btn-light{background:#fff;border:1px solid var(--line-strong);color:var(--ink);}
   .transfer-page .btn-light:hover{border-color:var(--ink-4);background:#fafafd;}
 
-  .transfer-page .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);padding:24px;margin-bottom:16px;box-shadow:var(--sh-xs);}
+    .transfer-page .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);padding:20px;margin-bottom:20px;box-shadow:var(--sh-xs);}
 
   .grid2 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
   .field { display: flex; flex-direction: column; gap: 6px; }
   .field label { font-size: 12.5px; font-weight: 600; color: var(--ink-2); }
-  .field input, .field select, .field textarea { width: 100%; padding: 9px 12px; border: 1px solid var(--line-strong); border-radius: var(--r-sm); font-size: 13px; color: var(--ink); font-family: inherit; }
+    .field input, .field select, .field textarea { width: 100%; padding: 8px 12px; border: 1px solid var(--line-strong); border-radius: var(--r-sm); font-size: 14px; color: var(--ink); font-family: inherit; }
   .field input:disabled { background: var(--bg); color: var(--ink-3); }
   .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--accent); }
   
@@ -56,7 +60,7 @@
     .scope-option { position:relative; }
     .scope-option input { position:absolute; opacity:0; pointer-events:none; }
     .scope-option label { display:block; height:100%; padding:14px; border:1px solid var(--line-strong); border-radius:var(--r-sm); cursor:pointer; background:#fff; }
-    .scope-option input:checked + label { border-color:var(--accent); background:#f3f6ff; box-shadow:0 0 0 2px rgba(62,92,246,.12); }
+    .scope-option input:checked + label { border-color:var(--accent); background:#eff6ff; box-shadow:0 0 0 2px rgba(37,99,235,.12); }
     .scope-option strong { display:block; font-size:13px; margin-bottom:4px; }
     .scope-option span { display:block; color:var(--ink-3); font-size:11.5px; }
     .scope-panel { padding:16px; background:#f8fafc; border:1px solid var(--line); border-radius:var(--r-sm); margin-bottom:16px; }
@@ -64,7 +68,7 @@
     .selection-table th, .selection-table td { padding:10px 12px; border-bottom:1px solid var(--line); text-align:left; }
     .selection-table th { background:#f8fafc; color:var(--ink-2); font-size:11px; text-transform:uppercase; letter-spacing:.03em; }
     .selection-table tr:last-child td { border-bottom:0; }
-    .selection-table tr:hover td { background:#f8faff; }
+    .selection-table tr:hover td { background:#eff6ff; }
     .selection-table .check-col { width:44px; text-align:center; }
     .selection-table input[type=checkbox] { width:16px; height:16px; accent-color:var(--accent); }
     .selection-toolbar { display:flex; justify-content:space-between; align-items:center; gap:10px; margin:16px 0 8px; }
@@ -73,13 +77,22 @@
     .table-scroll { overflow-x:auto; }
     .selection-summary { display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; color:var(--ink-2); font-size:12px; }
     .selection-summary strong { color:var(--accent-600); }
-    @@media (max-width: 760px) { .scope-options { grid-template-columns:1fr; } }
+    @@media (max-width: 900px) {
+        .grid2 { grid-template-columns: repeat(2, 1fr); }
+    }
+    @@media (max-width: 760px) {
+        .scope-options { grid-template-columns:1fr; }
+        .grid2 { grid-template-columns:1fr; }
+        .transfer-page .pagehead { flex-direction:column; }
+        .transfer-page .pagehead > div:last-child { width:100%; }
+        .transfer-page .pagehead > div:last-child .btn { flex:1; justify-content:center; }
+    }
   
   .filter-bar { background: #f8fafc; border: 1px solid var(--line); padding: 12px 16px; border-radius: var(--r-sm); display: flex; gap: 12px; align-items: flex-end; margin-bottom: 12px; }
   .filter-bar .field { flex: 1; }
 </style>
 
-<div class="transfer-page" style="max-width: 1000px; margin: 0 auto;">
+<div class="transfer-page">
     <div class="pagehead">
         <div>
             <div class="breadcrumb">Nghiệp vụ kho / Kiểm kho / Tạo phiếu</div>
