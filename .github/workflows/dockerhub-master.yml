@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 env:
-  DOCKERHUB_NAMESPACE: ${{ vars.DOCKERHUB_NAMESPACE }}
+  DOCKERHUB_NAMESPACE: ${{ secrets.DOCKERHUB_USERNAME }}
 
 jobs:
   docker:
