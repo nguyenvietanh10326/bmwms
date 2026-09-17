@@ -50,8 +50,6 @@ namespace BMWMS.Web.Pages.Stocktake
             Warehouses = await _warehouseService.GetWarehousesAsync();
             StaffUsers = await _stocktakeService.GetStaffUsersAsync();
             WarehouseId = Warehouses.FirstOrDefault()?.WarehouseId ?? 0;
-            if (WarehouseId > 0)
-                Locations = await _stocktakeService.GetLocationsAsync(WarehouseId);
 
             return Page();
         }
@@ -81,7 +79,6 @@ namespace BMWMS.Web.Pages.Stocktake
 
             Warehouses = await _warehouseService.GetWarehousesAsync();
             StaffUsers = await _stocktakeService.GetStaffUsersAsync();
-            Locations = WarehouseId > 0 ? await _stocktakeService.GetLocationsAsync(WarehouseId) : new();
 
             if (WarehouseId <= 0)
             {
