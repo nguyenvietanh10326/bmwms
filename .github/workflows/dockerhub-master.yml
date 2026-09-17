@@ -46,6 +46,18 @@ jobs:
           cache-from: type=gha,scope=bmwms-api
           cache-to: type=gha,mode=max,scope=bmwms-api
 
+      - name: Build and push API image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./BMWMS.API/Dockerfile
+          push: true
+          tags: |
+            ${{ env.DOCKERHUB_NAMESPACE }}/bmwms-api:prod
+            ${{ env.DOCKERHUB_NAMESPACE }}/bmwms-api:${{ steps.metadata.outputs.timestamp }}
+          cache-from: type=gha,scope=bmwms-api
+          cache-to: type=gha,mode=max,scope=bmwms-api
+
       - name: Build and push Web image
         uses: docker/build-push-action@v6
         with:
@@ -53,6 +65,7 @@ jobs:
           file: ./BMWMS.Web/Dockerfile
           push: true
           tags: |
+            ${{ env.DOCKERHUB_NAMESPACE }}/bmwms-web:prod
             ${{ env.DOCKERHUB_NAMESPACE }}/bmwms-web:${{ steps.metadata.outputs.timestamp }}
           cache-from: type=gha,scope=bmwms-web
           cache-to: type=gha,mode=max,scope=bmwms-web
