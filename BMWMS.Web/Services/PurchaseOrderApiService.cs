@@ -45,8 +45,28 @@ namespace BMWMS.Web.Services
 
         public async Task<PagedResultDto<PurchaseOrderListDto>?> GetPagedPurchaseOrdersAsync(PurchaseOrderFilterDto filter)
         {
-            var queryString = $"?SearchTerm={Uri.EscapeDataString(filter.SearchTerm ?? "")}&Status={Uri.EscapeDataString(filter.Status ?? "")}&PageIndex={filter.PageIndex}&PageSize={filter.PageSize}&SortOrder={Uri.EscapeDataString(filter.SortOrder)}";
-            return await _httpClient.GetFromJsonAsync<PagedResultDto<PurchaseOrderListDto>>($"api/PurchaseOrders{queryString}");
+            var queryString = $"?SearchTerm={Uri.EscapeDataString(filter.SearchTerm ?? "")}&Status={Uri.EscapeDataString(filter.Status ?? "")}&PageIndex={filter.PageIndex}&PageSize={filter.PageSize}&SortOrder={Uri.EscapeDataString(filter.SortOrder ?? "")}";
+            using var response = await _httpClient.GetAsync($"api/PurchaseOrders{queryString}");
+            if (!response.IsSuccessStatusCode) throw new InvalidOperationException(await ApiErrorReader.ReadAsync(response));
+            return await response.Content.ReadFromJsonAsync<PagedResultDto<PurchaseOrderListDto>>();
+        }
+
+        public async Task<(bool IsSuccess, string? Message)> ApproveAsync(long id, string rowVersion)
+        {
+            var response = await _httpClient.PostAsync($"api/PurchaseOrders/{id}/approve?rowVersion={Uri.EscapeDataString(rowVersion)}", null);
+            return (response.IsSuccessStatusCode, response.IsSuccessStatusCode ? "Đã duyệt PO." : await ApiErrorReader.ReadAsync(response));
+        }
+
+        public async Task<(bool IsSuccess, string? Message)> RejectAsync(long id, string reason, string rowVersion)
+        {
+            var response = await _httpClient.PostAsync($"api/PurchaseOrders/{id}/reject?reason={Uri.EscapeDataString(reason ?? "")}&rowVersion={Uri.EscapeDataString(rowVersion ?? "")}", null);
+            return (response.IsSuccessStatusCode, response.IsSuccessStatusCode ? "Đã từ chối PO." : await ApiErrorReader.ReadAsync(response));
+        }
+
+        public async Task<(bool IsSuccess, string? Message, string? PoNumber)> UpdateAsync(long id, PurchaseOrderCreateRequestModel model)
+        {
+            var response = await _httpClient.PutAsJsonAsync($"api/PurchaseOrders/{id}", model);
+            return (response.IsSuccessStatusCode, response.IsSuccessStatusCode ? "Đã cập nhật PO và đưa về nháp để duyệt lại." : await ApiErrorReader.ReadAsync(response), null);
         }
 
         public async Task<PurchaseOrderDetailDto?> GetPurchaseOrderByIdAsync(long id)
