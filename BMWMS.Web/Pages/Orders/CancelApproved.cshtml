@@ -1,0 +1,10 @@
+@page
+@model BMWMS.Web.Pages.Orders.CancelApprovedModel
+@{ Layout = "_AdminLayout"; ViewData["Title"] = Model.Type == "PO" ? "Ghi nhận NCC yêu cầu hủy" : "Ghi nhận khách yêu cầu hủy"; }
+<div class="d-flex justify-content-between mb-4"><h1 class="h3">@ViewData["Title"]</h1><a href="@Model.BackUrl" class="btn btn-outline-secondary">Quay lại danh sách</a></div>
+<div asp-validation-summary="All" class="text-danger"></div>
+<div class="card card-body"><div class="fw-semibold mb-2">@Model.OrderNumber — @Model.PartnerName</div>
+<form method="post" asp-route-Type="@Model.Type" asp-route-Id="@Model.Id" onsubmit="return confirm('Hủy đơn đã duyệt theo yêu cầu NCC/khách hàng?');">
+<input type="hidden" asp-for="Type" /><input type="hidden" asp-for="Id" />
+<label asp-for="Reason" class="form-label">Lý do và căn cứ yêu cầu hủy</label><textarea asp-for="Reason" class="form-control mb-3" minlength="10" maxlength="500" required></textarea>
+<button class="btn btn-danger" disabled="@(!Model.CanCancel)">Ghi nhận hủy đơn</button></form></div>
