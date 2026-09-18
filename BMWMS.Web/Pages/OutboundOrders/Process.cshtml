@@ -58,27 +58,27 @@
                 }
 
                 <div class="d-flex align-items-center gap-3 mb-2"><div class="fw-semibold">Phân bổ lấy hàng</div>
-                    <select class="form-select form-select-sm picking-method" data-item-id="@item.OutboundOrderItemId" style="max-width:260px" aria-label="Phương pháp lấy @item.ProductCode">
+                    @if (Model.Order.SourceType == "SALES_ORDER") { <select class="form-select form-select-sm picking-method" data-item-id="@item.OutboundOrderItemId" style="max-width:260px" aria-label="Phương pháp lấy @item.ProductCode">
                         <option value="FIFO" selected="@(item.RotationMethod == "FIFO")">FIFO — ngày nhập cũ nhất</option>
                         <option value="FEFO" selected="@(item.RotationMethod == "FEFO")">FEFO — HSD gần nhất</option>
                         <option value="CUSTOM">Tự chọn vị trí</option>
-                    </select>
+                    </select> }
                 </div>
                 @if (item.AvailableLocations.Count == 0)
                 { <div class="alert alert-warning mb-0">Không còn hàng đủ điều kiện tại vị trí kho. Báo quản lý trước khi tiếp tục hoặc kết thúc đợt.</div> }
                 else
                 {
                     <div class="table-responsive"><table class="table table-sm align-middle">
-                        <thead><tr><th style="width:55px">Chọn</th><th>Vị trí lấy</th><th>Ngày nhập / Hạn sử dụng</th><th class="text-end">Khả dụng</th><th style="width:190px">Thực xuất</th></tr></thead>
+                        <thead><tr><th style="width:55px">Chọn</th><th>Vị trí lấy</th><th>Ngày nhập</th><th>HSD</th><th class="text-end">Khả dụng</th><th style="width:190px">Thực xuất</th></tr></thead>
                         <tbody>
                         @foreach (var location in item.AvailableLocations)
                         {
-                            var suggested = Math.Min(suggestedRemaining, location.AvailableQuantity);
+                            var suggested = Model.Order.SourceType == "SALES_ORDER" ? Math.Min(suggestedRemaining, location.AvailableQuantity) : 0;
                             suggestedRemaining -= suggested;
                             <tr class="pick-row" data-item-id="@item.OutboundOrderItemId" data-received="@(location.FirstReceivedDate?.ToString("yyyy-MM-dd"))" data-expiry="@(location.ExpiryDate?.ToString("yyyy-MM-dd"))" data-item-remaining="@item.RemainingQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture)" data-suggested="@suggested.ToString(System.Globalization.CultureInfo.InvariantCulture)">
                                 <td><input type="checkbox" class="form-check-input pick-check" aria-label="Chọn vị trí @location.LocationCode" @(suggested > 0 ? "checked" : null) /></td>
                                 <td>@(string.IsNullOrWhiteSpace(location.LocationPath) ? location.LocationCode : location.LocationPath) <span class="badge bg-info-subtle text-info-emphasis suggestion-badge" hidden="@(suggested <= 0)">Đề xuất</span></td>
-                                <td><div>@(location.FirstReceivedDate?.ToString("dd/MM/yyyy") ?? "Không xác định")</div><div class="text-muted small">HSD: @(location.ExpiryDate?.ToString("dd/MM/yyyy") ?? "Không áp dụng")</div></td>
+                                <td>@(location.FirstReceivedDate?.ToString("dd/MM/yyyy") ?? "—")</td><td>@(location.ExpiryDate?.ToString("dd/MM/yyyy") ?? "—")</td>
                                 <td class="text-end">@FormatQuantity(location.AvailableQuantity, item.QuantityScale) @item.UnitName<div class="text-muted small">Cất: @FormatQuantity(location.StoredQuantity, item.QuantityScale) · Giữ: @FormatQuantity(location.HeldQuantity, item.QuantityScale)</div></td>
                                 <td>
                                     <input type="number" class="form-control form-control-sm pick-quantity"
@@ -89,6 +89,7 @@
                                            data-location-id="@location.StorageLocationId"
                                            data-lot-id="@location.ProductLotId"
                                            data-reservation-id="@location.InventoryReservationId" disabled="@(suggested <= 0)" />
+                                    <span class="text-muted small">@item.UnitName</span>
                                 </td>
                             </tr>
                         }
@@ -104,7 +105,7 @@
         <div class="sticky-bottom bg-body border-top py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
             <div>
                 <div id="batchError" class="text-danger small"></div>
-                <div class="mt-2"><label for="deviationReason" class="form-label small mb-1">Lý do lấy khác đề xuất</label><input id="deviationReason" class="form-control" minlength="10" maxlength="500" placeholder="Bắt buộc khi đổi thứ tự vị trí so với gợi ý" /></div>
+                @if (Model.Order.SourceType == "SALES_ORDER") { <div class="mt-2"><label for="deviationReason" class="form-label small mb-1">Lý do chọn vị trí khác đề xuất</label><input id="deviationReason" class="form-control" minlength="10" maxlength="500" placeholder="Bắt buộc khi đổi thứ tự vị trí so với gợi ý" /></div> }
                 @if (Model.Order.Items.Any(item => item.IssuedQuantity > 0) &&
                      Model.Order.Items.Any(item => item.RemainingQuantity > 0))
                 {
@@ -141,6 +142,7 @@
 @section Scripts {
 @Html.AntiForgeryToken()
 <script>
+    const requiresPickingPolicy = @(Model.Order.SourceType == "SALES_ORDER" ? "true" : "false");
     let checks = [...document.querySelectorAll('.pick-check')];
     const reviewButton = document.getElementById('reviewBatch');
     const submitButton = document.getElementById('submitBatch');
@@ -198,7 +200,7 @@
             const input = row.querySelector('.pick-quantity');
             const quantity = Number(input.value);
             const maximum = Number(input.max);
-            if (!(quantity > 0) || quantity > maximum) message = 'Số lượng thực xuất phải lớn hơn 0 và không vượt tồn khả dụng tại vị trí.';
+            if (!input.checkValidity() || !Number.isFinite(quantity) || !(quantity > 0) || quantity > maximum) message = 'Số lượng thực xuất phải đúng đơn vị tính, lớn hơn 0 và không vượt tồn khả dụng tại vị trí.';
             totals.set(row.dataset.itemId, (totals.get(row.dataset.itemId) || 0) + quantity);
             if (totals.get(row.dataset.itemId) > Number(row.dataset.itemRemaining))
                 message = 'Tổng số lượng chọn của một mặt hàng vượt số lượng còn phải giao trong phiếu.';
@@ -215,7 +217,7 @@
             if (Math.abs(actual - expected) > 0.000001) deviatesFromSuggestion = true;
         });
         const deviationReason = document.getElementById('deviationReason')?.value?.trim() || '';
-        if (!message && deviatesFromSuggestion && (deviationReason.length < 10 || deviationReason.length > 500))
+        if (!message && requiresPickingPolicy && deviatesFromSuggestion && (deviationReason.length < 10 || deviationReason.length > 500))
             message = 'Lấy khác gợi ý FIFO/FEFO: vui lòng nhập lý do từ 10 đến 500 ký tự.';
         if (batchError) batchError.textContent = message;
         if (reviewButton) reviewButton.disabled = !!message;
