@@ -17,7 +17,7 @@ public class InboundApiService
 
     public async Task<InboundOrderPageModel> GetInboundOrdersPageAsync(InboundOrderFilterModel filter)
     {
-        var queryString = $"?pageIndex={filter.PageIndex}&pageSize={filter.PageSize}&sortOrder={Uri.EscapeDataString(filter.SortOrder)}";
+        var queryString = $"?pageIndex={filter.PageIndex}&pageSize={filter.PageSize}&sortOrder={Uri.EscapeDataString(filter.SortOrder ?? "newest")}";
         if (!string.IsNullOrEmpty(filter.Keyword)) queryString += $"&keyword={Uri.EscapeDataString(filter.Keyword)}";
         if (!string.IsNullOrEmpty(filter.Status)) queryString += $"&status={Uri.EscapeDataString(filter.Status)}";
         if (!string.IsNullOrEmpty(filter.SourceType)) queryString += $"&sourceType={Uri.EscapeDataString(filter.SourceType)}";
@@ -25,8 +25,9 @@ public class InboundApiService
         if (filter.ToDate.HasValue) queryString += $"&toDate={filter.ToDate.Value:yyyy-MM-dd}";
         if (filter.AssignedToUserId.HasValue) queryString += $"&assignedToUserId={filter.AssignedToUserId.Value}";
 
-        var response = await _httpClient.GetFromJsonAsync<InboundOrderPageModel>($"api/inbounds{queryString}");
-        return response ?? new InboundOrderPageModel();
+        using var response = await _httpClient.GetAsync($"api/inbounds{queryString}");
+        if (!response.IsSuccessStatusCode) throw new InvalidOperationException(await ApiErrorReader.ReadAsync(response));
+        return await response.Content.ReadFromJsonAsync<InboundOrderPageModel>() ?? new InboundOrderPageModel();
     }
 
     public async Task<InboundOrderDetailDto?> GetInboundOrderByIdAsync(long id)
