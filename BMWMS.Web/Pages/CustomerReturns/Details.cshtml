@@ -1,0 +1,25 @@
+@page
+@model BMWMS.Web.Pages.CustomerReturns.DetailsModel
+@using BMWMS.Web.Helpers
+@{ Layout = "_AdminLayout"; ViewData["Title"] = "Chi tiết yêu cầu trả hàng"; var r = Model.ReturnRequest; var manager = User.IsInRole("WAREHOUSE_MANAGER") || User.IsInRole("SYSTEM_ADMIN"); }
+<div asp-validation-summary="All" class="text-danger"></div>
+@if (TempData["SuccessMessage"] != null) { <div class="alert alert-success">@TempData["SuccessMessage"]</div> }
+@if (TempData["ErrorMessage"] != null) { <div class="alert alert-danger">@TempData["ErrorMessage"]</div> }
+<a asp-page="./Index" class="btn btn-outline-secondary mb-3">Quay lại danh sách</a>
+@if (r != null) {
+<div class="card card-body mb-3"><h2>@r.RequestNumber</h2><div>@r.CustomerName · @BMWMS.Web.Pages.CustomerReturns.IndexModel.Label(r.Status)</div>
+@if (r.SalesOrderId.HasValue) { <div class="mt-2">SO tham chiếu: <a href="/sales-orders/details/@r.SalesOrderId">@r.SalesOrderNumber</a></div> }
+else { <div class="text-muted mt-2">Phiếu lịch sử: xem các SO trong nguồn giao đã đối chiếu.</div> }
+@if (r.CanEdit && (User.IsInRole("SYSTEM_ADMIN") || (User.IsInRole("SALES_STAFF") && User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value == r.CreatedByUserId.ToString()))) { <div class="mt-2"><a asp-page="./Create" asp-route-id="@r.Id" class="btn btn-outline-warning">Sửa phiếu khách trả</a></div> }
+<div class="mt-2">@r.Reason</div>@if (r.DecisionReason != null) { <div class="mt-2">Kết quả: @r.DecisionReason</div> }</div>
+<div class="card card-body mb-3"><div class="table-responsive"><table class="table align-middle"><thead><tr><th>Sản phẩm</th><th class="text-end">Yêu cầu trả</th><th class="text-end">Đã nhận trả</th><th class="text-end">Còn được nhận trả</th></tr></thead><tbody>
+@foreach (var i in r.Items) { <tr><td>@i.ProductCode — @i.ProductName<details class="mt-2"><summary>Nguồn giao đã đối chiếu</summary>@foreach (var s in i.Sources) { <div>@s.SalesOrderNumber: @QuantityFormatter.Format(s.Quantity, i.QuantityScale) @i.UnitName</div> }</details></td><td class="text-end">@QuantityFormatter.Format(i.RequestedQuantity, i.QuantityScale) @i.UnitName</td><td class="text-end">@QuantityFormatter.Format(i.ReceivedQuantity, i.QuantityScale) @i.UnitName</td><td class="text-end">@QuantityFormatter.Format(i.RemainingQuantity, i.QuantityScale) @i.UnitName</td></tr> }
+</tbody></table></div></div>
+@if (r.Status == "SUBMITTED" && manager) { <div class="d-flex gap-2 mb-3"><form method="post" asp-page-handler="Decision" asp-route-id="@r.Id"><input name="Id" type="hidden" value="@r.Id" /><input name="rowVersion" type="hidden" value="@r.RowVersion" /><input name="action" type="hidden" value="APPROVE" /><button class="btn btn-primary">Duyệt yêu cầu</button></form><form method="post" asp-page-handler="Decision" asp-route-id="@r.Id" class="d-flex gap-2"><input name="Id" type="hidden" value="@r.Id" /><input name="rowVersion" type="hidden" value="@r.RowVersion" /><input name="action" type="hidden" value="REJECT" /><input name="reason" class="form-control" placeholder="Lý do từ chối" minlength="5" maxlength="500" required /><button class="btn btn-outline-danger">Từ chối</button></form></div> }
+@if (r.Status == "SUBMITTED" && (User.IsInRole("SYSTEM_ADMIN") || (User.IsInRole("SALES_STAFF") && User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value == r.CreatedByUserId.ToString()))) { <form method="post" asp-page-handler="Decision" asp-route-id="@r.Id" class="d-flex gap-2 mb-3"><input name="Id" type="hidden" value="@r.Id" /><input name="rowVersion" type="hidden" value="@r.RowVersion" /><input name="action" type="hidden" value="CANCEL" /><input name="reason" class="form-control" placeholder="Lý do hủy" minlength="5" maxlength="500" required /><button class="btn btn-outline-danger">Hủy yêu cầu</button></form> }
+@if (r.Status is "APPROVED" or "PARTIALLY_RECEIVED") {
+ if (User.IsInRole("WAREHOUSE_STAFF")) { <form method="post" asp-page-handler="Receipt" asp-route-id="@r.Id" class="card card-body mb-3"><input name="Id" type="hidden" value="@r.Id" /><label for="receiptDate" class="form-label">Ngày nhận hàng trả</label><div class="d-flex gap-2"><input id="receiptDate" name="receiptDate" type="date" class="form-control" value="@DateTime.Today.ToString("yyyy-MM-dd")" max="@DateTime.Today.ToString("yyyy-MM-dd")" required /><button class="btn btn-primary">Nhận trách nhiệm đợt này</button></div></form> }
+ if (manager) { <form method="post" asp-page-handler="Decision" asp-route-id="@r.Id" class="d-flex gap-2 mb-3"><input name="Id" type="hidden" value="@r.Id" /><input name="rowVersion" type="hidden" value="@r.RowVersion" /><input name="action" type="hidden" value="CLOSE" /><input name="reason" class="form-control" placeholder="Lý do kết thúc phần chưa nhận trả" minlength="10" maxlength="500" required /><button class="btn btn-outline-warning">Kết thúc yêu cầu</button></form> }
+}
+<div class="card card-body"><h5>Các đợt nhận hàng trả</h5>@foreach (var id in r.InboundIds) { <a asp-page="/Admin/Inbound/Details" asp-route-id="@id">Phiếu nhập #@id</a> }@if (!r.InboundIds.Any()) { <span class="text-muted">Chưa có đợt tiếp nhận.</span> }</div>
+}
