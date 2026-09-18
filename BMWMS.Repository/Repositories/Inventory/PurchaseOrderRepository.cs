@@ -46,7 +46,13 @@ namespace BMWMS.Repository.Repositories.Inventory
             // 2. Lọc theo Trạng thái PO
             if (!string.IsNullOrWhiteSpace(status))
             {
-                query = query.Where(po => po.Status == status);
+                query = status switch {
+                    "DRAFT" => query.Where(po => po.Status == "DRAFT" || po.Status == "PENDING_CONFIRMATION"),
+                    "PARTIALLY_RECEIVED" => query.Where(po => po.Status == "PARTIALLY_RECEIVED" || po.Status == "PARTIALLYRECEIVED" || po.Status == "PENDING_RECEIPT_REVIEW" || po.Status == "PENDING_REMAINDER_CONFIRMATION"),
+                    "COMPLETED" => query.Where(po => po.Status == "COMPLETED" || po.Status == "RECEIVED" || po.Status == "CLOSED"),
+                    "CANCELLED" => query.Where(po => po.Status == "CANCELLED"),
+                    _ => query.Where(po => po.Status == status)
+                };
             }
 
             // 3. Lọc theo Kho dự kiến (Thông qua InboundOrder liên kết)
@@ -61,6 +67,16 @@ namespace BMWMS.Repository.Repositories.Inventory
             // Phân trang & Sắp xếp mới nhất lên đầu
             var ordered = sortOrder == "oldest" ? query.OrderBy(po => po.CreatedAt).ThenBy(po => po.PurchaseOrderId)
                 : query.OrderByDescending(po => po.CreatedAt).ThenByDescending(po => po.PurchaseOrderId);
+            if (sortOrder is null or "priority")
+                ordered = query.OrderBy(po => po.Status == "CONFIRMED" || po.Status == "PARTIALLY_RECEIVED" || po.Status == "PARTIALLYRECEIVED" || po.Status == "PENDING_RECEIPT_REVIEW" || po.Status == "PENDING_REMAINDER_CONFIRMATION" ? 0
+                    : po.Status == "DRAFT" || po.Status == "PENDING_CONFIRMATION" || po.Status == "APPROVED" ? 1 : 2)
+                    .ThenBy(po => po.ExpectedDeliveryDate == null).ThenBy(po => po.ExpectedDeliveryDate)
+                    .ThenBy(po => po.CreatedAt).ThenBy(po => po.PurchaseOrderId);
+            else if (sortOrder == "approval") ordered = query.OrderBy(po => po.Status == "DRAFT" || po.Status == "PENDING_CONFIRMATION" ? 0
+                    : po.Status == "APPROVED" || po.Status == "CONFIRMED" || po.Status == "PARTIALLY_RECEIVED" || po.Status == "PENDING_RECEIPT_REVIEW" || po.Status == "PENDING_REMAINDER_CONFIRMATION" ? 1 : 2)
+                .ThenBy(po => po.CreatedAt).ThenBy(po => po.PurchaseOrderId);
+            else if (sortOrder == "expected") ordered = query.OrderBy(po => po.ExpectedDeliveryDate == null)
+                .ThenBy(po => po.ExpectedDeliveryDate).ThenBy(po => po.PurchaseOrderId);
             var items = await ordered
                 .Skip((pageIndex - 1) * pageSize)
                 .Take(pageSize)

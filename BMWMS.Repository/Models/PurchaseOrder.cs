@@ -5,6 +5,10 @@ namespace BMWMS.Repository.Models;
 
 public partial class PurchaseOrder
 {
+    public int RevisionNo { get; set; } = 1;
+    public byte[] RowVersion { get; set; } = Array.Empty<byte>();
+    public long? ApprovedByUserId { get; set; }
+    public DateTime? ApprovedAt { get; set; }
     public long PurchaseOrderId { get; set; }
 
     public string PurchaseOrderNumber { get; set; } = null!;
