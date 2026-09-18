@@ -62,7 +62,7 @@ public static class AuditCatalog
             [AuditModules.Product] = ["Product", "ProductGroup", "Category"],
             [AuditModules.Partner] = ["Supplier", "Customer"],
             [AuditModules.Order] = ["PurchaseOrder", "PurchaseOrderDetail", "SalesOrder", "SalesOrderDetail"],
-            [AuditModules.Inbound] = ["InboundOrder", "InboundOrderDetail", "InboundReceipt", "InboundPutaway"],
+            [AuditModules.Inbound] = ["InboundOrder", "InboundOrderDetail", "InboundReceipt", "InboundPutaway", "CustomerReturnRequest", "CustomerReturnRequestItem", "CustomerReturnSourceAllocation"],
             [AuditModules.Outbound] = ["OutboundOrder", "OutboundOrderDetail", "OutboundPickPlan", "OutboundPick"],
             [AuditModules.Inventory] = ["Inventory", "InventoryTransaction", "InventoryReservation", "ProductLot", "ReceiptStockLayer", "Warehouse", "WarehouseZone", "StorageRack", "StorageLocation"],
             [AuditModules.Transfer] = ["TransferOrder", "TransferOrderDetail"],
@@ -120,6 +120,7 @@ public static class AuditCatalog
         if (action == "START_OUTBOUND") return "Bắt đầu xử lý phiếu xuất";
         if (action == "COMPLETE_OUTBOUND") return "Hoàn tất đợt xuất";
         if (action == "CLOSE_SALES_REMAINDER") return "Đóng phần còn lại của SO";
+        if (action == "DECIDE_CUSTOMER_RETURN_REQUEST") return "Quyết định yêu cầu khách trả hàng";
         if (action.Contains("ASSIGN")) return "Phân công / gán";
         if (action.Contains("UNLOCK")) return "Mở khóa";
         if (action.Contains("LOCK")) return "Khóa";
@@ -151,6 +152,9 @@ public static class AuditCatalog
         "PurchaseOrder" => "Phiếu mua hàng",
         "SalesOrder" => "Phiếu bán hàng",
         "InboundOrder" => "Phiếu nhập",
+        "CustomerReturnRequest" => "Yêu cầu khách trả hàng",
+        "CustomerReturnRequestItem" => "Mặt hàng khách yêu cầu trả",
+        "CustomerReturnSourceAllocation" => "Nguồn giao hàng được hoàn trả",
         "OutboundOrder" => "Phiếu xuất",
         "TransferOrder" => "Phiếu điều chuyển",
         "StocktakeSession" => "Phiên kiểm kê",
