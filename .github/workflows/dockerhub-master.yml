@@ -35,18 +35,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build and push API image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ./BMWMS.API/Dockerfile
-          push: true
-          tags: |
-            ${{ env.DOCKERHUB_NAMESPACE }}/bmwms-api:${{ steps.metadata.outputs.timestamp }}
-          cache-from: type=gha,scope=bmwms-api
-          cache-to: type=gha,mode=max,scope=bmwms-api
-
-      - name: Build and push API image
+      - name: Build and push API image  # ← bỏ step trùng, giữ lại step này
         uses: docker/build-push-action@v6
         with:
           context: .
