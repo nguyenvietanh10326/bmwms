@@ -48,10 +48,11 @@ namespace BMWMS.Web.Pages.SalesOrders
                 var client = _httpClientFactory.CreateClient("ApiClient");
                 var result = await client.GetFromJsonAsync<ApiWrapper<SalesOrderDetailDto>>($"api/SalesOrders/{id}");
                 var order = result?.Data;
-                if (order?.Status != "DRAFT") return BadRequest("Chỉ được sửa SO đang nháp.");
+                if (order?.CanEdit != true) return BadRequest("SO đã có phiếu nhập/xuất hoặc không còn được sửa.");
                 SalesOrder = new CreateUpdateSalesOrderDto
                 {
                     SalesOrderId = order.SalesOrderId, CustomerId = order.CustomerId,
+                    RowVersion = order.RowVersion,
                     OrderDate = order.OrderDate, ExpectedIssueDate = order.ExpectedIssueDate,
                     Notes = order.Notes, AllocationStrategy = order.AllocationStrategy,
                     Items = order.Items.Select(i => new CreateUpdateSalesOrderItemDto

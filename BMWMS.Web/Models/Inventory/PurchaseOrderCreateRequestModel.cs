@@ -6,6 +6,7 @@ namespace BMWMS.Web.Models.Inventory
 {
     public class PurchaseOrderCreateRequestModel
     {
+        public string? RowVersion { get; set; }
         [Required(ErrorMessage = "Vui lòng chọn nhà cung cấp")]
         public long SupplierId { get; set; }
 

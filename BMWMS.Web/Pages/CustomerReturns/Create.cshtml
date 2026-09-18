@@ -1,0 +1,17 @@
+@page
+@model BMWMS.Web.Pages.CustomerReturns.CreateModel
+@using BMWMS.Web.Helpers
+@{ Layout = "_AdminLayout"; ViewData["Title"] = Model.Id.HasValue ? "Sửa phiếu khách trả theo SO" : "Tạo phiếu khách trả theo SO"; }
+<div class="d-flex justify-content-between mb-4"><h2>@ViewData["Title"]</h2><a asp-page="./Index" class="btn btn-outline-secondary">Quay lại danh sách</a></div>
+<div asp-validation-summary="All" class="text-danger"></div>
+@if (!Model.Id.HasValue) {
+<form method="get" class="card card-body mb-3"><label for="source-so" class="form-label">Đơn bán hàng đã giao hàng</label><div class="d-flex gap-2"><select id="source-so" asp-for="SalesOrderId" class="form-select" required><option value="">Chọn SO tham chiếu</option>@foreach (var so in Model.SalesOrders) { <option value="@so.SalesOrderId">@so.SalesOrderNumber — @so.CustomerName</option> }</select><button class="btn btn-outline-primary text-nowrap">Tra cứu hàng đã giao</button></div></form>
+} else {
+<div class="card card-body mb-3">SO tham chiếu: @Model.SalesOrders.FirstOrDefault(s => s.SalesOrderId == Model.SalesOrderId)?.SalesOrderNumber</div>
+}
+<form method="post" asp-route-id="@Model.Id" class="card card-body"><input type="hidden" asp-for="Id" /><input type="hidden" asp-for="SalesOrderId" /><input type="hidden" asp-for="RowVersion" />
+<div class="table-responsive"><table class="table align-middle"><thead><tr><th>Sản phẩm</th><th>ĐVT</th><th class="text-end">Đã giao theo SO</th><th class="text-end">Còn được trả theo SO</th><th>Số lượng đề nghị trả</th></tr></thead><tbody>
+@for (var i = 0; i < Model.Lines.Count; i++) { var s = Model.Sources.FirstOrDefault(s => s.ProductId == Model.Lines[i].ProductId); if (s == null) { continue; }
+<tr><td>@s.ProductCode — @s.ProductName<input type="hidden" asp-for="Lines[i].ProductId" /></td><td>@s.UnitName</td><td class="text-end">@QuantityFormatter.Format(s.DeliveredQuantity, s.QuantityScale) @s.UnitName</td><td class="text-end">@QuantityFormatter.Format(s.AvailableToReturn, s.QuantityScale) @s.UnitName</td><td><div class="input-group"><input asp-for="Lines[i].Quantity" type="number" min="0" max="@s.AvailableToReturn.ToString(System.Globalization.CultureInfo.InvariantCulture)" step="@QuantityFormatter.Step(s.QuantityScale)" class="form-control" /><span class="input-group-text">@s.UnitName</span></div></td></tr> }
+@if (!Model.Lines.Any()) { <tr><td colspan="5" class="text-center text-muted py-4">Chọn SO để tra cứu hàng thực tế đã giao còn được trả.</td></tr> }
+</tbody></table></div><label asp-for="Reason" class="form-label">Lý do trả hàng</label><textarea asp-for="Reason" class="form-control mb-3" minlength="10" maxlength="500" required></textarea><button class="btn btn-primary align-self-end" disabled="@(!Model.Lines.Any())">@(Model.Id.HasValue ? "Lưu thay đổi, chờ duyệt" : "Gửi Manager duyệt")</button></form>

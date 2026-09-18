@@ -23,6 +23,9 @@ public class OutboundOrdersController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetOutboundOrders([FromQuery] OutboundOrderQueryFilter filter)
     {
+        filter.SortOrder = filter.SortOrder?.Trim().ToLowerInvariant();
+        if (filter.SortOrder is not ("approval" or "newest" or "oldest"))
+            filter.SortOrder = User.IsInRole("WAREHOUSE_MANAGER") ? "approval" : "newest";
         if (!CanReadAllOrders && User.IsInRole("WAREHOUSE_STAFF"))
         {
             if (!TryGetCurrentUserId(out var currentUserId)) return Unauthorized();

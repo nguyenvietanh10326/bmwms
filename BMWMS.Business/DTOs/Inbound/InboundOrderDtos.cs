@@ -5,7 +5,7 @@ namespace BMWMS.Business.DTOs.Inbound;
 
 public class InboundOrderFilterDto
 {
-        public string SortOrder { get; set; } = "newest";
+        public string? SortOrder { get; set; } = "newest";
     public string? Keyword { get; set; }
     public string? Status { get; set; }
     public string? SourceType { get; set; }
@@ -40,6 +40,7 @@ public class InboundOrderPageDto
 
 public class InboundOrderDetailDto
 {
+    public long? ReturnRequestId { get; set; }
     public long InboundOrderId { get; set; }
     public string InboundOrderNumber { get; set; } = string.Empty;
     public string? PurchaseOrderNumber { get; set; }

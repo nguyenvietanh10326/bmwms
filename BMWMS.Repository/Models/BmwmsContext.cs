@@ -1105,6 +1105,8 @@ public partial class BmwmsContext : DbContext
 
         modelBuilder.Entity<SalesOrderDetail>(entity =>
         {
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+            entity.HasQueryFilter(e => e.IsActive);
             entity.HasIndex(e => new { e.SalesOrderDetailId, e.ProductId }, "UQ_SalesOrderDetails_IDProduct").IsUnique();
 
             entity.HasIndex(e => new { e.SalesOrderId, e.ProductId }, "UQ_SalesOrderDetails_Product").IsUnique();

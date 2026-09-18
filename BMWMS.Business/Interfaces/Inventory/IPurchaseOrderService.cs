@@ -9,6 +9,9 @@ namespace BMWMS.Business.Interfaces.Inventory
 {
     public interface IPurchaseOrderService
     {
+        Task<(bool Success, string Message)> ApproveAsync(long id, long userId, string? rowVersion = null);
+        Task<(bool Success, string Message)> RejectDraftAsync(long id, long userId, string reason, string rowVersion);
+        Task<(bool Success, string Message)> UpdateAsync(long id, PurchaseOrderCreateDto request, long userId);
         // 2. Lấy chi tiết 1 PO
         Task<PurchaseOrderDetailDto?> GetOrderDetailAsync(long purchaseOrderId);
 

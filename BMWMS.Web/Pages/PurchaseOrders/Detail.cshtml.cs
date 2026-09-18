@@ -46,6 +46,14 @@ public class DetailModel : PageModel
         return RedirectToPage(new { id = Id });
     }
 
+    public async Task<IActionResult> OnPostApproveAsync(string rowVersion)
+    {
+        if (!User.IsInRole("SYSTEM_ADMIN") && !User.IsInRole("WAREHOUSE_MANAGER")) return Forbid();
+        var result = await _apiService.ApproveAsync(Id, rowVersion ?? "");
+        TempData[result.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = result.Message;
+        return RedirectToPage(new { id = Id });
+    }
+
     public async Task<IActionResult> OnPostCancelAsync(string? reason)
     {
         if (!User.IsInRole("SYSTEM_ADMIN") && !User.IsInRole("WAREHOUSE_MANAGER") && !User.IsInRole("PURCHASING_STAFF")) return Forbid();
@@ -58,6 +66,14 @@ public class DetailModel : PageModel
         {
             TempData["ErrorMessage"] = message;
         }
+        return RedirectToPage(new { id = Id });
+    }
+
+    public async Task<IActionResult> OnPostRejectAsync(string reason, string rowVersion)
+    {
+        if (!User.IsInRole("SYSTEM_ADMIN") && !User.IsInRole("WAREHOUSE_MANAGER")) return Forbid();
+        var result = await _apiService.RejectAsync(Id, reason, rowVersion);
+        TempData[result.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = result.Message;
         return RedirectToPage(new { id = Id });
     }
 
@@ -85,14 +101,15 @@ public class DetailModel : PageModel
     public string GetPurchaseOrderStatusLabel(string? status) => (status ?? string.Empty).ToUpperInvariant() switch
     {
         "DRAFT" => "Nháp",
+        "APPROVED" => "Đã duyệt — chờ gửi NCC",
         "PENDING_CONFIRMATION" => "Đã xác nhận",
         "CONFIRMED" => "Đã xác nhận",
-        "PENDING_RECEIPT_REVIEW" => "Chờ duyệt nhận tiếp",
+        "PENDING_RECEIPT_REVIEW" => "Đã nhận một phần",
         "PENDING_REMAINDER_CONFIRMATION" => "Đã nhận một phần",
         "PARTIALLY_RECEIVED" => "Đã nhận một phần",
         "COMPLETED" or "RECEIVED" => "Hoàn tất",
         "CLOSED" => "Hoàn tất",
-        "REJECTED" => "Đã hủy (dữ liệu cũ)",
+        "REJECTED" => "Bị từ chối",
         "CANCELLED" => "Đã hủy",
         _ => "Không xác định"
     };
@@ -110,7 +127,7 @@ public class DetailModel : PageModel
 
     public string GetStatusClass(string? status) => (status ?? string.Empty).ToUpperInvariant() switch
     {
-        "CONFIRMED" or "READY" => "bg-primary-subtle text-primary",
+        "APPROVED" or "CONFIRMED" or "READY" => "bg-primary-subtle text-primary",
         "PENDING_RECEIPT_REVIEW" or "PARTIALLY_RECEIVED" or "RECEIVING" => "bg-warning-subtle text-warning-emphasis",
         "RECEIVED" or "COMPLETED" or "PUTAWAY_COMPLETED" or "CLOSED" => "bg-success-subtle text-success",
         "REJECTED" or "CANCELLED" => "bg-danger-subtle text-danger",

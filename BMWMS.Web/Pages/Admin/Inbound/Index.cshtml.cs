@@ -42,7 +42,9 @@ public class IndexModel : PageModel
             Filter.SourceType = "PURCHASE_ORDER";
         }
 
-        Data = await _inboundApiService.GetInboundOrdersPageAsync(Filter);
+        try { Data = await _inboundApiService.GetInboundOrdersPageAsync(Filter); }
+        catch (Exception ex) when (ex is InvalidOperationException or HttpRequestException or TaskCanceledException or System.Text.Json.JsonException)
+        { ModelState.AddModelError(string.Empty, ex is InvalidOperationException ? ex.Message : "Không tải được phiếu nhập. Kiểm tra kết nối và schema database."); }
         return Page();
     }
 }

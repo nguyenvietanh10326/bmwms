@@ -10,6 +10,7 @@ namespace BMWMS.Business.DTOs.Inventory
     #region 1. DTO Cho Màn Hình Danh Sách (Grid View)
     public class PurchaseOrderListDto
     {
+        public bool CanExternalCancel { get; set; }
         public long PurchaseOrderId { get; set; }
         public string PurchaseOrderNumber { get; set; } = string.Empty;
 
@@ -30,6 +31,10 @@ namespace BMWMS.Business.DTOs.Inventory
     #region 2. DTO Cho Màn Hình Chi Tiết (Detail View)
     public class PurchaseOrderDetailDto
     {
+        public string RowVersion { get; set; } = string.Empty;
+        public bool CanEdit { get; set; }
+        public bool CanApprove { get; set; }
+        public DateTime? ApprovedAt { get; set; }
         public long PurchaseOrderId { get; set; }
         public string PurchaseOrderNumber { get; set; } = string.Empty;
 
@@ -93,7 +98,7 @@ namespace BMWMS.Business.DTOs.Inventory
     #region 4. DTO Bộ Lọc & Phân Trang (Filter Query)
     public class PurchaseOrderFilterDto
     {
-        public string SortOrder { get; set; } = "newest";
+        public string? SortOrder { get; set; }
         public string? SearchTerm { get; set; }
         public string? Status { get; set; }
         public long? WarehouseId { get; set; }

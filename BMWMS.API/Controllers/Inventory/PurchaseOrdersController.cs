@@ -48,7 +48,7 @@ public class PurchaseOrdersController : ControllerBase
     public async Task<IActionResult> GetAllProduct() => Ok(await _poService.GetUpListAsync());
 
     [HttpPost]
-    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF")]
+    [Authorize(Roles = "SYSTEM_ADMIN,PURCHASING_STAFF")]
     public async Task<IActionResult> Create([FromBody] PurchaseOrderCreateDto request)
     {
         try
@@ -69,8 +69,41 @@ public class PurchaseOrdersController : ControllerBase
 
     [HttpGet]
     [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF,ACCOUNTANT,DIRECTOR")]
-    public async Task<IActionResult> GetPaged([FromQuery] PurchaseOrderFilterDto filter) =>
-        Ok(await _poService.GetPagedOrdersAsync(filter));
+    public async Task<IActionResult> GetPaged([FromQuery] PurchaseOrderFilterDto filter)
+    {
+        filter.SortOrder = filter.SortOrder?.Trim().ToLowerInvariant();
+        if (filter.SortOrder is not ("approval" or "priority" or "expected" or "newest" or "oldest"))
+            filter.SortOrder = User.IsInRole("WAREHOUSE_MANAGER") ? "approval" : "priority";
+        return Ok(await _poService.GetPagedOrdersAsync(filter));
+    }
+
+    [HttpPost("{id:long}/approve")]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
+    public async Task<IActionResult> Approve(long id, [FromQuery] string? rowVersion)
+    {
+        if (!TryGetCurrentUserId(out var userId)) return Unauthorized();
+        if (string.IsNullOrWhiteSpace(rowVersion)) return BadRequest(new { message = "Thiếu phiên bản PO cần duyệt. Vui lòng tải lại phiếu." });
+        var result = await _poService.ApproveAsync(id, userId, rowVersion);
+        return result.Success ? Ok(new { message = result.Message }) : BadRequest(new { message = result.Message });
+    }
+
+    [HttpPut("{id:long}")]
+    [Authorize(Roles = "SYSTEM_ADMIN,PURCHASING_STAFF")]
+    public async Task<IActionResult> Update(long id, PurchaseOrderCreateDto request)
+    {
+        if (!TryGetCurrentUserId(out var userId)) return Unauthorized();
+        var result = await _poService.UpdateAsync(id, request, userId);
+        return result.Success ? Ok(new { message = result.Message }) : BadRequest(new { message = result.Message });
+    }
+
+    [HttpPost("{id}/reject")]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
+    public async Task<IActionResult> Reject(long id, [FromQuery] string reason, [FromQuery] string rowVersion)
+    {
+        if (!TryGetCurrentUserId(out var userId)) return Unauthorized();
+        var result = await _poService.RejectDraftAsync(id, userId, reason, rowVersion);
+        return result.Success ? Ok(new { message = result.Message }) : BadRequest(new { message = result.Message });
+    }
 
     [HttpPost("{id}/send-to-supplier")]
     [Authorize(Roles = "SYSTEM_ADMIN,PURCHASING_STAFF")]
@@ -92,7 +125,7 @@ public class PurchaseOrdersController : ControllerBase
     }
 
     [HttpPost("{id}/cancel")]
-    [Authorize(Roles = "SYSTEM_ADMIN,PURCHASING_STAFF")]
+    [Authorize(Roles = "SYSTEM_ADMIN,PURCHASING_STAFF,WAREHOUSE_MANAGER")]
     public async Task<IActionResult> Cancel(long id, [FromQuery] string? reason)
     {
         try

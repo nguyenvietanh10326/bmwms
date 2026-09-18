@@ -75,6 +75,7 @@ builder.Services.AddAuthentication(options =>
 });
 
 builder.Services.AddAuthorization();
+builder.Services.AddSingleton<BMWMS.API.Middleware.WorkflowSchemaReadiness>();
 
 // Repositories
 builder.Services.AddScoped<IUserRepository, UserRepository>();
@@ -110,6 +111,7 @@ builder.Services.AddScoped<IInventoryService, InventoryService>();
 builder.Services.AddScoped<IStorageLocationService, StorageLocationService>();
 builder.Services.AddScoped<IStocktakeService, StocktakeService>();
 builder.Services.AddScoped<IInboundService, InboundService>();
+builder.Services.AddScoped<BMWMS.Business.Services.CustomerReturnRequestService>();
 builder.Services.AddScoped<ICapacityEvaluationService, ProductGroupCapacityEvaluationService>();
 builder.Services.AddScoped<IEmailService, SmtpEmailService>();
 builder.Services.AddScoped<IPurchaseOrderEmailComposer, PurchaseOrderEmailComposer>();
@@ -160,6 +162,24 @@ if (app.Environment.IsDevelopment())
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.Use(async (context, next) =>
+{
+    var path = context.Request.Path;
+    var workflow = path.StartsWithSegments("/api/PurchaseOrders") || path.StartsWithSegments("/api/SalesOrders") ||
+        path.StartsWithSegments("/api/inbounds") || path.StartsWithSegments("/api/OutboundOrders") ||
+        path.StartsWithSegments("/api/customer-returns");
+    if (workflow && !await context.RequestServices.GetRequiredService<BMWMS.API.Middleware.WorkflowSchemaReadiness>().CheckAsync(context.RequestAborted))
+    {
+        context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+        await context.Response.WriteAsJsonAsync(new {
+            code = "WORKFLOW_DATABASE_NOT_READY",
+            message = "Database chưa sẵn sàng cho code luồng mới. Quản trị viên cần kiểm tra kết nối và chạy SCHEMA_PATCH_DEMO_REVIEW_2026-09-18.sql trên database local; không tạo lại hoặc xóa dữ liệu để xử lý lỗi này."
+        });
+        return;
+    }
+    await next(context);
+});
 
 app.MapControllers();
 
