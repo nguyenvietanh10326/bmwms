@@ -235,7 +235,7 @@ public class ReturnLocationVM
 {
     public long StorageLocationId { get; set; }
     public long ProductLotId { get; set; }
-    public string LocationPath { get; set; } = string.Empty;
+    [Microsoft.AspNetCore.Mvc.ModelBinding.Validation.ValidateNever] public string LocationPath { get; set; } = string.Empty;
     public DateOnly FirstReceivedDate { get; set; }
     public DateOnly? ExpiryDate { get; set; }
     public decimal StoredQuantity { get; set; }
