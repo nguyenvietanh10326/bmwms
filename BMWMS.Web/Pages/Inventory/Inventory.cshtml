@@ -35,6 +35,11 @@
         </div>
     </div>
 
+    <ul class="nav nav-tabs nav-tabs-custom mb-4" role="tablist">
+        <li class="nav-item"><a class="nav-link" href="/Inventory/Index"><i class="ri-dashboard-line me-1"></i>Tổng quan</a></li>
+        <li class="nav-item"><a class="nav-link active fw-bold" href="/Inventory/Inventory"><i class="ri-archive-line me-1"></i>Tồn theo vị trí</a></li>
+    </ul>
+
     <!-- METRICS GRID -->
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 20px;">
         <div style="background: #ffffff; padding: 18px 20px; border-radius: 10px; border: 1px solid #e2e8f0; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
@@ -71,15 +76,23 @@
                        style="width: 100%; padding: 8px 12px 8px 34px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; outline: none; box-sizing: border-box;" />
             </div>
 
-            <select asp-for="Filter.WarehouseId" style="padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; background: #fff; outline: none; min-width: 160px;">
+            <select asp-for="Filter.WarehouseId" onchange="this.form.submit()" style="padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; background: #fff; outline: none; min-width: 160px;">
                 <option value="">Tất cả kho</option>
+                @foreach (var warehouse in Model.Warehouses)
+                {
+                    <option value="@warehouse.WarehouseId" selected="@(Model.Filter.WarehouseId == warehouse.WarehouseId ? "selected" : null)">@warehouse.WarehouseCode - @warehouse.WarehouseName</option>
+                }
             </select>
 
-            <select asp-for="Filter.StorageLocationId" style="padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; background: #fff; outline: none; min-width: 160px;">
+            <select asp-for="Filter.StorageLocationId" onchange="this.form.submit()" style="padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; background: #fff; outline: none; min-width: 160px;">
                 <option value="">Tất cả vị trí</option>
+                @foreach (var location in Model.StorageLocations)
+                {
+                    <option value="@location.StorageLocationId" selected="@(Model.Filter.StorageLocationId == location.StorageLocationId ? "selected" : null)">@location.LocationCode</option>
+                }
             </select>
 
-            <select asp-for="Filter.Status" style="padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; background: #fff; outline: none; min-width: 160px;">
+            <select asp-for="Filter.Status" onchange="this.form.submit()" style="padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; background: #fff; outline: none; min-width: 160px;">
                 <option value="ALL">Tất cả trạng thái</option>
                 <option value="NORMAL">Bình thường</option>
                 <option value="LOW_STOCK">Sắp hết</option>
@@ -126,7 +139,7 @@
                                 </td>
                                 <td style="padding: 12px 16px; color: #475569;">@item.LotAndExpiryDisplay</td>
                                 <td style="padding: 12px 16px; text-align: center;">
-                                    <span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; font-size: 11.5px; font-weight: 600; @(item.AvailableQuantity <= 0 ? "background: #fef2f2; color: #991b1b;" : "background: #dcfce7; color: #166534;")">
+                                    <span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; font-size: 11.5px; font-weight: 600; @(item.Status == "Hết hàng" ? "background: #fef2f2; color: #991b1b;" : item.Status == "Sắp hết" ? "background: #fff7ed; color: #c2410c;" : "background: #dcfce7; color: #166534;")">
                                         @item.Status
                                     </span>
                                 </td>
@@ -136,7 +149,7 @@
                     else
                     {
                         <tr>
-                            <td colspan="7" style="text-align: center; color: #94a3b8; padding: 48px;">
+                            <td colspan="8" style="text-align: center; color: #94a3b8; padding: 48px;">
                                 <i class="ri-inbox-line" style="font-size: 36px; display: block; margin-bottom: 8px; color: #cbd5e1;"></i>
                                 Không tìm thấy dữ liệu tồn kho phù hợp với điều kiện tìm kiếm.
                             </td>
@@ -149,6 +162,7 @@
         <!-- PAGINATION FOOTER -->
         @if (Model.Data.TotalPages > 1)
         {
+            var pageUrl = Url.Page("/Inventory/Inventory");
             <div style="display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; border-top: 1px solid #e2e8f0; background: #fafafa; font-size: 13px; color: #64748b;">
                 <div>
                     Hiển thị <strong>@(Model.Data.Items?.Count ?? 0)</strong> trong tổng số <strong>@Model.Data.TotalCount</strong> dòng tồn kho
@@ -157,12 +171,8 @@
                     @for (int i = 1; i <= Model.Data.TotalPages; i++)
                     {
                         var active = i == Model.Data.PageIndex;
-                        <a asp-page="./Index" 
-                           asp-route-Filter.PageIndex="@i"
-                           asp-route-Filter.Keyword="@Model.Filter.Keyword"
-                           asp-route-Filter.WarehouseId="@Model.Filter.WarehouseId"
-                           asp-route-Filter.Status="@Model.Filter.Status"
-                           style="min-width: 32px; height: 32px; padding: 0 8px; border-radius: 6px; text-decoration: none; font-size: 12.5px; font-weight: @(active ? "600" : "500"); display: inline-flex; align-items: center; justify-content: center; border: 1px solid @(active ? "#2563eb" : "#cbd5e1"); background: @(active ? "#2563eb" : "#fff"); color: @(active ? "#fff" : "#334155");">
+                        var query = $"?keyword={Uri.EscapeDataString(Model.Filter.Keyword ?? string.Empty)}&warehouseId={Model.Filter.WarehouseId ?? 0}&storageLocationId={Model.Filter.StorageLocationId ?? 0}&status={Uri.EscapeDataString(Model.Filter.Status ?? string.Empty)}&pageIndex={i}&pageSize={Model.Filter.PageSize}";
+                        <a href="@(pageUrl + query)" style="min-width: 32px; height: 32px; padding: 0 8px; border-radius: 6px; text-decoration: none; font-size: 12.5px; font-weight: @(active ? "600" : "500"); display: inline-flex; align-items: center; justify-content: center; border: 1px solid @(active ? "#2563eb" : "#cbd5e1"); background: @(active ? "#2563eb" : "#fff"); color: @(active ? "#fff" : "#334155");">
                             @i
                         </a>
                     }
