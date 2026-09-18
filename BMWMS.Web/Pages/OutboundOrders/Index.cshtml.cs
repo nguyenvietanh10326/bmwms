@@ -27,11 +27,12 @@ namespace BMWMS.Web.Pages.OutboundOrders
         public List<SelectListItem> StatusOptions { get; set; } = new()
         {
             new SelectListItem { Text = "-- Tất cả trạng thái --", Value = "" },
+            new SelectListItem { Text = "Nháp", Value = "DRAFT" },
             new SelectListItem { Text = "Sẵn sàng xuất", Value = "READY" },
             new SelectListItem { Text = "Đang xuất hàng", Value = "ISSUING" },
             new SelectListItem { Text = "Chờ duyệt chốt đợt", Value = "PENDING_APPROVAL" },
             new SelectListItem { Text = "Đã xuất", Value = "ISSUED" },
-            new SelectListItem { Text = "Đã hủy (CANCELLED)", Value = "CANCELLED" }
+            new SelectListItem { Text = "Đã hủy", Value = "CANCELLED" }
         };
 
         [TempData]
@@ -43,6 +44,10 @@ namespace BMWMS.Web.Pages.OutboundOrders
         // GET: Gọi API Backend lấy danh sách + phân trang
     public async Task<IActionResult> OnGetAsync()
         {
+            Filter.SortOrder = Filter.SortOrder?.Trim().ToLowerInvariant();
+            if (Filter.SortOrder is not ("approval" or "newest" or "oldest"))
+                Filter.SortOrder = User.IsInRole("WAREHOUSE_MANAGER") ? "approval" : "newest";
+            ModelState.Remove("Filter.SortOrder");
             Filter.PageIndex = Filter.PageIndex < 1 ? 1 : Filter.PageIndex;
             Filter.PageSize = Filter.PageSize < 1 ? 10 : Filter.PageSize;
 
@@ -53,7 +58,7 @@ namespace BMWMS.Web.Pages.OutboundOrders
                 string queryString =
                     $"?Search={Uri.EscapeDataString(Filter.Search ?? "")}" +
                     $"&Status={Uri.EscapeDataString(Filter.Status ?? "")}" +
-                    $"&SourceType={Uri.EscapeDataString(Filter.SourceType ?? "")}&SortOrder={Uri.EscapeDataString(Filter.SortOrder)}" +
+                    $"&SourceType={Uri.EscapeDataString(Filter.SourceType ?? "")}&SortOrder={Uri.EscapeDataString(Filter.SortOrder ?? "newest")}" +
                     $"&PageIndex={Filter.PageIndex}" +
                     $"&PageSize={Filter.PageSize}";
 
@@ -69,7 +74,7 @@ namespace BMWMS.Web.Pages.OutboundOrders
                 }
                 else
                 {
-                    ErrorMessage = "Không thể tải danh sách phiếu xuất kho.";
+                    ErrorMessage = await BMWMS.Web.Services.ApiErrorReader.ReadAsync(response);
                 }
             }
             catch (Exception)
