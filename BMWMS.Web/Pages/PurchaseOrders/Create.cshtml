@@ -2,7 +2,7 @@
 @model BMWMS.Web.Pages.PurchaseOrders.CreateModel
 @{
     Layout = "_AdminLayout";
-    ViewData["Title"] = "Tạo Lệnh Mua Hàng (PO)";
+    ViewData["Title"] = Model.Id.HasValue ? "Sửa đơn mua hàng" : "Tạo đơn mua hàng";
 }
 
 <style>
@@ -62,8 +62,8 @@
 <div class="inbound-page">
     <div class="pagehead">
         <div>
-            <h1>Tạo Lệnh Mua Hàng (PO)</h1>
-            <p>Tạo mới lệnh mua hàng gửi tới nhà cung cấp. Lệnh sẽ ở trạng thái DRAFT chờ duyệt.</p>
+            <h1>@(Model.Id.HasValue ? "Sửa đơn mua hàng" : "Tạo đơn mua hàng")</h1>
+            <p>Đơn mua hàng ở trạng thái nháp, chờ Manager duyệt trước khi gửi cho nhà cung cấp.</p>
         </div>
         <div>
             <a href="/PurchaseOrders/Index" class="btn btn-light" style="margin-right:10px;">Hủy bỏ</a>
@@ -81,7 +81,7 @@
         </div>
     }
 
-    <form method="post" id="createForm">
+    <form method="post" id="createForm"><input asp-for="Id" type="hidden" /><input asp-for="PurchaseOrder.RowVersion" type="hidden" />
         <div class="card">
             <h3>Thông tin chung</h3>
             <div class="grid2">
@@ -107,7 +107,7 @@
             <div class="grid2" style="margin-top: 16px; grid-template-columns: 1fr;">
                 <div class="field">
                     <label>Ghi Chú Chung</label>
-                    <textarea asp-for="PurchaseOrder.Notes" rows="2" placeholder="Nhập ghi chú cho toàn bộ lệnh mua..."></textarea>
+                    <textarea asp-for="PurchaseOrder.Notes" rows="2" placeholder="Nhập ghi chú cho toàn bộ đơn mua..."></textarea>
                 </div>
             </div>
         </div>
@@ -149,7 +149,14 @@
     <partial name="_ValidationScriptsPartial" />
     <script>
         let currentSupplierProducts = [];
+        let initialLines = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.PurchaseOrder.OrderDetails));
         let rowCount = 0;
+        let catalogVersion = 0;
+        function escapeHtml(value) {
+            const element = document.createElement('span');
+            element.textContent = String(value ?? '');
+            return element.innerHTML.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
 
         const supplierSelect = document.getElementById('supplierSelect');
         const btnAddRow = document.getElementById('btnAddRow');
@@ -171,6 +178,8 @@
         }
 
         supplierSelect.addEventListener('change', async function () {
+            const version = ++catalogVersion;
+            btnAddRow.disabled = true;
             const supplierCode = this.options[this.selectedIndex].getAttribute('data-code');
             tbody.innerHTML = ''; 
             rowCount = 0;
@@ -179,27 +188,42 @@
             if (supplierCode) {
                 try {
                     const response = await fetch(`?handler=SupplierProducts&supplierCode=${encodeURIComponent(supplierCode)}`);
+                    if (version !== catalogVersion) return;
                     if (response.ok) {
                         const data = await response.json();
+                        if (version !== catalogVersion) return;
                         currentSupplierProducts = data.suppliedProducts || [];
                         
                         if (currentSupplierProducts.length === 0) {
                             alert("Nhà cung cấp này chưa có danh mục vật tư nào. Vui lòng thiết lập trước ở màn Quản lý NCC.");
                         } else {
-                            addRow(); // Auto-add first row
+                            if (initialLines.length) {
+                                initialLines.forEach(line => {
+                                    addRow();
+                                    const row = tbody.lastElementChild;
+                                    row.querySelector('.product-select').value = line.ProductId;
+                                    updateUnit(row.querySelector('.product-select'));
+                                    row.querySelector('input[type="number"]').value = line.OrderedQuantity;
+                                    row.querySelector('input[type="text"]').value = line.Notes || '';
+                                });
+                                initialLines = [];
+                            } else { addRow(); }
                         }
                     } else {
                         console.error('Lỗi API');
                         alert("Không thể tải danh sách vật tư. Vui lòng thử lại.");
                     }
                 } catch (e) {
+                    if (version !== catalogVersion) return;
                     console.error(e);
                     alert("Lỗi kết nối khi tải danh mục vật tư.");
                 }
             }
             updateUIState();
+            btnAddRow.disabled = !currentSupplierProducts.length;
         });
 
+        if (supplierSelect.value) supplierSelect.dispatchEvent(new Event('change'));
         btnAddRow.addEventListener('click', function () {
             if (currentSupplierProducts.length === 0) {
                 alert("Vui lòng chọn Nhà cung cấp có danh mục vật tư trước khi thêm dòng.");
@@ -219,7 +243,7 @@
                 const pId = p.productId || p.ProductId;
                 const pUnit = p.unit || p.Unit || '-';
                 const pScale = p.quantityScale ?? p.QuantityScale ?? 0;
-                optionsHtml += `<option value="${pId}" data-unit="${pUnit}" data-scale="${pScale}">${pName} (${pCode})</option>`;
+                optionsHtml += `<option value="${escapeHtml(pId)}" data-unit="${escapeHtml(pUnit)}" data-scale="${escapeHtml(pScale)}">${escapeHtml(pName)} (${escapeHtml(pCode)})</option>`;
             });
 
             tr.innerHTML = `
@@ -236,7 +260,7 @@
                     N/A
                 </td>
                 <td class="num">
-                    <input type="number" name="PurchaseOrder.OrderDetails[${rowCount}].OrderedQuantity" class="cell-input" min="1" step="1" value="1" required />
+                    <div class="input-group"><input type="number" name="PurchaseOrder.OrderDetails[${rowCount}].OrderedQuantity" class="cell-input" min="1" step="1" value="1" required /><span class="input-group-text quantity-unit">—</span></div>
                 </td>
                 <td>
                     <input type="text" name="PurchaseOrder.OrderDetails[${rowCount}].Notes" class="cell-input-w" placeholder="Ghi chú dòng" />
@@ -262,6 +286,7 @@
                 const unit = selectedOption.getAttribute('data-unit') || '-';
                 const scale = Number(selectedOption.getAttribute('data-scale') || 0);
                 unitCell.textContent = unit;
+                tr.querySelector('.quantity-unit').textContent = unit;
 
                 if(scale === 0) {
                     qtyInput.setAttribute('step', '1');
@@ -274,6 +299,7 @@
                 }
             } else {
                 unitCell.textContent = '-';
+                tr.querySelector('.quantity-unit').textContent = '—';
             }
         };
 
@@ -308,7 +334,7 @@
             const uniqueIds = new Set(selectedIds);
             if (selectedIds.length !== uniqueIds.size) {
                 e.preventDefault();
-                alert('Không được chọn trùng lặp vật tư trong cùng một lệnh. Vui lòng gộp số lượng.');
+                alert('Không được chọn trùng lặp vật tư trong cùng một đơn. Vui lòng gộp số lượng.');
                 return false;
             }
             
