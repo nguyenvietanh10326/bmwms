@@ -11,7 +11,7 @@ using System.Linq;
 namespace BMWMS.Web.Pages.PurchaseOrders
 {
     // RBAC: SYSTEM_ADMIN, WAREHOUSE_MANAGER, PURCHASING_STAFF
-    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF")]
+    [Authorize(Roles = "SYSTEM_ADMIN,PURCHASING_STAFF")]
     public class CreateModel : PageModel
     {
         private readonly SupplierApiService _supplierApiService;
@@ -25,6 +25,7 @@ namespace BMWMS.Web.Pages.PurchaseOrders
 
         [BindProperty]
         public PurchaseOrderCreateRequestModel PurchaseOrder { get; set; } = new();
+        [BindProperty(SupportsGet = true)] public long? Id { get; set; }
 
         public List<SupplierLookupDto> Suppliers { get; set; } = new();
 
@@ -32,6 +33,15 @@ namespace BMWMS.Web.Pages.PurchaseOrders
         {
             await LoadSuppliersAsync();
             PurchaseOrder.OrderDate = System.DateOnly.FromDateTime(System.DateTime.Today);
+            if (Id.HasValue)
+            {
+                var order = await _poApiService.GetPurchaseOrderByIdAsync(Id.Value);
+                if (order?.CanEdit != true) return BadRequest("PO đã có phiếu nguồn hoặc không được sửa.");
+                PurchaseOrder = new PurchaseOrderCreateRequestModel { SupplierId = order.SupplierId, OrderDate = DateOnly.FromDateTime(order.OrderDate),
+                    ExpectedDeliveryDate = order.ExpectedDeliveryDate.HasValue ? DateOnly.FromDateTime(order.ExpectedDeliveryDate.Value) : null, Notes = order.Notes, RowVersion = order.RowVersion,
+                    OrderDetails = order.Items.Select(i => new PurchaseOrderDetailRequestModel { ProductId = i.ProductId,
+                        OrderedQuantity = i.OrderedQuantity, Notes = i.Notes }).ToList() };
+            }
             return Page();
         }
 
@@ -43,14 +53,18 @@ namespace BMWMS.Web.Pages.PurchaseOrders
                 return Page();
             }
 
-            // Remove any empty details if Javascript allowed them through
-            PurchaseOrder.OrderDetails = PurchaseOrder.OrderDetails
-                .Where(x => x.ProductId > 0 && x.OrderedQuantity > 0).ToList();
+            // Do not silently drop rows and save a different order.
+            if (PurchaseOrder.OrderDetails.Count == 0 || PurchaseOrder.OrderDetails.Any(x => x.ProductId <= 0 || x.OrderedQuantity <= 0))
+            {
+                ModelState.AddModelError("", "Mỗi dòng phải có vật tư và số lượng lớn hơn 0.");
+                await LoadSuppliersAsync();
+                return Page();
+            }
 
-            var result = await _poApiService.CreatePurchaseOrderAsync(PurchaseOrder);
+            var result = Id.HasValue ? await _poApiService.UpdateAsync(Id.Value, PurchaseOrder) : await _poApiService.CreatePurchaseOrderAsync(PurchaseOrder);
             if (result.IsSuccess)
             {
-                TempData["SuccessMessage"] = $"Đã tạo lệnh mua hàng {result.PoNumber} thành công (Trạng thái: DRAFT).";
+                TempData["SuccessMessage"] = Id.HasValue ? result.Message : $"Đã tạo đơn mua hàng {result.PoNumber} ở trạng thái nháp.";
                 return RedirectToPage("/PurchaseOrders/Index"); // Assuming an Index page will exist
             }
 

@@ -30,10 +30,10 @@ namespace BMWMS.Business.Interfaces.Inventory
         Task<bool> UpdateDraftAsync(CreateUpdateSalesOrderDto dto);
 
         // Kiểm tra tồn kho khả dụng & Xác nhận đơn hàng (Đổi trạng thái sang 'Đã giữ tồn' / 'Đã xác nhận')
-        Task<(bool IsSuccess, string Message)> ConfirmAndReserveStockAsync(long salesOrderId, long confirmedByUserId);
+        Task<(bool IsSuccess, string Message)> ConfirmAndReserveStockAsync(long salesOrderId, long confirmedByUserId, string? rowVersion = null);
 
         // Hủy đơn bán hàng
         Task<(bool IsSuccess, string Message)> CancelOrderAsync(long salesOrderId, long userId, string reason);
-        Task<(bool IsSuccess, string Message)> RejectDraftAsync(long salesOrderId, long userId, string reason);
+        Task<(bool IsSuccess, string Message)> RejectDraftAsync(long salesOrderId, long userId, string reason, string? rowVersion = null);
     }
     }

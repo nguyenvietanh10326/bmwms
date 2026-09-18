@@ -45,12 +45,12 @@ namespace BMWMS.Web.Pages.SaleOrder
             }
         }
 
-        public async Task<IActionResult> OnPostConfirmAsync(long id)
+        public async Task<IActionResult> OnPostConfirmAsync(long id, string rowVersion)
         {
             if (!User.IsInRole("WAREHOUSE_MANAGER") && !User.IsInRole("SYSTEM_ADMIN"))
                 return Forbid();
             var client = _httpClientFactory.CreateClient("ApiClient");
-            var response = await client.PostAsync($"api/SalesOrders/{id}/confirm", null);
+            var response = await client.PostAsync($"api/SalesOrders/{id}/confirm?rowVersion={Uri.EscapeDataString(rowVersion ?? "")}", null);
             if (response.IsSuccessStatusCode)
             {
                 TempData["SuccessMessage"] = "Đã xác nhận đơn hàng thành công.";
@@ -64,7 +64,7 @@ namespace BMWMS.Web.Pages.SaleOrder
         }
 
         public async Task<IActionResult> OnPostCancelAsync(long id, string reason) => await ChangeStateAsync(id, "cancel", reason);
-        public async Task<IActionResult> OnPostRejectAsync(long id, string reason) => await ChangeStateAsync(id, "reject", reason);
+        public async Task<IActionResult> OnPostRejectAsync(long id, string reason, string? rowVersion) => await ChangeStateAsync(id, "reject", reason, rowVersion);
         public async Task<IActionResult> OnPostReviewOutboundCompletionAsync(int id, long outboundOrderId, string? remainderAction, string? reason)
         {
             if (!User.IsInRole("WAREHOUSE_MANAGER") && !User.IsInRole("SYSTEM_ADMIN")) return Forbid();
@@ -93,12 +93,12 @@ namespace BMWMS.Web.Pages.SaleOrder
                 return RedirectToPage(new { id });
             }
         }
-        private async Task<IActionResult> ChangeStateAsync(long id, string action, string reason)
+        private async Task<IActionResult> ChangeStateAsync(long id, string action, string reason, string? rowVersion = null)
         {
             if (action == "reject" && !User.IsInRole("WAREHOUSE_MANAGER") && !User.IsInRole("SYSTEM_ADMIN")) return Forbid();
-            if (action == "cancel" && !User.IsInRole("SALES_STAFF") && !User.IsInRole("SYSTEM_ADMIN")) return Forbid();
+            if (action == "cancel" && !User.IsInRole("SALES_STAFF") && !User.IsInRole("WAREHOUSE_MANAGER") && !User.IsInRole("SYSTEM_ADMIN")) return Forbid();
             var client = _httpClientFactory.CreateClient("ApiClient");
-            var response = await client.PostAsJsonAsync($"api/SalesOrders/{id}/{action}", new { reason });
+            var response = await client.PostAsJsonAsync($"api/SalesOrders/{id}/{action}", new { reason, rowVersion });
             TempData[response.IsSuccessStatusCode ? "SuccessMessage" : "ErrorMessage"] =
                 response.IsSuccessStatusCode ? "Đã cập nhật SO." : await BMWMS.Web.Services.ApiErrorReader.ReadAsync(response);
             return RedirectToPage(new { id });
@@ -115,6 +115,9 @@ namespace BMWMS.Web.Pages.SaleOrder
 
     public class SalesOrderDto
     {
+        public long CreatedByUserId { get; set; }
+        public string RowVersion { get; set; } = "";
+        public bool CanEdit { get; set; }
         public int SalesOrderId { get; set; }
         public string SalesOrderNumber { get; set; } = string.Empty;
         public int CustomerId { get; set; }

@@ -32,7 +32,7 @@ namespace BMWMS.Web.Pages.SalesOrders
 
         [BindProperty(SupportsGet = true)]
         public int PageSize { get; set; } = 10;
-        [BindProperty(SupportsGet = true)] public string SortOrder { get; set; } = "newest";
+        [BindProperty(SupportsGet = true)] public string? SortOrder { get; set; }
 
         public PagedResult<SalesOrderListDto> PagedResult { get; set; } = new();
 
@@ -44,6 +44,7 @@ namespace BMWMS.Web.Pages.SalesOrders
             new("Chờ duyệt đợt xuất", "PENDING_OUTBOUND_REVIEW"),
             new("Đã xuất một phần", "PARTIALLY_ISSUED"),
             new("Đã xuất", "ISSUED"),
+            new("Bị từ chối", "REJECTED"),
             new("Đã hủy", "CANCELLED")
         };
 
@@ -68,6 +69,10 @@ namespace BMWMS.Web.Pages.SalesOrders
 
         public async Task<IActionResult> OnGetAsync()
         {
+            SortOrder = SortOrder?.Trim().ToLowerInvariant();
+            if (SortOrder is not ("approval" or "priority" or "expected" or "newest" or "oldest"))
+                SortOrder = User.IsInRole("WAREHOUSE_MANAGER") ? "approval" : "priority";
+            ModelState.Remove(nameof(SortOrder));
             PageIndex = Math.Max(1, PageIndex);
             PageSize = PageSize is 10 or 20 or 50 or 100 ? PageSize : 10;
 
@@ -103,13 +108,13 @@ namespace BMWMS.Web.Pages.SalesOrders
                     $"&FromDate={Uri.EscapeDataString(criteria.FromDate?.ToString("yyyy-MM-dd") ?? string.Empty)}" +
                     $"&ToDate={Uri.EscapeDataString(criteria.ToDate?.ToString("yyyy-MM-dd") ?? string.Empty)}" +
                     $"&PageIndex={criteria.PageIndex}" +
-                    $"&PageSize={criteria.PageSize}&SortOrder={Uri.EscapeDataString(criteria.SortOrder)}";
+                    $"&PageSize={criteria.PageSize}&SortOrder={Uri.EscapeDataString(criteria.SortOrder ?? SortOrder)}";
 
                 var response = await client.GetAsync($"api/SalesOrders{queryString}");
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    ErrorMessage = "Không thể tải danh sách đơn bán hàng. Vui lòng thử lại.";
+                    ErrorMessage = await BMWMS.Web.Services.ApiErrorReader.ReadAsync(response);
                     return Page();
                 }
 
@@ -134,6 +139,7 @@ namespace BMWMS.Web.Pages.SalesOrders
         {
             "DRAFT" => "Nháp",
             "CONFIRMED" => "Đã xác nhận",
+            "PENDING_OUTBOUND_REVIEW" => "Chờ duyệt đợt xuất",
             "PARTIALLY_ISSUED" => "Đã xuất một phần",
             "ISSUED" => "Đã xuất",
             "CANCELLED" => "Đã hủy",
@@ -145,6 +151,7 @@ namespace BMWMS.Web.Pages.SalesOrders
         {
             "DRAFT" => "bg-secondary-subtle text-secondary border-secondary-subtle",
             "CONFIRMED" => "bg-primary-subtle text-primary border-primary-subtle",
+            "PENDING_OUTBOUND_REVIEW" => "bg-warning-subtle text-warning-emphasis border-warning-subtle",
             "PARTIALLY_ISSUED" => "bg-warning-subtle text-warning-emphasis border-warning-subtle",
             "ISSUED" => "bg-success-subtle text-success border-success-subtle",
             "CANCELLED" => "bg-danger-subtle text-danger border-danger-subtle",

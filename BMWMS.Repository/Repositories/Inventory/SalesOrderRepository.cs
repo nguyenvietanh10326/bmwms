@@ -168,6 +168,16 @@ namespace BMWMS.Repository.Repositories.Inventory
 
             var ordered = sortOrder == "oldest" ? query.OrderBy(x => x.CreatedAt).ThenBy(x => x.SalesOrderId)
                 : query.OrderByDescending(x => x.CreatedAt).ThenByDescending(x => x.SalesOrderId);
+            if (sortOrder is null or "priority")
+                ordered = query.OrderBy(x => x.Status == "CONFIRMED" || x.Status == "ALLOCATED" || x.Status == "PARTIALLY_FULFILLED" || x.Status == "PARTIALLY_ISSUED" ? 0
+                    : x.Status == "DRAFT" ? 1 : 2)
+                    .ThenBy(x => x.ExpectedIssueDate == null).ThenBy(x => x.ExpectedIssueDate)
+                    .ThenBy(x => x.CreatedAt).ThenBy(x => x.SalesOrderId);
+            else if (sortOrder == "approval") ordered = query.OrderBy(x => x.Status == "DRAFT" || x.OutboundOrders.Any(o => o.Status == "PENDING_APPROVAL") ? 0
+                    : x.Status == "CONFIRMED" || x.Status == "ALLOCATED" || x.Status == "PARTIALLY_FULFILLED" || x.Status == "PARTIALLY_ISSUED" ? 1 : 2)
+                .ThenBy(x => x.CreatedAt).ThenBy(x => x.SalesOrderId);
+            else if (sortOrder == "expected") ordered = query.OrderBy(x => x.ExpectedIssueDate == null)
+                .ThenBy(x => x.ExpectedIssueDate).ThenBy(x => x.SalesOrderId);
             var items = await ordered
                 .Skip((pageIndex - 1) * pageSize)
                 .Take(pageSize)
@@ -228,9 +238,10 @@ namespace BMWMS.Repository.Repositories.Inventory
             existing.Notes = salesOrder.Notes;
             existing.UpdatedAt = DateTime.Now;
 
-            // Update Details (Xóa các item cũ, gán danh sách mới)
-            _context.SalesOrderDetails.RemoveRange(existing.SalesOrderDetails);
-            existing.SalesOrderDetails = salesOrder.SalesOrderDetails;
+            // All detail edits must use SalesOrderService's transactional release /
+            // reconcile / reserve path; never delete FK-backed reservation history.
+            if (salesOrder.SalesOrderDetails.Any())
+                throw new InvalidOperationException("Sửa dòng SO phải qua nghiệp vụ cập nhật và giữ hàng trong transaction.");
 
             return await _context.SaveChangesAsync() > 0;
         }

@@ -42,7 +42,7 @@ public sealed class PurchaseOrderEmailComposer : IPurchaseOrderEmailComposer
         var rows = new StringBuilder();
         var lineNumber = 1;
 
-        foreach (var detail in order.PurchaseOrderDetails.OrderBy(d => d.PurchaseOrderDetailId))
+        foreach (var detail in order.PurchaseOrderDetails.Where(d => d.IsActive).OrderBy(d => d.PurchaseOrderDetailId))
         {
             var product = detail.Product;
             var scale = product?.UnitOfMeasure?.QuantityScale ?? 0;
@@ -62,12 +62,13 @@ public sealed class PurchaseOrderEmailComposer : IPurchaseOrderEmailComposer
             <body style="font-family:Arial,sans-serif;color:#172033;line-height:1.5">
               <div style="max-width:900px;margin:0 auto">
                 <h2 style="color:#233a6b">Đơn đặt hàng {poNumber}</h2>
+                <p>Phiên bản <strong>{order.RevisionNo}</strong>. Nội dung email này thay thế các phiên bản đơn hàng trước đó.</p>
                 <p>Kính gửi <strong>{supplierName}</strong>,</p>
-                <p>BMWMS gửi thông tin đơn đặt hàng đã được xác nhận trên hệ thống để Nhà cung cấp phối hợp giao vật tư.</p>
+                <p>BMWMS gửi thông tin đơn đặt hàng đã được duyệt nội bộ để Nhà cung cấp phối hợp giao vật tư.</p>
                 <table style="margin:16px 0;border-collapse:collapse">
                   <tr><td style="padding:4px 18px 4px 0;color:#687086">Ngày đặt hàng</td><td><strong>{order.OrderDate:dd/MM/yyyy}</strong></td></tr>
                   <tr><td style="padding:4px 18px 4px 0;color:#687086">Ngày giao dự kiến</td><td><strong>{order.ExpectedDeliveryDate?.ToString("dd/MM/yyyy") ?? "Chưa xác định"}</strong></td></tr>
-                  <tr><td style="padding:4px 18px 4px 0;color:#687086">Số dòng vật tư</td><td><strong>{order.PurchaseOrderDetails.Count}</strong></td></tr>
+                  <tr><td style="padding:4px 18px 4px 0;color:#687086">Số dòng vật tư</td><td><strong>{order.PurchaseOrderDetails.Count(d => d.IsActive)}</strong></td></tr>
                 </table>
                 <table style="width:100%;border-collapse:collapse;font-size:14px">
                   <thead>
@@ -93,12 +94,12 @@ public sealed class PurchaseOrderEmailComposer : IPurchaseOrderEmailComposer
         return new EmailMessage
         {
             To = order.Supplier?.Email?.Trim() ?? string.Empty,
-            Subject = $"Đơn đặt hàng {order.PurchaseOrderNumber}",
+            Subject = $"Đơn đặt hàng {order.PurchaseOrderNumber} - phiên bản {order.RevisionNo}",
             HtmlBody = html,
             Attachments = new[]
             {
                 new EmailAttachment(
-                    $"PO-{SanitizeFileName(order.PurchaseOrderNumber)}.xlsx",
+                    $"PO-{SanitizeFileName(order.PurchaseOrderNumber)}-v{order.RevisionNo}.xlsx",
                     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     BuildWorkbook(order))
             }
@@ -273,6 +274,8 @@ public sealed class PurchaseOrderEmailComposer : IPurchaseOrderEmailComposer
             .Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
         worksheet.Cell("A3").Value = "Mã PO";
         worksheet.Cell("B3").Value = order.PurchaseOrderNumber;
+        worksheet.Cell("D3").Value = "Phiên bản";
+        worksheet.Cell("E3").Value = order.RevisionNo;
         worksheet.Cell("A4").Value = "Nhà cung cấp";
         worksheet.Cell("B4").Value = order.Supplier?.SupplierName ?? string.Empty;
         worksheet.Cell("A5").Value = requestedDeliveryDate.HasValue ? "Ngày giao tiếp theo đề nghị" : "Lý do";
@@ -332,6 +335,8 @@ public sealed class PurchaseOrderEmailComposer : IPurchaseOrderEmailComposer
             .Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
         worksheet.Cell("A3").Value = "Mã PO";
         worksheet.Cell("B3").Value = order.PurchaseOrderNumber;
+        worksheet.Cell("D3").Value = "Phiên bản";
+        worksheet.Cell("E3").Value = order.RevisionNo;
         worksheet.Cell("A4").Value = "Nhà cung cấp";
         worksheet.Cell("B4").Value = order.Supplier?.SupplierName ?? string.Empty;
         worksheet.Cell("A5").Value = "Ngày đặt hàng";
@@ -357,7 +362,7 @@ public sealed class PurchaseOrderEmailComposer : IPurchaseOrderEmailComposer
             .Fill.SetBackgroundColor(XLColor.FromHtml("#DCE6F1"));
 
         var row = headerRow + 1;
-        foreach (var detail in order.PurchaseOrderDetails.OrderBy(d => d.PurchaseOrderDetailId))
+        foreach (var detail in order.PurchaseOrderDetails.Where(d => d.IsActive).OrderBy(d => d.PurchaseOrderDetailId))
         {
             var product = detail.Product;
             var scale = product?.UnitOfMeasure?.QuantityScale ?? 0;

@@ -100,7 +100,7 @@
                     <div class="nav-item nav-item-has-sub @(isPurchaseOrderActive ? "expanded active" : "")" onclick="toggleSubmenu(this)">
                         <div class="nav-item-main">
                             <i class="ri-shopping-cart-2-line nav-item-icon"></i>
-                            Lệnh mua hàng (PO)
+                            Đơn mua hàng (PO)
                         </div>
                         <i class="ri-arrow-right-s-line nav-item-arrow"></i>
                     </div>
@@ -170,7 +170,7 @@
                         <a href="/Admin/Inbound/Create" class="nav-sub-item @(Context.Request.Path == "/Admin/Inbound/Create" ? "active" : "")">Ghi nhận đợt nhập</a>
                     }
                 </div>
-                @if (isWhManager || isSysAdmin) { <a href="/Admin/Inbound/AuthorizeReturn" class="nav-sub-item">Duyệt nhận khách trả</a> }
+                @if (isWhManager || isSysAdmin || isSales || isWhStaff || isReadOnly) { <a href="/CustomerReturns" class="nav-sub-item">Khách trả hàng theo SO</a> }
                 @{
                     var isOutboundActive = Context.Request.Path.StartsWithSegments("/OutboundOrders");
                 }

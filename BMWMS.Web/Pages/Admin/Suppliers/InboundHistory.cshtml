@@ -164,7 +164,7 @@
         <div style="flex: 2; min-width: 300px; position: relative;">
             <label class="form-label text-muted mb-2" style="font-size: 13px; font-weight: 500;">Từ khóa tìm kiếm</label>
             <i class="ri-search-line" style="position: absolute; left: 16px; bottom: 13px; color: #94a3b8; font-size: 18px;"></i>
-            <input type="text" name="Filter.Keyword" value="@Model.Filter.Keyword" class="form-control premium-input" placeholder="Tìm lệnh nhập hoặc PO" style="padding-left: 44px;">
+            <input type="text" name="Filter.Keyword" value="@Model.Filter.Keyword" class="form-control premium-input" placeholder="Tìm phiếu nhập hoặc PO" style="padding-left: 44px;">
         </div>
         
         <div style="flex: 1; min-width: 200px;">
@@ -192,8 +192,8 @@
         <table class="premium-table">
             <thead>
                 <tr>
-                    <th>Mã lệnh</th>
-                    <th>Purchase Order</th>
+                    <th>Mã phiếu nhập</th>
+                    <th>Đơn mua hàng</th>
                     <th>Nhà cung cấp</th>
                     <th>Ngày nhập hàng</th>
                     <th>Nhân viên phụ trách</th>
@@ -216,7 +216,7 @@
                             <td style="text-align: center;">
                                 @if (item.Status == "COMPLETED")
                                 {
-                                    <span class="badge-premium badge-success-premium"><span class="status-dot bg-green-500"></span> Đã nhận</span>
+                                    <span class="badge-premium badge-success-premium"><span class="status-dot bg-green-500"></span> Hoàn tất</span>
                                 }
                                 else if (item.Status == "IN_PROGRESS" || item.Status == "ASSIGNED")
                                 {
@@ -360,7 +360,7 @@
             };
 
             const getStatusBadge = (status) => {
-                if (status === "COMPLETED") return `<span class="badge-premium badge-success-premium"><span class="status-dot bg-green-500"></span> Đã nhận</span>`;
+                if (status === "COMPLETED") return `<span class="badge-premium badge-success-premium"><span class="status-dot bg-green-500"></span> Hoàn tất</span>`;
                 if (status === "IN_PROGRESS") return `<span class="badge-premium badge-warning-premium"><span class="status-dot bg-yellow-500"></span> Đang kiểm nhận</span>`;
                 if (status === "ASSIGNED") return `<span class="badge-premium badge-warning-premium"><span class="status-dot bg-yellow-500"></span> Sẵn sàng nhận</span>`;
                 if (status === "DRAFT") return `<span class="badge-premium badge-secondary-premium"><span class="status-dot bg-gray-500"></span> Nháp</span>`;

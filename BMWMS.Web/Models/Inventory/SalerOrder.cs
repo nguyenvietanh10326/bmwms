@@ -10,7 +10,7 @@ namespace BMWMS.Web.Models.Inventory
     // DTO tìm kiếm và phân trang
     public class SalesOrderSearchCriteria
     {
-        public string SortOrder { get; set; } = "newest";
+        public string? SortOrder { get; set; }
         public string? Keyword { get; set; }
         public string? Status { get; set; }
         public DateOnly? FromDate { get; set; }
@@ -34,6 +34,7 @@ namespace BMWMS.Web.Models.Inventory
     // DTO danh sách hiển thị trên trang
     public class SalesOrderListDto
     {
+        public bool CanExternalCancel { get; set; }
         public long SalesOrderId { get; set; }
         public string SalesOrderNumber { get; set; } = null!;
         public string CustomerCode { get; set; } = null!;
@@ -50,6 +51,10 @@ namespace BMWMS.Web.Models.Inventory
     // DTO chi tiết đơn bán hàng
     public class SalesOrderDetailDto
     {
+        public bool CanExternalCancel { get; set; }
+        public long CreatedByUserId { get; set; }
+        public string RowVersion { get; set; } = string.Empty;
+        public bool CanEdit { get; set; }
         public long SalesOrderId { get; set; }
         public string SalesOrderNumber { get; set; } = null!;
         public long CustomerId { get; set; }
@@ -99,6 +104,7 @@ namespace BMWMS.Web.Models.Inventory
     // DTO tạo mới hoặc cập nhật
     public class CreateUpdateSalesOrderDto
     {
+        public string? RowVersion { get; set; }
         public long? SalesOrderId { get; set; }
 
         [Range(1, long.MaxValue, ErrorMessage = "Vui lòng chọn khách hàng.")]

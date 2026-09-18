@@ -28,7 +28,7 @@ public class IndexModel : PageModel
     [BindProperty(SupportsGet = true)]
     public int PageIndex { get; set; } = 1;
 
-    [BindProperty(SupportsGet = true)] public string SortOrder { get; set; } = "newest";
+    [BindProperty(SupportsGet = true)] public string? SortOrder { get; set; }
     public int PageSize { get; set; } = 20;
     
     public List<PurchaseOrderListDto> Orders { get; set; } = new();
@@ -36,6 +36,8 @@ public class IndexModel : PageModel
 
     public async Task OnGetAsync()
     {
+        SortOrder = NormalizeSort(SortOrder, User.IsInRole("WAREHOUSE_MANAGER") ? "approval" : "priority");
+        ModelState.Remove(nameof(SortOrder));
         var filter = new PurchaseOrderFilterDto
         {
             SearchTerm = SearchTerm,
@@ -45,11 +47,19 @@ public class IndexModel : PageModel
             PageSize = PageSize
         };
 
+        PageIndex = Math.Max(1, PageIndex);
+        filter.PageIndex = PageIndex;
+        try {
         var pagedResult = await _apiService.GetPagedPurchaseOrdersAsync(filter);
         if (pagedResult != null)
         {
             Orders = pagedResult.Items ?? new List<PurchaseOrderListDto>();
             TotalPages = pagedResult.TotalPages;
         }
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or HttpRequestException or TaskCanceledException or System.Text.Json.JsonException)
+        { ModelState.AddModelError(string.Empty, ex is InvalidOperationException ? ex.Message : "Không tải được danh sách PO. Kiểm tra kết nối và schema database trước khi thử lại."); }
     }
+    private static string NormalizeSort(string? value, string fallback)
+        => value?.Trim().ToLowerInvariant() is "approval" or "priority" or "expected" or "newest" or "oldest" ? value.Trim().ToLowerInvariant() : fallback;
 }
