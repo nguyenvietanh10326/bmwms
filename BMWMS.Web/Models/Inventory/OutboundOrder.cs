@@ -94,7 +94,7 @@ namespace BMWMS.Web.Models.Inventory
     public class OutboundOrderQueryFilter
     {
         public string? SourceType { get; set; }
-        public string SortOrder { get; set; } = "newest";
+        public string? SortOrder { get; set; }
         public string? Search { get; set; }
         public string? Status { get; set; }
         // Cấu hình phân trang
