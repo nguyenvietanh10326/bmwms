@@ -5,6 +5,7 @@ namespace BMWMS.Business.DTOs.Inventory
 {
     public class PurchaseOrderCreateDto
     {
+        public string? RowVersion { get; set; }
         public long SupplierId { get; set; }
         public DateOnly OrderDate { get; set; }
         public DateOnly? ExpectedDeliveryDate { get; set; }
