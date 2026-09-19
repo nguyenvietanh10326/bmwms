@@ -30,19 +30,54 @@ namespace BMWMS.Web.Pages.Inventory
             Filter.PageIndex = Filter.PageIndex < 1 ? 1 : Filter.PageIndex;
             Filter.PageSize = Filter.PageSize < 1 ? 10 : Filter.PageSize;
 
-            var client = _httpClientFactory.CreateClient("ApiClient");
-            Warehouses = await GetWarehousesAsync(client);
-            StorageLocations = await GetStorageLocationsAsync(client, Filter.WarehouseId ?? 1, Filter.ZoneId, Filter.RackId);
-            Zones = await GetZonesAsync(client, Filter.WarehouseId ?? 1);
-            Racks = await GetRacksAsync(client, Filter.WarehouseId ?? 1, Filter.ZoneId);
-
             if (Filter.WarehouseId is null || Filter.WarehouseId <= 0)
+            {
+                Filter.WarehouseId = 1;
+            }
+
+            if (Filter.ZoneId is <= 0)
+            {
+                Filter.ZoneId = null;
+            }
+
+            if (Filter.RackId is <= 0)
+            {
+                Filter.RackId = null;
+            }
+
+            if (Filter.StorageLocationId is <= 0)
             {
                 Filter.StorageLocationId = null;
             }
-            else if (Filter.StorageLocationId.HasValue && !StorageLocations.Any(x => x.StorageLocationId == Filter.StorageLocationId.Value))
+
+            var client = _httpClientFactory.CreateClient("ApiClient");
+            Warehouses = await GetWarehousesAsync(client);
+            Zones = await GetZonesAsync(client, Filter.WarehouseId ?? 1);
+            Racks = await GetRacksAsync(client, Filter.WarehouseId ?? 1, Filter.ZoneId);
+
+            if (Filter.ZoneId.HasValue && Filter.ZoneId > 0 && !Zones.Any(z => z.ZoneId == Filter.ZoneId.Value))
+            {
+                Filter.ZoneId = null;
+                Racks = await GetRacksAsync(client, Filter.WarehouseId ?? 1, null);
+            }
+
+            if (Filter.RackId.HasValue && Filter.RackId > 0 && !Racks.Any(r => r.RackId == Filter.RackId.Value))
+            {
+                Filter.RackId = null;
+            }
+
+            StorageLocations = await GetStorageLocationsAsync(client, Filter.WarehouseId ?? 1, Filter.ZoneId, Filter.RackId);
+
+            if (Filter.StorageLocationId.HasValue && !StorageLocations.Any(x => x.StorageLocationId == Filter.StorageLocationId.Value))
             {
                 Filter.StorageLocationId = null;
+            }
+
+            if (Filter.StorageLocationId.HasValue)
+            {
+                Filter.ZoneId = null;
+                Filter.RackId = null;
+                StorageLocations = await GetStorageLocationsAsync(client, Filter.WarehouseId ?? 1, null, null);
             }
 
             var query = BuildInventoryQuery();
