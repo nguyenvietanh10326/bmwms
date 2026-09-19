@@ -245,5 +245,45 @@ namespace BMWMS.Repository.Repositories
                 .ToListAsync();
         }
 
+        /// <summary>
+        /// Tự động INSERT ProductWarehousePolicy mặc định cho tất cả kho đang ACTIVE
+        /// nếu chưa tồn tại policy cho cặp (productId, warehouseId) đó.
+        /// Được gọi ngay sau khi tạo sản phẩm mới.
+        /// </summary>
+        public async Task SeedDefaultWarehousePoliciesAsync(long productId,
+            decimal defaultMinimumStockQuantity = 0m,
+            int defaultExpiryWarningDays = 30)
+        {
+            var activeWarehouses = await _context.Warehouses
+                .Where(w => w.Status == "ACTIVE")
+                .Select(w => w.WarehouseId)
+                .ToListAsync();
+
+            if (!activeWarehouses.Any()) return;
+
+            // Chỉ insert những kho chưa có policy
+            var existingWarehouseIds = await _context.Set<ProductWarehousePolicy>()
+                .Where(p => p.ProductId == productId)
+                .Select(p => p.WarehouseId)
+                .ToListAsync();
+
+            var newPolicies = activeWarehouses
+                .Where(wId => !existingWarehouseIds.Contains(wId))
+                .Select(wId => new ProductWarehousePolicy
+                {
+                    ProductId = productId,
+                    WarehouseId = wId,
+                    MinimumStockQuantity = defaultMinimumStockQuantity,
+                    ExpiryWarningDays = defaultExpiryWarningDays
+                })
+                .ToList();
+
+            if (newPolicies.Any())
+            {
+                await _context.Set<ProductWarehousePolicy>().AddRangeAsync(newPolicies);
+                await _context.SaveChangesAsync();
+            }
+        }
+
     }
 }

@@ -15,22 +15,13 @@ public interface IReportRepository
     Task<(int TotalCount, List<(string ProductCode, string ProductName, decimal OpeningBalance, decimal InboundQuantity, decimal OutboundQuantity, decimal AdjustmentQuantity, decimal ClosingBalance)> Items)> GetInOutStockReportAsync(
         DateTime? fromDate, DateTime? toDate, string? productSearch, int pageNumber, int pageSize);
 
-    Task<(int TotalCount, List<(long ProductId, string ProductCode, string ProductName, string BaseUnitCode, decimal CurrentStock, decimal InboundQuantity, decimal OutboundQuantity, decimal AdjustmentQuantity, int MovementFrequency, int DaysSinceLastMovement)> Items)> GetProductStatisticsAsync(
-        DateTime? fromDate, DateTime? toDate, string? productSearch, string? productGroupCode, int pageNumber, int pageSize);
-
     Task<(int TotalCount, List<(long SupplierId, string SupplierCode, string SupplierName, int InboundOrderCount, decimal ExpectedQuantity, decimal ReceivedQuantity, decimal DamagedQuantity, decimal ShortageQuantity)> Items)> GetSupplierStatisticsAsync(
         DateTime? fromDate, DateTime? toDate, string? supplierSearch, int pageNumber, int pageSize);
 
-    Task<(int TotalCount, List<(long StocktakeSessionId, string StocktakeNumber, DateOnly PlannedDate, string Status, int BinsCounted, int MatchedItems, int ShortageItems, int ExcessItems, int TotalItemsCounted, decimal TotalShortageQuantity, decimal TotalExcessQuantity, decimal TotalApprovedAdjustmentQuantity)> Items)> GetStocktakeStatisticsAsync(
-        DateTime? fromDate, DateTime? toDate, string? countType, string? storageAreaCode, string? productGroupCode, string? sessionStatus, int pageNumber, int pageSize);
     Task<(int TotalCount, List<VwLowStockAlert> Items)> GetLowStockAlertsAsync(
         string? keyword, int pageNumber, int pageSize);
 
     Task<(int TotalCount, List<VwExpiringLotAlert> Items)> GetExpiringLotAlertsAsync(
         string? keyword, int? maxDaysToExpiry, int pageNumber, int pageSize);
 
-    Task<(int TotalCount, List<VwOverdueOrder> Items)> GetOverdueOrderAlertsAsync(
-        string? documentType, string? keyword, int pageNumber, int pageSize);
-
-    Task<List<VwWarehouseKpi>> GetWarehouseKpisAsync();
 }

@@ -149,7 +149,6 @@
                     <i class="ri-arrow-right-s-line nav-item-arrow"></i>
                 </div>
                 <div class="nav-submenu @(isInvActive ? "expanded" : "")">
-                    <a href="/Inventory/Index" class="nav-sub-item @(Context.Request.Path == "/Inventory" || Context.Request.Path == "/Inventory/Index" ? "active" : "")">Bảng theo dõi tồn kho</a>
                     <a href="/Inventory/Inventory" class="nav-sub-item @(Context.Request.Path == "/Inventory/Inventory" ? "active" : "")">Tồn kho theo vị trí</a>
                 </div>
 
@@ -240,14 +239,9 @@
                     <a href="/Admin/Reports/Inbound" class="nav-sub-item @(Context.Request.Path == "/Admin/Reports/Inbound" ? "active" : "")">Báo cáo nhập kho</a>
                     <a href="/Admin/Reports/Outbound" class="nav-sub-item @(Context.Request.Path == "/Admin/Reports/Outbound" ? "active" : "")">Báo cáo xuất kho</a>
                     <a href="/Admin/Reports/InOutStock" class="nav-sub-item @(Context.Request.Path == "/Admin/Reports/InOutStock" ? "active" : "")">Báo cáo Nhập-Xuất-Tồn</a>
-                    <a href="/Admin/Reports/ProductStatistics" class="nav-sub-item @(Context.Request.Path == "/Admin/Reports/ProductStatistics" ? "active" : "")">Thống kê sản phẩm</a>
                     <a href="/Admin/Reports/SupplierStatistics" class="nav-sub-item @(Context.Request.Path == "/Admin/Reports/SupplierStatistics" ? "active" : "")">Thống kê NCC</a>
-                    <a href="/Admin/Reports/StocktakeStatistics" class="nav-sub-item @(Context.Request.Path == "/Admin/Reports/StocktakeStatistics" ? "active" : "")">Kết quả kiểm kho</a>
                     <a href="/Admin/Reports/LowStock" class="nav-sub-item @(Context.Request.Path == "/Admin/Reports/LowStock" ? "active" : "")">Cảnh báo tồn kho</a>
                     <a href="/Admin/Reports/ExpiringLot" class="nav-sub-item @(Context.Request.Path == "/Admin/Reports/ExpiringLot" ? "active" : "")">Lô sắp hết hạn</a>
-                    <a href="/Admin/Reports/OverdueOrder" class="nav-sub-item @(Context.Request.Path == "/Admin/Reports/OverdueOrder" ? "active" : "")">Đơn hàng quá hạn</a>
-                    <a href="/Admin/Reports/Notifications" class="nav-sub-item @(Context.Request.Path == "/Admin/Reports/Notifications" ? "active" : "")">Thông báo hệ thống</a>
-                    <a href="/Admin/Reports/KPIs" class="nav-sub-item @(Context.Request.Path == "/Admin/Reports/KPIs" ? "active" : "")">KPI vận hành</a>
                 </div>
             </div>
 
@@ -327,13 +321,6 @@
 
             @if (isLoggedIn)
             {
-                <!-- Notification Bell -->
-                <div class="notification-wrapper" style="position: relative; cursor: pointer; margin-right: 8px;" title="Thông báo">
-                    <a href="/Admin/Reports/Notifications" style="text-decoration: none; color: inherit; display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 50%; background: #f1f5f9; transition: all 0.2s;">
-                        <i class="ri-notification-3-line" style="font-size: 18px; color: #475569;"></i>
-                        <span class="notification-badge" style="position: absolute; top: 0; right: 0; background: #ef4444; color: white; border-radius: 50%; font-size: 10px; font-weight: bold; width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; border: 2px solid white; box-sizing: content-box;">1</span>
-                    </a>
-                </div>
             }
 
             @if (isLoggedIn)
@@ -439,3 +426,4 @@
     @RenderSection("Scripts", required: false)
 </body>
 </html>
+

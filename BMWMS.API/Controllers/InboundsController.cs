@@ -4,6 +4,7 @@ using BMWMS.Business.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using BMWMS.Business.Common;
 
 namespace BMWMS.API.Controllers;
 
@@ -340,6 +341,8 @@ public class InboundsController : ControllerBase
             ArgumentException => (StatusCodes.Status422UnprocessableEntity, "Dữ liệu phiếu nhập không hợp lệ", exception.Message),
             InvalidOperationException => (StatusCodes.Status409Conflict, "Không thể thực hiện ở trạng thái hiện tại", exception.Message),
             DbUpdateConcurrencyException => (StatusCodes.Status409Conflict, "Dữ liệu đã thay đổi", "Phiếu vừa được cập nhật bởi một thao tác khác. Vui lòng tải lại trang và kiểm tra số liệu."),
+            DbUpdateException when StocktakeLocationLockError.Is(exception) =>
+                (StatusCodes.Status409Conflict, StocktakeLocationLockError.Code, StocktakeLocationLockError.Message),
             DbUpdateException => (StatusCodes.Status409Conflict, "Không thể lưu dữ liệu", "Dữ liệu vi phạm quy tắc toàn vẹn của hệ thống. Vui lòng tải lại phiếu; nếu lỗi lặp lại, quản trị viên cần kiểm tra migration và dữ liệu hiện có."),
             _ => (StatusCodes.Status500InternalServerError, "Lỗi xử lý phiếu nhập", "Hệ thống không thể hoàn tất yêu cầu. Vui lòng thử lại hoặc liên hệ quản trị viên.")
         };

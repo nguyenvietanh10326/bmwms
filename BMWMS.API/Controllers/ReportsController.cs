@@ -79,21 +79,6 @@ public class ReportsController : ControllerBase
         }
     }
 
-    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF,SALES_STAFF")]
-    [HttpGet("product-statistics")]
-    public async Task<IActionResult> GetProductStatistics([FromQuery] ProductStatisticsFilterDto filter)
-    {
-        try
-        {
-            var result = await _reportService.GetProductStatisticsAsync(filter);
-            return Ok(result);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, ex.Message);
-        }
-    }
-
     [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF")]
     [HttpGet("supplier-statistics")]
     public async Task<IActionResult> GetSupplierStatistics([FromQuery] SupplierStatisticsFilterDto filter)
@@ -101,21 +86,6 @@ public class ReportsController : ControllerBase
         try
         {
             var result = await _reportService.GetSupplierStatisticsAsync(filter);
-            return Ok(result);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, ex.Message);
-        }
-    }
-
-    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF")]
-    [HttpGet("stocktake-statistics")]
-    public async Task<IActionResult> GetStocktakeStatistics([FromQuery] StocktakeStatisticsFilterDto filter)
-    {
-        try
-        {
-            var result = await _reportService.GetStocktakeStatisticsAsync(filter);
             return Ok(result);
         }
         catch (Exception ex)
@@ -195,16 +165,6 @@ public class ReportsController : ControllerBase
     }
 
     [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF,SALES_STAFF")]
-    [HttpGet("product-statistics/export")]
-    public async Task<IActionResult> ExportProductStatistics([FromQuery] ProductStatisticsFilterDto filter)
-    {
-        filter.PageSize = 100000;
-        var result = await _reportService.GetProductStatisticsAsync(filter);
-        var fileContent = _excelExportService.ExportProductStatistics(result.Data.Items);
-        return File(fileContent, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "ProductStatistics.xlsx");
-    }
-
-    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF,SALES_STAFF")]
     [HttpGet("supplier-statistics/export")]
     public async Task<IActionResult> ExportSupplierStatistics([FromQuery] SupplierStatisticsFilterDto filter)
     {
@@ -212,16 +172,6 @@ public class ReportsController : ControllerBase
         var result = await _reportService.GetSupplierStatisticsAsync(filter);
         var fileContent = _excelExportService.ExportSupplierStatistics(result.Data.Items);
         return File(fileContent, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "SupplierStatistics.xlsx");
-    }
-
-    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF,SALES_STAFF")]
-    [HttpGet("stocktake-statistics/export")]
-    public async Task<IActionResult> ExportStocktakeStatistics([FromQuery] StocktakeStatisticsFilterDto filter)
-    {
-        filter.PageSize = 100000;
-        var result = await _reportService.GetStocktakeStatisticsAsync(filter);
-        var fileContent = _excelExportService.ExportStocktakeStatistics(result.Data.Items);
-        return File(fileContent, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "StocktakeStatistics.xlsx");
     }
 
     [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF,SALES_STAFF")]
@@ -244,29 +194,4 @@ public class ReportsController : ControllerBase
         return File(fileBytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "ExpiringLotAlerts.xlsx");
     }
 
-    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF,PURCHASING_STAFF,SALES_STAFF")]
-    [HttpGet("overdue-orders")]
-    public async Task<IActionResult> GetOverdueOrderAlerts([FromQuery] OverdueOrderAlertFilterDto filter)
-    {
-        var result = await _reportService.GetOverdueOrderAlertsAsync(filter);
-        return Ok(result);
-    }
-
-    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF,PURCHASING_STAFF,SALES_STAFF")]
-    [HttpGet("overdue-orders/export")]
-    public async Task<IActionResult> ExportOverdueOrderAlerts([FromQuery] OverdueOrderAlertFilterDto filter)
-    {
-        filter.PageNumber = 1;
-        filter.PageSize = 100000; // Export all data
-        var result = await _reportService.GetOverdueOrderAlertsAsync(filter);
-        var fileBytes = _excelExportService.ExportOverdueOrderAlerts(result.Data.Items);
-        return File(fileBytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "OverdueOrderAlerts.xlsx");
-    }
-
-    [HttpGet("warehouse-kpi")]
-    public async Task<IActionResult> GetWarehouseKpis()
-    {
-        var result = await _reportService.GetWarehouseKpisAsync();
-        return Ok(result);
-    }
 }
