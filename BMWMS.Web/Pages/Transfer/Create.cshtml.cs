@@ -127,7 +127,7 @@ namespace BMWMS.Web.Pages.Transfer
             {
                 TransferSuccess = true;
                 TransferMessage = result.Message;
-                return RedirectToPage("/Transfer/Index");
+                return RedirectToPage("/Transfer/Details", new { id = result.TransferOrderId ?? Id });
             }
             else
             {

@@ -53,7 +53,6 @@ namespace BMWMS.Business.DTOs.StockOperations
         public int PageSize { get; set; }
         public int TotalPages => PageSize > 0 ? (int)Math.Ceiling((double)TotalCount / PageSize) : 0;
         public int DraftCount { get; set; }
-        public int ApprovedCount { get; set; }
         public int InProgressCount { get; set; }
         public int CompletedCount { get; set; }
         public int CancelledCount { get; set; }
@@ -87,10 +86,8 @@ namespace BMWMS.Business.DTOs.StockOperations
         public long? AssignedToUserId { get; set; }
         public string? ConfirmedByName { get; set; }
         public DateTime? ConfirmedAt { get; set; }
-        public bool InventoryPosted { get; set; }
         public bool CanEdit { get; set; }
         public bool CanCancel { get; set; }
-        public bool CanApprove { get; set; }
         public bool CanConfirm { get; set; }
         public decimal TotalRequestedQuantity { get; set; }
         public decimal TotalMovedQuantity { get; set; }
@@ -136,7 +133,7 @@ namespace BMWMS.Business.DTOs.StockOperations
         public decimal Quantity { get; set; }
     }
 
-    /// <summary>Manager tạo lệnh chuyển kho — hỗ trợ nhiều sản phẩm trong 1 lần chuyển</summary>
+    /// <summary>Nhân viên kho tạo phiếu điều chuyển nội bộ với nhiều dòng hàng.</summary>
     public class CreateTransferOrderDto
     {
         public long WarehouseId { get; set; } = 1;
@@ -148,12 +145,6 @@ namespace BMWMS.Business.DTOs.StockOperations
     public class UpdateTransferOrderDto : CreateTransferOrderDto
     {
         public long TransferOrderId { get; set; }
-    }
-
-    public class ApproveTransferDto
-    {
-        public long TransferOrderId { get; set; }
-        public string? Notes { get; set; }
     }
 
     public class CancelTransferDto { public string? Notes { get; set; } }

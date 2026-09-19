@@ -69,6 +69,7 @@ namespace BMWMS.Business.DTOs.Inventory
         public int StoredProductCount { get; set; }
         public int StoredLotCount { get; set; }
         public decimal TotalOnHandQuantity { get; set; }
+        public decimal TotalAvailableQuantity { get; set; }
         public string OccupancyStatus => Status.Equals("Blocked", StringComparison.OrdinalIgnoreCase) || Status.Equals("Inactive", StringComparison.OrdinalIgnoreCase)
             ? "Blocked"
             : CapacityStatus.Equals("EXCEEDED", StringComparison.OrdinalIgnoreCase) ||

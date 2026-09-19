@@ -25,7 +25,7 @@ namespace BMWMS.Business.Services.StockOperations
 
         public async Task<TransferOrderPagedResultDto> GetPagedOrdersAsync(string? keyword, string? status, long? warehouseId, int pageIndex, int pageSize, long? currentStaffId)
         {
-            var (items, total, draft, approved, completed, cancelled) = await _repository.GetPagedOrdersAsync(keyword, status, warehouseId, pageIndex, pageSize, currentStaffId);
+            var (items, total, draft, completed, cancelled) = await _repository.GetPagedOrdersAsync(keyword, status, warehouseId, pageIndex, pageSize, currentStaffId);
 
             var list = items.Select(o => new TransferOrderListDto
             {
@@ -36,8 +36,8 @@ namespace BMWMS.Business.Services.StockOperations
                 SourceLocationSummary = string.Join(", ", o.TransferOrderDetails.Select(d => d.SourceLocationId).Distinct()), // Simplified
                 DestinationLocationSummary = string.Join(", ", o.TransferOrderDetails.Select(d => d.DestinationLocationId).Distinct()),
                 Status = o.Status,
-                StatusLabel = o.Status switch { "DRAFT" => "Nháp", "APPROVED" => "Đã duyệt", "ASSIGNED" => "Phiếu cũ - chỉ xem", "COMPLETED" => "Hoàn thành", "CANCELLED" => "Đã hủy", _ => o.Status },
-                StatusCss = o.Status switch { "DRAFT" => "secondary", "APPROVED" => "primary", "COMPLETED" => "success", "CANCELLED" => "danger", _ => "secondary" },
+                StatusLabel = o.Status switch { "DRAFT" => "Chờ thực hiện", "APPROVED" => "Dữ liệu cũ - cần chuyển đổi", "ASSIGNED" => "Phiếu cũ - chỉ xem", "COMPLETED" => "Hoàn thành", "CANCELLED" => "Đã hủy", _ => o.Status },
+                StatusCss = o.Status switch { "DRAFT" => "primary", "APPROVED" => "warning", "COMPLETED" => "success", "CANCELLED" => "danger", _ => "secondary" },
                 CreatedByName = o.CreatedByUser?.FullName ?? o.CreatedByUser?.Username ?? "",
                 ApprovedByName = o.ApprovedByUser?.FullName,
                 AssignedToName = o.AssignedToUser?.FullName,
@@ -55,7 +55,7 @@ namespace BMWMS.Business.Services.StockOperations
             return new TransferOrderPagedResultDto
             {
                 Items = list, TotalCount = total, PageIndex = pageIndex, PageSize = pageSize,
-                DraftCount = draft, ApprovedCount = approved, CompletedCount = completed, CancelledCount = cancelled
+                DraftCount = draft, CompletedCount = completed, CancelledCount = cancelled
             };
         }
 
@@ -65,15 +65,13 @@ namespace BMWMS.Business.Services.StockOperations
             if (order == null) return null;
             if (!isManager && order.CreatedByUserId != currentUserId && order.AssignedToUserId != currentUserId) return null;
 
-            var inventoryPosted = order.TransferOrderDetails.Any(d => d.InventoryTransactions.Any());
-
             return new TransferOrderDetailViewDto
             {
                 TransferOrderId = order.TransferOrderId,
                 TransferOrderNumber = order.TransferOrderNumber,
                 TransferType = order.TransferType,
                 Status = order.Status,
-                StatusLabel = order.Status switch { "DRAFT" => "Nháp", "APPROVED" => "Đã duyệt", "ASSIGNED" => "Phiếu cũ - chỉ xem", "COMPLETED" => "Hoàn thành", "CANCELLED" => "Đã hủy", _ => order.Status },
+                StatusLabel = order.Status switch { "DRAFT" => "Chờ thực hiện", "APPROVED" => "Dữ liệu cũ - cần chuyển đổi", "ASSIGNED" => "Phiếu cũ - chỉ xem", "COMPLETED" => "Hoàn thành", "CANCELLED" => "Đã hủy", _ => order.Status },
                 WarehouseName = order.SourceWarehouse?.WarehouseName ?? "",
                 RequestedDate = order.RequestedDate,
                 DueDate = order.DueDate,
@@ -86,11 +84,9 @@ namespace BMWMS.Business.Services.StockOperations
                 AssignedToUserId = order.AssignedToUserId,
                 ConfirmedByName = order.ConfirmedByUser?.FullName,
                 ConfirmedAt = order.ConfirmedAt,
-                InventoryPosted = inventoryPosted,
                 CanEdit = order.Status == "DRAFT" && currentUserId == order.CreatedByUserId,
-                CanCancel = (order.Status == "DRAFT" && currentUserId == order.CreatedByUserId) || (isManager && (order.Status == "DRAFT" || order.Status == "APPROVED")),
-                CanApprove = order.Status == "DRAFT" && isManager,
-                CanConfirm = order.Status == "APPROVED" && currentUserId == order.AssignedToUserId,
+                CanCancel = order.Status == "DRAFT" && (currentUserId == order.CreatedByUserId || isManager),
+                CanConfirm = order.Status == "DRAFT" && currentUserId == order.AssignedToUserId,
                 TotalRequestedQuantity = order.TransferOrderDetails.Sum(d => d.RequestedQuantity),
                 TotalMovedQuantity = order.TransferOrderDetails.Sum(d => d.MovedQuantity),
                 Details = order.TransferOrderDetails.Select(d => new TransferOrderDetailItemDto

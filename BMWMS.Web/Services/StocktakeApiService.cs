@@ -55,24 +55,6 @@ namespace BMWMS.Web.Services
             }
         }
 
-        public async Task<List<StocktakeProductLotOptionModel>> SearchProductLotsAsync(string? keyword, int take = 20)
-        {
-            try
-            {
-                var url = $"api/stocktakes/product-lots?take={take}";
-                if (!string.IsNullOrWhiteSpace(keyword))
-                    url += $"&keyword={Uri.EscapeDataString(keyword.Trim())}";
-
-                var response = await _httpClient.GetAsync(url);
-                if (!response.IsSuccessStatusCode) return new();
-                return await response.Content.ReadFromJsonAsync<List<StocktakeProductLotOptionModel>>(JsonOptions) ?? new();
-            }
-            catch
-            {
-                return new();
-            }
-        }
-
         public async Task<StocktakeSessionPagedResultModel> GetSessionsAsync(StocktakeFilterModel filter)
         {
             try
@@ -226,19 +208,6 @@ namespace BMWMS.Web.Services
             catch (Exception ex)
             {
                 return Failure($"Lỗi kết nối: {ex.Message}");
-            }
-        }
-
-        public async Task<StocktakeActionResultModel> AddUnexpectedItemAsync(long id, UnexpectedStocktakeItemModel request)
-        {
-            try
-            {
-                var response = await _httpClient.PostAsJsonAsync($"api/stocktakes/{id}/unexpected-items", request);
-                return await ReadActionResultAsync(response);
-            }
-            catch (Exception ex)
-            {
-                return Failure($"Loi ket noi: {ex.Message}");
             }
         }
 

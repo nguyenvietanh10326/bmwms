@@ -20,7 +20,6 @@ namespace BMWMS.Repository.Repositories.Stocktake
 
         private const string ResolutionAcceptDifference = "ACCEPT_DIFFERENCE";
         private const string ResolutionNoAdjustment = "NO_ADJUSTMENT";
-        private const string ResolutionReservedShortage = ResolutionNoAdjustment;
 
         private readonly BmwmsContext _context;
 
@@ -70,31 +69,6 @@ namespace BMWMS.Repository.Repositories.Stocktake
                 .Where(u => u.Status == "ACTIVE" && u.Role != null &&
                     u.Role.RoleCode == "WAREHOUSE_STAFF")
                 .OrderBy(u => u.FullName)
-                .ToListAsync();
-        }
-
-        public async Task<List<ProductLot>> SearchProductLotsAsync(string? keyword, int take = 20)
-        {
-            var query = _context.ProductLots
-                .AsNoTracking()
-                .Include(l => l.Product).ThenInclude(p => p.UnitOfMeasure)
-                .Include(l => l.Inventories)
-                .Where(l => l.Status == "ACTIVE" && l.Product.Status == "ACTIVE")
-                .AsQueryable();
-
-            if (!string.IsNullOrWhiteSpace(keyword))
-            {
-                var kw = keyword.Trim().ToLower();
-                query = query.Where(l =>
-                    l.LotNumber.ToLower().Contains(kw) ||
-                    l.Product.ProductCode.ToLower().Contains(kw) ||
-                    l.Product.ProductName.ToLower().Contains(kw));
-            }
-
-            return await query
-                .OrderBy(l => l.Product.ProductCode)
-                .ThenBy(l => l.LotNumber)
-                .Take(Math.Clamp(take, 1, 100))
                 .ToListAsync();
         }
 
@@ -306,7 +280,15 @@ namespace BMWMS.Repository.Repositories.Stocktake
 
                 var inventories = await _context.Inventories
                     .AsNoTracking()
-                    .Where(i => locationIds.Contains(i.StorageLocationId) && i.OnHandQuantity > 0)
+                    .Where(i => locationIds.Contains(i.StorageLocationId) &&
+                        (i.OnHandQuantity > 0 || i.ReservedQuantity > 0) &&
+                        i.Product.Status == "ACTIVE" &&
+                        i.ProductLot.Status == "AVAILABLE" &&
+                        i.StorageLocation.LocationType == "BIN" &&
+                        i.StorageLocation.IsPickable &&
+                        (i.StorageLocation.Status == "ACTIVE" ||
+                         i.StorageLocation.Status == "AVAILABLE" ||
+                         i.StorageLocation.Status == "OCCUPIED"))
                     .ToListAsync();
 
                 var existingKeys = await _context.StocktakeItems
@@ -330,7 +312,7 @@ namespace BMWMS.Repository.Repositories.Stocktake
                         StorageLocationId = inventory.StorageLocationId,
                         ProductId = inventory.ProductId,
                         ProductLotId = inventory.ProductLotId,
-                        BookQuantity = inventory.OnHandQuantity
+                        BookQuantity = inventory.OnHandQuantity - inventory.ReservedQuantity
                     });
                     existingSet.Add(key);
                 }
@@ -338,6 +320,8 @@ namespace BMWMS.Repository.Repositories.Stocktake
                 var now = DateTime.UtcNow;
                 session.Status = SessionInProgress;
                 session.StartedAt = now;
+                session.Notes = AppendNote(session.Notes, "AVAILABLE_SNAPSHOT",
+                    "BookQuantity và CountedQuantity dùng số lượng khả dụng sẵn sàng xuất bán.");
 
                 await _context.SaveChangesAsync();
                 foreach (var locationId in locationIds)
@@ -509,84 +493,10 @@ namespace BMWMS.Repository.Repositories.Stocktake
             }
         }
 
-        public async Task<StocktakeItem> AddUnexpectedItemAsync(long stocktakeSessionId, long storageLocationId, long productId, long productLotId, decimal countedQuantity, long countedByUserId, string? notes)
-        {
-            await using var transaction = await _context.Database.BeginTransactionAsync();
-            try
-            {
-                if (countedQuantity <= 0)
-                    throw new InvalidOperationException("Hang phat hien them phai co so luong thuc dem lon hon 0.");
-
-                var session = await GetTrackedSessionForMutationAsync(stocktakeSessionId);
-                if (session.Status != SessionInProgress)
-                    throw new InvalidOperationException("Chỉ có thể thêm hàng phát sinh khi phiếu đang được kiểm.");
-
-                var location = session.StocktakeLocations.FirstOrDefault(l => l.StorageLocationId == storageLocationId)
-                    ?? throw new InvalidOperationException("Vị trí không nằm trong phạm vi phiếu kiểm kho.");
-
-                _ = await _context.ProductLots
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(l => l.ProductLotId == productLotId && l.ProductId == productId && l.Status == "ACTIVE")
-                    ?? throw new InvalidOperationException("Không tìm thấy lô sản phẩm đang hoạt động.");
-
-                var existing = await _context.StocktakeItems
-                    .FirstOrDefaultAsync(i =>
-                        i.StocktakeSessionId == stocktakeSessionId &&
-                        i.StorageLocationId == storageLocationId &&
-                        i.ProductId == productId &&
-                        i.ProductLotId == productLotId);
-
-                var now = DateTime.UtcNow;
-                if (existing != null)
-                {
-                    if (existing.BookQuantity != 0)
-                        throw new InvalidOperationException("Mat hang da co trong snapshot, hay nhap tren dong dem hien co.");
-
-                    existing.CountedQuantity = countedQuantity;
-                    existing.CountedByUserId = countedByUserId;
-                    existing.CountedAt = now;
-                    existing.Notes = notes;
-                    location.CountStatus = LocationCounted;
-
-                    await _context.SaveChangesAsync();
-                    await transaction.CommitAsync();
-                    return existing;
-                }
-
-                var item = new StocktakeItem
-                {
-                    StocktakeSessionId = stocktakeSessionId,
-                    StorageLocationId = storageLocationId,
-                    ProductId = productId,
-                    ProductLotId = productLotId,
-                    BookQuantity = 0,
-                    CountedQuantity = countedQuantity,
-                    CountedByUserId = countedByUserId,
-                    CountedAt = now,
-                    Notes = notes
-                };
-
-                _context.StocktakeItems.Add(item);
-                location.CountStatus = location.StocktakeItems.All(i => i.CountedQuantity.HasValue)
-                    ? LocationCounted
-                    : LocationInProgress;
-
-                await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
-                return item;
-            }
-            catch
-            {
-                await transaction.RollbackAsync();
-                throw;
-            }
-        }
-
         public async Task<StocktakeSession> ApproveSessionAsync(
             long stocktakeSessionId,
             long approvedByUserId,
-            string? notes,
-            IReadOnlySet<long> exceptionItemIds)
+            string? notes)
         {
             var ownedTransaction = _context.Database.CurrentTransaction == null
                 ? await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable)
@@ -605,14 +515,6 @@ namespace BMWMS.Repository.Repositories.Stocktake
                 {
                     if (!item.CountedQuantity.HasValue)
                         throw new InvalidOperationException("Còn dòng kiểm kho chưa có số đếm.");
-
-                    if (exceptionItemIds.Contains(item.StocktakeItemId))
-                    {
-                        item.Resolution = ResolutionReservedShortage;
-                        item.AdjustmentQuantity = null;
-                        item.Notes = AppendNote(item.Notes, "RESERVED_SHORTAGE", "Không khớp tồn do số đếm nhỏ hơn số lượng đã giữ.");
-                        continue;
-                    }
 
                     var diff = CalculateDifference(item);
                     if (diff == 0)

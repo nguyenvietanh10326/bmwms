@@ -14,7 +14,6 @@ namespace BMWMS.Repository.Interfaces.Stocktake
         Task<List<Warehouse>> GetActiveWarehousesAsync();
         Task<List<StorageLocation>> GetActiveLocationsByWarehouseAsync(long warehouseId, List<long>? rackIds = null, List<long>? productGroupIds = null);
         Task<List<User>> GetAssignableUsersAsync();
-        Task<List<ProductLot>> SearchProductLotsAsync(string? keyword, int take = 20);
 
         Task<(List<StocktakeSession> Items, int TotalCount, int ScheduledCount, int InProgressCount, int CountedCount, int PendingApprovalCount, int CompletedCount, int CancelledCount)>
             GetPagedSessionsAsync(
@@ -36,8 +35,7 @@ namespace BMWMS.Repository.Interfaces.Stocktake
         Task<StocktakeSession> SaveCountsAsync(long stocktakeSessionId, long storageLocationId, List<StocktakeCountUpdateParam> lines, long countedByUserId, string? notes);
         Task<StocktakeSession> SaveSessionCountsAsync(long stocktakeSessionId, List<StocktakeCountUpdateParam> lines, List<long> confirmedEmptyLocationIds, long countedByUserId);
         Task<StocktakeSession> SubmitSessionAsync(long stocktakeSessionId, long submittedByUserId);
-        Task<StocktakeItem> AddUnexpectedItemAsync(long stocktakeSessionId, long storageLocationId, long productId, long productLotId, decimal countedQuantity, long countedByUserId, string? notes);
-        Task<StocktakeSession> ApproveSessionAsync(long stocktakeSessionId, long approvedByUserId, string? notes, IReadOnlySet<long> exceptionItemIds);
+        Task<StocktakeSession> ApproveSessionAsync(long stocktakeSessionId, long approvedByUserId, string? notes);
         Task<StocktakeSession> RejectSessionAsync(long stocktakeSessionId, long rejectedByUserId, string reason);
     }
 }

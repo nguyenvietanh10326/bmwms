@@ -6,7 +6,6 @@ namespace BMWMS.Web.Services
     {
         Task<List<StocktakeLocationOptionModel>> GetLocationsAsync(long warehouseId, List<long>? rackIds = null, List<long>? productGroupIds = null);
         Task<List<StocktakeStaffOptionModel>> GetStaffUsersAsync();
-        Task<List<StocktakeProductLotOptionModel>> SearchProductLotsAsync(string? keyword, int take = 20);
 
         Task<StocktakeSessionPagedResultModel> GetSessionsAsync(StocktakeFilterModel filter);
         Task<StocktakeSessionDetailModel?> GetSessionByIdAsync(long id);
@@ -18,7 +17,6 @@ namespace BMWMS.Web.Services
         Task<StocktakeActionResultModel> SaveCountsAsync(long id, long locationId, List<StocktakeCountLineModel> lines);
         Task<StocktakeActionResultModel> SaveSessionCountsAsync(long id, SaveStocktakeSessionCountsModel request);
         Task<StocktakeActionResultModel> SubmitSessionAsync(long id);
-        Task<StocktakeActionResultModel> AddUnexpectedItemAsync(long id, UnexpectedStocktakeItemModel request);
         Task<StocktakeActionResultModel> ApproveSessionAsync(long id, StocktakeNoteModel request);
         Task<StocktakeActionResultModel> RejectSessionAsync(long id, string reason);
     }

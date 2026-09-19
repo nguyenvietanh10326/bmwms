@@ -37,14 +37,6 @@ namespace BMWMS.API.Controllers
             return Ok(result);
         }
 
-        [HttpGet("product-lots")]
-        [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF")]
-        public async Task<IActionResult> SearchProductLots([FromQuery] string? keyword, [FromQuery] int take = 20)
-        {
-            var result = await _stocktakeService.SearchProductLotsAsync(keyword, take);
-            return Ok(result);
-        }
-
         // UC33 - Xem danh sách phiếu kiểm kho
         [HttpGet]
         [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF")]
@@ -135,21 +127,6 @@ namespace BMWMS.API.Controllers
         public async Task<IActionResult> SubmitSession(long id)
         {
             var result = await _stocktakeService.SubmitSessionAsync(id, GetCurrentUserId());
-            if (!result.Success)
-                return BadRequest(new { message = result.Message });
-
-            return Ok(result);
-        }
-
-        // UC35 - Them hang phat sinh
-        [HttpPost("{id:long}/unexpected-items")]
-        [Authorize(Roles = "WAREHOUSE_STAFF")]
-        public async Task<IActionResult> AddUnexpectedItem(long id, [FromBody] UnexpectedStocktakeItemDto request)
-        {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
-            var result = await _stocktakeService.AddUnexpectedItemAsync(id, request, GetCurrentUserId(), CanManage());
             if (!result.Success)
                 return BadRequest(new { message = result.Message });
 

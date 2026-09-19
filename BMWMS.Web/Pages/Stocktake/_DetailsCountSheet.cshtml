@@ -4,13 +4,13 @@
     var emptyLocations = Model.Locations.Where(location => location.TotalItems == 0).ToList();
 }
 <section class="stocktake-section stocktake-count-sheet">
-    <div class="stocktake-section__heading"><div><h2>Nhập số lượng kiểm kho</h2><p>Nhập số lượng thực tế cho toàn bộ sản phẩm và vị trí trong phiếu.</p></div></div>
+    <div class="stocktake-section__heading"><div><h2>Nhập số lượng kiểm kho</h2><p>Nhập số lượng khả dụng thực đếm, sẵn sàng xuất bán.</p></div></div>
     <form method="post" asp-route-id="@Model.StocktakeSessionId" id="stocktakeCountForm">
         @Html.AntiForgeryToken()
         <input type="hidden" name="id" value="@Model.StocktakeSessionId" />
         <div class="table-responsive">
             <table class="table table-hover stocktake-table stocktake-entry-table">
-                <thead><tr><th>Vị trí</th><th>Sản phẩm</th><th>Lô</th><th class="text-end">Tồn theo sổ sách</th><th style="width:190px">Số lượng thực đếm</th><th>Ghi chú</th></tr></thead>
+                <thead><tr><th>Vị trí</th><th>Sản phẩm</th><th>Lô</th><th class="text-end">Khả dụng theo sổ</th><th style="width:190px">Khả dụng thực đếm</th><th>Ghi chú</th></tr></thead>
                 <tbody>
                 @for (var index = 0; index < Model.Items.Count; index++)
                 {
@@ -25,7 +25,7 @@
                             <input type="number" class="form-control form-control-sm text-end counted-input" name="Lines[@index].CountedQuantity"
                                    value="@(item.CountedQuantity?.ToString(System.Globalization.CultureInfo.InvariantCulture))"
                                    min="0" step="@(item.QuantityScale == 0 ? "1" : "0." + new string('0', item.QuantityScale - 1) + "1")"
-                                   inputmode="decimal" aria-label="Số lượng thực đếm @item.ProductCode tại @item.LocationCode" />
+                                   inputmode="decimal" aria-label="Số lượng khả dụng thực đếm @item.ProductCode tại @item.LocationCode" />
                         </td>
                         <td><input class="form-control form-control-sm" name="Lines[@index].Notes" value="@item.Notes" maxlength="1000" /></td>
                     </tr>
@@ -36,7 +36,7 @@
         @if (emptyLocations.Count > 0)
         {
             <div class="empty-location-panel">
-                <h3>Vị trí không có tồn theo sổ sách</h3><p>Xác nhận thực tế vị trí trống trước khi gửi phiếu.</p>
+                <h3>Vị trí không có hàng khả dụng theo sổ</h3><p>Xác nhận không có hàng sẵn sàng xuất bán trước khi gửi phiếu.</p>
                 <div class="empty-location-grid">
                 @foreach (var location in emptyLocations)
                 {
