@@ -28,6 +28,8 @@ public class InboundRepository : IInboundRepository
         int pageSize, string? sortOrder = null)
     {
         var query = _context.InboundOrders
+            .Include(x => x.ReturnRequest).ThenInclude(r => r!.Customer)
+            .Include(x => x.ReturnRequest).ThenInclude(r => r!.Items).ThenInclude(i => i.Allocations).ThenInclude(a => a.SalesOrderDetail).ThenInclude(d => d.SalesOrder)
             .Include(x => x.PurchaseOrder)
                 .ThenInclude(p => p.Supplier)
             .Include(x => x.SalesOrder)
@@ -57,6 +59,8 @@ public class InboundRepository : IInboundRepository
                 (x.PurchaseOrder != null && x.PurchaseOrder.PurchaseOrderNumber.ToLower().Contains(lowerKeyword)) ||
                 (x.PurchaseOrder != null && x.PurchaseOrder.Supplier != null && x.PurchaseOrder.Supplier.SupplierName.ToLower().Contains(lowerKeyword)) ||
                 (x.SalesOrder != null && x.SalesOrder.Customer.CustomerName.ToLower().Contains(lowerKeyword)) ||
+                (x.ReturnRequest != null && (x.ReturnRequest.RequestNumber.ToLower().Contains(lowerKeyword) || x.ReturnRequest.Customer.CustomerName.ToLower().Contains(lowerKeyword))) ||
+                (x.ReturnRequest != null && x.ReturnRequest.Items.Any(i => i.Allocations.Any(a => a.SalesOrderDetail.SalesOrder.SalesOrderNumber.ToLower().Contains(lowerKeyword)))) ||
                 (x.SalesOrder != null && x.SalesOrder.SalesOrderNumber.ToLower().Contains(lowerKeyword))
             );
         }
@@ -106,6 +110,9 @@ public class InboundRepository : IInboundRepository
     public async Task<InboundOrder?> GetByIdAsync(long id)
     {
         return await _context.InboundOrders
+            .Include(i => i.ReturnRequest).ThenInclude(r => r!.Customer)
+            .Include(i => i.ReturnRequest).ThenInclude(r => r!.Items).ThenInclude(i => i.Allocations).ThenInclude(a => a.SalesOrderDetail).ThenInclude(d => d.SalesOrder)
+            .Include(i => i.InboundOrderItems).ThenInclude(i => i.ReturnRequestItem).ThenInclude(i => i!.Allocations)
             .Include(i => i.PurchaseOrder)
                 .ThenInclude(p => p.Supplier)
             .Include(i => i.SalesOrder)

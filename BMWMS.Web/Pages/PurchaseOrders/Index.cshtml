@@ -45,6 +45,7 @@
   .status-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 100px; font-size: 13px; font-weight: 500; }
   .status-badge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; }
   .status-draft { background: var(--gy-bg); color: var(--gy-tx); } .status-draft::before { background: var(--gy-dot); }
+  .status-approved { background: var(--b-bg); color: var(--b-tx); } .status-approved::before { background: var(--b-dot); }
   .status-confirmed { background: var(--b-bg); color: var(--b-tx); } .status-confirmed::before { background: var(--b-dot); }
   .status-pending_confirmation, .status-pending_receipt_review { background: var(--y-bg); color: var(--y-tx); }
   .status-pending_confirmation::before, .status-pending_receipt_review::before { background: var(--y-dot); }
@@ -53,9 +54,11 @@
   .status-received::before, .status-completed::before { background: var(--g-dot); }
   .status-closed { background: var(--g-bg); color: var(--g-tx); } .status-closed::before { background: var(--g-dot); }
   .status-cancelled { background: var(--r-bg); color: var(--r-tx); } .status-cancelled::before { background: var(--r-dot); }
+  .status-rejected { background: var(--r-bg); color: var(--r-tx); } .status-rejected::before { background: var(--r-dot); }
 </style>
 
 <div class="inbound-page">
+    @if (!ViewData.ModelState.IsValid) { <div asp-validation-summary="All" class="alert alert-danger"></div> }
     <div class="ib-header">
         <h1 class="ib-title">Đơn mua hàng</h1>
         <div class="ib-actions">
@@ -72,19 +75,20 @@
             <label style="font-size: 13px; font-weight: 500; color: var(--ink-2); display:block; margin-bottom:6px;">Trạng thái</label>
             <select name="status" style="padding:9px 12px; border:1px solid var(--line); border-radius:6px; font-size:13px; background:#fff; min-width:180px;">
                 <option value="">Tất cả</option>
+                <option value="APPROVED" selected="@(Model.Status == "APPROVED")">Đã duyệt — chờ gửi NCC</option>
                 <option value="DRAFT" selected="@(Model.Status == "DRAFT")">Nháp</option>
                 <option value="CONFIRMED" selected="@(Model.Status == "CONFIRMED")">Đã xác nhận</option>
-                <option value="PENDING_RECEIPT_REVIEW" selected="@(Model.Status == "PENDING_RECEIPT_REVIEW")">Chờ duyệt nhận tiếp</option>
                 <option value="PARTIALLY_RECEIVED" selected="@(Model.Status == "PARTIALLY_RECEIVED")">Đã nhận một phần</option>
                 <option value="COMPLETED" selected="@(Model.Status == "COMPLETED")">Hoàn tất</option>
                 <option value="CANCELLED" selected="@(Model.Status == "CANCELLED")">Đã hủy</option>
+                <option value="REJECTED" selected="@(Model.Status == "REJECTED")">Bị từ chối</option>
             </select>
         </div>
         <div class="filter-group" style="display:flex; gap:8px;">
             <button type="submit" class="btn btn-dark" style="background:#233a6b; color:#fff; border:none; padding:9px 16px; border-radius:6px; font-weight:500;">Tìm kiếm</button>
             <a href="/PurchaseOrders/Index" class="btn btn-sub" style="padding: 9px 16px; border: 1px solid var(--line); border-radius: 6px; font-weight: 500; font-size: 14px; text-decoration: none; color: var(--ink-2); background: #fff;">Đặt lại</a>
         </div>
-    <div class="col-md-3 filter-group"><label class="form-label">Sắp xếp</label><select asp-for="SortOrder" class="form-select"><option value="newest">Mới nhất</option><option value="oldest">Cũ nhất</option></select></div></form>
+    <div class="col-md-3 filter-group"><label class="form-label">Sắp xếp</label><select asp-for="SortOrder" class="form-select"><option value="approval">Ưu tiên cần duyệt</option><option value="priority">Ưu tiên cần nhập</option><option value="expected">Ngày giao dự kiến</option><option value="newest">Mới nhất</option><option value="oldest">Cũ nhất</option></select></div></form>
 
 
 
@@ -117,6 +121,8 @@
                             </td>
                             <td>
                                 <a href="/PurchaseOrders/Detail?id=@po.PurchaseOrderId" style="color:var(--ink-2); text-decoration:underline;">Chi tiết</a>
+                                @if (po.CanExternalCancel && (User.IsInRole("WAREHOUSE_MANAGER") || User.IsInRole("SYSTEM_ADMIN")))
+                                { <a asp-page="/Orders/CancelApproved" asp-route-Type="PO" asp-route-Id="@po.PurchaseOrderId" class="btn btn-sm btn-outline-danger ms-2">Ghi nhận NCC yêu cầu hủy</a> }
                             </td>
                         </tr>
                     }
@@ -150,14 +156,15 @@
     string StatusLabel(string status) => status switch
     {
         "DRAFT" => "Nháp",
-        "PENDING_CONFIRMATION" => "Đã xác nhận",
+        "PENDING_CONFIRMATION" => "Nháp",
+        "APPROVED" => "Đã duyệt — chờ gửi NCC",
         "CONFIRMED" => "Đã xác nhận",
-        "PENDING_RECEIPT_REVIEW" => "Chờ duyệt nhận tiếp",
+        "PENDING_RECEIPT_REVIEW" => "Đã nhận một phần",
         "PENDING_REMAINDER_CONFIRMATION" => "Đã nhận một phần",
         "PARTIALLY_RECEIVED" => "Đã nhận một phần",
         "RECEIVED" or "COMPLETED" => "Hoàn tất",
         "CLOSED" => "Hoàn tất",
-        "REJECTED" => "Đã hủy (dữ liệu cũ)",
+        "REJECTED" => "Bị từ chối",
         "CANCELLED" => "Đã hủy",
         _ => status
     };

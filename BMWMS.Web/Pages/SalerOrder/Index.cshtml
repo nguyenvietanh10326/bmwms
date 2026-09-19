@@ -86,7 +86,7 @@
                     <i class="bi bi-funnel me-1"></i>Áp dụng
                 </button>
             </div>
-        <div class="col-md-3 filter-group"><label class="form-label">Sắp xếp</label><select asp-for="SortOrder" class="form-select"><option value="newest">Mới nhất</option><option value="oldest">Cũ nhất</option></select></div></form>
+        <div class="col-md-3 filter-group"><label class="form-label">Sắp xếp</label><select asp-for="SortOrder" class="form-select"><option value="approval">Ưu tiên cần duyệt</option><option value="priority">Ưu tiên cần xuất</option><option value="expected">Ngày dự kiến xuất</option><option value="newest">Mới nhất</option><option value="oldest">Cũ nhất</option></select></div></form>
     </div>
 </div>
 
@@ -98,7 +98,7 @@
                     <tr>
                         <th class="ps-4">Mã đơn bán hàng</th>
                         <th>Khách hàng</th>
-                        <th>Ngày đặt / dự kiến xuất</th>
+                        <th>Ngày đặt</th><th>Dự kiến xuất</th>
                         <th>Trạng thái</th>
                         <th class="text-center">Mặt hàng</th>
                         <th>Người tạo</th>
@@ -122,9 +122,7 @@
                                 </td>
                                 <td>
                                     <span class="d-block">@item.OrderDate.ToString("dd/MM/yyyy")</span>
-                                    <span class="text-muted small">
-                                        Dự kiến: @(item.ExpectedIssueDate?.ToString("dd/MM/yyyy") ?? "Chưa xác định")
-                                    </span>
+                                    </td><td>@(item.ExpectedIssueDate?.ToString("dd/MM/yyyy") ?? "—")
                                 </td>
                                 <td>
                                     <span class="badge border px-3 py-2 fw-normal @Model.GetStatusBadgeClass(item.Status)">
@@ -141,6 +139,8 @@
                                     <span class="text-muted small">@item.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
                                 </td>
                                 <td class="text-end pe-4">
+                                    @if (item.CanExternalCancel && (User.IsInRole("WAREHOUSE_MANAGER") || User.IsInRole("SYSTEM_ADMIN")))
+                                    { <a asp-page="/Orders/CancelApproved" asp-route-Type="SO" asp-route-Id="@item.SalesOrderId" class="btn btn-sm btn-outline-danger">Ghi nhận khách yêu cầu hủy</a> }
                                     @if (item.PendingOutboundReviewId.HasValue && (User.IsInRole("WAREHOUSE_MANAGER") || User.IsInRole("SYSTEM_ADMIN")))
                                     {
                                         <a href="/sales-orders/details/@item.SalesOrderId" class="btn btn-sm btn-primary">Duyệt đợt xuất</a>
@@ -156,7 +156,7 @@
                     else
                     {
                         <tr>
-                            <td colspan="7" class="text-center py-5">
+                            <td colspan="8" class="text-center py-5">
                                 <i class="bi bi-inbox fs-2 text-muted d-block mb-2"></i>
                                 <span class="fw-semibold d-block">Không có đơn bán hàng phù hợp</span>
                                 <span class="text-muted small">Hãy thay đổi điều kiện tìm kiếm hoặc xóa bộ lọc.</span>

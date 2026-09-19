@@ -58,11 +58,11 @@ public class InboundService : IInboundService
                 InboundOrderId = x.InboundOrderId,
                 InboundOrderNumber = x.InboundOrderNumber,
                 SupplierName = x.SourceType == "SALES_RETURN"
-                    ? x.SalesOrder?.Customer?.CustomerName ?? "Không xác định"
+                    ? x.ReturnRequest?.Customer?.CustomerName ?? x.SalesOrder?.Customer?.CustomerName ?? "Không xác định"
                     : x.PurchaseOrder?.Supplier?.SupplierName ?? "Không xác định",
                 SourceType = x.SourceType,
                 SourceReference = x.SourceType == "SALES_RETURN"
-                    ? x.SalesOrder?.SalesOrderNumber ?? string.Empty
+                    ? CustomerReturnSourceOrder(x)?.SalesOrderNumber ?? x.ReturnRequest?.RequestNumber ?? x.SalesOrder?.SalesOrderNumber ?? string.Empty
                     : x.PurchaseOrder?.PurchaseOrderNumber ?? string.Empty,
                 ExpectedReceiptDate = x.ExpectedReceiptDate,
                 Status = GetInboundDisplayStatus(x),
@@ -79,24 +79,36 @@ public class InboundService : IInboundService
     {
         var order = await _inboundRepository.GetByIdAsync(id);
         if (order == null) return null;
+        var returnSourceOrder = CustomerReturnSourceOrder(order);
+        var returnSourceOrderId = returnSourceOrder?.SalesOrderId;
+        var actualDelivered = order.ReturnRequest != null
+            ? await _context.InventoryTransactions.Where(t => t.TransactionType == "OUTBOUND" && t.OutboundOrderDetail != null &&
+                t.OutboundOrderDetail.OutboundOrderItem.OutboundOrder.SourceType == "SALES_ORDER" &&
+                t.OutboundOrderDetail.OutboundOrderItem.OutboundOrder.Status == "COMPLETED" &&
+                t.OutboundOrderDetail.OutboundOrderItem.OutboundOrder.SalesOrder!.CustomerId == order.ReturnRequest.CustomerId &&
+                (!returnSourceOrderId.HasValue || t.OutboundOrderDetail.OutboundOrderItem.OutboundOrder.SalesOrderId == returnSourceOrderId))
+                .GroupBy(t => t.ProductId).Select(g => new { ProductId = g.Key, Quantity = -g.Sum(t => t.OnHandDelta) })
+                .ToDictionaryAsync(x => x.ProductId, x => x.Quantity)
+            : new Dictionary<long, decimal>();
 
         var dto = new InboundOrderDetailDto
         {
+            ReturnRequestId = order.ReturnRequestId,
             InboundOrderId = order.InboundOrderId,
             InboundOrderNumber = order.InboundOrderNumber,
             PurchaseOrderNumber = order.PurchaseOrder?.PurchaseOrderNumber,
             PurchaseOrderId = order.PurchaseOrderId,
-            SalesOrderNumber = order.SalesOrder?.SalesOrderNumber,
-            SalesOrderId = order.SalesOrderId,
+            SalesOrderNumber = returnSourceOrder?.SalesOrderNumber ?? order.SalesOrder?.SalesOrderNumber,
+            SalesOrderId = returnSourceOrder?.SalesOrderId ?? order.SalesOrderId,
             SourceType = order.SourceType,
             SourceReference = order.SourceType == "SALES_RETURN"
-                ? order.SalesOrder?.SalesOrderNumber ?? string.Empty
+                ? returnSourceOrder?.SalesOrderNumber ?? order.ReturnRequest?.RequestNumber ?? order.SalesOrder?.SalesOrderNumber ?? string.Empty
                 : order.PurchaseOrder?.PurchaseOrderNumber ?? string.Empty,
             PartnerName = order.SourceType == "SALES_RETURN"
-                ? order.SalesOrder?.Customer?.CustomerName ?? string.Empty
+                ? order.ReturnRequest?.Customer?.CustomerName ?? order.SalesOrder?.Customer?.CustomerName ?? string.Empty
                 : order.PurchaseOrder?.Supplier?.SupplierName ?? string.Empty,
             SupplierName = order.SourceType == "SALES_RETURN"
-                ? order.SalesOrder?.Customer?.CustomerName ?? string.Empty
+                ? order.ReturnRequest?.Customer?.CustomerName ?? order.SalesOrder?.Customer?.CustomerName ?? string.Empty
                 : order.PurchaseOrder?.Supplier?.SupplierName ?? string.Empty,
             WarehouseName = order.Warehouse?.WarehouseName ?? "",
             WarehouseId = order.WarehouseId,
@@ -114,7 +126,8 @@ public class InboundService : IInboundService
             Items = order.InboundOrderItems.OrderBy(i => i.InboundOrderItemId).Select(i => new InboundOrderItemDto
             {
                 SourceDeliveredQuantity = order.SourceType == "SALES_RETURN"
-                    ? order.SalesOrder?.SalesOrderDetails.FirstOrDefault(d => d.ProductId == i.ProductId)?.FulfilledQuantity : null,
+                    ? order.ReturnRequestId.HasValue ? actualDelivered.GetValueOrDefault(i.ProductId)
+                        : order.SalesOrder?.SalesOrderDetails.FirstOrDefault(d => d.ProductId == i.ProductId)?.FulfilledQuantity : null,
                 InboundOrderItemId = i.InboundOrderItemId,
                 ProductId = i.ProductId,
                 ProductCode = i.Product.ProductCode,
@@ -246,13 +259,14 @@ public class InboundService : IInboundService
     public async Task StartSalesReturnAsync(long id, long currentUserId)
     {
         await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
-        var order = await _context.InboundOrders.Include(o => o.ConfirmedByUser).ThenInclude(u => u.Role)
+        await OrderWorkflowLock.AcquireAsync(_context, "INBOUND", id);
+        var order = await _context.InboundOrders.Include(o => o.ConfirmedByUser).ThenInclude(u => u!.Role)
             .FirstOrDefaultAsync(o => o.InboundOrderId == id)
             ?? throw new InvalidOperationException("Không tìm thấy lệnh nhận trả.");
         await EnsureWarehouseStaffCreatorAsync(currentUserId);
         await EnsureAssignedUserAsync(order.AssignedToUserId, currentUserId, "bắt đầu nhận trả");
         if (order.SourceType != "SALES_RETURN" || order.Status != "ASSIGNED" ||
-            order.ConfirmedByUser?.Role.RoleCode is not ("WAREHOUSE_MANAGER" or "SYSTEM_ADMIN"))
+            order.ConfirmedByUser?.Role?.RoleCode is not ("WAREHOUSE_MANAGER" or "SYSTEM_ADMIN"))
             throw new InvalidOperationException("Chỉ được bắt đầu lệnh nhận trả đã được Quản lý kho duyệt và giao.");
         order.Status = "IN_PROGRESS";
         await _auditLogService.StageAsync(new AuditEventDto { UserId = currentUserId, ActionType = "START_CUSTOMER_RETURN",
@@ -263,9 +277,14 @@ public class InboundService : IInboundService
 
     public async Task RecordSalesReturnReceiptAsync(long id, RecordSalesReturnReceiptDto dto, long currentUserId)
     {
+        var returnCustomerId = await _context.InboundOrders.AsNoTracking().Where(o => o.InboundOrderId == id && o.ReturnRequestId != null)
+            .Select(o => (long?)o.ReturnRequest!.CustomerId).SingleOrDefaultAsync();
         await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+        await OrderWorkflowLock.AcquireAsync(_context, "INBOUND", id);
+        if (returnCustomerId.HasValue) await OrderWorkflowLock.AcquireAsync(_context, "CUSTOMER_RETURN", returnCustomerId.Value);
         var order = await _context.InboundOrders
-            .Include(o => o.ConfirmedByUser).ThenInclude(u => u.Role)
+            .Include(o => o.ConfirmedByUser).ThenInclude(u => u!.Role)
+            .Include(o => o.ReturnRequest)
             .Include(o => o.InboundOrderItems).ThenInclude(i => i.Product).ThenInclude(p => p.UnitOfMeasure)
             .Include(o => o.InboundOrderItems).ThenInclude(i => i.InboundOrderDetails)
             .FirstOrDefaultAsync(o => o.InboundOrderId == id)
@@ -278,6 +297,14 @@ public class InboundService : IInboundService
         if (order.InboundOrderItems.Any(i => i.ReceivedQuantity > 0 || i.InboundOrderDetails.Count > 0))
             throw new InvalidOperationException("Đợt này đã ghi nhận hàng. Không được ghi nhận lặp.");
         var today = DateOnly.FromDateTime(DateTime.Today);
+        if (order.ReturnRequestId.HasValue)
+        {
+            if (order.ReturnRequest == null || order.ReturnRequest.Status is not ("APPROVED" or "PARTIALLY_RECEIVED"))
+                throw new InvalidOperationException("Yêu cầu nhận trả chưa duyệt hoặc đã kết thúc.");
+            await _context.Entry(order.ReturnRequest).ReloadAsync();
+            if (order.ReturnRequest.Status is not ("APPROVED" or "PARTIALLY_RECEIVED"))
+                throw new InvalidOperationException("Yêu cầu nhận trả đã kết thúc ở phiên khác.");
+        }
         if (dto.ReceiptDate == default || dto.ReceiptDate > today)
             throw new ArgumentException("Ngày nhận thực tế phải hợp lệ và không nằm trong tương lai.");
         var rows = dto.Items ?? new List<SalesReturnReceiptLineDto>();
@@ -302,8 +329,25 @@ public class InboundService : IInboundService
                 d.InboundOrderItem.InboundOrder.SalesOrderId == order.SalesOrderId && d.InboundOrderId != id &&
                 d.InboundOrderItem.InboundOrder.Status == "COMPLETED" && d.ConditionStatus == "GOOD" && d.ProductId == item.ProductId)
                 .SumAsync(d => (decimal?)d.ReceivedQuantity) ?? 0;
-            if (row.ActualQuantity > delivered - previouslyReturned)
+            if (!order.ReturnRequestId.HasValue && row.ActualQuantity > delivered - previouslyReturned)
                 throw new ArgumentException("Tổng hàng khách trả không được vượt số đã giao thực tế từ SO.");
+            if (order.ReturnRequestId.HasValue)
+            {
+                var sourceItem = await _context.CustomerReturnRequestItems.Include(i => i.Allocations)
+                    .SingleOrDefaultAsync(i => i.CustomerReturnRequestItemId == item.ReturnRequestItemId &&
+                        i.CustomerReturnRequestId == order.ReturnRequestId && i.ProductId == item.ProductId)
+                    ?? throw new InvalidOperationException("Dòng nhận trả không khớp yêu cầu đã duyệt.");
+                var remaining = row.ActualQuantity;
+                foreach (var a in sourceItem.Allocations.OrderBy(a => a.CustomerReturnSourceAllocationId))
+                {
+                    var take = Math.Min(remaining, a.AllocatedQuantity - a.ReceivedQuantity);
+                    a.ReceivedQuantity += take;
+                    remaining -= take;
+                }
+                if (remaining > 0) throw new ArgumentException("Số nhận trả vượt ngân sách yêu cầu đã duyệt.");
+                order.ReturnRequest!.Status = "PARTIALLY_RECEIVED";
+                _context.Entry(order.ReturnRequest).Property(r => r.Status).IsModified = true;
+            }
             isShort |= row.ActualQuantity < item.ExpectedQuantity;
             item.ReceivedQuantity = row.ActualQuantity;
             item.ShortageQuantity = item.ExpectedQuantity - row.ActualQuantity;
@@ -338,8 +382,12 @@ public class InboundService : IInboundService
 
     public async Task<long> CreateInboundOrderAsync(CreateInboundOrderDto dto, long currentUserId, bool authorizeSalesReturn = false)
     {
+        if (authorizeSalesReturn)
+            throw new InvalidOperationException("Không được tự tạo phiếu nhập khách trả chưa có chấp thuận. Sales lập phiếu tham chiếu SO, Manager duyệt rồi nhân viên kho tạo đợt nhận từ phiếu đã duyệt.");
         dto.SourceType = (dto.SourceType ?? string.Empty).Trim().ToUpperInvariant();
         await using var assignmentTransaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+        if (dto.PurchaseOrderId.HasValue) await OrderWorkflowLock.AcquireAsync(_context, "PO", dto.PurchaseOrderId.Value);
+        if (dto.SalesOrderId.HasValue) await OrderWorkflowLock.AcquireAsync(_context, "SO", dto.SalesOrderId.Value);
         if (authorizeSalesReturn)
         {
             var manager = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == currentUserId);
@@ -615,7 +663,7 @@ public class InboundService : IInboundService
 
         var inboundItems = inbounds.SelectMany(order => order.InboundOrderItems).ToList();
         var snapshots = new Dictionary<long, PurchaseOrderLineReceiptSnapshot>();
-        foreach (var detail in po.PurchaseOrderDetails)
+        foreach (var detail in po.PurchaseOrderDetails.Where(d => d.IsActive))
         {
             snapshots[detail.ProductId] = PurchaseOrderReceiptRules.CalculateLine(
                 detail.OrderedQuantity,
@@ -664,7 +712,7 @@ public class InboundService : IInboundService
             }).ToList()
         };
 
-        foreach (var detail in po.PurchaseOrderDetails)
+        foreach (var detail in po.PurchaseOrderDetails.Where(d => d.IsActive))
         {
             var snapshot = snapshots[detail.ProductId];
 
@@ -713,8 +761,7 @@ public class InboundService : IInboundService
                     .ThenInclude(item => item.InboundOrderDetails)
             .Where(po => po.Status == "CONFIRMED" || po.Status == "PARTIALLY_RECEIVED" ||
                          po.Status == "PARTIALLYRECEIVED" ||
-                         po.Status == "PENDING_CONFIRMATION" ||
-                         po.Status == "PENDING_REMAINDER_CONFIRMATION")
+                         po.Status == "PENDING_REMAINDER_CONFIRMATION" || po.Status == "PENDING_RECEIPT_REVIEW")
             .Where(po => po.Supplier != null &&
                          (po.Supplier.Status == "ACTIVE" || po.Supplier.Status == "AVAILABLE"))
             .ToListAsync();
@@ -726,7 +773,7 @@ public class InboundService : IInboundService
                 .Where(order => order.Status != "CANCELLED")
                 .SelectMany(order => order.InboundOrderItems)
                 .ToList();
-            var snapshots = po.PurchaseOrderDetails.Select(detail =>
+            var snapshots = po.PurchaseOrderDetails.Where(d => d.IsActive).Select(detail =>
                 PurchaseOrderReceiptRules.CalculateLine(
                     detail.OrderedQuantity,
                     activeInboundItems.Where(item => item.ProductId == detail.ProductId)))
@@ -767,7 +814,7 @@ public class InboundService : IInboundService
                     po.PurchaseOrderNumber,
                     po.Supplier?.SupplierCode ?? string.Empty,
                     po.Supplier?.SupplierName ?? string.Empty,
-                    string.Join(' ', po.PurchaseOrderDetails.Select(detail =>
+                    string.Join(' ', po.PurchaseOrderDetails.Where(d => d.IsActive).Select(detail =>
                         $"{detail.Product.ProductCode} {detail.Product.ProductName}"))
                 }).ToLowerInvariant()
             });
@@ -789,7 +836,6 @@ public class InboundService : IInboundService
             .Include(so => so.InboundOrders)
                 .ThenInclude(io => io.InboundOrderItems)
                     .ThenInclude(item => item.InboundOrderDetails)
-            .Where(so => !so.OutboundOrders.Any(o => o.Status == "PENDING_APPROVAL"))
             .Where(so => so.Status == "ISSUED"
                       || so.Status == "PARTIALLY_ISSUED"
                       || so.Status == "FULFILLED"
@@ -821,14 +867,7 @@ public class InboundService : IInboundService
     public async Task<List<AvailableWarehouseStaffDto>> GetAvailableWarehouseStaffAsync()
     {
         return await _context.Users
-            .Where(u => u.Status == "ACTIVE" && u.Role.RoleCode == "WAREHOUSE_STAFF" &&
-                        !u.InboundOrderAssignedToUsers.Any(o =>
-                            o.Status != "CANCELLED" && o.Status != "PUTAWAY_COMPLETED" &&
-                            (o.Status != "COMPLETED" ||
-                             o.InboundOrderItems.SelectMany(i => i.InboundOrderDetails)
-                                 .Any(d => d.ConditionStatus == "GOOD" && d.InventoryTransaction == null))) &&
-                        !u.OutboundOrderAssignedToUsers.Any(o =>
-                            o.Status != "CANCELLED" && o.Status != "COMPLETED"))
+            .Where(u => u.Status == "ACTIVE" && u.Role.RoleCode == "WAREHOUSE_STAFF")
             .OrderBy(u => u.FullName).ThenBy(u => u.Username)
             .Select(u => new AvailableWarehouseStaffDto
             {
@@ -853,7 +892,6 @@ public class InboundService : IInboundService
             .FirstOrDefaultAsync(s => s.SalesOrderId == salesOrderId);
 
         if (so == null) return null;
-        if (await _context.OutboundOrders.AnyAsync(o => o.SalesOrderId == salesOrderId && o.Status == "PENDING_APPROVAL")) return null;
         if (NormalizeSalesOrderStatus(so.Status) is not ("ISSUED" or "PARTIALLY_ISSUED"))
             return null;
 
@@ -938,12 +976,19 @@ public class InboundService : IInboundService
         return dto;
     }
 
+    private static BMWMS.Repository.Models.SalesOrder? CustomerReturnSourceOrder(BMWMS.Repository.Models.InboundOrder order)
+    {
+        var sources = order.ReturnRequest?.Items.SelectMany(i => i.Allocations).Select(a => a.SalesOrderDetail.SalesOrder)
+            .DistinctBy(s => s.SalesOrderId).ToList();
+        return sources?.Count == 1 ? sources[0] : null;
+    }
+
     private static string NormalizePurchaseOrderStatus(string? status)
     {
         return (status ?? string.Empty).Trim().ToUpperInvariant() switch
         {
-            "PARTIALLYRECEIVED" or "PENDING_REMAINDER_CONFIRMATION" => "PARTIALLY_RECEIVED",
-            "PENDING_CONFIRMATION" => "CONFIRMED",
+            "PARTIALLYRECEIVED" or "PENDING_REMAINDER_CONFIRMATION" or "PENDING_RECEIPT_REVIEW" => "PARTIALLY_RECEIVED",
+            "PENDING_CONFIRMATION" => "DRAFT",
             "COMPLETED" or "CLOSED" => "RECEIVED",
             var value => value
         };
@@ -1319,7 +1364,7 @@ public class InboundService : IInboundService
         var hasCompletedDeliveryAttempt = purchaseOrder.InboundOrders.Any(order =>
             PurchaseOrderReceiptRules.IsCompletedReceipt(order.Status));
         var isFullyReceived = purchaseOrder.PurchaseOrderDetails.Count > 0
-            && purchaseOrder.PurchaseOrderDetails.All(detail =>
+            && purchaseOrder.PurchaseOrderDetails.Where(d => d.IsActive).All(detail =>
                 activeInboundItems
                     .Where(item => item.ProductId == detail.ProductId)
                     .SelectMany(item => item.InboundOrderDetails)
@@ -1329,7 +1374,7 @@ public class InboundService : IInboundService
         purchaseOrder.Status = isFullyReceived
             ? "COMPLETED"
             : hasCompletedDeliveryAttempt
-                ? "PENDING_RECEIPT_REVIEW"
+                ? "PARTIALLY_RECEIVED"
                 : "CONFIRMED";
         purchaseOrder.UpdatedAt = DateTime.UtcNow;
     }
@@ -1426,9 +1471,13 @@ public class InboundService : IInboundService
 
     public async Task CompleteReceiptAsync(long inboundOrderId, CompleteInboundReceiptDto dto, long currentUserId)
     {
+        var returnCustomerId = await _context.InboundOrders.AsNoTracking().Where(o => o.InboundOrderId == inboundOrderId && o.ReturnRequestId != null)
+            .Select(o => (long?)o.ReturnRequest!.CustomerId).SingleOrDefaultAsync();
         await using var dbTransaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
         try
         {
+            await OrderWorkflowLock.AcquireAsync(_context, "INBOUND", inboundOrderId);
+            if (returnCustomerId.HasValue) await OrderWorkflowLock.AcquireAsync(_context, "CUSTOMER_RETURN", returnCustomerId.Value);
             var order = await _context.InboundOrders
                 .Include(o => o.InboundOrderItems)
                     .ThenInclude(i => i.InboundOrderDetails)
@@ -1706,9 +1755,13 @@ public class InboundService : IInboundService
             .Any(group => group.Count() > 1))
             throw new ArgumentException("Không được lặp cùng một sản phẩm, đợt nhận và vị trí đích trong một lần phân bổ.");
 
+        var returnCustomerId = await _context.InboundOrders.AsNoTracking().Where(o => o.InboundOrderId == inboundOrderId && o.ReturnRequestId != null)
+            .Select(o => (long?)o.ReturnRequest!.CustomerId).SingleOrDefaultAsync();
         await using var dbTransaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
         try
         {
+            await OrderWorkflowLock.AcquireAsync(_context, "INBOUND", inboundOrderId);
+            if (returnCustomerId.HasValue) await OrderWorkflowLock.AcquireAsync(_context, "CUSTOMER_RETURN", returnCustomerId.Value);
             var order = await _context.InboundOrders
                 .Include(o => o.InboundOrderItems)
                     .ThenInclude(i => i.InboundOrderDetails)
@@ -1910,6 +1963,14 @@ public class InboundService : IInboundService
                 }
             }
 
+            if (order.ReturnRequestId.HasValue)
+            {
+                var r = await _context.CustomerReturnRequests.Include(x => x.Items).ThenInclude(x => x.Allocations)
+                    .SingleAsync(x => x.CustomerReturnRequestId == order.ReturnRequestId.Value);
+                r.Status = r.Items.All(i => i.Allocations.Sum(a => a.ReceivedQuantity) >= i.RequestedQuantity)
+                    ? "COMPLETED" : "PARTIALLY_RECEIVED";
+                _context.Entry(r).Property(x => x.Status).IsModified = true;
+            }
             await _auditLogService.StageAsync(new AuditEventDto
             {
                 UserId = currentUserId,
@@ -1989,17 +2050,9 @@ public class InboundService : IInboundService
 
         var isWarehouseStaff = await _context.Users.AnyAsync(u =>
             u.UserId == assignedToUserId.Value && u.Status == "ACTIVE" &&
-            u.Role.RoleCode == "WAREHOUSE_STAFF" &&
-            !u.InboundOrderAssignedToUsers.Any(o =>
-                o.InboundOrderId != excludeInboundOrderId &&
-                o.Status != "CANCELLED" && o.Status != "PUTAWAY_COMPLETED" &&
-                (o.Status != "COMPLETED" ||
-                 o.InboundOrderItems.SelectMany(i => i.InboundOrderDetails)
-                     .Any(d => d.ConditionStatus == "GOOD" && d.InventoryTransaction == null))) &&
-            !u.OutboundOrderAssignedToUsers.Any(o =>
-                o.Status != "CANCELLED" && o.Status != "COMPLETED"));
+            u.Role.RoleCode == "WAREHOUSE_STAFF");
         if (!isWarehouseStaff)
-            throw new ArgumentException("Nhân viên không thuộc vai trò Nhân viên kho, đang bị khóa hoặc đang phụ trách một phiếu nhập/xuất khác.");
+            throw new ArgumentException("Nhân viên phải thuộc vai trò Nhân viên kho và đang hoạt động.");
     }
 
     private async Task ValidateQuantitiesAsync(IEnumerable<(long ProductId, decimal Quantity, string FieldName)> values)

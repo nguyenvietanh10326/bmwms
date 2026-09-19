@@ -11,6 +11,8 @@
     var pendingBatches = order?.OutboundBatches.Where(o => o.Status == "PENDING_APPROVAL").ToList() ?? new();
     var canReview = User.IsInRole("WAREHOUSE_MANAGER") || User.IsInRole("SYSTEM_ADMIN");
     var hasRemainder = order?.Items.Any(x => x.FulfilledQuantity < x.OrderedQuantity) == true;
+    var canEditOwn = User.IsInRole("SYSTEM_ADMIN") || (User.IsInRole("SALES_STAFF") &&
+        User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value == order?.CreatedByUserId.ToString());
 }
 
 <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
@@ -25,20 +27,22 @@
     </div>
       <div class="d-flex gap-2 no-print">
           <a href="/sales-orders" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Quay lại</a>
-          @if (order?.Status == "DRAFT" && (User.IsInRole("SALES_STAFF") || User.IsInRole("SYSTEM_ADMIN")))
+          @if (order?.CanEdit == true && canEditOwn)
           {
               <a href="/sales-orders/create?id=@order.SalesOrderId" class="btn btn-outline-warning"><i class="bi bi-pencil me-1"></i>Chỉnh sửa</a>
-              <form method="post" asp-page-handler="Cancel" asp-route-id="@order.SalesOrderId" onsubmit="return confirm('Hủy SO nháp và giải phóng giữ tồn?');">
+              <form method="post" asp-page-handler="Cancel" asp-route-id="@order.SalesOrderId" onsubmit="return confirm('Hủy SO chưa có phiếu xuất và giải phóng giữ tồn?');">
                   <input name="reason" class="form-control" placeholder="Lý do hủy" minlength="10" maxlength="500" required />
-                  <button class="btn btn-outline-danger">Hủy SO nháp</button>
+                  <button class="btn btn-outline-danger">Hủy SO</button>
               </form>
           }
           @if (order?.Status == "DRAFT" && (User.IsInRole("WAREHOUSE_MANAGER") || User.IsInRole("SYSTEM_ADMIN")))
           {
               <form method="post" asp-page-handler="Confirm" asp-route-id="@order.SalesOrderId" onsubmit="return confirm('Bạn có chắc chắn muốn xác nhận đơn hàng này? Hệ thống sẽ giữ tồn kho cho các sản phẩm.');">
+                <input name="rowVersion" type="hidden" value="@order.RowVersion" />
                   <button type="submit" class="btn btn-success"><i class="bi bi-check-circle me-1"></i>Duyệt SO &amp; giữ tồn</button>
               </form>
               <form method="post" asp-page-handler="Reject" asp-route-id="@order.SalesOrderId" onsubmit="return confirm('Từ chối SO và giải phóng giữ tồn?');">
+                  <input name="rowVersion" type="hidden" value="@order.RowVersion" />
                   <input name="reason" class="form-control" placeholder="Lý do từ chối" minlength="10" maxlength="500" required />
                   <button class="btn btn-outline-danger">Từ chối SO</button>
               </form>

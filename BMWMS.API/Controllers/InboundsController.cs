@@ -86,14 +86,9 @@ public class InboundsController : ControllerBase
 
     [HttpPost("customer-return/authorize")]
     [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
-    public async Task<IActionResult> AuthorizeCustomerReturn([FromBody] CreateInboundOrderDto dto)
+    public IActionResult AuthorizeCustomerReturn([FromBody] CreateInboundOrderDto dto)
     {
-        if (!long.TryParse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var userId)) return Unauthorized();
-        try { return Ok(await _inboundService.CreateInboundOrderAsync(dto, userId, authorizeSalesReturn: true)); }
-        catch (UnauthorizedAccessException) { return Forbid(); }
-        catch (ArgumentException ex) { return BadRequest(new { message = ex.Message }); }
-        catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
-        catch (Exception ex) { return HandleException(ex); }
+        return Conflict(new { message = "Sales lập phiếu khách trả tham chiếu SO, Manager duyệt trước khi nhân viên kho nhận hàng. Vui lòng dùng mục Khách trả hàng theo SO." });
     }
 
     [HttpPost("{id:long}/customer-return/start")]

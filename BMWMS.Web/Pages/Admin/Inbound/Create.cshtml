@@ -91,6 +91,7 @@
         <div><h1>Ghi nhận đợt nhập kho</h1><p>Mỗi phiếu tương ứng một lần hàng thực tế đến kho.</p></div>
         <div class="page-actions">
             <a href="/Admin/Inbound" class="btn btn-outline-secondary">Danh sách phiếu nhập</a>
+            <a asp-page="/CustomerReturns/Index" class="btn btn-outline-secondary">Nhận hàng khách trả</a>
             <button type="submit" form="createForm" name="actionType" value="submit" class="btn btn-primary">Xác nhận thực nhận và tiếp tục cất hàng</button>
         </div>
     </div>
@@ -294,7 +295,7 @@
             const trackExpiry = Boolean(item?.trackExpiry ?? item?.TrackExpiry ?? false) ||
                 String(item?.rotationMethod ?? item?.RotationMethod ?? '').toUpperCase() === 'FEFO';
             const expectedField = `<input type="hidden" name="InboundOrder.Items[${rowKey}].ExpectedQuantity" value="${remaining}">`;
-            const actualField = `<input type="number" class="quantity-input actual-qty" name="InboundOrder.Items[${rowKey}].ActualReceivedQuantity" min="0" max="${remaining}" step="${quantityStep(scale)}" value="0" data-remaining="${remaining}" data-scale="${scale}">`;
+            const actualField = `<input type="number" class="quantity-input actual-qty" name="InboundOrder.Items[${rowKey}].ActualReceivedQuantity" min="0" max="${remaining}" step="${quantityStep(scale)}" value="0" data-remaining="${remaining}" data-scale="${scale}"><span class="text-muted ms-1">${escapeHtml(unitName)}</span>`;
             const expiryField = trackExpiry
                 ? `<input type="date" class="form-control expiry-date" name="InboundOrder.Items[${rowKey}].ExpiryDate" aria-label="Hạn sử dụng của ${escapeHtml(productName)}"><small class="text-muted">Bắt buộc khi thực nhận lớn hơn 0</small>`
                 : '<span class="text-muted">Không áp dụng</span>';

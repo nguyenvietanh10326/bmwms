@@ -5,6 +5,7 @@ namespace BMWMS.Repository.Models;
 
 public partial class SalesOrderDetail
 {
+    public bool IsActive { get; set; } = true;
     public long SalesOrderDetailId { get; set; }
 
     public long SalesOrderId { get; set; }

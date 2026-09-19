@@ -33,8 +33,8 @@ public class CreateModel : PageModel
     public async Task<IActionResult> OnGetAsync(long? purchaseOrderId, long? salesOrderId, long? parentInboundOrderId)
     {
         if (salesOrderId.HasValue) {
-            TempData["ErrorMessage"] = "Nhận khách trả phải có lệnh được Quản lý kho duyệt. Hãy mở phiếu đã giao cho bạn.";
-            return RedirectToPage("./Index");
+            TempData["ErrorMessage"] = "Hàng khách trả phải có phiếu tham chiếu SO do Sales lập và Manager duyệt. Chọn phiếu đã duyệt để nhận trách nhiệm đợt này.";
+            return RedirectToPage("/CustomerReturns/Index");
         }
         if (parentInboundOrderId.HasValue)
         {

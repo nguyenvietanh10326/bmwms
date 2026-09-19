@@ -8,10 +8,11 @@
 
 <form method="post" id="createSoForm">
     <input asp-for="SalesOrder.SalesOrderId" type="hidden" />
+    <input asp-for="SalesOrder.RowVersion" type="hidden" />
     <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-start gap-3 mb-4">
         <div>
             <div class="d-flex align-items-center gap-2 mb-1">
-                <h1 class="h3 mb-0">@(Model.SalesOrder.SalesOrderId.HasValue ? "Sửa SO nháp" : "Tạo đơn bán hàng")</h1>
+                <h1 class="h3 mb-0">@(Model.SalesOrder.SalesOrderId.HasValue ? "Sửa đơn bán hàng" : "Tạo đơn bán hàng")</h1>
                 <span class="badge bg-secondary-subtle text-secondary border">Nháp</span>
             </div>
             <p class="text-muted mb-0">
@@ -100,14 +101,14 @@
                     </h2>
                     <p class="text-muted small mb-0">Khi lưu nháp, hệ thống giữ tồn ngay để nhân viên khác không thể chọn trùng lượng hàng này.</p>
                 </div>
-                <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#productModal" disabled="@Model.SalesOrder.SalesOrderId.HasValue">
+                <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#productModal">
                     <i class="bi bi-plus-lg me-1"></i>Chọn sản phẩm
                 </button>
             </div>
 
             <span asp-validation-for="SalesOrder.Items" class="text-danger small d-block mb-2"></span>
             @if (Model.SalesOrder.SalesOrderId.HasValue)
-            { <div class="text-muted mb-3">Có thể sửa số lượng và thông tin đơn. Nếu cần thay danh sách vật tư, hãy hủy SO nháp và tạo lại để giữ lịch sử giữ tồn.</div> }
+            { <div class="text-muted mb-3">Có thể thêm/bỏ sản phẩm và sửa số lượng trước khi có phiếu nhập/xuất. Lưu thay đổi sẽ đưa đơn về nháp để duyệt lại.</div> }
 
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0" id="productTable">
@@ -138,9 +139,9 @@
                                         <span class="text-muted small">@(product?.ProductCode ?? "Không xác định") · @(product?.ProductGroupName ?? "Chưa phân nhóm")</span>
                                     </td>
                                     <td>
-                                        <input type="number" name="SalesOrder.Items[@i].OrderedQuantity"
+                                        <div class="input-group"><input type="number" name="SalesOrder.Items[@i].OrderedQuantity"
                                                class="form-control text-end input-qty" value="@item.OrderedQuantity"
-                                               min="@QuantityStep(quantityScale)" step="@QuantityStep(quantityScale)" required />
+                                               min="@QuantityStep(quantityScale)" step="@QuantityStep(quantityScale)" required /><span class="input-group-text">@(product?.UnitOfMeasure ?? "—")</span></div>
                                         <span class="stock-warning text-warning small d-none">Vượt lượng khả dụng</span>
                                     </td>
                                     <td>
@@ -155,7 +156,7 @@
                                                value="@item.Notes" maxlength="1000" placeholder="Lưu ý khi xuất vật tư" />
                                     </td>
                                     <td class="text-center">
-                                        <button type="button" class="btn btn-link text-danger p-0 btn-remove" aria-label="Xóa sản phẩm" disabled="@Model.SalesOrder.SalesOrderId.HasValue">
+                                        <button type="button" class="btn btn-link text-danger p-0 btn-remove" aria-label="Xóa sản phẩm">
                                             <i class="bi bi-trash fs-5"></i>
                                         </button>
                                     </td>
@@ -386,7 +387,7 @@
                         <span class="text-muted small">${escapeHtml(button.dataset.productCode)} · ${escapeHtml(button.dataset.productGroup || 'Chưa phân nhóm')}</span>
                     </td>
                     <td>
-                        <input type="number" name="SalesOrder.Items[${index}].OrderedQuantity" class="form-control text-end input-qty" value="1" min="${quantityStep(Number(button.dataset.productScale || 0))}" step="${quantityStep(Number(button.dataset.productScale || 0))}" required />
+                        <div class="input-group"><input type="number" name="SalesOrder.Items[${index}].OrderedQuantity" class="form-control text-end input-qty" value="1" min="${quantityStep(Number(button.dataset.productScale || 0))}" step="${quantityStep(Number(button.dataset.productScale || 0))}" required /><span class="input-group-text">${escapeHtml(button.dataset.productUnit || '—')}</span></div>
                         <span class="stock-warning text-warning small d-none">Vượt lượng khả dụng</span>
                     </td>
                     <td>

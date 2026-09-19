@@ -5,6 +5,8 @@ namespace BMWMS.Repository.Models;
 
 public partial class InboundOrder
 {
+    public long? ReturnRequestId { get; set; }
+    public CustomerReturnRequest? ReturnRequest { get; set; }
     public long InboundOrderId { get; set; }
 
     public string InboundOrderNumber { get; set; } = null!;
