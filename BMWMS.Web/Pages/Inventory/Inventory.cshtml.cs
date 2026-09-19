@@ -73,13 +73,6 @@ namespace BMWMS.Web.Pages.Inventory
                 Filter.StorageLocationId = null;
             }
 
-            if (Filter.StorageLocationId.HasValue)
-            {
-                Filter.ZoneId = null;
-                Filter.RackId = null;
-                StorageLocations = await GetStorageLocationsAsync(client, Filter.WarehouseId ?? 1, null, null);
-            }
-
             var query = BuildInventoryQuery();
             var response = await client.GetAsync($"api/inventories{query}");
 

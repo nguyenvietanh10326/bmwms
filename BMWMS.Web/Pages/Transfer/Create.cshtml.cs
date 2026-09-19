@@ -51,11 +51,15 @@ namespace BMWMS.Web.Pages.Transfer
 
         public async Task<IActionResult> OnGetRacksAsync(long? zoneId, long? productId)
         {
+            if (!zoneId.HasValue || zoneId.Value <= 0)
+                return new JsonResult(new List<RackOptionDto>());
             return new JsonResult(await _transferSvc.GetRacksAsync(1, zoneId, productId));
         }
 
         public async Task<IActionResult> OnGetLocationsAsync(long? zoneId, long? rackId, long? productId)
         {
+            if (!zoneId.HasValue || zoneId.Value <= 0 || !rackId.HasValue || rackId.Value <= 0)
+                return new JsonResult(new List<LocationOptionDto>());
             return new JsonResult(await _transferSvc.GetLocationsAsync(1, zoneId, rackId, productId));
         }
 

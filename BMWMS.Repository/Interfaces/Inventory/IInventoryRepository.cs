@@ -13,7 +13,9 @@ namespace BMWMS.Repository.Interfaces.Inventory
             string? keyword,
             long? warehouseId,
             long? storageLocationId,
-            string? status);
+            string? status,
+            long? zoneId,
+            long? rackId);
 
         // 2. Hàm lấy danh sách Tồn kho có phân trang
         Task<(List<BMWMS.Repository.Models.Inventory> Items, int TotalCount)> GetPagedInventoryAsync(

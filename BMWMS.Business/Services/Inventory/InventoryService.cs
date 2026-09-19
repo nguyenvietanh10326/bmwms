@@ -25,7 +25,9 @@ namespace BMWMS.Business.Services.Inventory
                     filter.Keyword,
                     filter.WarehouseId,
                     filter.StorageLocationId,
-                    filter.Status);
+                    filter.Status,
+                    filter.ZoneId,
+                    filter.RackId);
 
             var (rawItems, totalCount) = await _inventoryRepository.GetPagedInventoryAsync(
                 filter.Keyword,
