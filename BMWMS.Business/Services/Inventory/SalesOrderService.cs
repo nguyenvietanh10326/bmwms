@@ -4,6 +4,8 @@ using BMWMS.Repository.Interfaces.Inventory;
 using BMWMS.Repository.Models;
 using BMWMS.Repository.Repositories.Inventory;
 using BMWMS.Business.Common;
+using BMWMS.Business.DTOs.Audit;
+using BMWMS.Business.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using System.Data;
 using System;
@@ -19,15 +21,17 @@ namespace BMWMS.Business.Services.Inventory
         private readonly ISalesOrderRepository _salesOrderRepository;
         private readonly IInventoryRepository _invenRepository;
         private readonly BmwmsContext _context;
+        private readonly IAuditLogService? _auditLogService;
 
         public SalesOrderService(
             ISalesOrderRepository salesOrderRepository,
             IInventoryRepository invenRepository,
-            BmwmsContext context)
+            BmwmsContext context, IAuditLogService? auditLogService = null)
         {
             _salesOrderRepository = salesOrderRepository;
             _invenRepository = invenRepository;
             _context = context;
+            _auditLogService = auditLogService;
         }
 
         public async Task<SalesOrderDetailApiResponse?>
@@ -44,7 +48,7 @@ namespace BMWMS.Business.Services.Inventory
             var items = new List<SalesOrderItemDto>();
             if (await _context.OutboundOrders.AnyAsync(o => o.SalesOrderId == salesOrderId && o.Status == "PENDING_APPROVAL")) return null;
 
-            foreach (var detail in salesOrder.SalesOrderDetails)
+            foreach (var detail in salesOrder.SalesOrderDetails.Where(d => d.IsActive))
             {
                 var plannedButNotIssued = await _context.OutboundOrderItems
                     .Where(item => item.OutboundOrder.SalesOrderId == salesOrderId &&
@@ -168,6 +172,9 @@ namespace BMWMS.Business.Services.Inventory
             );
 
             var pageIds = entities.Select(x => x.SalesOrderId).ToList();
+            var childIds = (await _context.OutboundOrders.Where(o => o.SalesOrderId.HasValue && pageIds.Contains(o.SalesOrderId.Value))
+                .Select(o => o.SalesOrderId!.Value).ToListAsync()).Concat(await _context.InboundOrders
+                .Where(o => o.SalesOrderId.HasValue && pageIds.Contains(o.SalesOrderId.Value)).Select(o => o.SalesOrderId!.Value).ToListAsync()).ToHashSet();
             var pendingReviews = await _context.OutboundOrders.AsNoTracking()
                 .Where(o => o.SourceType == "SALES_ORDER" && o.SalesOrderId.HasValue &&
                     pageIds.Contains(o.SalesOrderId.Value) && o.Status == "PENDING_APPROVAL")
@@ -177,6 +184,7 @@ namespace BMWMS.Business.Services.Inventory
             // Mapping từ Entity sang DTO
             var list = entities.Select(x => new SalesOrderListDto
             {
+                CanExternalCancel = (x.Status is "CONFIRMED" or "ALLOCATED") && !childIds.Contains(x.SalesOrderId),
                 SalesOrderId = x.SalesOrderId,
                 SalesOrderNumber = x.SalesOrderNumber,
                 CustomerCode = x.Customer?.CustomerCode ?? string.Empty,
@@ -214,9 +222,20 @@ namespace BMWMS.Business.Services.Inventory
         {
             var entity = await _salesOrderRepository.GetByIdAsync(salesOrderId);
             if (entity == null) return null;
+            var productIds = entity.SalesOrderDetails.Where(d => d.IsActive).Select(d => d.ProductId).ToList();
+            var available = await _context.Inventories.AsNoTracking().Where(i => productIds.Contains(i.ProductId))
+                .GroupBy(i => i.ProductId).Select(g => new { ProductId = g.Key, Quantity = g.Sum(i => i.AvailableQuantity ?? (i.OnHandQuantity - i.ReservedQuantity)) })
+                .ToDictionaryAsync(i => i.ProductId, i => i.Quantity);
+            var hasChild = await _context.OutboundOrders.AnyAsync(o => o.SalesOrderId == salesOrderId) ||
+                await _context.InboundOrders.AnyAsync(o => o.SalesOrderId == salesOrderId);
 
             return new SalesOrderDetailDto
             {
+                CreatedByUserId = entity.CreatedByUserId,
+                RowVersion = Convert.ToBase64String(entity.RowVersion),
+                CanExternalCancel = (entity.Status is "CONFIRMED" or "ALLOCATED") && !hasChild && entity.SalesOrderDetails.All(d => d.FulfilledQuantity == 0),
+                CanEdit = entity.Status == "DRAFT" &&
+                    !hasChild,
                 SalesOrderId = entity.SalesOrderId,
                 SalesOrderNumber = entity.SalesOrderNumber,
                 CustomerId = entity.CustomerId,
@@ -240,7 +259,7 @@ namespace BMWMS.Business.Services.Inventory
                         ReviewedByName = o.Status == "COMPLETED" ? o.ConfirmedByUser?.FullName ?? o.ConfirmedByUser?.Username : null,
                         ReviewedAt = o.Status == "COMPLETED" ? o.ConfirmedAt : null
                     }).ToList(),
-                Items = entity.SalesOrderDetails.Select(d => new SalesOrderItemDtos
+                Items = entity.SalesOrderDetails.Where(d => d.IsActive).Select(d => new SalesOrderItemDtos
                 {
                     SalesOrderDetailId = d.SalesOrderDetailId,
                     ProductId = d.ProductId,
@@ -252,7 +271,7 @@ namespace BMWMS.Business.Services.Inventory
                     OrderedQuantity = d.OrderedQuantity,
                     ReservedQuantity = d.ReservedQuantity,
                     FulfilledQuantity = d.FulfilledQuantity,
-                    AvailableQuantity = 1000, // Logic: Cần join Inventory để lấy OnHand - Reserved thực tế
+                    AvailableQuantity = available.GetValueOrDefault(d.ProductId),
                     Notes = d.Notes
                 }).ToList()
             };
@@ -283,6 +302,9 @@ namespace BMWMS.Business.Services.Inventory
 
         public async Task<SalesOrderDetailDto> CreateDraftAsync(CreateUpdateSalesOrderDto dto)
         {
+            var creator = await _context.Users.Include(u => u.Role).AsNoTracking().FirstOrDefaultAsync(u => u.UserId == dto.CurrentUserId && u.Status == "ACTIVE");
+            if (creator?.Role?.RoleCode is not ("SALES_STAFF" or "SYSTEM_ADMIN"))
+                throw new UnauthorizedAccessException("Chỉ Sales Staff được tạo đơn bán hàng.");
             if (dto.CustomerId <= 0)
                 throw new ArgumentException("Vui lòng chọn khách hàng.");
 
@@ -317,6 +339,7 @@ namespace BMWMS.Business.Services.Inventory
             await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
             try
             {
+                await OrderWorkflowLock.AcquireAsync(_context, "SO_NUMBER", DateTime.Today.Year);
                 string newSoNumber = await _salesOrderRepository.GenerateSalesOrderNumberAsync();
 
                 var order = new SalesOrder
@@ -352,9 +375,14 @@ namespace BMWMS.Business.Services.Inventory
                     detail.ReservedQuantity = detail.OrderedQuantity;
                 }
 
+                if (_auditLogService != null) await _auditLogService.StageAsync(new AuditEventDto { UserId = dto.CurrentUserId,
+                    ActionType = "CREATE_SALES_ORDER", EntityName = AuditEntities.SalesOrder, EntityId = created.SalesOrderId.ToString(),
+                    NewValues = new { created.SalesOrderNumber, created.Status, created.CustomerId, dto.Items } });
                 await _context.SaveChangesAsync();
+                var response = await GetByIdAsync(created.SalesOrderId)
+                    ?? throw new InvalidOperationException("Không đọc được SO vừa tạo; thao tác chưa được ghi nhận.");
                 await transaction.CommitAsync();
-                return (await GetByIdAsync(created.SalesOrderId))!;
+                return response;
             }
             catch
             {
@@ -388,15 +416,20 @@ namespace BMWMS.Business.Services.Inventory
             await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
             try
             {
-                var existing = await _context.SalesOrders
+                await BMWMS.Business.Common.OrderWorkflowLock.AcquireAsync(_context, "SO", dto.SalesOrderId.Value);
+                var existing = await _context.SalesOrders.IgnoreQueryFilters()
                     .Include(s => s.SalesOrderDetails)
                     .FirstOrDefaultAsync(s => s.SalesOrderId == dto.SalesOrderId.Value);
                 if (existing == null || existing.Status != "DRAFT") return false;
-
-                var existingProductIds = existing.SalesOrderDetails.Select(d => d.ProductId).OrderBy(x => x).ToList();
-                var requestedProductIds = dto.Items.Select(d => d.ProductId).OrderBy(x => x).ToList();
-                if (!existingProductIds.SequenceEqual(requestedProductIds))
-                    throw new InvalidOperationException("SO nháp đã giữ tồn nên không thể thêm hoặc xóa dòng vật tư. Hãy hủy đơn và tạo SO mới để giữ đúng lịch sử.");
+                if (actor.Role.RoleCode == "SALES_STAFF" && existing.CreatedByUserId != dto.CurrentUserId)
+                    throw new InvalidOperationException("Bạn chỉ được sửa đơn bán hàng mình phụ trách.");
+                if (await _context.OutboundOrders.AnyAsync(o => o.SalesOrderId == existing.SalesOrderId) ||
+                    await _context.InboundOrders.AnyAsync(o => o.SalesOrderId == existing.SalesOrderId))
+                    throw new InvalidOperationException("Đơn đã có phiếu nhập/xuất; không thể chỉnh sửa.");
+                if (dto.RowVersion != Convert.ToBase64String(existing.RowVersion))
+                    throw new InvalidOperationException("SO đã thay đổi hoặc thiếu phiên bản. Vui lòng tải lại đơn trước khi sửa.");
+                var oldValues = new { existing.Status, existing.CustomerId, existing.RevisionNo,
+                    Items = existing.SalesOrderDetails.Where(d => d.IsActive).Select(d => new { d.ProductId, d.OrderedQuantity }).ToList() };
 
                 await ReleaseReservationsAsync(existing.SalesOrderId, dto.CurrentUserId);
 
@@ -406,17 +439,28 @@ namespace BMWMS.Business.Services.Inventory
                 existing.Notes = dto.Notes;
                 existing.AllocationStrategy = dto.AllocationStrategy ?? "FIFO";
                 existing.UpdatedAt = DateTime.UtcNow;
+                existing.Status = "DRAFT";
+                existing.ConfirmedAt = null;
+                existing.ConfirmedByUserId = null;
+                existing.RevisionNo++;
 
                 foreach (var detail in existing.SalesOrderDetails)
                 {
-                    var requested = dto.Items.Single(i => i.ProductId == detail.ProductId);
-                    detail.OrderedQuantity = requested.OrderedQuantity;
+                    var requested = dto.Items.SingleOrDefault(i => i.ProductId == detail.ProductId);
+                    detail.IsActive = requested != null;
                     detail.ReservedQuantity = 0;
-                    detail.Notes = requested.Notes;
+                    if (requested != null)
+                    {
+                        detail.OrderedQuantity = requested.OrderedQuantity;
+                        detail.Notes = requested.Notes;
+                    }
                 }
+                foreach (var requested in dto.Items.Where(i => !existing.SalesOrderDetails.Any(d => d.ProductId == i.ProductId)))
+                    existing.SalesOrderDetails.Add(new SalesOrderDetail { ProductId = requested.ProductId,
+                        OrderedQuantity = requested.OrderedQuantity, Notes = requested.Notes, IsActive = true });
                 await _context.SaveChangesAsync();
 
-                foreach (var detail in existing.SalesOrderDetails)
+                foreach (var detail in existing.SalesOrderDetails.Where(d => d.IsActive))
                 {
                     var product = productsById[detail.ProductId];
                     if (!await _invenRepository.ReserveStockForOrderAsync(
@@ -426,6 +470,10 @@ namespace BMWMS.Business.Services.Inventory
                     detail.ReservedQuantity = detail.OrderedQuantity;
                 }
 
+                if (_auditLogService != null) await _auditLogService.StageAsync(new AuditEventDto { UserId = dto.CurrentUserId,
+                    ActionType = "UPDATE_SALES_ORDER", EntityName = AuditEntities.SalesOrder,
+                    EntityId = existing.SalesOrderId.ToString(), OldValues = oldValues,
+                    NewValues = new { existing.Status, existing.RevisionNo, dto.Items } });
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
                 return true;
@@ -439,9 +487,10 @@ namespace BMWMS.Business.Services.Inventory
 
         public async Task<(bool IsSuccess, string Message)> ConfirmAndReserveStockAsync(
           long salesOrderId,
-          long confirmedByUserId)
+          long confirmedByUserId, string? rowVersion = null)
         {
             await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+            await BMWMS.Business.Common.OrderWorkflowLock.AcquireAsync(_context, "SO", salesOrderId);
             var approver = await _context.Users.Include(user => user.Role)
                 .FirstOrDefaultAsync(user => user.UserId == confirmedByUserId && user.Status == "ACTIVE");
             if (approver?.Role?.RoleCode is not ("WAREHOUSE_MANAGER" or "SYSTEM_ADMIN"))
@@ -453,8 +502,10 @@ namespace BMWMS.Business.Services.Inventory
 
             if (order.Status != "DRAFT")
                 return (false, "Đơn hàng phải ở trạng thái Nháp mới có thể xác nhận!");
+            if (rowVersion != null && rowVersion != Convert.ToBase64String(order.RowVersion))
+                return (false, "Nội dung SO đã thay đổi. Tải lại và xem xét phiên bản mới trước khi duyệt.");
 
-            foreach (var detail in order.SalesOrderDetails)
+            foreach (var detail in order.SalesOrderDetails.Where(d => d.IsActive))
             {
                 var activeReserved = await _context.InventoryReservations
                     .Where(r => r.SalesOrderDetailId == detail.SalesOrderDetailId &&
@@ -475,6 +526,10 @@ namespace BMWMS.Business.Services.Inventory
             order.ConfirmedByUserId = confirmedByUserId;
             order.ConfirmedAt = DateTime.UtcNow;
             order.UpdatedAt = DateTime.UtcNow;
+            if (_auditLogService != null) await _auditLogService.StageAsync(new AuditEventDto {
+                UserId = confirmedByUserId, ActionType = "APPROVE_SALES_ORDER",
+                EntityName = AuditEntities.SalesOrder, EntityId = order.SalesOrderId.ToString(),
+                OldValues = new { Status = "DRAFT" }, NewValues = new { order.Status, order.RevisionNo } });
             await _context.SaveChangesAsync();
             await transaction.CommitAsync();
 
@@ -488,6 +543,7 @@ namespace BMWMS.Business.Services.Inventory
         public async Task<(bool IsSuccess, string Message)> CancelOrderAsync(long salesOrderId, long userId, string reason)
         {
             await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+            await OrderWorkflowLock.AcquireAsync(_context, "SO", salesOrderId);
             var order = await _salesOrderRepository.GetByIdAsync(salesOrderId);
             if (order == null) return (false, "Không tìm thấy đơn bán hàng!");
 
@@ -496,19 +552,32 @@ namespace BMWMS.Business.Services.Inventory
 
             var actor = await _context.Users.Include(user => user.Role)
                 .FirstOrDefaultAsync(user => user.UserId == userId && user.Status == "ACTIVE");
-            var permittedRoles = order.Status == "DRAFT"
-                ? new[] { "SALES_STAFF", "SYSTEM_ADMIN" }
-                : new[] { "WAREHOUSE_MANAGER", "SYSTEM_ADMIN" };
+            var permittedRoles = new[] { "SALES_STAFF", "WAREHOUSE_MANAGER", "SYSTEM_ADMIN" };
             if (actor?.Role == null || !permittedRoles.Contains(actor.Role.RoleCode))
-                return (false, "Sales chỉ hủy SO nháp; SO đã duyệt phải do quản lý kho hủy.");
+                return (false, "Bạn không có quyền hủy đơn bán hàng.");
+            if (actor.Role.RoleCode == "SALES_STAFF" && order.CreatedByUserId != userId)
+                return (false, "Bạn chỉ được hủy SO mình phụ trách.");
+            if (actor.Role.RoleCode == "SALES_STAFF" && order.Status != "DRAFT")
+                return (false, "SO đã được Manager duyệt; nhân viên bán hàng không được hủy.");
+            if (actor.Role.RoleCode == "WAREHOUSE_MANAGER" && order.Status == "DRAFT")
+                return (false, "SO đang nháp; hãy dùng chức năng từ chối đơn hàng.");
+            reason = reason?.Trim() ?? string.Empty;
+            if (reason.Length is < 5 or > 500)
+                return (false, "Lý do hủy phải từ 5 đến 500 ký tự.");
             if (order.SalesOrderDetails.Any(detail => detail.FulfilledQuantity > 0) ||
-                await _context.OutboundOrders.AnyAsync(outbound => outbound.SalesOrderId == salesOrderId &&
-                    (outbound.Status == "DRAFT" || outbound.Status == "ASSIGNED" || outbound.Status == "IN_PROGRESS")))
-                return (false, "SO đã giao hàng hoặc còn đợt xuất đang xử lý. Không được hủy và giải phóng tồn của đợt xuất đó.");
+                await _context.OutboundOrders.AnyAsync(outbound => outbound.SalesOrderId == salesOrderId) ||
+                await _context.InboundOrders.AnyAsync(inbound => inbound.SalesOrderId == salesOrderId))
+                return (false, "SO đã có phiếu nhập/xuất; không được hủy.");
 
             await ReleaseReservationsAsync(salesOrderId, userId);
+            var oldStatus = order.Status;
             order.Status = "CANCELLED";
+            order.Notes = OrderWorkflowNotes.AppendIfFits(order.Notes, $"Lý do hủy: {reason.Trim()}");
             order.UpdatedAt = DateTime.UtcNow;
+            if (_auditLogService != null) await _auditLogService.StageAsync(new AuditEventDto {
+                UserId = userId, ActionType = "CANCEL_SALES_ORDER", EntityName = AuditEntities.SalesOrder,
+                EntityId = order.SalesOrderId.ToString(), OldValues = new { Status = oldStatus },
+                NewValues = new { order.Status, Reason = reason.Trim() } });
             await _context.SaveChangesAsync();
             await transaction.CommitAsync();
             return (true, "Hủy đơn bán hàng và giải phóng giữ tồn thành công!");
@@ -549,21 +618,31 @@ namespace BMWMS.Business.Services.Inventory
             await _context.SaveChangesAsync();
         }
 
-        public async Task<(bool IsSuccess, string Message)> RejectDraftAsync(long salesOrderId, long userId, string reason)
+        public async Task<(bool IsSuccess, string Message)> RejectDraftAsync(long salesOrderId, long userId, string reason, string? rowVersion = null)
         {
             reason = reason?.Trim() ?? "";
             if (reason.Length is < 10 or > 500) return (false, "Lý do từ chối phải từ 10 đến 500 ký tự.");
             await using var tx = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+            await BMWMS.Business.Common.OrderWorkflowLock.AcquireAsync(_context, "SO", salesOrderId);
             var actor = await _context.Users.Include(u => u.Role).AsNoTracking()
                 .FirstOrDefaultAsync(u => u.UserId == userId && u.Status == "ACTIVE");
             if (actor?.Role?.RoleCode is not ("WAREHOUSE_MANAGER" or "SYSTEM_ADMIN"))
                 return (false, "Chỉ Quản lý kho được từ chối SO.");
             var order = await _salesOrderRepository.GetByIdAsync(salesOrderId);
             if (order?.Status != "DRAFT") return (false, "Chỉ được từ chối SO đang nháp.");
+            if (rowVersion != null && rowVersion != Convert.ToBase64String(order.RowVersion))
+                return (false, "SO đã thay đổi. Tải lại và xem xét phiên bản mới trước khi từ chối.");
+            if (await _context.OutboundOrders.AnyAsync(o => o.SalesOrderId == salesOrderId) ||
+                await _context.InboundOrders.AnyAsync(o => o.SalesOrderId == salesOrderId))
+                return (false, "SO đã có phiếu nhập/xuất; không được từ chối.");
             await ReleaseReservationsAsync(salesOrderId, userId);
             order.Status = "REJECTED";
-            order.Notes = $"{order.Notes}\nManager từ chối: {reason}";
+            order.Notes = OrderWorkflowNotes.AppendIfFits(order.Notes, $"Quản lý từ chối: {reason}");
             order.UpdatedAt = DateTime.UtcNow;
+            if (_auditLogService != null) await _auditLogService.StageAsync(new AuditEventDto {
+                UserId = userId, ActionType = "REJECT_SALES_ORDER", EntityName = AuditEntities.SalesOrder,
+                EntityId = order.SalesOrderId.ToString(), OldValues = new { Status = "DRAFT" },
+                NewValues = new { order.Status, Reason = reason } });
             await _context.SaveChangesAsync();
             await tx.CommitAsync();
             return (true, "Đã từ chối SO và giải phóng giữ tồn.");

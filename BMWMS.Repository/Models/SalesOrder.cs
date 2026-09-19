@@ -5,6 +5,8 @@ namespace BMWMS.Repository.Models;
 
 public partial class SalesOrder
 {
+    public int RevisionNo { get; set; } = 1;
+    public byte[] RowVersion { get; set; } = Array.Empty<byte>();
     public long SalesOrderId { get; set; }
 
     public string SalesOrderNumber { get; set; } = null!;

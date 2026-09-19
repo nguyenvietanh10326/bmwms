@@ -67,7 +67,7 @@ if (!Uri.TryCreate(configuredApiUrl?.TrimEnd('/') + "/", UriKind.Absolute, out v
 builder.Services.AddHttpClient("ApiClient", client =>
 {
     client.BaseAddress = apiBaseUri;
-    client.Timeout = TimeSpan.FromSeconds(30);
+    client.Timeout = TimeSpan.FromSeconds(120);
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 })
 .AddHttpMessageHandler<TokenDelegatingHandler>();

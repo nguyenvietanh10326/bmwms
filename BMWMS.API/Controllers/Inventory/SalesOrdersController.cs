@@ -34,6 +34,9 @@ namespace BMWMS.API.Controllers.Inventory
         {
             try
             {
+                criteria.SortOrder = criteria.SortOrder?.Trim().ToLowerInvariant();
+                if (criteria.SortOrder is not ("approval" or "priority" or "expected" or "newest" or "oldest"))
+                    criteria.SortOrder = User.IsInRole("WAREHOUSE_MANAGER") ? "approval" : "priority";
                 var result = await _salesOrderService.GetPagedAsync(criteria);
                 return Ok(new { success = true, data = result });
             }
@@ -169,12 +172,13 @@ namespace BMWMS.API.Controllers.Inventory
         /// </summary>
         [HttpPost("{id:long}/confirm")]
         [Authorize(Roles = "WAREHOUSE_MANAGER,SYSTEM_ADMIN")]
-        public async Task<IActionResult> ConfirmAndReserveStock(long id)
+        public async Task<IActionResult> ConfirmAndReserveStock(long id, [FromQuery] string? rowVersion)
         {
             try
             {
                 if (!TryGetCurrentUserId(out var currentUserId)) return Unauthorized();
-                var (isSuccess, message) = await _salesOrderService.ConfirmAndReserveStockAsync(id, currentUserId);
+                if (string.IsNullOrWhiteSpace(rowVersion)) return BadRequest(new { success = false, message = "Thiếu phiên bản SO cần duyệt. Vui lòng tải lại phiếu." });
+                var (isSuccess, message) = await _salesOrderService.ConfirmAndReserveStockAsync(id, currentUserId, rowVersion);
 
                 if (!isSuccess)
                 {
@@ -219,10 +223,11 @@ namespace BMWMS.API.Controllers.Inventory
 
         [HttpPost("{id:long}/reject")]
         [Authorize(Roles = "WAREHOUSE_MANAGER,SYSTEM_ADMIN")]
-        public async Task<IActionResult> RejectDraft(long id, [FromBody] CancelOrderRequest request)
+        public async Task<IActionResult> RejectDraft(long id, [FromBody] RejectSalesOrderRequest request)
         {
             if (!TryGetCurrentUserId(out var userId)) return Unauthorized();
-            var result = await _salesOrderService.RejectDraftAsync(id, userId, request?.Reason ?? "");
+            if (string.IsNullOrWhiteSpace(request?.RowVersion)) return BadRequest(new { success = false, message = "Thiếu phiên bản SO. Vui lòng tải lại phiếu trước khi từ chối." });
+            var result = await _salesOrderService.RejectDraftAsync(id, userId, request.Reason ?? "", request.RowVersion);
             return result.IsSuccess ? Ok(new { success = true, message = result.Message })
                 : BadRequest(new { success = false, message = result.Message });
         }

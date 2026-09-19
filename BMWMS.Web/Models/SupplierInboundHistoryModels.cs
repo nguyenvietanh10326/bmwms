@@ -5,7 +5,7 @@ namespace BMWMS.Web.Models;
 
 public class SupplierInboundHistoryFilterModel
 {
-    public string SortOrder { get; set; } = "newest";
+    public string? SortOrder { get; set; } = "newest";
     public string? Keyword { get; set; }
     public string? Status { get; set; }
     public long? WarehouseId { get; set; }
