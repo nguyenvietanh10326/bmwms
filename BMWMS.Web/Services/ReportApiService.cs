@@ -34,6 +34,8 @@ public class ReportApiService : IReportApiService
         if (filter.ToDate.HasValue) query.Add($"toDate={Uri.EscapeDataString(filter.ToDate.Value.ToString("O"))}");
         if (!string.IsNullOrEmpty(filter.ProductSearch)) query.Add($"productSearch={Uri.EscapeDataString(filter.ProductSearch)}");
         if (!string.IsNullOrEmpty(filter.Status)) query.Add($"status={Uri.EscapeDataString(filter.Status)}");
+        query.Add($"pageNumber={filter.PageNumber}");
+        query.Add($"pageSize={filter.PageSize}");
 
         var queryString = string.Join("&", query);
         var url = "/api/reports/inbound" + (query.Any() ? $"?{queryString}" : "");
@@ -50,6 +52,8 @@ public class ReportApiService : IReportApiService
         if (filter.ToDate.HasValue) query.Add($"toDate={Uri.EscapeDataString(filter.ToDate.Value.ToString("O"))}");
         if (!string.IsNullOrEmpty(filter.ProductSearch)) query.Add($"productSearch={Uri.EscapeDataString(filter.ProductSearch)}");
         if (!string.IsNullOrEmpty(filter.Status)) query.Add($"status={Uri.EscapeDataString(filter.Status)}");
+        query.Add($"pageNumber={filter.PageNumber}");
+        query.Add($"pageSize={filter.PageSize}");
 
         var queryString = string.Join("&", query);
         var url = "/api/reports/outbound" + (query.Any() ? $"?{queryString}" : "");
@@ -78,25 +82,6 @@ public class ReportApiService : IReportApiService
         return await response.Content.ReadFromJsonAsync<InOutStockReportResponseModel>() ?? new InOutStockReportResponseModel();
     }
 
-    public async Task<ProductStatisticsResponseModel> GetProductStatisticsAsync(ProductStatisticsFilterModel filter)
-    {
-        var query = new List<string>();
-        if (filter.FromDate.HasValue) query.Add($"fromDate={Uri.EscapeDataString(filter.FromDate.Value.ToString("O"))}");
-        if (filter.ToDate.HasValue) query.Add($"toDate={Uri.EscapeDataString(filter.ToDate.Value.ToString("O"))}");
-        if (!string.IsNullOrEmpty(filter.ProductSearch)) query.Add($"productSearch={Uri.EscapeDataString(filter.ProductSearch)}");
-        if (!string.IsNullOrEmpty(filter.ProductGroupCode)) query.Add($"productGroupCode={Uri.EscapeDataString(filter.ProductGroupCode)}");
-        query.Add($"pageNumber={filter.PageNumber}");
-        query.Add($"pageSize={filter.PageSize}");
-
-        var queryString = string.Join("&", query);
-        var url = "/api/reports/product-statistics" + (query.Any() ? $"?{queryString}" : "");
-        
-        var response = await _httpClient.GetAsync(url);
-        response.EnsureSuccessStatusCode();
-
-        return await response.Content.ReadFromJsonAsync<ProductStatisticsResponseModel>() ?? new ProductStatisticsResponseModel();
-    }
-
     public async Task<SupplierStatisticsResponseModel> GetSupplierStatisticsAsync(SupplierStatisticsFilterModel filter)
     {
         var query = new List<string>();
@@ -113,24 +98,6 @@ public class ReportApiService : IReportApiService
         response.EnsureSuccessStatusCode();
 
         return await response.Content.ReadFromJsonAsync<SupplierStatisticsResponseModel>() ?? new SupplierStatisticsResponseModel();
-    }
-
-    public async Task<StocktakeStatisticsResponseModel> GetStocktakeStatisticsAsync(StocktakeStatisticsFilterModel filter)
-    {
-        var query = new List<string>();
-        if (filter.FromDate.HasValue) query.Add($"fromDate={Uri.EscapeDataString(filter.FromDate.Value.ToString("O"))}");
-        if (filter.ToDate.HasValue) query.Add($"toDate={Uri.EscapeDataString(filter.ToDate.Value.ToString("O"))}");
-        if (!string.IsNullOrEmpty(filter.SessionStatus)) query.Add($"sessionStatus={Uri.EscapeDataString(filter.SessionStatus)}");
-        query.Add($"pageNumber={filter.PageNumber}");
-        query.Add($"pageSize={filter.PageSize}");
-
-        var queryString = string.Join("&", query);
-        var url = "/api/reports/stocktake-statistics" + (query.Any() ? $"?{queryString}" : "");
-        
-        var response = await _httpClient.GetAsync(url);
-        response.EnsureSuccessStatusCode();
-
-        return await response.Content.ReadFromJsonAsync<StocktakeStatisticsResponseModel>() ?? new StocktakeStatisticsResponseModel();
     }
 
     public async Task<byte[]> ExportInventoryAsync(InventoryReportFilterModel filter)
@@ -194,22 +161,6 @@ public class ReportApiService : IReportApiService
         return await response.Content.ReadAsByteArrayAsync();
     }
 
-    public async Task<byte[]> ExportProductStatisticsAsync(ProductStatisticsFilterModel filter)
-    {
-        var query = new List<string>();
-        if (filter.FromDate.HasValue) query.Add($"fromDate={Uri.EscapeDataString(filter.FromDate.Value.ToString("O"))}");
-        if (filter.ToDate.HasValue) query.Add($"toDate={Uri.EscapeDataString(filter.ToDate.Value.ToString("O"))}");
-        if (!string.IsNullOrEmpty(filter.ProductSearch)) query.Add($"productSearch={Uri.EscapeDataString(filter.ProductSearch)}");
-        if (!string.IsNullOrEmpty(filter.ProductGroupCode)) query.Add($"productGroupCode={Uri.EscapeDataString(filter.ProductGroupCode)}");
-
-        var queryString = string.Join("&", query);
-        var url = "/api/reports/product-statistics/export" + (query.Any() ? $"?{queryString}" : "");
-        
-        var response = await _httpClient.GetAsync(url);
-        response.EnsureSuccessStatusCode();
-        return await response.Content.ReadAsByteArrayAsync();
-    }
-
     public async Task<byte[]> ExportSupplierStatisticsAsync(SupplierStatisticsFilterModel filter)
     {
         var query = new List<string>();
@@ -219,21 +170,6 @@ public class ReportApiService : IReportApiService
 
         var queryString = string.Join("&", query);
         var url = "/api/reports/supplier-statistics/export" + (query.Any() ? $"?{queryString}" : "");
-        
-        var response = await _httpClient.GetAsync(url);
-        response.EnsureSuccessStatusCode();
-        return await response.Content.ReadAsByteArrayAsync();
-    }
-
-    public async Task<byte[]> ExportStocktakeStatisticsAsync(StocktakeStatisticsFilterModel filter)
-    {
-        var query = new List<string>();
-        if (filter.FromDate.HasValue) query.Add($"fromDate={Uri.EscapeDataString(filter.FromDate.Value.ToString("O"))}");
-        if (filter.ToDate.HasValue) query.Add($"toDate={Uri.EscapeDataString(filter.ToDate.Value.ToString("O"))}");
-        if (!string.IsNullOrEmpty(filter.SessionStatus)) query.Add($"sessionStatus={Uri.EscapeDataString(filter.SessionStatus)}");
-
-        var queryString = string.Join("&", query);
-        var url = "/api/reports/stocktake-statistics/export" + (query.Any() ? $"?{queryString}" : "");
         
         var response = await _httpClient.GetAsync(url);
         response.EnsureSuccessStatusCode();
@@ -272,25 +208,4 @@ public class ReportApiService : IReportApiService
         return await response.Content.ReadAsByteArrayAsync();
     }
 
-    public async Task<OverdueOrderAlertResponseModel> GetOverdueOrderAlertsAsync(OverdueOrderAlertFilterModel filter)
-    {
-        var queryString = $"DocumentType={Uri.EscapeDataString(filter.DocumentType ?? "")}&Keyword={Uri.EscapeDataString(filter.Keyword ?? "")}&PageNumber={filter.PageNumber}&PageSize={filter.PageSize}";
-        var response = await _httpClient.GetAsync($"/api/reports/overdue-orders?{queryString}");
-        response.EnsureSuccessStatusCode();
-        return await response.Content.ReadFromJsonAsync<OverdueOrderAlertResponseModel>() ?? new OverdueOrderAlertResponseModel();
-    }
-
-    public async Task<WarehouseKpiResponseModel> GetWarehouseKpisAsync()
-    {
-        return await _httpClient.GetFromJsonAsync<WarehouseKpiResponseModel>("api/reports/warehouse-kpi")
-            ?? new WarehouseKpiResponseModel();
-    }
-
-    public async Task<byte[]> ExportOverdueOrderAlertsAsync(OverdueOrderAlertFilterModel filter)
-    {
-        var queryString = $"DocumentType={Uri.EscapeDataString(filter.DocumentType ?? "")}&Keyword={Uri.EscapeDataString(filter.Keyword ?? "")}&PageNumber={filter.PageNumber}&PageSize={filter.PageSize}";
-        var response = await _httpClient.GetAsync($"/api/reports/overdue-orders/export?{queryString}");
-        response.EnsureSuccessStatusCode();
-        return await response.Content.ReadAsByteArrayAsync();
-    }
 }

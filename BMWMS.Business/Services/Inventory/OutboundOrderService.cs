@@ -2,6 +2,7 @@ using BMWMS.Business.DTOs.Inventory;
 using BMWMS.Business.DTOs.Audit;
 using BMWMS.Business.Interfaces;
 using BMWMS.Business.Interfaces.Inventory;
+using StocktakeLocationLockError = BMWMS.Business.Common.StocktakeLocationLockError;
 using QuantityRules = BMWMS.Business.Common.QuantityRules;
 using BMWMS.Repository.Interfaces.Inventory;
 using BMWMS.Repository.Models;
@@ -1639,6 +1640,8 @@ public class OutboundOrderService : IOutboundOrderService
 
     private static string GetSafeErrorMessage(Exception exception, string fallback)
     {
+        if (StocktakeLocationLockError.Is(exception))
+            return StocktakeLocationLockError.Message;
         if (exception is ArgumentException or InvalidOperationException)
             return exception.Message;
         return fallback;

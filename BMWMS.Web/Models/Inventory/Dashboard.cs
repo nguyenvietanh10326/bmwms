@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -25,10 +25,12 @@ namespace BMWMS.Web.Models.Inventory
     public class LowStockAlertDto
     {
         public long ProductId { get; set; }
+        public string ProductCode { get; set; } = string.Empty;
         public string ProductName { get; set; } = string.Empty;
         public decimal AvailableQuantity { get; set; }
         public string UnitName { get; set; } = string.Empty;
         public decimal Threshold { get; set; } 
+        public decimal ShortageQuantity { get; set; }
         public string Status { get; set; } = string.Empty; 
     }
 

@@ -1,4 +1,4 @@
-﻿using BMWMS.Repository.Interfaces.Inventory;
+using BMWMS.Repository.Interfaces.Inventory;
 using BMWMS.Repository.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -24,25 +24,22 @@ namespace BMWMS.Repository.Repositories.Inventory
         {
             return await _context.Warehouses
                 .AsNoTracking()
-                .Where(w => w.Status == "ACTIVE" || w.Status == "Active")
+                .Where(w => w.Status == "ACTIVE")
                 .CountAsync();
         }
 
-        // 3. Lấy danh sách Tồn kho kèm Sản phẩm & Đơn vị tính để phục vụ bảng Cảnh báo tồn kho
-        public async Task<List<BMWMS.Repository.Models.Inventory>> GetLowStockInventoriesAsync(int top = 5)
+        // 3. Lấy danh sách cảnh báo tồn kho thấp từ view VwLowStockAlert
+        public async Task<List<VwLowStockAlert>> GetLowStockAlertsAsync(int top = 10)
         {
-            return await _context.Inventories
+            return await _context.VwLowStockAlerts
                 .AsNoTracking()
-                .Include(i => i.Product)
-                    .ThenInclude(p => p.UnitOfMeasure)
-                .Include(i => i.StorageLocation)
-                .OrderBy(i => (i.AvailableQuantity ?? (i.OnHandQuantity - i.ReservedQuantity)))
+                .OrderBy(v => v.AvailableQuantity - v.MinimumStockQuantity) // thiếu nhiều nhất lên trên
                 .Take(top)
                 .ToListAsync();
         }
 
         // 4. Lấy danh sách Hoạt động/Giao dịch gần đây nhất
-        public async Task<List<BMWMS.Repository.Models.InventoryTransaction>> GetRecentActivitiesAsync(int top = 5)
+        public async Task<List<InventoryTransaction>> GetRecentActivitiesAsync(int top = 5)
         {
             return await _context.InventoryTransactions
                 .AsNoTracking()
@@ -53,43 +50,42 @@ namespace BMWMS.Repository.Repositories.Inventory
                 .ToListAsync();
         }
 
-        // 5. Đếm Đơn mua chờ xác nhận
+        // 5. Đếm Đơn mua đang chờ xử lý (có trạng thái chưa hoàn tất)
         public async Task<int> GetPendingPurchaseOrdersCountAsync()
         {
-            return await _context.PurchaseOrderDetails
+            return await _context.PurchaseOrders
                 .AsNoTracking()
-                .Select(po => po.PurchaseOrderId)
-                .Distinct()
-                .CountAsync(); 
+                .Where(po => po.Status == "DRAFT" ||
+                             po.Status == "PENDING_CONFIRMATION" ||
+                             po.Status == "CONFIRMED" ||
+                             po.Status == "PARTIALLY_RECEIVED")
+                .CountAsync();
         }
 
         // 6. Đếm Đơn bán chờ giữ tồn
         public async Task<int> GetPendingSalesOrdersCountAsync()
         {
-            return await _context.SalesOrderDetails
+            return await _context.SalesOrders
                 .AsNoTracking()
-                .Select(so => so.SalesOrderId)
-                .Distinct()
+                .Where(so => so.Status == "WAITING_STOCK")
                 .CountAsync();
         }
 
-        // 7. Lệnh nhập đang xử lý
+        // 7. Lệnh nhập đang xử lý (IN_PROGRESS hoặc ASSIGNED)
         public async Task<int> GetProcessingInboundOrdersCountAsync()
         {
-            return await _context.InboundOrderItems
+            return await _context.InboundOrders
                 .AsNoTracking()
-                .Select(i => i.InboundOrderId)
-                .Distinct()
+                .Where(io => io.Status == "IN_PROGRESS" || io.Status == "ASSIGNED")
                 .CountAsync();
         }
 
         // 8. Lệnh xuất đang picking
         public async Task<int> GetPickingOutboundOrdersCountAsync()
         {
-            return await _context.OutboundOrderItems
+            return await _context.OutboundOrders
                 .AsNoTracking()
-                .Select(o => o.OutboundOrderId)
-                .Distinct()
+                .Where(oo => oo.Status == "IN_PROGRESS")
                 .CountAsync();
         }
     }

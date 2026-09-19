@@ -1,4 +1,4 @@
-﻿using BMWMS.Business.DTOs.Inventory;
+using BMWMS.Business.DTOs.Inventory;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,3 +12,4 @@ namespace BMWMS.Business.Interfaces.Inventory
         Task<InventoryDashboardPageDto> GetInventoryPageDataAsync(InventoryFilterDto filter);
     }
 }
+

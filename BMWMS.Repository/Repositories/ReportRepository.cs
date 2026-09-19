@@ -227,84 +227,6 @@ public class ReportRepository : IReportRepository
         return (totalCount, items);
     }
 
-    public async Task<(int TotalCount, List<(long ProductId, string ProductCode, string ProductName, string BaseUnitCode, decimal CurrentStock, decimal InboundQuantity, decimal OutboundQuantity, decimal AdjustmentQuantity, int MovementFrequency, int DaysSinceLastMovement)> Items)> GetProductStatisticsAsync(
-        DateTime? fromDate, DateTime? toDate, string? productSearch, string? productGroupCode, int pageNumber, int pageSize)
-    {
-        var productQuery = _context.Products
-            .Include(p => p.UnitOfMeasure)
-            .Include(p => p.ProductGroup)
-            .AsQueryable();
-
-        if (!string.IsNullOrEmpty(productSearch))
-        {
-            var search = productSearch.ToLower();
-            productQuery = productQuery.Where(p => p.ProductCode.ToLower().Contains(search) || p.ProductName.ToLower().Contains(search));
-        }
-
-        if (!string.IsNullOrEmpty(productGroupCode))
-        {
-            productQuery = productQuery.Where(p => p.ProductGroup.GroupCode == productGroupCode);
-        }
-
-        var totalCount = await productQuery.CountAsync();
-
-        var products = await productQuery
-            .OrderBy(p => p.ProductCode)
-            .Skip((pageNumber - 1) * pageSize)
-            .Take(pageSize)
-            .Select(p => new {
-                p.ProductId,
-                p.ProductCode,
-                p.ProductName,
-                UnitCode = p.UnitOfMeasure.UnitCode,
-                CurrentStock = p.Inventories.Sum(i => i.OnHandQuantity)
-            })
-            .ToListAsync();
-
-        var productIds = products.Select(p => p.ProductId).ToList();
-
-        var transQuery = _context.InventoryTransactions.Where(t => productIds.Contains(t.ProductId));
-        if (fromDate.HasValue) transQuery = transQuery.Where(t => t.TransactionAt >= fromDate.Value);
-        if (toDate.HasValue) transQuery = transQuery.Where(t => t.TransactionAt <= toDate.Value);
-
-        var transactions = await transQuery
-            .GroupBy(t => t.ProductId)
-            .Select(g => new
-            {
-                ProductId = g.Key,
-                InboundQuantity = g.Where(t => t.TransactionType == "Inbound").Sum(t => t.OnHandDelta),
-                OutboundQuantity = g.Where(t => t.TransactionType == "Outbound").Sum(t => Math.Abs(t.OnHandDelta)),
-                AdjustmentQuantity = g.Where(t => t.TransactionType == "Adjustment").Sum(t => t.OnHandDelta),
-                MovementFrequency = g.Count(),
-                LastMovement = g.Max(t => (DateTime?)t.TransactionAt)
-            })
-            .ToDictionaryAsync(x => x.ProductId);
-
-        var items = new List<(long, string, string, string, decimal, decimal, decimal, decimal, int, int)>();
-        var now = DateTime.UtcNow;
-
-        foreach (var p in products)
-        {
-            var stat = transactions.GetValueOrDefault(p.ProductId);
-            int daysSinceLast = stat?.LastMovement != null ? (now - stat.LastMovement.Value).Days : 0;
-
-            items.Add((
-                p.ProductId,
-                p.ProductCode,
-                p.ProductName,
-                p.UnitCode,
-                p.CurrentStock,
-                stat?.InboundQuantity ?? 0,
-                stat?.OutboundQuantity ?? 0,
-                stat?.AdjustmentQuantity ?? 0,
-                stat?.MovementFrequency ?? 0,
-                daysSinceLast
-            ));
-        }
-
-        return (totalCount, items);
-    }
-
     public async Task<(int TotalCount, List<(long SupplierId, string SupplierCode, string SupplierName, int InboundOrderCount, decimal ExpectedQuantity, decimal ReceivedQuantity, decimal DamagedQuantity, decimal ShortageQuantity)> Items)> GetSupplierStatisticsAsync(
         DateTime? fromDate, DateTime? toDate, string? supplierSearch, int pageNumber, int pageSize)
     {
@@ -391,67 +313,6 @@ public class ReportRepository : IReportRepository
         return (totalCount, items);
     }
 
-    public async Task<(int TotalCount, List<(long StocktakeSessionId, string StocktakeNumber, DateOnly PlannedDate, string Status, int BinsCounted, int MatchedItems, int ShortageItems, int ExcessItems, int TotalItemsCounted, decimal TotalShortageQuantity, decimal TotalExcessQuantity, decimal TotalApprovedAdjustmentQuantity)> Items)> GetStocktakeStatisticsAsync(
-        DateTime? fromDate, DateTime? toDate, string? countType, string? storageAreaCode, string? productGroupCode, string? sessionStatus, int pageNumber, int pageSize)
-    {
-        var query = _context.StocktakeSessions.Include(s => s.StocktakeItems).AsQueryable();
-
-        if (fromDate.HasValue)
-        {
-            var fDate = DateOnly.FromDateTime(fromDate.Value);
-            query = query.Where(x => x.PlannedDate >= fDate);
-        }
-        if (toDate.HasValue)
-        {
-            var tDate = DateOnly.FromDateTime(toDate.Value);
-            query = query.Where(x => x.PlannedDate <= tDate);
-        }
-        if (!string.IsNullOrEmpty(sessionStatus))
-        {
-            var statusUpper = sessionStatus.ToUpper();
-            query = query.Where(x => x.Status == statusUpper);
-        }
-
-        var totalCount = await query.CountAsync();
-
-        var sessions = await query
-            .OrderByDescending(x => x.PlannedDate)
-            .ThenByDescending(x => x.StocktakeSessionId)
-            .Skip((pageNumber - 1) * pageSize)
-            .Take(pageSize)
-            .Select(s => new {
-                s.StocktakeSessionId,
-                s.StocktakeNumber,
-                s.PlannedDate,
-                s.Status,
-                BinsCounted = s.StocktakeItems.Select(i => i.StorageLocationId).Distinct().Count(),
-                MatchedItems = s.StocktakeItems.Count(i => i.DifferenceQuantity == 0),
-                ShortageItems = s.StocktakeItems.Count(i => i.DifferenceQuantity < 0),
-                ExcessItems = s.StocktakeItems.Count(i => i.DifferenceQuantity > 0),
-                TotalItemsCounted = s.StocktakeItems.Count(),
-                TotalShortageQuantity = s.StocktakeItems.Where(i => i.DifferenceQuantity < 0).Sum(i => i.DifferenceQuantity) ?? 0,
-                TotalExcessQuantity = s.StocktakeItems.Where(i => i.DifferenceQuantity > 0).Sum(i => i.DifferenceQuantity) ?? 0,
-                TotalApprovedAdjustmentQuantity = s.StocktakeItems.Sum(i => i.AdjustmentQuantity) ?? 0
-            })
-            .ToListAsync();
-
-        var items = sessions.Select(s => (
-            s.StocktakeSessionId,
-            s.StocktakeNumber,
-            s.PlannedDate,
-            s.Status,
-            s.BinsCounted,
-            s.MatchedItems,
-            s.ShortageItems,
-            s.ExcessItems,
-            s.TotalItemsCounted,
-            s.TotalShortageQuantity,
-            s.TotalExcessQuantity,
-            s.TotalApprovedAdjustmentQuantity
-        )).ToList();
-
-        return (totalCount, items);
-    }
     public async Task<(int TotalCount, List<VwLowStockAlert> Items)> GetLowStockAlertsAsync(
         string? keyword, int pageNumber, int pageSize)
     {
@@ -501,35 +362,4 @@ public class ReportRepository : IReportRepository
         return (totalCount, items);
     }
 
-    public async Task<(int TotalCount, List<VwOverdueOrder> Items)> GetOverdueOrderAlertsAsync(
-        string? documentType, string? keyword, int pageNumber, int pageSize)
-    {
-        var query = _context.Set<VwOverdueOrder>().AsQueryable();
-
-        if (!string.IsNullOrWhiteSpace(documentType))
-        {
-            query = query.Where(v => v.DocumentType == documentType);
-        }
-
-        if (!string.IsNullOrWhiteSpace(keyword))
-        {
-            var kw = keyword.Trim().ToLower();
-            query = query.Where(v => v.DocumentNumber.ToLower().Contains(kw));
-        }
-
-        int totalCount = await query.CountAsync();
-
-        var items = await query
-            .OrderByDescending(v => v.DaysOverdue)
-            .Skip((pageNumber - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync();
-
-        return (totalCount, items);
-    }
-
-    public async Task<List<VwWarehouseKpi>> GetWarehouseKpisAsync()
-    {
-        return await _context.VwWarehouseKpis.AsNoTracking().ToListAsync();
-    }
 }
