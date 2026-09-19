@@ -113,17 +113,11 @@ public partial class BmwmsContext : DbContext
 
     public virtual DbSet<VwOutboundReport> VwOutboundReports { get; set; }
 
-    public virtual DbSet<VwOverdueOrder> VwOverdueOrders { get; set; }
-
     public virtual DbSet<VwProductLocationLookup> VwProductLocationLookups { get; set; }
 
     public virtual DbSet<VwProductTransactionHistory> VwProductTransactionHistories { get; set; }
 
-    public virtual DbSet<VwStocktakeResult> VwStocktakeResults { get; set; }
-
     public virtual DbSet<VwWarehouseDashboard> VwWarehouseDashboards { get; set; }
-
-    public virtual DbSet<VwWarehouseKpi> VwWarehouseKpis { get; set; }
 
     public virtual DbSet<Warehouse> Warehouses { get; set; }
 
@@ -1796,25 +1790,6 @@ public partial class BmwmsContext : DbContext
             entity.Property(e => e.WarehouseId).HasColumnName("WarehouseID");
         });
 
-        modelBuilder.Entity<VwOverdueOrder>(entity =>
-        {
-            entity
-                .HasNoKey()
-                .ToView("vw_OverdueOrders");
-
-            entity.Property(e => e.DocumentId).HasColumnName("DocumentID");
-            entity.Property(e => e.DocumentNumber)
-                .HasMaxLength(50)
-                .IsUnicode(false);
-            entity.Property(e => e.DocumentType)
-                .HasMaxLength(30)
-                .IsUnicode(false);
-            entity.Property(e => e.Status)
-                .HasMaxLength(30)
-                .IsUnicode(false);
-            entity.Property(e => e.WarehouseId).HasColumnName("WarehouseID");
-        });
-
         modelBuilder.Entity<VwProductLocationLookup>(entity =>
         {
             entity
@@ -1884,45 +1859,6 @@ public partial class BmwmsContext : DbContext
             entity.Property(e => e.WarehouseId).HasColumnName("WarehouseID");
         });
 
-        modelBuilder.Entity<VwStocktakeResult>(entity =>
-        {
-            entity
-                .HasNoKey()
-                .ToView("vw_StocktakeResults");
-
-            entity.Property(e => e.AdjustmentQuantity).HasColumnType("decimal(18, 4)");
-            entity.Property(e => e.BookQuantity).HasColumnType("decimal(18, 4)");
-            entity.Property(e => e.CountStatus)
-                .HasMaxLength(20)
-                .IsUnicode(false);
-            entity.Property(e => e.CountedQuantity).HasColumnType("decimal(18, 4)");
-            entity.Property(e => e.DifferenceQuantity).HasColumnType("decimal(19, 4)");
-            entity.Property(e => e.LocationCode)
-                .HasMaxLength(80)
-                .IsUnicode(false);
-            entity.Property(e => e.LotNumber)
-                .HasMaxLength(100)
-                .IsUnicode(false);
-            entity.Property(e => e.ProductCode)
-                .HasMaxLength(80)
-                .IsUnicode(false);
-            entity.Property(e => e.ProductId).HasColumnName("ProductID");
-            entity.Property(e => e.ProductLotId).HasColumnName("ProductLotID");
-            entity.Property(e => e.ProductName).HasMaxLength(250);
-            entity.Property(e => e.Resolution)
-                .HasMaxLength(30)
-                .IsUnicode(false);
-            entity.Property(e => e.Status)
-                .HasMaxLength(30)
-                .IsUnicode(false);
-            entity.Property(e => e.StocktakeNumber)
-                .HasMaxLength(50)
-                .IsUnicode(false);
-            entity.Property(e => e.StocktakeSessionId).HasColumnName("StocktakeSessionID");
-            entity.Property(e => e.StorageLocationId).HasColumnName("StorageLocationID");
-            entity.Property(e => e.WarehouseId).HasColumnName("WarehouseID");
-        });
-
         modelBuilder.Entity<VwWarehouseDashboard>(entity =>
         {
             entity
@@ -1936,22 +1872,6 @@ public partial class BmwmsContext : DbContext
                 .IsUnicode(false);
             entity.Property(e => e.WarehouseId).HasColumnName("WarehouseID");
             entity.Property(e => e.WarehouseName).HasMaxLength(200);
-        });
-
-        modelBuilder.Entity<VwWarehouseKpi>(entity =>
-        {
-            entity
-                .HasNoKey()
-                .ToView("vw_WarehouseKPI");
-
-            entity.Property(e => e.AverageInboundProcessingHours).HasColumnType("decimal(18, 2)");
-            entity.Property(e => e.AverageOutboundProcessingHours).HasColumnType("decimal(18, 2)");
-            entity.Property(e => e.InboundOnTimeRate).HasColumnType("decimal(6, 2)");
-            entity.Property(e => e.OutboundOnTimeRate).HasColumnType("decimal(6, 2)");
-            entity.Property(e => e.WarehouseCode)
-                .HasMaxLength(50)
-                .IsUnicode(false);
-            entity.Property(e => e.WarehouseId).HasColumnName("WarehouseID");
         });
 
         modelBuilder.Entity<Warehouse>(entity =>

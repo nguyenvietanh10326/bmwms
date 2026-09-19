@@ -217,6 +217,9 @@ namespace BMWMS.Business.Services
 
             var id = await _productRepository.AddAsync(product, attributeValues);
 
+            // Tự động tạo ProductWarehousePolicy mặc định cho tất cả kho đang ACTIVE
+            await _productRepository.SeedDefaultWarehousePoliciesAsync(id);
+
             await _auditLogService.RecordAsync(new AuditEventDto
             {
                 UserId = currentUserId > 0 ? currentUserId : null,
