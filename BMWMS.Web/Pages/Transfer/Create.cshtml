@@ -16,6 +16,14 @@
         white-space: nowrap;
         overflow: hidden;
         background-position: right .75rem center;
+        min-width: 150px;
+        max-width: 100%;
+    }
+    .transfer-form select option,
+    .transfer-page .form-select option {
+        white-space: normal;
+        overflow-wrap: anywhere;
+        padding: 6px 8px;
     }
     .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
     table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
@@ -23,13 +31,49 @@
     td { padding: 10px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
     .btn-remove { background: #fee2e2; color: #dc2626; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; }
     .btn-remove:hover { background: #fca5a5; }
-    .transfer-items { min-width: 1180px; }
-    .transfer-items th, .transfer-items td { min-width: 130px; }
-    .transfer-items .product-col { min-width: 260px; }
-    .transfer-items .qty-col { min-width: 130px; width: 130px; }
-    .transfer-items .qty-input { width: 100%; min-width: 130px; height: 31px; padding: 4px 8px; font-size: 0.875rem; line-height: 1.5; }
-    .transfer-items .action-col { min-width: 60px; text-align:center; }
+    .transfer-items { width: 100%; min-width: 0; table-layout: fixed; }
+    .transfer-items th, .transfer-items td {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .transfer-items th:nth-child(1), .transfer-items td:nth-child(1),
+    .transfer-items th:nth-child(2), .transfer-items td:nth-child(2),
+    .transfer-items th:nth-child(3), .transfer-items td:nth-child(3),
+    .transfer-items th:nth-child(6), .transfer-items td:nth-child(6),
+    .transfer-items th:nth-child(7), .transfer-items td:nth-child(7),
+    .transfer-items th:nth-child(8), .transfer-items td:nth-child(8) {
+        width: 11%;
+        min-width: 110px;
+    }
+    .transfer-items .product-col {
+        width: 34%;
+        min-width: 260px;
+    }
+    .transfer-items th:nth-child(5), .transfer-items td:nth-child(5),
+    .transfer-items th:nth-child(9), .transfer-items td:nth-child(9) {
+        width: 8%;
+        min-width: 76px;
+    }
+    .transfer-items .qty-col {
+        width: 8%;
+        min-width: 76px;
+    }
+    .transfer-items .qty-input {
+        width: 100%;
+        min-width: 70px;
+        height: 31px;
+        padding: 4px 8px;
+        font-size: 0.875rem;
+        line-height: 1.5;
+    }
+    .transfer-items .action-col { width: 38px; min-width: 38px; text-align:center; }
     .table-scroll { overflow-x: auto; }
+    .transfer-items .form-select {
+        width: 100%;
+        max-width: 100%;
+        min-width: 90px;
+    }
 </style>
 
 <div class="transfer-page">
@@ -80,12 +124,12 @@
                             <th>Zone nguồn</th>
                             <th>Rack nguồn</th>
                             <th>Bin nguồn</th>
-                            <th class="product-col">Sản phẩm / Lot</th>
+                            <th class="product-col">Product lot</th>
                             <th>Tồn khả dụng</th>
                             <th>Zone đích</th>
                             <th>Rack đích</th>
                             <th>Bin đích</th>
-                            <th class="qty-col">S.Lượng chuyển</th>
+                            <th class="qty-col">Số lượng chuyển</th>
                             <th class="action-col"></th>
                         </tr>
                     </thead>
@@ -155,18 +199,18 @@
             const ri = rowIdx++;
             rowInventories[ri] = [];
             const html = `<tr id="row-${ri}">
-                <td><select id="sourceZone-${ri}" class="form-select form-select-sm" onchange="loadSourceRacks(${ri})">${zoneOptions()}</select></td>
-                <td><select id="sourceRack-${ri}" class="form-select form-select-sm" onchange="loadSourceBins(${ri})"><option value="">-- Chọn --</option></select></td>
-                <td><select name="sourceLocationIds" id="sloc-${ri}" class="form-select form-select-sm" onchange="loadInventoryForRow(${ri})" required><option value="">-- Chọn --</option></select></td>
+                <td><select id="sourceZone-${ri}" class="form-select form-select-sm" title="Zone nguồn" onchange="loadSourceRacks(${ri})">${zoneOptions()}</select></td>
+                <td><select id="sourceRack-${ri}" class="form-select form-select-sm" title="Rack nguồn" onchange="loadSourceBins(${ri})"><option value="">-- Chọn --</option></select></td>
+                <td><select name="sourceLocationIds" id="sloc-${ri}" class="form-select form-select-sm" title="Bin nguồn" onchange="loadInventoryForRow(${ri})" required><option value="">-- Chọn --</option></select></td>
                 <td class="product-col">
                     <input type="hidden" name="productIds" id="pid-${ri}" required />
                     <input type="hidden" name="productLotIds" id="plid-${ri}" required />
-                    <select id="productLot-${ri}" class="form-select form-select-sm" onchange="selectInventoryItem(${ri})" required><option value="">-- Chọn bin nguồn trước --</option></select>
+                    <select id="productLot-${ri}" class="form-select form-select-sm" title="Sản phẩm / lô" onchange="selectInventoryItem(${ri})" required><option value="">-- Chọn bin nguồn trước --</option></select>
                 </td>
                 <td><span id="onhand-${ri}">0</span></td>
-                <td><select id="destZone-${ri}" class="form-select form-select-sm" onchange="loadDestRacks(${ri})" disabled><option value="">-- Chọn sản phẩm --</option></select></td>
-                <td><select id="destRack-${ri}" class="form-select form-select-sm" onchange="loadDestBins(${ri})" disabled><option value="">-- Chọn --</option></select></td>
-                <td><select name="destLocationIds" id="dloc-${ri}" class="form-select form-select-sm" onchange="validateRow(${ri})" disabled required><option value="">-- Chọn --</option></select></td>
+                <td><select id="destZone-${ri}" class="form-select form-select-sm" title="Zone đích" onchange="loadDestRacks(${ri})" disabled><option value="">-- Chọn sản phẩm --</option></select></td>
+                <td><select id="destRack-${ri}" class="form-select form-select-sm" title="Rack đích" onchange="loadDestBins(${ri})" disabled><option value="">-- Chọn --</option></select></td>
+                <td><select name="destLocationIds" id="dloc-${ri}" class="form-select form-select-sm" title="Bin đích" onchange="validateRow(${ri})" disabled required><option value="">-- Chọn --</option></select></td>
                 <td>
                     <input type="number" name="quantities" id="qty-${ri}" class="form-control form-control-sm qty-input" min="1" step="1" oninput="validateRow(${ri})" required />
                 </td>
@@ -187,18 +231,18 @@
                 quantityScale: data.quantityScale || 0
             }];
             const html = `<tr id="row-${ri}">
-                <td><select id="sourceZone-${ri}" class="form-select form-select-sm" onchange="loadSourceRacks(${ri})">${zoneOptions()}</select></td>
-                <td><select id="sourceRack-${ri}" class="form-select form-select-sm" onchange="loadSourceBins(${ri})"><option value="">-- Chọn --</option></select></td>
-                <td><select name="sourceLocationIds" id="sloc-${ri}" class="form-select form-select-sm" onchange="loadInventoryForRow(${ri})" required><option value="${data.sloc}" selected>${data.lcode}</option></select></td>
+                <td><select id="sourceZone-${ri}" class="form-select form-select-sm" title="Zone nguồn" onchange="loadSourceRacks(${ri})">${zoneOptions()}</select></td>
+                <td><select id="sourceRack-${ri}" class="form-select form-select-sm" title="Rack nguồn" onchange="loadSourceBins(${ri})"><option value="">-- Chọn --</option></select></td>
+                <td><select name="sourceLocationIds" id="sloc-${ri}" class="form-select form-select-sm" title="Bin nguồn" onchange="loadInventoryForRow(${ri})" required><option value="${data.sloc}" selected>${data.lcode}</option></select></td>
                 <td class="product-col">
                     <input type="hidden" name="productIds" id="pid-${ri}" value="${data.pid}" required />
                     <input type="hidden" name="productLotIds" id="plid-${ri}" value="${data.plid}" required />
-                    <select id="productLot-${ri}" class="form-select form-select-sm" onchange="selectInventoryItem(${ri})" required><option value="${data.plid}" selected>${data.pcode} - ${data.pname}</option></select>
+                    <select id="productLot-${ri}" class="form-select form-select-sm" title="Sản phẩm / lô" onchange="selectInventoryItem(${ri})" required><option value="${data.plid}" selected>${data.pcode} - ${data.pname}</option></select>
                 </td>
                 <td><span id="onhand-${ri}">${data.qty}</span></td>
-                <td><select id="destZone-${ri}" class="form-select form-select-sm" onchange="loadDestRacks(${ri})"><option value="">Đang tải...</option></select></td>
-                <td><select id="destRack-${ri}" class="form-select form-select-sm" onchange="loadDestBins(${ri})"><option value="">-- Chọn --</option></select></td>
-                <td><select name="destLocationIds" id="dloc-${ri}" class="form-select form-select-sm" onchange="validateRow(${ri})" required><option value="${data.dloc}" selected>${data.destCode || data.dloc}</option></select></td>
+                <td><select id="destZone-${ri}" class="form-select form-select-sm" title="Zone đích" onchange="loadDestRacks(${ri})"><option value="">Đang tải...</option></select></td>
+                <td><select id="destRack-${ri}" class="form-select form-select-sm" title="Rack đích" onchange="loadDestBins(${ri})"><option value="">-- Chọn --</option></select></td>
+                <td><select name="destLocationIds" id="dloc-${ri}" class="form-select form-select-sm" title="Bin đích" onchange="validateRow(${ri})" required><option value="${data.dloc}" selected>${data.destCode || data.dloc}</option></select></td>
                 <td>
                     <input type="number" name="quantities" id="qty-${ri}" value="${data.qty}" class="form-control form-control-sm qty-input" min="${quantityStep(data.quantityScale || 0)}" step="${quantityStep(data.quantityScale || 0)}" oninput="validateRow(${ri})" required />
                 </td>
