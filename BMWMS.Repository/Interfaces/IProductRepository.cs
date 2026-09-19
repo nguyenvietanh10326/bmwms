@@ -30,5 +30,11 @@ namespace BMWMS.Repository.Interfaces
 
         Task<List<ProductAttributeValue>> GetProductAttributeValuesAsync(long productId);
         Task<List<ProductAttribute>> GetProductAttributesByIdsAsync(IEnumerable<long> productAttributeIds);
+
+        /// <summary>Tự động insert ProductWarehousePolicy mặc định (MinStock=0, ExpiryWarning=30)
+        /// cho tất cả kho đang ACTIVE nếu chưa có policy cho productId này.</summary>
+        Task SeedDefaultWarehousePoliciesAsync(long productId,
+            decimal defaultMinimumStockQuantity = 0m,
+            int defaultExpiryWarningDays = 30);
     }
 }

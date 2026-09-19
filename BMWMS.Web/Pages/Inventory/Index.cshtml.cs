@@ -16,19 +16,9 @@ namespace BMWMS.Web.Pages.Inventory
 
         public DashboardSummaryDto Summary { get; set; } = new();
 
-        public async Task<IActionResult> OnGetAsync()
+        public IActionResult OnGet()
         {
-            var client = _httpClientFactory.CreateClient("ApiClient");
-            var response = await client.GetAsync("api/dashboard/summary");
-
-            if (response.IsSuccessStatusCode)
-            {
-                var content = await response.Content.ReadAsStringAsync();
-                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-                Summary = JsonSerializer.Deserialize<DashboardSummaryDto>(content, options) ?? new DashboardSummaryDto();
-            }
-
-            return Page();
+            return RedirectToPage("/Inventory/Inventory");
         }
     }
 }

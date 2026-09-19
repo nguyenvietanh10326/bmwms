@@ -10,7 +10,7 @@
         <input type="hidden" name="id" value="@Model.StocktakeSessionId" />
         <div class="table-responsive">
             <table class="table table-hover stocktake-table stocktake-entry-table">
-                <thead><tr><th>Vị trí</th><th>Sản phẩm</th><th>Lô</th><th class="text-end">Tồn snapshot</th><th style="width:190px">Số lượng thực đếm</th><th>Ghi chú</th></tr></thead>
+                <thead><tr><th>Vị trí</th><th>Sản phẩm</th><th>Lô</th><th class="text-end">Tồn theo sổ sách</th><th style="width:190px">Số lượng thực đếm</th><th>Ghi chú</th></tr></thead>
                 <tbody>
                 @for (var index = 0; index < Model.Items.Count; index++)
                 {
@@ -36,7 +36,7 @@
         @if (emptyLocations.Count > 0)
         {
             <div class="empty-location-panel">
-                <h3>Vị trí không có tồn snapshot</h3><p>Xác nhận thực tế vị trí trống trước khi gửi phiếu.</p>
+                <h3>Vị trí không có tồn theo sổ sách</h3><p>Xác nhận thực tế vị trí trống trước khi gửi phiếu.</p>
                 <div class="empty-location-grid">
                 @foreach (var location in emptyLocations)
                 {

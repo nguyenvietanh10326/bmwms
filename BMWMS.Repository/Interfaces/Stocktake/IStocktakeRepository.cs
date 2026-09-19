@@ -37,7 +37,7 @@ namespace BMWMS.Repository.Interfaces.Stocktake
         Task<StocktakeSession> SaveSessionCountsAsync(long stocktakeSessionId, List<StocktakeCountUpdateParam> lines, List<long> confirmedEmptyLocationIds, long countedByUserId);
         Task<StocktakeSession> SubmitSessionAsync(long stocktakeSessionId, long submittedByUserId);
         Task<StocktakeItem> AddUnexpectedItemAsync(long stocktakeSessionId, long storageLocationId, long productId, long productLotId, decimal countedQuantity, long countedByUserId, string? notes);
-        Task<StocktakeSession> ApproveSessionAsync(long stocktakeSessionId, long approvedByUserId, string? notes);
+        Task<StocktakeSession> ApproveSessionAsync(long stocktakeSessionId, long approvedByUserId, string? notes, IReadOnlySet<long> exceptionItemIds);
         Task<StocktakeSession> RejectSessionAsync(long stocktakeSessionId, long rejectedByUserId, string reason);
     }
 }

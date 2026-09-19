@@ -21,6 +21,7 @@ namespace BMWMS.Repository.Interfaces.Inventory
             long? warehouseId,
             long? storageLocationId,
             string? status,
+            long? zoneId, long? rackId,
             int pageIndex,
             int pageSize);
 
@@ -33,3 +34,5 @@ namespace BMWMS.Repository.Interfaces.Inventory
         Task<bool> ReserveStockForOrderAsync(long productId, decimal quantity, long salesOrderDetailId, long userId, string allocationStrategy = "FIFO");
     }
 }
+
+

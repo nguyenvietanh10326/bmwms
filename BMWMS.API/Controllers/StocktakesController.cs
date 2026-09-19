@@ -158,7 +158,7 @@ namespace BMWMS.API.Controllers
 
         // UC36 - Phe duyet va dieu chinh ton kho
         [HttpPost("{id:long}/approve")]
-        [Authorize(Roles = "WAREHOUSE_MANAGER")]
+        [Authorize(Roles = "WAREHOUSE_MANAGER,SYSTEM_ADMIN")]
         public async Task<IActionResult> ApproveStocktake(long id, [FromBody] StocktakeNoteDto? request)
         {
             var result = await _stocktakeService.ApproveSessionAsync(
@@ -183,7 +183,7 @@ namespace BMWMS.API.Controllers
         }
 
         [HttpPost("{id:long}/reject")]
-        [Authorize(Roles = "WAREHOUSE_MANAGER")]
+        [Authorize(Roles = "WAREHOUSE_MANAGER,SYSTEM_ADMIN")]
         public async Task<IActionResult> RejectStocktake(long id, [FromBody] StocktakeNoteDto? request)
         {
             var result = await _stocktakeService.RejectSessionAsync(id, GetCurrentUserId(), request?.Notes);

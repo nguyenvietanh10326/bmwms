@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using BMWMS.Business.DTOs.StockOperations;
 using BMWMS.Business.Interfaces.StockOperations;
+using BMWMS.Business.Common;
 
 namespace BMWMS.API.Controllers.StockOperations
 {
@@ -51,7 +52,9 @@ namespace BMWMS.API.Controllers.StockOperations
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(StocktakeLocationLockError.Is(ex)
+                    ? new { code = StocktakeLocationLockError.Code, message = StocktakeLocationLockError.Message }
+                    : new { code = "TRANSFER_ERROR", message = ex.Message });
             }
         }
 

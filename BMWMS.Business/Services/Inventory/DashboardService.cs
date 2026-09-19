@@ -1,4 +1,4 @@
-﻿using BMWMS.Business.DTOs.Inventory;
+using BMWMS.Business.DTOs.Inventory;
 using BMWMS.Business.Interfaces.Inventory;
 using BMWMS.Repository.Interfaces.Inventory;
 
@@ -23,16 +23,15 @@ namespace BMWMS.Business.Services.Inventory
             var processingInbound = await _dashboardRepository.GetProcessingInboundOrdersCountAsync();
             var pickingOutbound = await _dashboardRepository.GetPickingOutboundOrdersCountAsync();
 
-            var rawInventories = await _dashboardRepository.GetLowStockInventoriesAsync(10);
+            // Lấy cảnh báo tồn kho từ VwLowStockAlert — ngưỡng lấy từ ProductWarehousePolicy
+            var rawAlerts = await _dashboardRepository.GetLowStockAlertsAsync(10);
             var alerts = new List<LowStockAlertDto>();
             int lowStockCount = 0;
             int outOfStockCount = 0;
 
-            foreach (var item in rawInventories)
+            foreach (var item in rawAlerts)
             {
-                var available = item.AvailableQuantity ?? (item.OnHandQuantity - item.ReservedQuantity);
-
-                decimal threshold = 100;
+                var available = item.AvailableQuantity ?? 0m;
 
                 string status;
                 if (available <= 0)
@@ -40,23 +39,22 @@ namespace BMWMS.Business.Services.Inventory
                     status = "Hết hàng";
                     outOfStockCount++;
                 }
-                else if (available < threshold)
-                {
-                    status = "Sắp hết";
-                    lowStockCount++;
-                }
                 else
                 {
-                    status = "Theo dõi";
+                    // Sản phẩm có trong view này đã là dưới ngưỡng MinimumStockQuantity
+                    status = "Sắp hết";
+                    lowStockCount++;
                 }
 
                 alerts.Add(new LowStockAlertDto
                 {
                     ProductId = item.ProductId,
-                    ProductName = item.Product?.ProductName ?? "N/A",
+                    ProductCode = item.ProductCode,
+                    ProductName = item.ProductName,
                     AvailableQuantity = available,
-                    UnitName = item.Product?.UnitOfMeasure?.UnitName ?? "Đơn vị",
-                    Threshold = threshold,
+                    UnitName = string.Empty, // View chưa có UnitName, có thể mở rộng sau
+                    Threshold = item.MinimumStockQuantity,
+                    ShortageQuantity = item.ShortageQuantity ?? 0m,
                     Status = status
                 });
             }
@@ -65,11 +63,21 @@ namespace BMWMS.Business.Services.Inventory
             var activities = rawActivities.Select(a => new RecentActivityDto
             {
                 Code = $"TXN-{a.InventoryTransactionId}",
-                Title = $"Giao dịch {a.TransactionType} cho sản phẩm {a.Product?.ProductName}",
+                Title = $"Giao dịch {a.TransactionType} cho sản phẩm {a.Product?.ProductName ?? "sản phẩm"}",
                 PerformerName = a.PerformedByUser?.FullName ?? "Hệ thống",
                 TimeAgo = GetTimeAgo(a.TransactionAt),
                 StatusType = a.TransactionType == "INBOUND" ? "Success" : "Warning"
             }).ToList();
+
+            if (activities.Count == 0)
+            {
+                activities = new List<RecentActivityDto>
+                {
+                    new() { Title = $"Tổng quan kho: {totalProducts} mặt hàng đang được quản lý", PerformerName = "Hệ thống", TimeAgo = "Vừa xong", StatusType = "Success" },
+                    new() { Title = $"Có {pendingPO} đơn nhập chờ xử lý và {pendingSO} đơn xuất đang chờ giữ tồn", PerformerName = "Hệ thống", TimeAgo = "Hôm nay", StatusType = "Warning" },
+                    new() { Title = $"{lowStockCount} mục đang ở ngưỡng sắp hết và {outOfStockCount} mục đã hết hàng", PerformerName = "Hệ thống", TimeAgo = "Hôm nay", StatusType = "Warning" }
+                };
+            }
 
             return new DashboardSummaryDto
             {

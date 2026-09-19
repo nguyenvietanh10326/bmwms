@@ -36,6 +36,8 @@ public class InboundReportFilterModel
     public DateTime? ToDate { get; set; }
     public string? ProductSearch { get; set; }
     public string? Status { get; set; }
+    public int PageNumber { get; set; } = 1;
+    public int PageSize { get; set; } = 50;
 }
 
 public class InboundReportItemModel
@@ -56,6 +58,10 @@ public class InboundReportItemModel
 public class InboundReportResponseModel
 {
     public int TotalCount { get; set; }
+    public int PageIndex { get; set; }
+    public int PageSize { get; set; }
+    public int TotalPages => PageSize > 0 ? (int)Math.Ceiling((double)TotalCount / PageSize) : 0;
+    public DateTime? CutOffTime { get; set; }
     public List<InboundReportItemModel> Items { get; set; } = new();
 }
 
@@ -87,6 +93,10 @@ public class OutboundReportItemModel
 public class OutboundReportResponseModel
 {
     public int TotalCount { get; set; }
+    public int PageIndex { get; set; }
+    public int PageSize { get; set; }
+    public int TotalPages => PageSize > 0 ? (int)Math.Ceiling((double)TotalCount / PageSize) : 0;
+    public DateTime? CutOffTime { get; set; }
     public List<OutboundReportItemModel> Items { get; set; } = new();
 }
 
@@ -115,39 +125,11 @@ public class InOutStockReportItemModel
 public class InOutStockReportResponseModel
 {
     public int TotalCount { get; set; }
+    public int PageIndex { get; set; }
+    public int PageSize { get; set; }
+    public int TotalPages => PageSize > 0 ? (int)Math.Ceiling((double)TotalCount / PageSize) : 0;
+    public DateTime? CutOffTime { get; set; }
     public List<InOutStockReportItemModel> Items { get; set; } = new();
-}
-
-// --- Product Statistics Report ---
-
-public class ProductStatisticsFilterModel
-{
-    public DateTime? FromDate { get; set; } = DateTime.Today.AddDays(-30);
-    public DateTime? ToDate { get; set; } = DateTime.Today;
-    public string? ProductSearch { get; set; }
-    public string? ProductGroupCode { get; set; }
-    public int PageNumber { get; set; } = 1;
-    public int PageSize { get; set; } = 50;
-}
-
-public class ProductStatisticsItemModel
-{
-    public long ProductId { get; set; }
-    public string ProductCode { get; set; } = string.Empty;
-    public string ProductName { get; set; } = string.Empty;
-    public string BaseUnitCode { get; set; } = string.Empty;
-    public decimal CurrentStock { get; set; }
-    public decimal InboundQuantity { get; set; }
-    public decimal OutboundQuantity { get; set; }
-    public decimal AdjustmentQuantity { get; set; }
-    public int MovementFrequency { get; set; }
-    public int DaysSinceLastMovement { get; set; }
-}
-
-public class ProductStatisticsResponseModel
-{
-    public DateTime CutOffTime { get; set; }
-    public PagedResultModel<ProductStatisticsItemModel> Data { get; set; } = new();
 }
 
 // --- Supplier Statistics Report ---
@@ -180,37 +162,6 @@ public class SupplierStatisticsResponseModel
     public PagedResultModel<SupplierStatisticsItemModel> Data { get; set; } = new();
 }
 
-// --- Stocktake Statistics Report ---
-
-public class StocktakeStatisticsFilterModel
-{
-    public DateTime? FromDate { get; set; } = DateTime.Today.AddDays(-30);
-    public DateTime? ToDate { get; set; } = DateTime.Today;
-    public string? CountType { get; set; }
-    public string? StorageAreaCode { get; set; }
-    public string? ProductGroupCode { get; set; }
-    public string? SessionStatus { get; set; }
-    public int PageNumber { get; set; } = 1;
-    public int PageSize { get; set; } = 50;
-}
-
-public class StocktakeStatisticsItemModel
-{
-    public long StocktakeSessionId { get; set; }
-    public string StocktakeNumber { get; set; } = string.Empty;
-    public DateOnly PlannedDate { get; set; }
-    public string Status { get; set; } = string.Empty;
-    public int BinsCounted { get; set; }
-    public int MatchedItems { get; set; }
-    public int ShortageItems { get; set; }
-    public int ExcessItems { get; set; }
-    public int TotalItemsCounted { get; set; }
-    public decimal TotalShortageQuantity { get; set; }
-    public decimal TotalExcessQuantity { get; set; }
-    public decimal TotalApprovedAdjustmentQuantity { get; set; }
-    public double StockAccuracyRate => TotalItemsCounted > 0 ? (double)MatchedItems / TotalItemsCounted * 100.0 : 0;
-}
-
 public class LowStockAlertFilterModel
 {
     public string? Keyword { get; set; }
@@ -235,7 +186,6 @@ public class LowStockAlertResponseModel
     public PagedResultModel<LowStockAlertItemModel> Data { get; set; } = new();
     public DateTime CutOffTime { get; set; } = DateTime.UtcNow;
 }
-
 public class ExpiringLotAlertFilterModel
 {
     public string? Keyword { get; set; }
@@ -266,48 +216,3 @@ public class ExpiringLotAlertResponseModel
     public DateTime CutOffTime { get; set; } = DateTime.UtcNow;
 }
 
-public class OverdueOrderAlertFilterModel
-{
-    public string? DocumentType { get; set; }
-    public string? Keyword { get; set; }
-    public int PageNumber { get; set; } = 1;
-    public int PageSize { get; set; } = 10;
-}
-
-public class OverdueOrderAlertItemModel
-{
-    public string? DocumentType { get; set; }
-    public long DocumentId { get; set; }
-    public string DocumentNumber { get; set; } = string.Empty;
-    public long WarehouseId { get; set; }
-    public DateOnly? DueDate { get; set; }
-    public int? DaysOverdue { get; set; }
-    public string Status { get; set; } = string.Empty;
-}
-
-public class OverdueOrderAlertResponseModel
-{
-    public PagedResultModel<OverdueOrderAlertItemModel> Data { get; set; } = new();
-    public DateTime CutOffTime { get; set; } = DateTime.UtcNow;
-}
-
-public class StocktakeStatisticsResponseModel
-{
-    public DateTime CutOffTime { get; set; }
-    public PagedResultModel<StocktakeStatisticsItemModel> Data { get; set; } = new();
-}
-
-public class WarehouseKpiItemModel
-{
-    public long WarehouseId { get; set; }
-    public string WarehouseCode { get; set; } = string.Empty;
-    public decimal? AverageInboundProcessingHours { get; set; }
-    public decimal? AverageOutboundProcessingHours { get; set; }
-    public decimal? InboundOnTimeRate { get; set; }
-    public decimal? OutboundOnTimeRate { get; set; }
-}
-
-public class WarehouseKpiResponseModel
-{
-    public List<WarehouseKpiItemModel> Items { get; set; } = new();
-}

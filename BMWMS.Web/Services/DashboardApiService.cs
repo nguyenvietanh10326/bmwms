@@ -1,5 +1,6 @@
 using System.Text.Json;
 using BMWMS.Web.Models;
+using BMWMS.Web.Models.Inventory;
 
 namespace BMWMS.Web.Services;
 
@@ -20,11 +21,41 @@ public class DashboardApiService : IDashboardApiService
     {
         try
         {
-            var response = await _httpClient.GetAsync("/api/dashboard");
+            var response = await _httpClient.GetAsync("/api/dashboard/summary");
             if (response.IsSuccessStatusCode)
             {
                 var content = await response.Content.ReadAsStringAsync();
-                return JsonSerializer.Deserialize<DashboardResponseModel>(content, _jsonOptions);
+                var summary = JsonSerializer.Deserialize<DashboardSummaryDto>(content, _jsonOptions);
+                if (summary == null)
+                    return null;
+
+                return new DashboardResponseModel
+                {
+                    TotalProducts = summary.TotalProducts,
+                    NewProductsThisMonth = 0,
+                    ActiveWarehouses = summary.ActiveWarehouses,
+                    LowStockCount = summary.LowStockCount,
+                    OutOfStockCount = summary.OutOfStockCount,
+                    PendingPurchaseOrders = summary.PendingPurchaseOrders,
+                    PendingSalesOrders = summary.PendingSalesOrders,
+                    ProcessingInboundOrders = summary.ProcessingInboundOrders,
+                    PickingOutboundOrders = summary.PickingOutboundOrders,
+                    InventoryAlerts = summary.LowStockAlerts.Select(x => new DashboardAlertModel
+                    {
+                        ProductName = $"{x.ProductCode} - {x.ProductName}",
+                        AvailableQuantity = x.AvailableQuantity,
+                        Threshold = x.Threshold,
+                        Status = x.Status,
+                        Unit = x.UnitName
+                    }).ToList(),
+                    RecentActivities = summary.RecentActivities.Select(x => new DashboardActivityModel
+                    {
+                        ActivityText = x.Title,
+                        PerformedBy = x.PerformerName,
+                        CreatedAt = DateTime.Now,
+                        ColorType = x.StatusType == "Success" ? "blue" : "orange"
+                    }).ToList()
+                };
             }
             
             _logger.LogWarning("Failed to get dashboard data. Status code: {StatusCode}", response.StatusCode);
