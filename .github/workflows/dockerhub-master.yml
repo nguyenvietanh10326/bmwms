@@ -7,12 +7,12 @@ on:
   workflow_dispatch:
     inputs:
       deploy:
-        description: 'Deploy to remote server after build & push'
+        description: 'Deploy to remote server after build (toggle on or off)'
         type: boolean
         required: true
         default: true
       image_tag:
-        description: 'Custom image tag (leave blank to auto-generate timestamp & git sha)'
+        description: 'Custom image tag (leave blank to auto-generate timestamp and git sha)'
         required: false
         default: ''
       rollback_tag:
@@ -24,13 +24,14 @@ env:
   DOCKERHUB_NAMESPACE: ${{ vars.DOCKERHUB_NAMESPACE || github.repository_owner }}
 
 jobs:
-  # ─────────────────────────────────────────────────────────────────────────────
-  # JOB 1 — ROLLBACK (triggered manually when rollback_tag is provided)
-  # ─────────────────────────────────────────────────────────────────────────────
+  # -----------------------------------------------------------------------------
+  # JOB 1 - ROLLBACK (triggered manually when rollback_tag is provided)
+  # -----------------------------------------------------------------------------
   rollback:
-    name: 🔁 Rollback to Previous Version
+    name: Rollback to Previous Version
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.rollback_tag != '' }}
+    environment: production
 
     steps:
       - name: Check Server SSH Configuration
@@ -45,9 +46,9 @@ jobs:
             exit 1
           fi
           echo "has_server=true" >> "$GITHUB_OUTPUT"
-          echo "✅ Server SSH configuration detected."
+          echo "[INFO] Server SSH configuration detected."
 
-      - name: 🔁 Rollback server to tag [${{ inputs.rollback_tag }}]
+      - name: Rollback server to tag [${{ inputs.rollback_tag }}]
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.SERVER_HOST }}
@@ -64,17 +65,17 @@ jobs:
 
             TARGET_TAG="${{ inputs.rollback_tag }}"
             echo "======================================================"
-            echo "🔁 ROLLING BACK TO VERSION: $TARGET_TAG"
+            echo "[ROLLBACK] Rolling back to version: $TARGET_TAG"
             echo "======================================================"
 
             CURRENT_TAG=$(grep "^IMAGE_TAG=" .env | cut -d '=' -f2 | tr -d ' ' || echo "unknown")
-            echo "📌 Current version: $CURRENT_TAG"
-            echo "🎯 Rollback target : $TARGET_TAG"
+            echo "Current version: $CURRENT_TAG"
+            echo "Target version : $TARGET_TAG"
             echo ""
 
             # Save current tag before rolling back
             echo "$CURRENT_TAG" > .last_image_tag
-            echo "💾 Saved current tag to .last_image_tag for reference."
+            echo "Saved current tag to .last_image_tag for reference."
 
             # Update IMAGE_TAG in .env
             if grep -q "^IMAGE_TAG=" .env; then
@@ -82,27 +83,27 @@ jobs:
             else
               echo "IMAGE_TAG=$TARGET_TAG" >> .env
             fi
-            echo "✅ Updated IMAGE_TAG=$TARGET_TAG in .env"
+            echo "Updated IMAGE_TAG=$TARGET_TAG in .env"
 
             # Pull rollback image (if not available in local cache)
-            echo "📥 Pulling rollback image from Docker Hub..."
-            docker compose -f docker-compose.app.yml pull || echo "⚠️ Using local image cache."
+            echo "Pulling rollback image from Docker Hub..."
+            docker compose -f docker-compose.app.yml pull || echo "[WARNING] Using local image cache."
 
             # Restart containers with rollback image
-            echo "🔄 Restarting containers with version $TARGET_TAG..."
+            echo "Restarting containers with version $TARGET_TAG..."
             docker compose -f docker-compose.app.yml up -d --remove-orphans
 
             echo ""
             echo "======================================================"
-            echo "🎉 ROLLBACK SUCCESSFUL! Container status:"
+            echo "ROLLBACK SUCCESSFUL! Container status:"
             echo "======================================================"
             docker compose -f docker-compose.app.yml ps
 
-  # ─────────────────────────────────────────────────────────────────────────────
-  # JOB 2 — BUILD & PUSH (runs on push or manual trigger without rollback_tag)
-  # ─────────────────────────────────────────────────────────────────────────────
+  # -----------------------------------------------------------------------------
+  # JOB 2 - BUILD AND PUSH (runs on push or manual trigger without rollback_tag)
+  # -----------------------------------------------------------------------------
   build-and-push:
-    name: 🐳 Build and Push API & Web Images
+    name: Build and Push API and Web Images
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.rollback_tag == '') }}
     permissions:
@@ -177,14 +178,15 @@ jobs:
           cache-from: type=gha,scope=bmwms-web
           cache-to: type=gha,mode=max,scope=bmwms-web
 
-  # ─────────────────────────────────────────────────────────────────────────────
-  # JOB 3 — DEPLOY (runs after successful build-and-push)
-  # ─────────────────────────────────────────────────────────────────────────────
+  # -----------------------------------------------------------------------------
+  # JOB 3 - DEPLOY (requires manual approval or explicit toggle)
+  # -----------------------------------------------------------------------------
   deploy:
-    name: 🚀 Deploy to Server via SSH
+    name: Deploy to Server via SSH
     needs: build-and-push
     runs-on: ubuntu-latest
-    if: ${{ always() && needs.build-and-push.result == 'success' && (github.event_name == 'push' || inputs.deploy != false) }}
+    environment: production
+    if: ${{ always() && needs.build-and-push.result == 'success' && (inputs.deploy == true || (github.event_name == 'push' && vars.AUTO_DEPLOY == 'true')) }}
     outputs:
       deployed_tag: ${{ needs.build-and-push.outputs.image_tag }}
 
@@ -203,7 +205,7 @@ jobs:
             echo "has_server=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: 🚀 Deploy to Remote Server
+      - name: Deploy to Remote Server
         id: do-deploy
         if: steps.check-config.outputs.has_server == 'true'
         uses: appleboy/ssh-action@v1.2.0
@@ -223,20 +225,20 @@ jobs:
             NEW_TAG="${{ needs.build-and-push.outputs.image_tag }}"
 
             echo "======================================================"
-            echo "🚀 [Deploy] New tag: $NEW_TAG"
+            echo "[Deploy] New tag: $NEW_TAG"
             echo "======================================================"
 
             # Save current tag before deploy (used for auto-rollback on failure)
             CURRENT_TAG=$(grep "^IMAGE_TAG=" .env 2>/dev/null | cut -d '=' -f2 | tr -d ' ' || echo "")
             if [ -n "$CURRENT_TAG" ]; then
               echo "$CURRENT_TAG" > .last_image_tag
-              echo "💾 Saved previous version ($CURRENT_TAG) to .last_image_tag"
+              echo "Saved previous version ($CURRENT_TAG) to .last_image_tag"
             fi
 
             # Ensure .env file exists
             if [ ! -f .env ]; then
               [ -f .env.example ] && cp .env.example .env || touch .env
-              echo "⚠️ .env file was missing, created from .env.example. Please review configuration!"
+              echo "[WARNING] .env file was missing, created from .env.example. Please review configuration!"
             fi
 
             # Update IMAGE_TAG
@@ -251,15 +253,15 @@ jobs:
             NETWORK_NAME="${NETWORK_NAME:-bmwms}"
             docker network create "$NETWORK_NAME" 2>/dev/null || true
 
-            # Pull & start
-            echo "📥 Pulling image $NEW_TAG..."
+            # Pull and start
+            echo "Pulling image $NEW_TAG..."
             docker compose -f docker-compose.app.yml pull
 
-            echo "🔄 Restarting containers..."
+            echo "Restarting containers..."
             docker compose -f docker-compose.app.yml up -d --remove-orphans
 
-            # Health check — wait up to 60s for containers to be healthy/running
-            echo "⏳ Waiting for containers to stabilize (15s)..."
+            # Health check - wait up to 60s for containers to stabilize
+            echo "Waiting for containers to stabilize (15s)..."
             sleep 15
 
             # Verify that all containers are in running state
@@ -272,19 +274,19 @@ jobs:
             " 2>/dev/null || true)
 
             if [ -n "$UNHEALTHY" ]; then
-              echo "❌ The following containers are not running:"
+              echo "[ERROR] The following containers are not running:"
               echo "$UNHEALTHY"
               exit 1
             fi
 
             docker image prune -f
-            echo "✅ Deployment completed successfully! Container status:"
+            echo "Deployment completed successfully! Container status:"
             docker compose -f docker-compose.app.yml ps
 
-      # ───────────────────────────────────────────────────────────────────────
-      # AUTO-ROLLBACK — triggers only when Deploy step fails
-      # ───────────────────────────────────────────────────────────────────────
-      - name: 🔁 Auto-Rollback on Deploy Failure
+      # -----------------------------------------------------------------------------
+      # AUTO-ROLLBACK - triggers only when Deploy step fails
+      # -----------------------------------------------------------------------------
+      - name: Auto-Rollback on Deploy Failure
         if: steps.check-config.outputs.has_server == 'true' && failure()
         uses: appleboy/ssh-action@v1.2.0
         with:
@@ -300,22 +302,22 @@ jobs:
             cd "$DEPLOY_PATH" || exit 0
 
             echo "======================================================"
-            echo "⚠️  DEPLOYMENT FAILED! Initiating AUTO-ROLLBACK..."
+            echo "[WARNING] Deployment failed! Initiating auto-rollback..."
             echo "======================================================"
 
             # Read previous tag saved before deploy
             if [ ! -f .last_image_tag ]; then
-              echo "❌ .last_image_tag not found. Cannot perform auto-rollback."
+              echo "[ERROR] .last_image_tag not found. Cannot perform auto-rollback."
               exit 1
             fi
 
             PREVIOUS_TAG=$(cat .last_image_tag | tr -d ' \n')
             if [ -z "$PREVIOUS_TAG" ]; then
-              echo "❌ .last_image_tag is empty. Cannot perform auto-rollback."
+              echo "[ERROR] .last_image_tag is empty. Cannot perform auto-rollback."
               exit 1
             fi
 
-            echo "🔙 Rolling back to previous version: $PREVIOUS_TAG"
+            echo "Rolling back to previous version: $PREVIOUS_TAG"
 
             # Restore IMAGE_TAG to previous tag
             if grep -q "^IMAGE_TAG=" .env; then
@@ -325,11 +327,11 @@ jobs:
             fi
 
             # Restart with previous image
-            docker compose -f docker-compose.app.yml pull || echo "⚠️ Using local image cache."
+            docker compose -f docker-compose.app.yml pull || echo "[WARNING] Using local image cache."
             docker compose -f docker-compose.app.yml up -d --remove-orphans
 
             echo ""
             echo "======================================================"
-            echo "✅ AUTO-ROLLBACK COMPLETED for version: $PREVIOUS_TAG"
+            echo "AUTO-ROLLBACK COMPLETED for version: $PREVIOUS_TAG"
             echo "======================================================"
             docker compose -f docker-compose.app.yml ps
