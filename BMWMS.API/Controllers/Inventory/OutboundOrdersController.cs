@@ -25,7 +25,7 @@ public class OutboundOrdersController : ControllerBase
     {
         filter.SortOrder = filter.SortOrder?.Trim().ToLowerInvariant();
         if (filter.SortOrder is not ("approval" or "newest" or "oldest"))
-            filter.SortOrder = User.IsInRole("WAREHOUSE_MANAGER") ? "approval" : "newest";
+            filter.SortOrder = "newest";
         if (!CanReadAllOrders && User.IsInRole("WAREHOUSE_STAFF"))
         {
             if (!TryGetCurrentUserId(out var currentUserId)) return Unauthorized();
@@ -47,7 +47,7 @@ public class OutboundOrdersController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "WAREHOUSE_STAFF,WAREHOUSE_MANAGER,SYSTEM_ADMIN")]
+    [Authorize(Roles = "WAREHOUSE_STAFF,SYSTEM_ADMIN")]
     public async Task<IActionResult> Create([FromBody] CreateOutboundOrderRequest request)
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -92,7 +92,7 @@ public class OutboundOrdersController : ControllerBase
     }
 
     [HttpPost("{id:long}/cancel")]
-    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF")]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_STAFF")]
     public async Task<IActionResult> Cancel(long id, [FromBody] CancelOutboundOrderRequest request)
     {
         if (!TryGetCurrentUserId(out var currentUserId)) return Unauthorized();
@@ -101,7 +101,7 @@ public class OutboundOrdersController : ControllerBase
     }
 
     [HttpGet("sales-order/{id:long}")]
-    [Authorize(Roles = "WAREHOUSE_STAFF")]
+    [Authorize(Roles = "WAREHOUSE_STAFF,SYSTEM_ADMIN")]
     public async Task<ActionResult<SalesOrderDetailApiResponse>> GetSalesOrderForOutbound(long id)
     {
         var result = await _salesOrderService.GetSalesOrderDetailForOutboundAsync(id);
@@ -109,17 +109,17 @@ public class OutboundOrdersController : ControllerBase
     }
 
     [HttpGet("sales-orders")]
-    [Authorize(Roles = "WAREHOUSE_STAFF")]
+    [Authorize(Roles = "WAREHOUSE_STAFF,SYSTEM_ADMIN")]
     public async Task<ActionResult<List<SalesOrderApiResponse>>> GetConfirmedSalesOrders()
         => Ok(await _salesOrderService.GetConfirmedSalesOrdersAsync());
 
     [HttpGet("purchase-orders/returnable")]
-    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_STAFF")]
     public async Task<ActionResult<List<PurchaseOrderReturnOptionDto>>> GetReturnablePurchaseOrders()
         => Ok(await _outboundOrderService.GetReturnablePurchaseOrdersAsync());
 
     [HttpGet("purchase-order/{id:long}/return")]
-    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_STAFF")]
     public async Task<ActionResult<PurchaseOrderForReturnDto>> GetPurchaseOrderForReturn(long id)
     {
         var result = await _outboundOrderService.GetPurchaseOrderForReturnAsync(id);
