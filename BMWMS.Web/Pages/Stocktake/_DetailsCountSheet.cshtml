@@ -66,6 +66,8 @@
                             <input type="number" class="form-control form-control-sm text-end counted-input" name="Lines[@index].CountedQuantity"
                                    value="@(item.CountedQuantity?.ToString(System.Globalization.CultureInfo.InvariantCulture))"
                                    min="0" step="@(item.QuantityScale == 0 ? "1" : "0." + new string('0', item.QuantityScale - 1) + "1")"
+                                   placeholder="@(item.QuantityScale == 0 ? "Số nguyên" : "0." + new string('0', item.QuantityScale))"
+                                   title="@(item.QuantityScale == 0 ? "Chỉ nhập số nguyên (0 chữ số thập phân)" : $"Tối đa {item.QuantityScale} chữ số thập phân")"
                                    inputmode="decimal" aria-label="Số lượng đếm thực tế @item.ProductCode tại @item.LocationCode" />
                         </td>
                         <td><input class="form-control form-control-sm" name="Lines[@index].Notes" value="@item.Notes" maxlength="1000" /></td>
@@ -161,9 +163,10 @@
                         <div class="col-md-4">
                             <label class="form-label fw-semibold">Số lượng đếm thực tế <span class="text-danger">*</span></label>
                             <div class="input-group">
-                                <input type="number" class="form-control text-end" name="UnbookedItem.CountedQuantity" id="unbookedQuantityInput" required min="0.0001" step="any" placeholder="0" oninput="onUnbookedQuantityChange()" />
+                                <input type="number" class="form-control text-end" name="UnbookedItem.CountedQuantity" id="unbookedQuantityInput" required min="1" step="1" placeholder="0" oninput="onUnbookedQuantityChange()" />
                                 <span class="input-group-text" id="unbookedUnitSpan">ĐVT</span>
                             </div>
+                            <div id="unbookedScaleHint" class="text-muted mt-1" style="font-size: 0.78rem;"></div>
                         </div>
 
                         <!-- Ngày nhập -->
@@ -219,14 +222,26 @@ async function onUnbookedProductChange(select) {
     const productId = select.value;
     const selectedOption = select.options[select.selectedIndex];
     const unit = selectedOption ? selectedOption.getAttribute('data-unit') : 'ĐVT';
-    const scale = selectedOption ? selectedOption.getAttribute('data-scale') : '0';
+    const scale = parseInt(selectedOption ? selectedOption.getAttribute('data-scale') : '0') || 0;
 
     const unitSpan = document.getElementById('unbookedUnitSpan');
     if (unitSpan) unitSpan.innerText = unit || 'ĐVT';
 
     const qtyInput = document.getElementById('unbookedQuantityInput');
+    const scaleHint = document.getElementById('unbookedScaleHint');
     if (qtyInput) {
-        qtyInput.step = (scale === '0' || !scale) ? '1' : ('0.' + '0'.repeat(parseInt(scale) - 1) + '1');
+        if (scale <= 0) {
+            qtyInput.min = '1';
+            qtyInput.step = '1';
+            qtyInput.placeholder = '1, 2, 5...';
+            if (scaleHint) scaleHint.innerText = 'ĐVT này chỉ cho phép nhập số nguyên (0 chữ số thập phân).';
+        } else {
+            const stepStr = '0.' + '0'.repeat(scale - 1) + '1';
+            qtyInput.min = stepStr;
+            qtyInput.step = stepStr;
+            qtyInput.placeholder = stepStr;
+            if (scaleHint) scaleHint.innerText = `ĐVT này cho phép tối đa ${scale} chữ số thập phân.`;
+        }
     }
 
     await loadCompatibleLocations(productId, qtyInput ? qtyInput.value : 0);
