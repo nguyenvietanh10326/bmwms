@@ -1,8 +1,8 @@
 @model string
 @{
     var state = (Model ?? "").ToUpperInvariant();
-    var current = state switch { "CREATE" or "DRAFT" => 0, "READY" or "ASSIGNED" => 1, "ISSUING" or "IN_PROGRESS" => 2, "PENDING_APPROVAL" => 3, "ISSUED" or "COMPLETED" => 4, _ => -1 };
-    var steps = new[] { "Tạo phiếu", "Sẵn sàng", "Lấy · đóng gói · giao hàng", "Quản lý duyệt chốt đợt", "Đã xuất" };
+    var current = state switch { "CREATE" or "DRAFT" => 0, "READY" or "ASSIGNED" => 1, "ISSUING" or "IN_PROGRESS" => 2, "PENDING_APPROVAL" or "ISSUED" or "COMPLETED" => 3, _ => -1 };
+    var steps = new[] { "Tạo phiếu", "Sẵn sàng", "Lấy · đóng gói · giao hàng", "Đã xuất" };
 }
 @if (current >= 0)
 {

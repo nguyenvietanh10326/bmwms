@@ -27,10 +27,9 @@ namespace BMWMS.Web.Pages.OutboundOrders
         public List<SelectListItem> StatusOptions { get; set; } = new()
         {
             new SelectListItem { Text = "-- Tất cả trạng thái --", Value = "" },
-            new SelectListItem { Text = "Nháp", Value = "DRAFT" },
             new SelectListItem { Text = "Sẵn sàng xuất", Value = "READY" },
             new SelectListItem { Text = "Đang xuất hàng", Value = "ISSUING" },
-            new SelectListItem { Text = "Chờ duyệt chốt đợt", Value = "PENDING_APPROVAL" },
+            new SelectListItem { Text = "Chờ xử lý dữ liệu cũ", Value = "PENDING_APPROVAL" },
             new SelectListItem { Text = "Đã xuất", Value = "ISSUED" },
             new SelectListItem { Text = "Đã hủy", Value = "CANCELLED" }
         };
@@ -46,7 +45,7 @@ namespace BMWMS.Web.Pages.OutboundOrders
         {
             Filter.SortOrder = Filter.SortOrder?.Trim().ToLowerInvariant();
             if (Filter.SortOrder is not ("approval" or "newest" or "oldest"))
-                Filter.SortOrder = User.IsInRole("WAREHOUSE_MANAGER") ? "approval" : "newest";
+                Filter.SortOrder = "newest";
             ModelState.Remove("Filter.SortOrder");
             Filter.PageIndex = Filter.PageIndex < 1 ? 1 : Filter.PageIndex;
             Filter.PageSize = Filter.PageSize < 1 ? 10 : Filter.PageSize;

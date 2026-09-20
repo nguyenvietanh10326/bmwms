@@ -13,8 +13,7 @@
         Model.Order.AssignedToUserId == currentUserId;
     var canApprove = isManager && Model.Order.Status == "DRAFT";
     var hasIssuedQuantity = Model.Order.Items.Any(item => item.IssuedQuantity > 0);
-    var canCancel = Model.Order.Status is "READY" or "ISSUING" && !hasIssuedQuantity &&
-                    (isManager || isAssignedStaff);
+    var canCancel = Model.Order.Status is "READY" or "ISSUING" && !hasIssuedQuantity && isAssignedStaff;
     var canStart = isAssignedStaff && Model.Order.Status == "READY";
     var canProcess = isAssignedStaff && Model.Order.Status == "ISSUING";
     var canCloseSalesRemainder = isManager && Model.Order.CanCloseSalesRemainder;
@@ -48,16 +47,11 @@
             <div class="col-md-3"><div class="text-muted small">Nhân viên phụ trách</div><span>@(Model.Order.AssignedToUserName ?? "Chưa phân công")</span></div>
             <div class="col-md-3"><div class="text-muted small">Người tạo phiếu</div><span>@(Model.Order.CreatedByUserName ?? "Không xác định")</span></div>
             <div class="col-md-3"><div class="text-muted small">Ngày tạo phiếu</div><span>@Model.Order.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span></div>
-            @if (Model.Order.SourceType == "PURCHASE_RETURN")
-            {
-                <div class="col-md-3"><div class="text-muted small">Người quyết định trả NCC</div><span>@(Model.Order.ApprovedByUserName ?? "—")</span></div>
-                <div class="col-md-3"><div class="text-muted small">Thời điểm duyệt</div><span>@(Model.Order.ApprovedAt?.ToString("dd/MM/yyyy HH:mm") ?? "—")</span></div>
-            }
             @if (Model.Order.Status == "ISSUED")
             {
                 <div class="col-md-3"><div class="text-muted small">Kết quả đợt xuất</div><span>@(Model.Order.CompletionType == "PARTIAL" ? "Giao một phần" : "Giao đủ")</span></div>
                 <div class="col-md-3"><div class="text-muted small">Hoàn tất lúc</div><span>@(Model.Order.CompletedAt?.ToString("dd/MM/yyyy HH:mm") ?? "—")</span></div>
-                <div class="col-md-3"><div class="text-muted small">Người duyệt chốt đợt</div><span>@(Model.Order.CompletionReviewedByUserName ?? "—")</span></div>
+                <div class="col-md-3"><div class="text-muted small">Người xác nhận xuất</div><span>@(Model.Order.CompletionReviewedByUserName ?? "—")</span></div>
             }
             <div class="col-12"><div class="text-muted small">Ghi chú</div><span>@(string.IsNullOrWhiteSpace(Model.Order.Notes) ? "Không có" : Model.Order.Notes)</span></div>
             @if (!string.IsNullOrWhiteSpace(Model.Order.CompletionReason)) { <div class="col-12"><div class="text-muted small">Lý do hoàn tất khi còn thiếu</div><span>@Model.Order.CompletionReason</span></div> }
@@ -67,7 +61,8 @@
 
     @if (Model.Order.Status == "PENDING_APPROVAL")
     {
-        <div class="card border-primary shadow-sm mb-3"><div class="card-header bg-primary-subtle fw-semibold">Chờ Quản lý kho duyệt chốt đợt xuất</div><div class="card-body">
+        <div class="card border-warning shadow-sm mb-3"><div class="card-header bg-warning-subtle fw-semibold">Phiếu dữ liệu cũ đang chờ xử lý</div><div class="card-body">
+            <p class="text-muted">Luồng hiện tại tự động hoàn tất sau khi nhân viên kho xác nhận thực xuất. Khối này chỉ dùng để giải phóng các phiếu đã tạo theo quy trình cũ.</p>
             @if (canReview)
             {
                 <form method="post" asp-page-handler="ReviewCompletion" asp-route-id="@Model.Order.OutboundOrderId" class="row g-3" onsubmit="return confirm('Duyệt số thực xuất và chốt đợt này?');">
@@ -83,18 +78,18 @@
                     <div class="col-12 text-end"><button class="btn btn-primary">Duyệt chốt đợt xuất</button></div>
                 </form>
             }
-            else { <span>Đã ghi nhận thực xuất. Chờ Quản lý kho chốt đợt trước khi lập đợt tiếp theo.</span> }
+            else { <span>Phiếu được tạo từ phiên bản cũ. Quản lý kho hoặc quản trị viên cần xử lý một lần để kết thúc dữ liệu tồn.</span> }
         </div></div>
     }
 
     @if (canApprove)
     {
         <div class="card border-primary shadow-sm mb-3">
-            <div class="card-header bg-primary-subtle fw-semibold">Bước 2 — Duyệt và phân công</div>
+            <div class="card-header bg-warning-subtle fw-semibold">Phiếu nháp thuộc dữ liệu cũ</div>
             <div class="card-body">
                 <form method="post" asp-page-handler="Approve" asp-route-id="@Model.Order.OutboundOrderId" class="row g-2 align-items-end">
-                    <div class="col-md-8"><label class="form-label">Nhân viên kho đang rảnh</label><select name="assignedToUserId" asp-items="Model.AssigneeOptions" class="form-select" required></select></div>
-                    <div class="col-md-4"><button class="btn btn-primary w-100" @(Model.AssigneeOptions.All(option => string.IsNullOrWhiteSpace(option.Value)) ? "disabled" : null)>Duyệt và phân công</button></div>
+                    <div class="col-md-8"><label class="form-label">Nhân viên kho xử lý dữ liệu cũ</label><select name="assignedToUserId" asp-items="Model.AssigneeOptions" class="form-select" required></select></div>
+                    <div class="col-md-4"><button class="btn btn-warning w-100" @(Model.AssigneeOptions.All(option => string.IsNullOrWhiteSpace(option.Value)) ? "disabled" : null)>Chuyển sang sẵn sàng</button></div>
                 </form>
             </div>
         </div>
@@ -155,6 +150,6 @@
 </div>
 
 @functions {
-    string StatusLabel(string status) => status switch { "DRAFT" => "Nháp", "READY" => "Sẵn sàng xuất", "ISSUING" => "Đang xuất hàng", "PENDING_APPROVAL" => "Chờ duyệt chốt đợt", "ISSUED" => "Đã xuất", "CANCELLED" => "Đã hủy", _ => status };
+    string StatusLabel(string status) => status switch { "DRAFT" => "Dữ liệu nháp cũ", "READY" => "Sẵn sàng xuất", "ISSUING" => "Đang xuất hàng", "PENDING_APPROVAL" => "Chờ xử lý dữ liệu cũ", "ISSUED" => "Đã xuất", "CANCELLED" => "Đã hủy", _ => status };
     string FormatQuantity(decimal value, byte scale) => FormatHelper.FormatQuantity(value, scale);
 }

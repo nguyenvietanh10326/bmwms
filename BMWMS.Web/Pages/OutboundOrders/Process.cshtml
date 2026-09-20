@@ -109,8 +109,8 @@
                 @if (Model.Order.Items.Any(item => item.IssuedQuantity > 0) &&
                      Model.Order.Items.Any(item => item.RemainingQuantity > 0))
                 {
-                    <form method="post" asp-page-handler="Complete" asp-route-id="@Model.Order.OutboundOrderId" class="mt-2" onsubmit="return confirm('Gửi số thực xuất để Quản lý kho duyệt chốt đợt?');">
-                        <div class="input-group"><input name="reason" class="form-control" minlength="10" maxlength="500" placeholder="Lý do đợt này giao thiếu" required /><button class="btn btn-outline-primary">Gửi chốt đợt giao thiếu</button></div>
+                    <form method="post" asp-page-handler="Complete" asp-route-id="@Model.Order.OutboundOrderId" class="mt-2" onsubmit="return confirm('Hoàn tất đợt xuất với số lượng thực tế đã ghi nhận?');">
+                        <div class="input-group"><input name="reason" class="form-control" minlength="10" maxlength="500" placeholder="Lý do đợt này xuất thiếu" required /><button class="btn btn-outline-primary">Hoàn tất đợt xuất thiếu</button></div>
                     </form>
                 }
             </div>
