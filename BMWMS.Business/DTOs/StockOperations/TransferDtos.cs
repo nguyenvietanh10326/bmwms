@@ -104,6 +104,10 @@ namespace BMWMS.Business.DTOs.StockOperations
         public string UnitName { get; set; } = string.Empty;
         public byte QuantityScale { get; set; }
         public string LotNumber { get; set; } = string.Empty;
+        public DateOnly? FirstReceivedDate { get; set; }
+        public DateOnly? ExpiryDate { get; set; }
+        public string ReceivedDisplay => FirstReceivedDate.HasValue ? FirstReceivedDate.Value.ToString("dd/MM/yyyy") : "—";
+        public string ExpiryDisplay => ExpiryDate.HasValue ? ExpiryDate.Value.ToString("dd/MM/yyyy") : "—";
         // Source hierarchy
         public long SourceLocationId { get; set; }
         public long? SourceZoneId { get; set; }
@@ -204,6 +208,8 @@ namespace BMWMS.Business.DTOs.StockOperations
         public byte QuantityScale { get; set; }
         public long ProductLotId { get; set; }
         public string LotNumber { get; set; } = string.Empty;
+        public DateOnly? FirstReceivedDate { get; set; }
+        public string ReceivedDisplay => FirstReceivedDate.HasValue ? FirstReceivedDate.Value.ToString("dd/MM/yyyy") : "—";
         public DateOnly? ExpiryDate { get; set; }
         public string ExpiryDisplay => ExpiryDate.HasValue ? ExpiryDate.Value.ToString("dd/MM/yyyy") : "—";
         public decimal OnHandQuantity { get; set; }

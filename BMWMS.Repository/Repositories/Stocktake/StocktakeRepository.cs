@@ -223,6 +223,9 @@ namespace BMWMS.Repository.Repositories.Stocktake
                 if (session.Status != SessionScheduled)
                     throw new InvalidOperationException($"Phiếu đang ở trạng thái '{session.Status}', không thể bắt đầu.");
 
+                if (session.PlannedDate > DateOnly.FromDateTime(DateTime.Today))
+                    throw new InvalidOperationException($"Chưa đến ngày thực hiện kiểm kho ({session.PlannedDate:dd/MM/yyyy}). Không thể bắt đầu trước thời gian dự kiến.");
+
                 if (session.AssignedToUserId != startedByUserId)
                     throw new UnauthorizedAccessException("Chỉ nhân viên được giao mới có thể bắt đầu phiếu kiểm kho.");
 
@@ -387,6 +390,9 @@ namespace BMWMS.Repository.Repositories.Stocktake
                 if (session.Status != SessionInProgress)
                     throw new InvalidOperationException("Chỉ có thể nhập số đếm khi phiếu đang được kiểm.");
 
+                if (session.PlannedDate > DateOnly.FromDateTime(DateTime.Today))
+                    throw new InvalidOperationException($"Chưa đến ngày thực hiện kiểm kho ({session.PlannedDate:dd/MM/yyyy}).");
+
                 var location = session.StocktakeLocations.FirstOrDefault(l => l.StorageLocationId == storageLocationId)
                     ?? throw new InvalidOperationException("Không tìm thấy vị trí trong phiếu kiểm kho.");
 
@@ -437,6 +443,8 @@ namespace BMWMS.Repository.Repositories.Stocktake
                 var session = await GetTrackedSessionForMutationAsync(stocktakeSessionId);
                 if (session.Status != SessionInProgress)
                     throw new InvalidOperationException("Chỉ có thể gửi kết quả khi phiếu đang được kiểm.");
+                if (session.PlannedDate > DateOnly.FromDateTime(DateTime.Today))
+                    throw new InvalidOperationException($"Chưa đến ngày thực hiện kiểm kho ({session.PlannedDate:dd/MM/yyyy}).");
                 if (session.AssignedToUserId != submittedByUserId)
                     throw new UnauthorizedAccessException("Chỉ nhân viên được giao mới có thể gửi kết quả kiểm kho.");
 

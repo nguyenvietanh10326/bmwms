@@ -28,9 +28,16 @@ namespace BMWMS.Web.Pages.Products
         public string? SuccessMessage { get; set; }
         [TempData]
         public string? ErrorMessage { get; set; }
+        [TempData]
+        public string? WarningMessage { get; set; }
+
+        public bool CanManage { get; set; }
 
         public async Task<IActionResult> OnGetAsync()
         {
+            var roleCode = HttpContext.Session.GetString("RoleCode")?.ToUpperInvariant() ?? "";
+            CanManage = roleCode is "SYSTEM_ADMIN" or "WAREHOUSE_MANAGER";
+
             if (Filter.PageIndex < 1) Filter.PageIndex = 1;
             if (Filter.PageSize < 1) Filter.PageSize = 10;
 
@@ -41,6 +48,22 @@ namespace BMWMS.Web.Pages.Products
 
         public async Task<IActionResult> OnPostToggleStatusAsync(long id)
         {
+            var roleCode = HttpContext.Session.GetString("RoleCode")?.ToUpperInvariant() ?? "";
+            if (roleCode is not ("SYSTEM_ADMIN" or "WAREHOUSE_MANAGER"))
+            {
+                WarningMessage = "Bạn không có quyền thay đổi trạng thái sản phẩm! Chỉ Quản trị hệ thống hoặc Trưởng kho mới được thực hiện.";
+                return RedirectToPage("./Index", new
+                {
+                    Filter.Keyword,
+                    Filter.ProductGroupId,
+                    Filter.UnitOfMeasureId,
+                    Filter.Status,
+                    Filter.RotationMethod,
+                    Filter.PageIndex,
+                    Filter.PageSize
+                });
+            }
+
             var (success, msg) = await _productApiService.ToggleStatusAsync(id);
             if (success)
             {

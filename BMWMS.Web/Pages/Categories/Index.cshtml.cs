@@ -46,17 +46,27 @@ namespace BMWMS.Web.Pages.Categories
         public int TotalAttributesConfigured { get; set; }
         public int FefoGroupsCount { get; set; }
 
+        public bool CanManage { get; set; }
         public string? SuccessMessage { get; set; }
         public string? ErrorMessage { get; set; }
+        public string? WarningMessage { get; set; }
 
         public async Task OnGetAsync()
         {
+            var roleCode = HttpContext.Session.GetString("RoleCode")?.ToUpperInvariant() ?? "";
+            CanManage = roleCode is "SYSTEM_ADMIN" or "WAREHOUSE_MANAGER";
+
             if (PageIndex < 1) PageIndex = 1;
             if (PageSize < 1) PageSize = 10;
 
             if (TempData["SuccessMessage"] != null)
             {
                 SuccessMessage = TempData["SuccessMessage"]?.ToString();
+            }
+
+            if (TempData["WarningMessage"] != null)
+            {
+                WarningMessage = TempData["WarningMessage"]?.ToString();
             }
 
             if (TempData["ErrorMessage"] != null)
@@ -79,6 +89,13 @@ namespace BMWMS.Web.Pages.Categories
 
         public async Task<IActionResult> OnPostToggleStatusAsync(long id)
         {
+            var roleCode = HttpContext.Session.GetString("RoleCode")?.ToUpperInvariant() ?? "";
+            if (roleCode is not ("SYSTEM_ADMIN" or "WAREHOUSE_MANAGER"))
+            {
+                TempData["WarningMessage"] = "Bạn không có quyền thay đổi trạng thái nhóm sản phẩm! Chỉ Quản trị hệ thống hoặc Trưởng kho mới được thao tác.";
+                return RedirectToPage(new { Keyword, Status, PageIndex, PageSize });
+            }
+
             var (success, message) = await _productGroupService.ToggleStatusAsync(id);
             if (success)
             {
@@ -94,6 +111,13 @@ namespace BMWMS.Web.Pages.Categories
 
         public async Task<IActionResult> OnPostDeleteAsync(long id)
         {
+            var roleCode = HttpContext.Session.GetString("RoleCode")?.ToUpperInvariant() ?? "";
+            if (roleCode is not ("SYSTEM_ADMIN" or "WAREHOUSE_MANAGER"))
+            {
+                TempData["WarningMessage"] = "Bạn không có quyền xóa nhóm sản phẩm! Chỉ Quản trị hệ thống hoặc Trưởng kho mới được thao tác.";
+                return RedirectToPage(new { Keyword, Status, PageIndex, PageSize });
+            }
+
             var (success, message) = await _productGroupService.DeleteAsync(id);
             if (success)
             {
@@ -109,6 +133,13 @@ namespace BMWMS.Web.Pages.Categories
 
         public async Task<IActionResult> OnPostCreateGroupAsync([FromForm] CreateProductGroupInputModel model)
         {
+            var roleCode = HttpContext.Session.GetString("RoleCode")?.ToUpperInvariant() ?? "";
+            if (roleCode is not ("SYSTEM_ADMIN" or "WAREHOUSE_MANAGER"))
+            {
+                TempData["WarningMessage"] = "Bạn không có quyền thêm mới nhóm sản phẩm! Chỉ Quản trị hệ thống hoặc Trưởng kho mới được thao tác.";
+                return RedirectToPage(new { Keyword, Status, PageIndex, PageSize });
+            }
+
             if (!ModelState.IsValid)
             {
                 TempData["ErrorMessage"] = "Dữ liệu nhập vào chưa hợp lệ. Vui lòng kiểm tra lại.";
@@ -130,6 +161,13 @@ namespace BMWMS.Web.Pages.Categories
 
         public async Task<IActionResult> OnPostUpdateGroupAsync(long id, [FromForm] UpdateProductGroupInputModel model)
         {
+            var roleCode = HttpContext.Session.GetString("RoleCode")?.ToUpperInvariant() ?? "";
+            if (roleCode is not ("SYSTEM_ADMIN" or "WAREHOUSE_MANAGER"))
+            {
+                TempData["WarningMessage"] = "Bạn không có quyền cập nhật nhóm sản phẩm! Chỉ Quản trị hệ thống hoặc Trưởng kho mới được thao tác.";
+                return RedirectToPage(new { Keyword, Status, PageIndex, PageSize });
+            }
+
             if (!ModelState.IsValid)
             {
                 TempData["ErrorMessage"] = "Dữ liệu nhập vào chưa hợp lệ. Vui lòng kiểm tra lại.";
@@ -162,6 +200,12 @@ namespace BMWMS.Web.Pages.Categories
 
         public async Task<IActionResult> OnPostSaveGroupAttributesAsync(long id, [FromBody] List<GroupAttributeAssignmentInputModel> attributes)
         {
+            var roleCode = HttpContext.Session.GetString("RoleCode")?.ToUpperInvariant() ?? "";
+            if (roleCode is not ("SYSTEM_ADMIN" or "WAREHOUSE_MANAGER"))
+            {
+                return StatusCode(403, new { success = false, message = "Bạn không có quyền cấu hình thuộc tính cho nhóm sản phẩm! Chỉ Quản trị hệ thống hoặc Trưởng kho mới được thao tác." });
+            }
+
             var (success, message) = await _productGroupService.UpdateGroupAttributesAsync(id, attributes ?? new());
             if (success)
             {

@@ -166,7 +166,10 @@ namespace BMWMS.Business.DTOs.Stocktake
         public byte QuantityScale { get; set; }
         public long ProductLotId { get; set; }
         public string LotNumber { get; set; } = string.Empty;
+        public DateOnly? FirstReceivedDate { get; set; }
         public DateOnly? ExpiryDate { get; set; }
+        public string ReceivedDisplay => FirstReceivedDate.HasValue ? FirstReceivedDate.Value.ToString("dd/MM/yyyy") : "—";
+        public string ExpiryDisplay => ExpiryDate.HasValue ? ExpiryDate.Value.ToString("dd/MM/yyyy") : "—";
         public decimal? BookQuantity { get; set; }
         public decimal? CountedQuantity { get; set; }
         public decimal? DifferenceQuantity { get; set; }

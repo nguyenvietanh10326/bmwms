@@ -12,4 +12,6 @@ public class StorageLocationModel
     public long StorageLocationId { get; set; }
     public string LocationCode { get; set; } = string.Empty;
     public string LocationName { get; set; } = string.Empty;
+    public decimal TotalOnHandQuantity { get; set; }
+    public int StoredProductCount { get; set; }
 }

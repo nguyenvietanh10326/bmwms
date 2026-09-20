@@ -2,7 +2,7 @@
 @model BMWMS.Web.Pages.Transfer.IndexModel
 @{
     Layout = "_AdminLayout";
-    ViewData["Title"] = "Điều chuyển kho";
+    ViewData["Title"] = "Chuyển vị trí kho";
     ViewData["ActivePage"] = "Transfer";
 }
 
@@ -31,8 +31,8 @@
 <div class="transfer-page">
     <div class="pagehead" style="display:flex; justify-content:space-between; align-items:flex-end;">
         <div>
-            <h3 class="mb-1">Phiếu chuyển kho</h3>
-            <p>Quản lý các lệnh điều chuyển nội bộ.</p>
+            <h3 class="mb-1">Phiếu chuyển vị trí kho</h3>
+            <p>Quản lý các lệnh chuyển vị trí nội bộ.</p>
         </div>
         @if (Model.IsStaff)
         {
@@ -83,7 +83,7 @@
                             <td>@item.RequestedDate.ToString("dd/MM/yyyy")</td>
                             <td>@item.CreatedByName</td>
                             <td>@item.AssignedToName</td>
-                            <td>@item.TotalItems dòng</td>
+                            <td>@item.TotalItems</td>
                             <td><span class="badge bg-@item.StatusCss">@item.StatusLabel</span></td>
                             <td class="text-end">
                                 <a href="/Transfer/Details?id=@item.TransferOrderId" class="btn btn-sm btn-light">Chi tiết</a>

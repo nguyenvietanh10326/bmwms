@@ -4,13 +4,13 @@
     var emptyLocations = Model.Locations.Where(location => location.TotalItems == 0).ToList();
 }
 <section class="stocktake-section stocktake-count-sheet">
-    <div class="stocktake-section__heading"><div><h2>Nhập số lượng kiểm kho</h2><p>Nhập số lượng khả dụng thực đếm, sẵn sàng xuất bán.</p></div></div>
+    <div class="stocktake-section__heading"><div><h2>Nhập số lượng kiểm kho</h2><p>Nhập số lượng đếm thực tế, sẵn sàng xuất bán.</p></div></div>
     <form method="post" asp-route-id="@Model.StocktakeSessionId" id="stocktakeCountForm">
         @Html.AntiForgeryToken()
         <input type="hidden" name="id" value="@Model.StocktakeSessionId" />
         <div class="table-responsive">
             <table class="table table-hover stocktake-table stocktake-entry-table">
-                <thead><tr><th>Vị trí</th><th>Sản phẩm</th><th>Lô</th><th class="text-end">Khả dụng theo sổ</th><th style="width:190px">Khả dụng thực đếm</th><th>Ghi chú</th></tr></thead>
+                <thead><tr><th>Vị trí</th><th>Sản phẩm</th><th>Ngày nhập / HSD</th><th class="text-end">Khả dụng</th><th style="width:190px">Đếm thực tế</th><th>Ghi chú</th></tr></thead>
                 <tbody>
                 @for (var index = 0; index < Model.Items.Count; index++)
                 {
@@ -18,14 +18,17 @@
                     <tr>
                         <td><span class="location-chip">@item.LocationCode</span><small>@item.LocationPath</small></td>
                         <td><strong>@item.ProductCode</strong><small>@item.ProductName · @item.UnitName</small></td>
-                        <td>@item.LotNumber</td>
+                        <td>
+                            <div><small class="text-muted">Nhập:</small> @(item.FirstReceivedDate?.ToString("dd/MM/yyyy") ?? "—")</div>
+                            <div><small class="text-muted">HSD:</small> @(item.ExpiryDate?.ToString("dd/MM/yyyy") ?? "—")</div>
+                        </td>
                         <td class="text-end snapshot-quantity">@FormatHelper.FormatQuantity(item.BookQuantity ?? 0, item.QuantityScale)</td>
                         <td>
                             <input type="hidden" name="Lines[@index].StocktakeItemId" value="@item.StocktakeItemId" />
                             <input type="number" class="form-control form-control-sm text-end counted-input" name="Lines[@index].CountedQuantity"
                                    value="@(item.CountedQuantity?.ToString(System.Globalization.CultureInfo.InvariantCulture))"
                                    min="0" step="@(item.QuantityScale == 0 ? "1" : "0." + new string('0', item.QuantityScale - 1) + "1")"
-                                   inputmode="decimal" aria-label="Số lượng khả dụng thực đếm @item.ProductCode tại @item.LocationCode" />
+                                   inputmode="decimal" aria-label="Số lượng đếm thực tế @item.ProductCode tại @item.LocationCode" />
                         </td>
                         <td><input class="form-control form-control-sm" name="Lines[@index].Notes" value="@item.Notes" maxlength="1000" /></td>
                     </tr>
@@ -45,8 +48,7 @@
                 </div>
             </div>
         }
-        <div class="stocktake-form-actions">
-            <span><i class="ri-lock-line"></i>Các vị trí vẫn bị khóa cho đến khi phiếu hoàn tất hoặc bị từ chối.</span>
+        <div class="stocktake-form-actions" style="justify-content: flex-end;">
             <div><button class="btn btn-light" type="submit" asp-page-handler="SaveCounts"><i class="ri-save-line"></i>Lưu nháp</button><button class="btn btn-primary" type="submit" asp-page-handler="Submit"><i class="ri-send-plane-line"></i>Hoàn tất và gửi</button></div>
         </div>
     </form>

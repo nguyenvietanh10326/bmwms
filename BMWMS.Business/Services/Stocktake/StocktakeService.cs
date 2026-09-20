@@ -231,7 +231,7 @@ namespace BMWMS.Business.Services.Stocktake
             {
                 var session = await _stocktakeRepo.SubmitSessionAsync(stocktakeSessionId, submittedByUserId);
                 var message = session.Status == SessionCompleted
-                    ? "Tất cả số đếm đều khớp. Phiếu kiểm kho đã hoàn tất."
+                    ? "Đã khớp."
                     : "Đã gửi toàn bộ kết quả chênh lệch cho quản lý phê duyệt.";
                 return Success(session, message);
             }
@@ -314,7 +314,7 @@ namespace BMWMS.Business.Services.Stocktake
                 });
                 await _context.SaveChangesAsync();
                 await dbTransaction.CommitAsync();
-                return Success(session, $"Đã khớp tồn khả dụng và hoàn tất phiếu kiểm kho {session.StocktakeNumber}.");
+                return Success(session, "Đã khớp.");
             }
             catch (Exception ex)
             {
@@ -579,6 +579,7 @@ namespace BMWMS.Business.Services.Stocktake
                 QuantityScale = product?.UnitOfMeasure?.QuantityScale ?? 0,
                 ProductLotId = item.ProductLotId,
                 LotNumber = item.ProductLot?.LotNumber ?? string.Empty,
+                FirstReceivedDate = item.ProductLot?.FirstReceivedDate,
                 ExpiryDate = item.ProductLot?.ExpiryDate,
                 BookQuantity = includeBookQuantities ? item.BookQuantity : null,
                 CountedQuantity = item.CountedQuantity,

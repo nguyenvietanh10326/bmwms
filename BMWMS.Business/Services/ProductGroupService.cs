@@ -147,7 +147,7 @@ namespace BMWMS.Business.Services
         public async Task<List<ProductAttributeDto>> GetAllAttributesAsync()
         {
             var attrs = await _productGroupRepository.GetAllAttributesAsync();
-            return attrs.Where(attribute => attribute.Status == "ACTIVE").Select(a => new ProductAttributeDto
+            return attrs.Where(attribute => attribute.Status == "ACTIVE" && ProductAttributePolicy.IsAllowed(attribute.AttributeCode)).Select(a => new ProductAttributeDto
             {
                 ProductAttributeId = a.ProductAttributeId,
                 AttributeCode = a.AttributeCode,
@@ -345,7 +345,7 @@ namespace BMWMS.Business.Services
         {
             var allAttributes = await _productGroupRepository.GetAllAttributesAsync();
             var activeAttributeIds = allAttributes
-                .Where(attribute => attribute.Status == "ACTIVE")
+                .Where(attribute => attribute.Status == "ACTIVE" && ProductAttributePolicy.IsAllowed(attribute.AttributeCode))
                 .Select(attribute => attribute.ProductAttributeId)
                 .ToHashSet();
             var submitted = assignments.ToList();

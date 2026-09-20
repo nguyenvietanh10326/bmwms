@@ -42,6 +42,7 @@ public class ProductAttributesController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
     public async Task<ActionResult<ProductAttributeDto>> Create(CreateProductAttributeDto dto)
     {
         try
@@ -56,6 +57,7 @@ public class ProductAttributesController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
     public async Task<ActionResult> Update(long id, UpdateProductAttributeDto dto)
     {
         try
@@ -74,6 +76,7 @@ public class ProductAttributesController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
     public async Task<ActionResult> Delete(long id)
     {
         try

@@ -114,6 +114,7 @@ public class ReportService : IReportService
             UnitCode = i.UnitCode,
             LotNumber = i.LotNumber,
             LocationCode = i.LocationCode,
+            FirstReceivedDate = i.FirstReceivedDate,
             ExpiryDate = i.ExpiryDate,
             OnHandQuantity = i.OnHandQuantity,
             ReservedQuantity = i.ReservedQuantity,

@@ -1,8 +1,8 @@
-﻿@page
+@page
 @model BMWMS.Web.Pages.Transfer.CreateModel
 @{
     Layout = "_AdminLayout";
-    ViewData["Title"] = Model.IsEditMode ? "Cập nhật phiếu chuyển kho" : "Tạo phiếu chuyển kho";
+    ViewData["Title"] = Model.IsEditMode ? "Cập nhật phiếu chuyển vị trí kho" : "Tạo phiếu chuyển vị trí kho";
     ViewData["ActivePage"] = "Transfer";
 }
 
@@ -90,7 +90,7 @@
 
 <div class="transfer-page">
     <div class="breadcrumb">
-        <a href="/Transfer/Index" style="color:var(--ink-3); text-decoration:none;">Điều chuyển kho</a>
+        <a href="/Transfer/Index" style="color:var(--ink-3); text-decoration:none;">Chuyển vị trí kho</a>
         <span style="margin:0 4px;">/</span>
         <span>@(Model.IsEditMode ? "Cập nhật" : "Tạo mới")</span>
     </div>
@@ -356,7 +356,15 @@
             const inventories = (res.ok ? await res.json() : []).filter(i => (i.availableQuantity || 0) > 0);
             if (document.getElementById(`sloc-${ri}`).value !== locationId) return;
             rowInventories[ri] = inventories;
-            productSelect.innerHTML = optionHtml(inventories, 'productLotId', i => `${i.productName} - Khả dụng: ${formatQuantity(i.availableQuantity, i.quantityScale)}`, selectedLotId);
+            const formatDate = d => {
+                if (!d) return '—';
+                if (typeof d === 'string' && d.includes('-')) {
+                    const parts = d.split('T')[0].split('-');
+                    if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+                }
+                return d;
+            };
+            productSelect.innerHTML = optionHtml(inventories, 'productLotId', i => `${i.productName} (Nhập: ${formatDate(i.firstReceivedDate)} | HSD: ${formatDate(i.expiryDate)}) - Khả dụng: ${formatQuantity(i.availableQuantity, i.quantityScale)}`, selectedLotId);
             if (selectedLotId && inventories.some(item => item.productLotId == selectedLotId))
                 selectInventoryItem(ri, refreshDestination);
         }

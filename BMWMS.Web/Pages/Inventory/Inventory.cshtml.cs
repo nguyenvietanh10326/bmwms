@@ -66,7 +66,8 @@ namespace BMWMS.Web.Pages.Inventory
                 Filter.RackId = null;
             }
 
-            StorageLocations = await GetStorageLocationsAsync(client, Filter.WarehouseId ?? 1, Filter.ZoneId, Filter.RackId);
+            var allLocations = await GetStorageLocationsAsync(client, Filter.WarehouseId ?? 1, Filter.ZoneId, Filter.RackId);
+            StorageLocations = allLocations.Where(x => x.TotalOnHandQuantity > 0).ToList();
 
             if (Filter.StorageLocationId.HasValue && !StorageLocations.Any(x => x.StorageLocationId == Filter.StorageLocationId.Value))
             {
@@ -100,7 +101,7 @@ namespace BMWMS.Web.Pages.Inventory
             var result = JsonSerializer.Deserialize<InventoryDashboardPageDto>(content, options);
 
             var builder = new StringBuilder();
-            builder.AppendLine("Mã sản phẩm,Tên sản phẩm,Nhóm sản phẩm,Kho - Vị trí,On Hand,Reserved,Available,Lô - Hạn dùng,Trạng thái");
+            builder.AppendLine("Mã sản phẩm,Tên sản phẩm,Nhóm sản phẩm,Kho - Vị trí,On Hand,Reserved,Available,Ngày nhập - Hạn dùng,Trạng thái");
 
             if (result?.Items != null)
             {

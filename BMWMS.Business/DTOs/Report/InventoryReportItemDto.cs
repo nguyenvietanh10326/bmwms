@@ -7,6 +7,7 @@ public class InventoryReportItemDto
     public string UnitCode { get; set; } = string.Empty;
     public string LotNumber { get; set; } = string.Empty;
     public string LocationCode { get; set; } = string.Empty;
+    public DateOnly? FirstReceivedDate { get; set; }
     public DateOnly? ExpiryDate { get; set; }
     public decimal OnHandQuantity { get; set; }
     public decimal ReservedQuantity { get; set; }
