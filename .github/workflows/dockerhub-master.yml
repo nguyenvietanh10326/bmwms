@@ -7,16 +7,16 @@ on:
   workflow_dispatch:
     inputs:
       deploy:
-        description: 'Deploy lên Server sau khi build & push'
+        description: 'Deploy to remote server after build & push'
         type: boolean
         required: true
         default: true
       image_tag:
-        description: 'Custom Image Tag (để trống sẽ tự sinh theo timestamp & git sha)'
+        description: 'Custom image tag (leave blank to auto-generate timestamp & git sha)'
         required: false
         default: ''
       rollback_tag:
-        description: 'Rollback về Tag cụ thể (nhập tag muốn rollback, sẽ bỏ qua build)'
+        description: 'Rollback to specific tag (skips build, directly rolls back server)'
         required: false
         default: ''
 
@@ -25,10 +25,10 @@ env:
 
 jobs:
   # ─────────────────────────────────────────────────────────────────────────────
-  # JOB 1 — ROLLBACK (chỉ chạy khi bấm nút và nhập rollback_tag)
+  # JOB 1 — ROLLBACK (triggered manually when rollback_tag is provided)
   # ─────────────────────────────────────────────────────────────────────────────
   rollback:
-    name: 🔁 Rollback to previous version
+    name: 🔁 Rollback to Previous Version
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.rollback_tag != '' }}
 
@@ -41,11 +41,11 @@ jobs:
           SERVER_USER: ${{ secrets.SERVER_USER }}
         run: |
           if [[ -z "$SERVER_HOST" || -z "$SERVER_USER" ]]; then
-            echo "::error::SERVER_HOST hoặc SERVER_USER chưa được cấu hình trong Secrets."
+            echo "::error::SERVER_HOST or SERVER_USER secret is not configured in repository secrets."
             exit 1
           fi
           echo "has_server=true" >> "$GITHUB_OUTPUT"
-          echo "✅ Server SSH đã được cấu hình."
+          echo "✅ Server SSH configuration detected."
 
       - name: 🔁 Rollback server to tag [${{ inputs.rollback_tag }}]
         uses: appleboy/ssh-action@v1.2.0
@@ -64,45 +64,45 @@ jobs:
 
             TARGET_TAG="${{ inputs.rollback_tag }}"
             echo "======================================================"
-            echo "🔁 ROLLBACK HỆ THỐNG VỀ PHIÊN BẢN: $TARGET_TAG"
+            echo "🔁 ROLLING BACK TO VERSION: $TARGET_TAG"
             echo "======================================================"
 
-            CURRENT_TAG=$(grep "^IMAGE_TAG=" .env | cut -d '=' -f2 | tr -d ' ' || echo "chưa xác định")
-            echo "📌 Phiên bản hiện tại: $CURRENT_TAG"
-            echo "🎯 Phiên bản rollback : $TARGET_TAG"
+            CURRENT_TAG=$(grep "^IMAGE_TAG=" .env | cut -d '=' -f2 | tr -d ' ' || echo "unknown")
+            echo "📌 Current version: $CURRENT_TAG"
+            echo "🎯 Rollback target : $TARGET_TAG"
             echo ""
 
-            # Lưu tag hiện tại trước khi rollback
+            # Save current tag before rolling back
             echo "$CURRENT_TAG" > .last_image_tag
-            echo "💾 Đã lưu tag cũ vào .last_image_tag để có thể redo nếu cần."
+            echo "💾 Saved current tag to .last_image_tag for reference."
 
-            # Cập nhật IMAGE_TAG trong .env
+            # Update IMAGE_TAG in .env
             if grep -q "^IMAGE_TAG=" .env; then
               sed -i "s/^IMAGE_TAG=.*/IMAGE_TAG=$TARGET_TAG/" .env
             else
               echo "IMAGE_TAG=$TARGET_TAG" >> .env
             fi
-            echo "✅ Đã cập nhật IMAGE_TAG=$TARGET_TAG trong .env"
+            echo "✅ Updated IMAGE_TAG=$TARGET_TAG in .env"
 
-            # Pull image rollback (nếu chưa có ở local cache)
-            echo "📥 Đang kéo image rollback từ Docker Hub..."
-            docker compose -f docker-compose.app.yml pull || echo "⚠️ Sử dụng image local đã cache."
+            # Pull rollback image (if not available in local cache)
+            echo "📥 Pulling rollback image from Docker Hub..."
+            docker compose -f docker-compose.app.yml pull || echo "⚠️ Using local image cache."
 
-            # Khởi động lại containers với image rollback
-            echo "🔄 Đang khởi động lại containers với phiên bản $TARGET_TAG..."
+            # Restart containers with rollback image
+            echo "🔄 Restarting containers with version $TARGET_TAG..."
             docker compose -f docker-compose.app.yml up -d --remove-orphans
 
             echo ""
             echo "======================================================"
-            echo "🎉 ROLLBACK THÀNH CÔNG! Trạng thái containers:"
+            echo "🎉 ROLLBACK SUCCESSFUL! Container status:"
             echo "======================================================"
             docker compose -f docker-compose.app.yml ps
 
   # ─────────────────────────────────────────────────────────────────────────────
-  # JOB 2 — BUILD & PUSH (chạy khi push code hoặc bấm nút mà không nhập rollback_tag)
+  # JOB 2 — BUILD & PUSH (runs on push or manual trigger without rollback_tag)
   # ─────────────────────────────────────────────────────────────────────────────
   build-and-push:
-    name: 🐳 Build and push API & Web images
+    name: 🐳 Build and Push API & Web Images
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.rollback_tag == '') }}
     permissions:
@@ -137,7 +137,7 @@ jobs:
             exit 1
           fi
           if [[ -z "$DOCKERHUB_USERNAME" || -z "$DOCKERHUB_TOKEN" ]]; then
-            echo "DOCKERHUB_USERNAME và DOCKERHUB_TOKEN chưa được cấu hình." >&2
+            echo "DOCKERHUB_USERNAME and DOCKERHUB_TOKEN secrets are not configured." >&2
             exit 1
           fi
           echo "Docker Hub namespace: $DOCKERHUB_NAMESPACE"
@@ -178,7 +178,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=bmwms-web
 
   # ─────────────────────────────────────────────────────────────────────────────
-  # JOB 3 — DEPLOY (chạy sau build-and-push thành công)
+  # JOB 3 — DEPLOY (runs after successful build-and-push)
   # ─────────────────────────────────────────────────────────────────────────────
   deploy:
     name: 🚀 Deploy to Server via SSH
@@ -197,7 +197,7 @@ jobs:
           SERVER_USER: ${{ secrets.SERVER_USER }}
         run: |
           if [[ -z "$SERVER_HOST" || -z "$SERVER_USER" ]]; then
-            echo "::warning::SERVER_HOST hoặc SERVER_USER chưa được cấu hình. Bỏ qua bước deploy."
+            echo "::warning::SERVER_HOST or SERVER_USER secret is not configured. Skipping deploy step."
             echo "has_server=false" >> "$GITHUB_OUTPUT"
           else
             echo "has_server=true" >> "$GITHUB_OUTPUT"
@@ -223,20 +223,20 @@ jobs:
             NEW_TAG="${{ needs.build-and-push.outputs.image_tag }}"
 
             echo "======================================================"
-            echo "🚀 [Deploy] Tag mới: $NEW_TAG"
+            echo "🚀 [Deploy] New tag: $NEW_TAG"
             echo "======================================================"
 
-            # Lưu tag hiện tại trước khi deploy (dùng cho auto-rollback nếu thất bại)
+            # Save current tag before deploy (used for auto-rollback on failure)
             CURRENT_TAG=$(grep "^IMAGE_TAG=" .env 2>/dev/null | cut -d '=' -f2 | tr -d ' ' || echo "")
             if [ -n "$CURRENT_TAG" ]; then
               echo "$CURRENT_TAG" > .last_image_tag
-              echo "💾 Đã lưu phiên bản cũ ($CURRENT_TAG) vào .last_image_tag"
+              echo "💾 Saved previous version ($CURRENT_TAG) to .last_image_tag"
             fi
 
             # Ensure .env file exists
             if [ ! -f .env ]; then
               [ -f .env.example ] && cp .env.example .env || touch .env
-              echo "⚠️ .env chưa tồn tại, đã tạo mới. Hãy cấu hình lại!"
+              echo "⚠️ .env file was missing, created from .env.example. Please review configuration!"
             fi
 
             # Update IMAGE_TAG
@@ -252,17 +252,17 @@ jobs:
             docker network create "$NETWORK_NAME" 2>/dev/null || true
 
             # Pull & start
-            echo "📥 Đang pull image $NEW_TAG..."
+            echo "📥 Pulling image $NEW_TAG..."
             docker compose -f docker-compose.app.yml pull
 
-            echo "🔄 Đang khởi động lại containers..."
+            echo "🔄 Restarting containers..."
             docker compose -f docker-compose.app.yml up -d --remove-orphans
 
-            # Health check — chờ tối đa 60s cho containers healthy
-            echo "⏳ Chờ containers khởi động (tối đa 60s)..."
+            # Health check — wait up to 60s for containers to be healthy/running
+            echo "⏳ Waiting for containers to stabilize (15s)..."
             sleep 15
 
-            # Kiểm tra các container có đang ở trạng thái running không
+            # Verify that all containers are in running state
             UNHEALTHY=$(docker compose -f docker-compose.app.yml ps --format json \
               | python3 -c "
             import sys, json
@@ -272,17 +272,17 @@ jobs:
             " 2>/dev/null || true)
 
             if [ -n "$UNHEALTHY" ]; then
-              echo "❌ Các container sau không ở trạng thái running:"
+              echo "❌ The following containers are not running:"
               echo "$UNHEALTHY"
               exit 1
             fi
 
             docker image prune -f
-            echo "✅ Deploy hoàn tất! Trạng thái containers:"
+            echo "✅ Deployment completed successfully! Container status:"
             docker compose -f docker-compose.app.yml ps
 
       # ───────────────────────────────────────────────────────────────────────
-      # AUTO-ROLLBACK — chỉ kích hoạt nếu bước Deploy thất bại
+      # AUTO-ROLLBACK — triggers only when Deploy step fails
       # ───────────────────────────────────────────────────────────────────────
       - name: 🔁 Auto-Rollback on Deploy Failure
         if: steps.check-config.outputs.has_server == 'true' && failure()
@@ -300,36 +300,36 @@ jobs:
             cd "$DEPLOY_PATH" || exit 0
 
             echo "======================================================"
-            echo "⚠️  DEPLOY THẤT BẠI! Đang tự động ROLLBACK..."
+            echo "⚠️  DEPLOYMENT FAILED! Initiating AUTO-ROLLBACK..."
             echo "======================================================"
 
-            # Đọc tag cũ đã lưu trước khi deploy
+            # Read previous tag saved before deploy
             if [ ! -f .last_image_tag ]; then
-              echo "❌ Không tìm thấy .last_image_tag. Không thể tự động rollback."
+              echo "❌ .last_image_tag not found. Cannot perform auto-rollback."
               exit 1
             fi
 
             PREVIOUS_TAG=$(cat .last_image_tag | tr -d ' \n')
             if [ -z "$PREVIOUS_TAG" ]; then
-              echo "❌ .last_image_tag trống. Không thể tự động rollback."
+              echo "❌ .last_image_tag is empty. Cannot perform auto-rollback."
               exit 1
             fi
 
-            echo "🔙 Rollback về phiên bản cũ: $PREVIOUS_TAG"
+            echo "🔙 Rolling back to previous version: $PREVIOUS_TAG"
 
-            # Khôi phục IMAGE_TAG về tag cũ
+            # Restore IMAGE_TAG to previous tag
             if grep -q "^IMAGE_TAG=" .env; then
               sed -i "s/^IMAGE_TAG=.*/IMAGE_TAG=$PREVIOUS_TAG/" .env
             else
               echo "IMAGE_TAG=$PREVIOUS_TAG" >> .env
             fi
 
-            # Khởi động lại với phiên bản cũ
-            docker compose -f docker-compose.app.yml pull || echo "⚠️ Sử dụng image cache."
+            # Restart with previous image
+            docker compose -f docker-compose.app.yml pull || echo "⚠️ Using local image cache."
             docker compose -f docker-compose.app.yml up -d --remove-orphans
 
             echo ""
             echo "======================================================"
-            echo "✅ AUTO-ROLLBACK HOÀN TẤT về phiên bản: $PREVIOUS_TAG"
+            echo "✅ AUTO-ROLLBACK COMPLETED for version: $PREVIOUS_TAG"
             echo "======================================================"
             docker compose -f docker-compose.app.yml ps
