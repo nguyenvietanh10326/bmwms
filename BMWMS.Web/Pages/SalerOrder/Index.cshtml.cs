@@ -41,7 +41,7 @@ namespace BMWMS.Web.Pages.SalesOrders
             new("Tất cả trạng thái", string.Empty),
             new("Nháp", "DRAFT"),
             new("Đã xác nhận", "CONFIRMED"),
-            new("Chờ duyệt đợt xuất", "PENDING_OUTBOUND_REVIEW"),
+            new("Có phiếu xuất dữ liệu cũ", "PENDING_OUTBOUND_REVIEW"),
             new("Đã xuất một phần", "PARTIALLY_ISSUED"),
             new("Đã xuất", "ISSUED"),
             new("Bị từ chối", "REJECTED"),
@@ -139,7 +139,7 @@ namespace BMWMS.Web.Pages.SalesOrders
         {
             "DRAFT" => "Nháp",
             "CONFIRMED" => "Đã xác nhận",
-            "PENDING_OUTBOUND_REVIEW" => "Chờ duyệt đợt xuất",
+            "PENDING_OUTBOUND_REVIEW" => "Có phiếu xuất dữ liệu cũ",
             "PARTIALLY_ISSUED" => "Đã xuất một phần",
             "ISSUED" => "Đã xuất",
             "CANCELLED" => "Đã hủy",

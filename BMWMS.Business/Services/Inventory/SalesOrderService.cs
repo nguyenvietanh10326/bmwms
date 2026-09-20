@@ -308,10 +308,8 @@ namespace BMWMS.Business.Services.Inventory
             if (dto.CustomerId <= 0)
                 throw new ArgumentException("Vui lòng chọn khách hàng.");
 
-            if (dto.OrderDate == default)
-                throw new ArgumentException("Ngày đặt hàng không hợp lệ.");
-
-            if (dto.ExpectedIssueDate.HasValue && dto.ExpectedIssueDate.Value < dto.OrderDate)
+            var systemOrderDate = DateOnly.FromDateTime(DateTime.Today);
+            if (dto.ExpectedIssueDate.HasValue && dto.ExpectedIssueDate.Value < systemOrderDate)
                 throw new ArgumentException("Ngày xuất dự kiến không được trước ngày đặt hàng.");
 
             if (dto.Items == null || dto.Items.Count == 0)
@@ -346,7 +344,7 @@ namespace BMWMS.Business.Services.Inventory
                 {
                     SalesOrderNumber = newSoNumber,
                     CustomerId = dto.CustomerId,
-                    OrderDate = dto.OrderDate,
+                    OrderDate = systemOrderDate,
                     ExpectedIssueDate = dto.ExpectedIssueDate,
                     Status = "DRAFT",
                     Notes = dto.Notes,
@@ -363,17 +361,8 @@ namespace BMWMS.Business.Services.Inventory
                     }).ToList()
                 };
 
+                // SO nháp chỉ ghi nhận nhu cầu. Tồn kho chỉ được giữ sau khi Manager duyệt.
                 var created = await _salesOrderRepository.CreateAsync(order);
-                foreach (var detail in created.SalesOrderDetails)
-                {
-                    var product = productsById[detail.ProductId];
-                    var reserved = await _invenRepository.ReserveStockForOrderAsync(
-                        detail.ProductId, detail.OrderedQuantity, detail.SalesOrderDetailId,
-                        dto.CurrentUserId, product.RotationMethod);
-                    if (!reserved)
-                        throw new InvalidOperationException($"Tồn khả dụng của {product.ProductCode} không đủ để giữ cho đơn nháp.");
-                    detail.ReservedQuantity = detail.OrderedQuantity;
-                }
 
                 if (_auditLogService != null) await _auditLogService.StageAsync(new AuditEventDto { UserId = dto.CurrentUserId,
                     ActionType = "CREATE_SALES_ORDER", EntityName = AuditEntities.SalesOrder, EntityId = created.SalesOrderId.ToString(),
@@ -399,8 +388,6 @@ namespace BMWMS.Business.Services.Inventory
                 throw new InvalidOperationException("Chỉ nhân viên bán hàng được sửa SO nháp.");
             if (await _salesOrderRepository.GetActiveCustomerAsync(dto.CustomerId) == null)
                 throw new ArgumentException("Khách hàng không còn hoạt động.");
-            if (dto.ExpectedIssueDate < dto.OrderDate)
-                throw new ArgumentException("Ngày xuất dự kiến không được trước ngày đặt hàng.");
             if (!dto.SalesOrderId.HasValue || dto.Items == null || dto.Items.Count == 0) return false;
             if (dto.Items.GroupBy(i => i.ProductId).Any(g => g.Count() > 1))
                 throw new ArgumentException("Mỗi sản phẩm chỉ được xuất hiện một lần trong đơn bán hàng.");
@@ -428,13 +415,15 @@ namespace BMWMS.Business.Services.Inventory
                     throw new InvalidOperationException("Đơn đã có phiếu nhập/xuất; không thể chỉnh sửa.");
                 if (dto.RowVersion != Convert.ToBase64String(existing.RowVersion))
                     throw new InvalidOperationException("SO đã thay đổi hoặc thiếu phiên bản. Vui lòng tải lại đơn trước khi sửa.");
+                if (dto.ExpectedIssueDate.HasValue && dto.ExpectedIssueDate.Value < existing.OrderDate)
+                    throw new ArgumentException("Ngày xuất dự kiến không được trước ngày đặt hàng.");
                 var oldValues = new { existing.Status, existing.CustomerId, existing.RevisionNo,
                     Items = existing.SalesOrderDetails.Where(d => d.IsActive).Select(d => new { d.ProductId, d.OrderedQuantity }).ToList() };
 
                 await ReleaseReservationsAsync(existing.SalesOrderId, dto.CurrentUserId);
 
                 existing.CustomerId = dto.CustomerId;
-                existing.OrderDate = dto.OrderDate;
+                // Không cho phép sửa dấu thời gian đặt đơn đã được hệ thống ghi nhận.
                 existing.ExpectedIssueDate = dto.ExpectedIssueDate;
                 existing.Notes = dto.Notes;
                 existing.AllocationStrategy = dto.AllocationStrategy ?? "FIFO";
@@ -458,18 +447,6 @@ namespace BMWMS.Business.Services.Inventory
                 foreach (var requested in dto.Items.Where(i => !existing.SalesOrderDetails.Any(d => d.ProductId == i.ProductId)))
                     existing.SalesOrderDetails.Add(new SalesOrderDetail { ProductId = requested.ProductId,
                         OrderedQuantity = requested.OrderedQuantity, Notes = requested.Notes, IsActive = true });
-                await _context.SaveChangesAsync();
-
-                foreach (var detail in existing.SalesOrderDetails.Where(d => d.IsActive))
-                {
-                    var product = productsById[detail.ProductId];
-                    if (!await _invenRepository.ReserveStockForOrderAsync(
-                            detail.ProductId, detail.OrderedQuantity, detail.SalesOrderDetailId,
-                            dto.CurrentUserId, product.RotationMethod))
-                        throw new InvalidOperationException($"Tồn khả dụng của {product.ProductCode} không đủ để cập nhật đơn nháp.");
-                    detail.ReservedQuantity = detail.OrderedQuantity;
-                }
-
                 if (_auditLogService != null) await _auditLogService.StageAsync(new AuditEventDto { UserId = dto.CurrentUserId,
                     ActionType = "UPDATE_SALES_ORDER", EntityName = AuditEntities.SalesOrder,
                     EntityId = existing.SalesOrderId.ToString(), OldValues = oldValues,
@@ -535,7 +512,7 @@ namespace BMWMS.Business.Services.Inventory
 
             return (
                 true,
-                "Đã xác nhận đơn bán hàng; phần giữ tồn từ bản nháp tiếp tục có hiệu lực."
+                "Đã duyệt đơn bán hàng và giữ tồn kho cho số lượng được xác nhận."
             );
         }
 

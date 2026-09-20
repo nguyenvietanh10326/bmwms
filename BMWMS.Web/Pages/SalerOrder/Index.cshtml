@@ -129,7 +129,7 @@
                                         @Model.GetStatusLabel(item.Status)
                                     </span>
                                     @if (item.PendingOutboundReviewId.HasValue)
-                                    { <span class="badge bg-primary d-block mt-1">Chờ duyệt đợt xuất</span> }
+                                    { <span class="badge bg-warning text-dark d-block mt-1">Có phiếu xuất dữ liệu cũ</span> }
                                 </td>
                                 <td class="text-center">
                                     <span class="fw-semibold">@item.ItemCount.ToString("N0")</span>
@@ -141,10 +141,6 @@
                                 <td class="text-end pe-4">
                                     @if (item.CanExternalCancel && (User.IsInRole("WAREHOUSE_MANAGER") || User.IsInRole("SYSTEM_ADMIN")))
                                     { <a asp-page="/Orders/CancelApproved" asp-route-Type="SO" asp-route-Id="@item.SalesOrderId" class="btn btn-sm btn-outline-danger">Ghi nhận khách yêu cầu hủy</a> }
-                                    @if (item.PendingOutboundReviewId.HasValue && (User.IsInRole("WAREHOUSE_MANAGER") || User.IsInRole("SYSTEM_ADMIN")))
-                                    {
-                                        <a href="/sales-orders/details/@item.SalesOrderId" class="btn btn-sm btn-primary">Duyệt đợt xuất</a>
-                                    }
                                     <a href="/sales-orders/details/@item.SalesOrderId" class="btn btn-sm btn-outline-primary"
                                        aria-label="Xem chi tiết đơn @item.SalesOrderNumber">
                                         <i class="bi bi-eye me-1"></i>Xem chi tiết
