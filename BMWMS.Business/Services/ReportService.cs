@@ -28,6 +28,9 @@ public class ReportService : IReportService
         return new InboundReportResponseDto
         {
             TotalCount = totalCount,
+            PageIndex = filter.PageNumber,
+            PageSize = filter.PageSize,
+            CutOffTime = DateTime.UtcNow,
             Items = items.Select(x => new InboundReportItemDto
             {
                 InboundOrderNumber = x.InboundOrderNumber,
@@ -52,6 +55,9 @@ public class ReportService : IReportService
         return new OutboundReportResponseDto
         {
             TotalCount = totalCount,
+            PageIndex = filter.PageNumber,
+            PageSize = filter.PageSize,
+            CutOffTime = DateTime.UtcNow,
             Items = items.Select(x => new OutboundReportItemDto
             {
                 OutboundOrderNumber = x.OutboundOrderNumber,
@@ -75,6 +81,9 @@ public class ReportService : IReportService
         return new InOutStockReportResponseDto
         {
             TotalCount = totalCount,
+            PageIndex = filter.PageNumber,
+            PageSize = filter.PageSize,
+            CutOffTime = DateTime.UtcNow,
             Items = items.Select(x => new InOutStockReportItemDto
             {
                 ProductCode = x.ProductCode,
@@ -126,36 +135,6 @@ public class ReportService : IReportService
         };
     }
 
-    public async Task<ProductStatisticsResponseDto> GetProductStatisticsAsync(ProductStatisticsFilterDto filter)
-    {
-        var (totalCount, items) = await _reportRepository.GetProductStatisticsAsync(
-            filter.FromDate, filter.ToDate, filter.ProductSearch, filter.ProductGroupCode, filter.PageNumber, filter.PageSize);
-
-        return new ProductStatisticsResponseDto
-        {
-            CutOffTime = DateTime.UtcNow,
-            Data = new PagedResultDto<ProductStatisticsItemDto>
-            {
-                Items = items.Select(x => new ProductStatisticsItemDto
-                {
-                    ProductId = x.ProductId,
-                    ProductCode = x.ProductCode,
-                    ProductName = x.ProductName,
-                    BaseUnitCode = x.BaseUnitCode,
-                    CurrentStock = x.CurrentStock,
-                    InboundQuantity = x.InboundQuantity,
-                    OutboundQuantity = x.OutboundQuantity,
-                    AdjustmentQuantity = x.AdjustmentQuantity,
-                    MovementFrequency = x.MovementFrequency,
-                    DaysSinceLastMovement = x.DaysSinceLastMovement
-                }).ToList(),
-                TotalCount = totalCount,
-                PageIndex = filter.PageNumber,
-                PageSize = filter.PageSize
-            }
-        };
-    }
-
     public async Task<SupplierStatisticsResponseDto> GetSupplierStatisticsAsync(SupplierStatisticsFilterDto filter)
     {
         var (totalCount, items) = await _reportRepository.GetSupplierStatisticsAsync(
@@ -176,38 +155,6 @@ public class ReportService : IReportService
                     ReceivedQuantity = x.ReceivedQuantity,
                     DamagedQuantity = x.DamagedQuantity,
                     ShortageQuantity = x.ShortageQuantity
-                }).ToList(),
-                TotalCount = totalCount,
-                PageIndex = filter.PageNumber,
-                PageSize = filter.PageSize
-            }
-        };
-    }
-
-    public async Task<StocktakeStatisticsResponseDto> GetStocktakeStatisticsAsync(StocktakeStatisticsFilterDto filter)
-    {
-        var (totalCount, items) = await _reportRepository.GetStocktakeStatisticsAsync(
-            filter.FromDate, filter.ToDate, filter.CountType, filter.StorageAreaCode, filter.ProductGroupCode, filter.SessionStatus, filter.PageNumber, filter.PageSize);
-
-        return new StocktakeStatisticsResponseDto
-        {
-            CutOffTime = DateTime.UtcNow,
-            Data = new PagedResultDto<StocktakeStatisticsItemDto>
-            {
-                Items = items.Select(x => new StocktakeStatisticsItemDto
-                {
-                    StocktakeSessionId = x.StocktakeSessionId,
-                    StocktakeNumber = x.StocktakeNumber,
-                    PlannedDate = x.PlannedDate,
-                    Status = x.Status,
-                    BinsCounted = x.BinsCounted,
-                    MatchedItems = x.MatchedItems,
-                    ShortageItems = x.ShortageItems,
-                    ExcessItems = x.ExcessItems,
-                    TotalItemsCounted = x.TotalItemsCounted,
-                    TotalShortageQuantity = x.TotalShortageQuantity,
-                    TotalExcessQuantity = x.TotalExcessQuantity,
-                    TotalApprovedAdjustmentQuantity = x.TotalApprovedAdjustmentQuantity
                 }).ToList(),
                 TotalCount = totalCount,
                 PageIndex = filter.PageNumber,
@@ -289,57 +236,4 @@ public class ReportService : IReportService
         return response;
     }
 
-    public async Task<OverdueOrderAlertResponseDto> GetOverdueOrderAlertsAsync(OverdueOrderAlertFilterDto filter)
-    {
-        var result = await _reportRepository.GetOverdueOrderAlertsAsync(
-            filter.DocumentType,
-            filter.Keyword,
-            filter.PageNumber,
-            filter.PageSize);
-
-        var items = result.Items.Select(x => new OverdueOrderAlertItemDto
-        {
-            DocumentType = x.DocumentType,
-            DocumentId = x.DocumentId,
-            DocumentNumber = x.DocumentNumber,
-            WarehouseId = x.WarehouseId,
-            DueDate = x.DueDate,
-            DaysOverdue = x.DaysOverdue,
-            Status = x.Status
-        }).ToList();
-
-        var response = new OverdueOrderAlertResponseDto
-        {
-            Data = new PagedResultDto<OverdueOrderAlertItemDto>
-            {
-                Items = items,
-                TotalCount = result.TotalCount,
-                PageIndex = filter.PageNumber,
-                PageSize = filter.PageSize
-            },
-            CutOffTime = DateTime.UtcNow
-        };
-
-        return response;
-    }
-
-    public async Task<WarehouseKpiResponseDto> GetWarehouseKpisAsync()
-    {
-        var result = await _reportRepository.GetWarehouseKpisAsync();
-
-        var items = result.Select(x => new WarehouseKpiItemDto
-        {
-            WarehouseId = x.WarehouseId,
-            WarehouseCode = x.WarehouseCode,
-            AverageInboundProcessingHours = x.AverageInboundProcessingHours,
-            AverageOutboundProcessingHours = x.AverageOutboundProcessingHours,
-            InboundOnTimeRate = x.InboundOnTimeRate,
-            OutboundOnTimeRate = x.OutboundOnTimeRate
-        }).ToList();
-
-        return new WarehouseKpiResponseDto
-        {
-            Items = items
-        };
-    }
 }

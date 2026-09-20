@@ -27,19 +27,9 @@ public class ExcelExportService : IExcelExportService
         return GenerateExcel(items, "In-Out Stock Report");
     }
 
-    public byte[] ExportProductStatistics(IEnumerable<ProductStatisticsItemDto> items)
-    {
-        return GenerateExcel(items, "Product Statistics");
-    }
-
     public byte[] ExportSupplierStatistics(IEnumerable<SupplierStatisticsItemDto> items)
     {
         return GenerateExcel(items, "Supplier Statistics");
-    }
-
-    public byte[] ExportStocktakeStatistics(IEnumerable<StocktakeStatisticsItemDto> items)
-    {
-        return GenerateExcel(items, "Stocktake Statistics");
     }
 
     public byte[] ExportLowStockAlerts(IEnumerable<LowStockAlertItemDto> items)
@@ -50,11 +40,6 @@ public class ExcelExportService : IExcelExportService
     public byte[] ExportExpiringLotAlerts(IEnumerable<ExpiringLotAlertItemDto> items)
     {
         return GenerateExcel(items, "Expiring Lot Alerts");
-    }
-
-    public byte[] ExportOverdueOrderAlerts(IEnumerable<OverdueOrderAlertItemDto> items)
-    {
-        return GenerateExcel(items, "Overdue Order Alerts");
     }
 
     private byte[] GenerateExcel<T>(IEnumerable<T> data, string sheetName)
