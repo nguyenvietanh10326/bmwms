@@ -172,22 +172,12 @@ namespace BMWMS.Web.Models
         public decimal? AdjustmentQuantity { get; set; }
         public string? Resolution { get; set; }
         public string? Notes { get; set; }
-        public bool IsUnexpected { get; set; }
     }
 
     public class SaveStocktakeSessionCountsModel
     {
         public List<StocktakeCountLineModel> Lines { get; set; } = new();
         public List<long> ConfirmedEmptyLocationIds { get; set; } = new();
-    }
-
-    public class UnexpectedStocktakeItemModel
-    {
-        public long StorageLocationId { get; set; }
-        public long ProductId { get; set; }
-        public long ProductLotId { get; set; }
-        public decimal CountedQuantity { get; set; }
-        public string? Notes { get; set; }
     }
 
     public class StocktakeNoteModel
@@ -223,18 +213,4 @@ namespace BMWMS.Web.Models
         public string RoleName { get; set; } = string.Empty;
     }
 
-    public class StocktakeProductLotOptionModel
-    {
-        public long ProductId { get; set; }
-        public string ProductCode { get; set; } = string.Empty;
-        public string ProductName { get; set; } = string.Empty;
-        public int UnitOfMeasureId { get; set; }
-        public string UnitCode { get; set; } = string.Empty;
-        public string UnitName { get; set; } = string.Empty;
-        public long ProductLotId { get; set; }
-        public string LotNumber { get; set; } = string.Empty;
-        public DateOnly? ExpiryDate { get; set; }
-        public decimal OnHandQuantity { get; set; }
-        public string DisplayLabel => $"{ProductCode} - {ProductName} / Lot {LotNumber}";
-    }
 }

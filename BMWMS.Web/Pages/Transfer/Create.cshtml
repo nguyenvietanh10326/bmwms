@@ -10,6 +10,18 @@
     .transfer-form .field { margin-bottom: 15px; }
     .transfer-form label { display: block; margin-bottom: 5px; font-weight: 500; font-size: 13px; color: #475569; }
     .transfer-form input, .transfer-form select, .transfer-form textarea { width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; }
+    .transfer-page .btn:not(.btn-close):not(.btn-remove) {
+        min-height: 36px;
+        padding: 8px 12px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        font-size: 13px;
+        font-weight: 600;
+        line-height: 1.2;
+        letter-spacing: 0;
+    }
     .transfer-form select, .transfer-page .form-select {
         padding-right: 2.5rem !important;
         text-overflow: ellipsis;
@@ -29,7 +41,7 @@
     table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
     th { text-align: left; padding: 10px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; }
     td { padding: 10px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
-    .btn-remove { background: #fee2e2; color: #dc2626; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; }
+    .btn-remove { width:32px; height:32px; display:inline-flex; align-items:center; justify-content:center; background:#fee2e2; color:#dc2626; border:none; padding:0; border-radius:6px; cursor:pointer; font-size:16px; line-height:1; }
     .btn-remove:hover { background: #fca5a5; }
     .transfer-items { width: 100%; min-width: 0; table-layout: fixed; }
     .transfer-items th, .transfer-items td {
@@ -107,7 +119,7 @@
             </div>
             <div style="display: flex; gap: 10px; margin-top: 10px;">
                 <a href="/Transfer/Index" class="btn btn-light">Hủy</a>
-                <button type="submit" name="action" value="draft" class="btn btn-primary">Lưu bản nháp</button>
+                <button type="submit" name="action" value="draft" class="btn btn-primary">Lưu và tiếp tục thực hiện</button>
             </div>
         </div>
 
@@ -124,7 +136,7 @@
                             <th>Zone nguồn</th>
                             <th>Rack nguồn</th>
                             <th>Bin nguồn</th>
-                            <th class="product-col">Product lot</th>
+                            <th class="product-col">Sản phẩm</th>
                             <th>Tồn khả dụng</th>
                             <th>Zone đích</th>
                             <th>Rack đích</th>
@@ -173,7 +185,7 @@
                     foreach(var d in Model.EditingOrder.Details)
                     {
                         <text>
-                        addExistingRow({
+                        await addExistingRow({
                             pid: @d.ProductId,
                             plid: @d.ProductLotId,
                             sloc: @d.SourceLocationId,
@@ -205,7 +217,7 @@
                 <td class="product-col">
                     <input type="hidden" name="productIds" id="pid-${ri}" required />
                     <input type="hidden" name="productLotIds" id="plid-${ri}" required />
-                    <select id="productLot-${ri}" class="form-select form-select-sm" title="Sản phẩm / lô" onchange="selectInventoryItem(${ri})" required><option value="">-- Chọn bin nguồn trước --</option></select>
+                    <select id="productLot-${ri}" class="form-select form-select-sm" title="Sản phẩm" onchange="selectInventoryItem(${ri})" required><option value="">-- Chọn bin nguồn trước --</option></select>
                 </td>
                 <td><span id="onhand-${ri}">0</span></td>
                 <td><select id="destZone-${ri}" class="form-select form-select-sm" title="Zone đích" onchange="loadDestRacks(${ri})" disabled><option value="">-- Chọn sản phẩm --</option></select></td>
@@ -219,17 +231,9 @@
             document.getElementById('items-body').insertAdjacentHTML('beforeend', html);
         }
 
-        function addExistingRow(data) {
+        async function addExistingRow(data) {
             const ri = rowIdx++;
-            rowInventories[ri] = [{
-                productId: data.pid,
-                productLotId: data.plid,
-                productCode: data.pcode,
-                productName: data.pname,
-                lotNumber: data.lotNumber || '',
-                availableQuantity: data.qty,
-                quantityScale: data.quantityScale || 0
-            }];
+            rowInventories[ri] = [];
             const html = `<tr id="row-${ri}">
                 <td><select id="sourceZone-${ri}" class="form-select form-select-sm" title="Zone nguồn" onchange="loadSourceRacks(${ri})">${zoneOptions()}</select></td>
                 <td><select id="sourceRack-${ri}" class="form-select form-select-sm" title="Rack nguồn" onchange="loadSourceBins(${ri})"><option value="">-- Chọn --</option></select></td>
@@ -237,9 +241,9 @@
                 <td class="product-col">
                     <input type="hidden" name="productIds" id="pid-${ri}" value="${data.pid}" required />
                     <input type="hidden" name="productLotIds" id="plid-${ri}" value="${data.plid}" required />
-                    <select id="productLot-${ri}" class="form-select form-select-sm" title="Sản phẩm / lô" onchange="selectInventoryItem(${ri})" required><option value="${data.plid}" selected>${data.pcode} - ${data.pname}</option></select>
+                    <select id="productLot-${ri}" class="form-select form-select-sm" title="Sản phẩm" onchange="selectInventoryItem(${ri})" required><option value="">Đang tải tồn khả dụng...</option></select>
                 </td>
-                <td><span id="onhand-${ri}">${data.qty}</span></td>
+                <td><span id="onhand-${ri}">0</span></td>
                 <td><select id="destZone-${ri}" class="form-select form-select-sm" title="Zone đích" onchange="loadDestRacks(${ri})"><option value="">Đang tải...</option></select></td>
                 <td><select id="destRack-${ri}" class="form-select form-select-sm" title="Rack đích" onchange="loadDestBins(${ri})"><option value="">-- Chọn --</option></select></td>
                 <td><select name="destLocationIds" id="dloc-${ri}" class="form-select form-select-sm" title="Bin đích" onchange="validateRow(${ri})" required><option value="${data.dloc}" selected>${data.destCode || data.dloc}</option></select></td>
@@ -249,7 +253,8 @@
                 <td style="text-align:center;"><button type="button" class="btn-remove" onclick="removeItemRow(${ri})"><i class="ri-delete-bin-line"></i></button></td>
             </tr>`;
             document.getElementById('items-body').insertAdjacentHTML('beforeend', html);
-            loadDestZonesForProduct(ri, data.destZoneId, data.destRackId, data.dloc);
+            await loadInventoryForRow(ri, data.plid, false);
+            await loadDestZonesForProduct(ri, data.destZoneId, data.destRackId, data.dloc);
         }
 
         function removeItemRow(ri) {
@@ -293,10 +298,17 @@
             const zoneId = document.getElementById(`${prefix}Zone-${ri}`).value;
             const productId = prefix === 'dest' ? document.getElementById(`pid-${ri}`).value : '';
             const rackSelect = document.getElementById(`${prefix}Rack-${ri}`);
+            if (!zoneId) {
+                rackSelect.disabled = true;
+                rackSelect.innerHTML = '<option value="">-- Chọn Zone trước --</option>';
+                return;
+            }
             rackSelect.disabled = !zoneId;
             rackSelect.innerHTML = '<option value="">Đang tải...</option>';
             const res = await fetch(`/Transfer/Create?handler=Racks&zoneId=${zoneId || ''}&productId=${productId || ''}`);
             const racks = res.ok ? await res.json() : [];
+            if (document.getElementById(`${prefix}Zone-${ri}`).value !== zoneId ||
+                (prefix === 'dest' && document.getElementById(`pid-${ri}`).value !== productId)) return;
             rackSelect.innerHTML = optionHtml(racks, 'rackId', r => `${r.rackCode} - ${r.rackName || ''}`, selectedId);
         }
 
@@ -316,14 +328,22 @@
             const productId = prefix === 'dest' ? document.getElementById(`pid-${ri}`).value : '';
             const selectId = prefix === 'source' ? `sloc-${ri}` : `dloc-${ri}`;
             const binSelect = document.getElementById(selectId);
+            if (!zoneId || !rackId) {
+                binSelect.disabled = true;
+                binSelect.innerHTML = '<option value="">-- Chọn Rack trước --</option>';
+                return;
+            }
             binSelect.disabled = !rackId;
             binSelect.innerHTML = '<option value="">Đang tải...</option>';
             const res = await fetch(`/Transfer/Create?handler=Locations&zoneId=${zoneId || ''}&rackId=${rackId || ''}&productId=${productId || ''}`);
             const bins = (res.ok ? await res.json() : []).filter(l => pickableOnly ? l.isPickable : l.isPutawayAllowed);
+            if (document.getElementById(`${prefix}Zone-${ri}`).value !== zoneId ||
+                document.getElementById(`${prefix}Rack-${ri}`).value !== rackId ||
+                (prefix === 'dest' && document.getElementById(`pid-${ri}`).value !== productId)) return;
             binSelect.innerHTML = optionHtml(bins, 'locationId', l => `${l.locationCode} - ${l.locationName || ''}`, selectedId);
         }
 
-        async function loadInventoryForRow(ri) {
+        async function loadInventoryForRow(ri, selectedLotId = '', refreshDestination = true) {
             resetInventorySelection(ri);
             const locationId = document.getElementById(`sloc-${ri}`).value;
             const productSelect = document.getElementById(`productLot-${ri}`);
@@ -333,11 +353,15 @@
             }
             productSelect.innerHTML = '<option value="">Đang tải...</option>';
             const res = await fetch(`/Transfer/Create?handler=LocationInventory&locationId=${locationId}`);
-            rowInventories[ri] = (res.ok ? await res.json() : []).filter(i => (i.availableQuantity || 0) > 0);
-            productSelect.innerHTML = optionHtml(rowInventories[ri], 'productLotId', i => `${i.productCode} - ${i.productName} / Lot: ${i.lotNumber || '-'} / Khả dụng: ${formatQuantity(i.availableQuantity, i.quantityScale)}`);
+            const inventories = (res.ok ? await res.json() : []).filter(i => (i.availableQuantity || 0) > 0);
+            if (document.getElementById(`sloc-${ri}`).value !== locationId) return;
+            rowInventories[ri] = inventories;
+            productSelect.innerHTML = optionHtml(inventories, 'productLotId', i => `${i.productName} - Khả dụng: ${formatQuantity(i.availableQuantity, i.quantityScale)}`, selectedLotId);
+            if (selectedLotId && inventories.some(item => item.productLotId == selectedLotId))
+                selectInventoryItem(ri, refreshDestination);
         }
 
-        function selectInventoryItem(ri) {
+        function selectInventoryItem(ri, refreshDestination = true) {
             const lotId = document.getElementById(`productLot-${ri}`).value;
             const item = (rowInventories[ri] || []).find(i => i.productLotId == lotId);
             document.getElementById(`pid-${ri}`).value = item?.productId || '';
@@ -349,7 +373,7 @@
             qty.min = quantityStep(item?.quantityScale || 0);
             qty.dataset.quantityScale = item?.quantityScale || 0;
             if (item && Number(qty.value || 0) > Number(item.availableQuantity || 0)) qty.value = item.availableQuantity;
-            loadDestZonesForProduct(ri);
+            if (refreshDestination) loadDestZonesForProduct(ri);
             validateRow(ri);
         }
 

@@ -36,15 +36,6 @@ public class DetailsModel : PageModel
         return Page();
     }
 
-    public async Task<IActionResult> OnPostApproveAsync(long id, string? notes)
-    {
-        var result = await _transferService.ApproveOrderAsync(id, notes);
-        TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] = result.Success
-            ? "Đã phê duyệt phiếu thành công."
-            : result.Message;
-        return RedirectToPage("/Transfer/Details", new { id });
-    }
-
     public async Task<IActionResult> OnPostCancelAsync(long id, string? notes)
     {
         var result = await _transferService.CancelOrderAsync(id, notes);
@@ -59,7 +50,7 @@ public class DetailsModel : PageModel
         var request = new ConfirmTransferDto
         {
             AcknowledgeCapacityWarning = true,
-            CapacityWarningReason = "Xác nhận theo số lượng và vị trí đã được duyệt trên phiếu chuyển kho."
+            CapacityWarningReason = "Xác nhận theo số lượng và vị trí trên phiếu chuyển kho."
         };
         var result = await _transferService.ConfirmTransferAsync(id, request);
         TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] = result.Success

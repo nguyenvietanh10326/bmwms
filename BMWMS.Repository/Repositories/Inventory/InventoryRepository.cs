@@ -109,9 +109,11 @@ namespace BMWMS.Repository.Repositories.Inventory
             string? keyword,
             long? warehouseId,
             long? storageLocationId,
-            string? status)
+            string? status,
+            long? zoneId,
+            long? rackId)
         {
-            var query = BuildFilterQuery(keyword, warehouseId, storageLocationId, status);
+            var query = BuildFilterQuery(keyword, warehouseId, storageLocationId, status, zoneId, rackId);
 
             var totalOnHand = await query.SumAsync(i => (decimal?)i.OnHandQuantity) ?? 0m;
             var totalReserved = await query.SumAsync(i => (decimal?)i.ReservedQuantity) ?? 0m;

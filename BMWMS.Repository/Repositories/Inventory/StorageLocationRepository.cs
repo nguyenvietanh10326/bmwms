@@ -183,7 +183,8 @@ namespace BMWMS.Repository.Repositories.Inventory
                 .Include(inv => inv.Product)
                     .ThenInclude(p => p.UnitOfMeasure)
                 .Include(inv => inv.ProductLot)
-                .Where(inv => inv.StorageLocationId == locationId && inv.OnHandQuantity > 0)
+                .Where(inv => inv.StorageLocationId == locationId &&
+                    (inv.OnHandQuantity > 0 || inv.ReservedQuantity > 0))
                 .OrderBy(inv => inv.Product.ProductName)
                 .ToListAsync();
         }

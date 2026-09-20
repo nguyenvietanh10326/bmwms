@@ -12,41 +12,24 @@ namespace BMWMS.API.Controllers.StockOperations
     [Authorize(Roles = "WAREHOUSE_MANAGER,SYSTEM_ADMIN,WAREHOUSE_STAFF")]
     public class TransferActionsController : ControllerBase
     {
-        private readonly ITransferApprovalService _approvalService;
+        private readonly ITransferCancellationService _cancellationService;
         private readonly ITransferConfirmService _confirmService;
 
-        public TransferActionsController(ITransferApprovalService approvalService, ITransferConfirmService confirmService)
+        public TransferActionsController(ITransferCancellationService cancellationService, ITransferConfirmService confirmService)
         {
-            _approvalService = approvalService;
+            _cancellationService = cancellationService;
             _confirmService = confirmService;
         }
 
         private long CurrentUserId => long.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
         private bool IsManager => User.IsInRole("WAREHOUSE_MANAGER") || User.IsInRole("SYSTEM_ADMIN");
 
-        [HttpPost("{id:long}/approve")]
-        [Authorize(Roles = "WAREHOUSE_MANAGER,SYSTEM_ADMIN")]
-        public async Task<IActionResult> ApproveTransfer(long id, [FromBody] ApproveTransferDto dto)
-        {
-            try
-            {
-                if (id != dto.TransferOrderId) return BadRequest("ID không khớp.");
-                var result = await _approvalService.ApproveTransferAsync(CurrentUserId, dto);
-                if (!result.Success) return BadRequest(result.Message);
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
-        }
-
         [HttpPost("{id:long}/cancel")]
         public async Task<IActionResult> CancelTransfer(long id, [FromBody] CancelTransferDto dto)
         {
             try
             {
-                var result = await _approvalService.CancelTransferAsync(CurrentUserId, id, dto.Notes, IsManager);
+                var result = await _cancellationService.CancelTransferAsync(CurrentUserId, id, dto.Notes, IsManager);
                 if (!result.Success) return BadRequest(result.Message);
                 return Ok(result);
             }

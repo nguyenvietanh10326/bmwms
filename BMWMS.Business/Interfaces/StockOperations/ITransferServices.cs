@@ -13,9 +13,8 @@ namespace BMWMS.Business.Interfaces.StockOperations
         Task<TransferResultDto> UpdateDraftOrderAsync(long staffId, UpdateTransferOrderDto dto);
     }
 
-    public interface ITransferApprovalService
+    public interface ITransferCancellationService
     {
-        Task<TransferResultDto> ApproveTransferAsync(long managerId, ApproveTransferDto dto);
         Task<TransferResultDto> CancelTransferAsync(long actorId, long transferOrderId, string? notes, bool isManager);
     }
 

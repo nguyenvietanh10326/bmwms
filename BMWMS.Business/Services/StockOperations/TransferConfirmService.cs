@@ -35,10 +35,11 @@ namespace BMWMS.Business.Services.StockOperations
             await using var tx = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
             try
             {
+                await OrderWorkflowLock.AcquireAsync(_context, "TRANSFER", transferOrderId);
                 var order = await _repository.GetOrderWithDetailsAsync(transferOrderId);
                 if (order == null) throw new ArgumentException("Phiếu không tồn tại.");
-                if (order.Status != "APPROVED")
-                    throw new InvalidOperationException("Chỉ xác nhận phiếu đã được quản lý duyệt.");
+                if (order.Status != "DRAFT")
+                    throw new InvalidOperationException("Chỉ thực hiện phiếu chưa hoàn tất.");
                 if (order.AssignedToUserId != staffId)
                     throw new UnauthorizedAccessException("Chỉ nhân viên kho được giao mới được xác nhận chuyển kho.");
                 dto ??= new ConfirmTransferDto();
@@ -46,10 +47,18 @@ namespace BMWMS.Business.Services.StockOperations
                 var allocations = new List<CapacityAllocationDto>();
                 var sourceKeys = new List<(long ProductId, long LotId, long LocationId, decimal Qty)>();
                 var confirmedItems = new List<TransferConfirmItemParam>();
+                var requestedItems = dto.Items ?? new List<ConfirmTransferItemDto>();
+                if (requestedItems.GroupBy(item => item.TransferOrderDetailId).Any(group => group.Count() > 1) ||
+                    requestedItems.Any(item => order.TransferOrderDetails.All(detail => detail.TransferOrderDetailId != item.TransferOrderDetailId)))
+                    throw new ArgumentException("Dữ liệu thực hiện không khớp các dòng phiếu chuyển kho.");
+
                 foreach (var detail in order.TransferOrderDetails)
                 {
-                    var destId = detail.DestinationLocationId ?? 0;
-                    var confirmQuantity = detail.RequestedQuantity;
+                    var requestedItem = requestedItems.FirstOrDefault(item => item.TransferOrderDetailId == detail.TransferOrderDetailId);
+                    var destId = requestedItem?.DestinationLocationId ?? detail.DestinationLocationId ?? 0;
+                    var confirmQuantity = requestedItem?.ActualMovedQuantity ?? detail.RequestedQuantity;
+                    if (confirmQuantity < 0 || confirmQuantity > detail.RequestedQuantity)
+                        throw new ArgumentException($"Số thực chuyển phải từ 0 đến {detail.RequestedQuantity}.");
                     if (confirmQuantity > 0 && detail.Product != null)
                         QuantityRules.EnsureValid(detail.Product, confirmQuantity, "Số thực chuyển");
                     if (destId <= 0 || destId == detail.SourceLocationId)
@@ -69,6 +78,10 @@ namespace BMWMS.Business.Services.StockOperations
                 }
                 if (sourceKeys.Count == 0)
                     throw new ArgumentException("Không có hàng thực chuyển; hãy hủy phiếu thay vì xác nhận rỗng.");
+                if (confirmedItems.Any(item => item.ActualMovedQuantity <
+                        order.TransferOrderDetails.Single(detail => detail.TransferOrderDetailId == item.TransferOrderDetailId).RequestedQuantity) &&
+                    (dto.ShortfallReason?.Trim().Length ?? 0) < 5)
+                    throw new ArgumentException("Chuyển thiếu so với phiếu phải có lý do ít nhất 5 ký tự.");
 
                 var destinationIds = confirmedItems.Where(item => item.ActualMovedQuantity > 0)
                     .Select(item => item.DestinationLocationId!.Value).Distinct().ToArray();
@@ -100,10 +113,11 @@ namespace BMWMS.Business.Services.StockOperations
                     if (inv == null)
                         throw new InvalidOperationException($"Không tìm thấy tồn kho nguồn cho sản phẩm {src.ProductId} tại vị trí {src.LocationId}.");
 
-                    // Chú ý: Vì lượng hàng này đã được cộng vào ReservedQuantity lúc Approve, 
-                    // ta cần check xem tổng tồn kho OnHand có còn đủ không (khi Confirm ta sẽ xả Reserve và trừ OnHand).
-                    if (inv.OnHandQuantity < src.Qty)
-                        throw new InvalidOperationException($"Tồn kho thực tế tại nguồn không đủ để xuất: yêu cầu {src.Qty}, thực tế {inv.OnHandQuantity}.");
+                    var available = inv.OnHandQuantity - inv.ReservedQuantity;
+                    if (available < src.Qty)
+                        throw new InvalidOperationException(
+                            $"Tồn khả dụng tại nguồn không đủ để chuyển: yêu cầu {src.Qty}, khả dụng {available}. " +
+                            "Phần đang giữ cho đơn bán hàng hoặc phiếu xuất không được dùng cho chuyển kho.");
                 }
 
                 if (allocations.Any())
@@ -123,14 +137,14 @@ namespace BMWMS.Business.Services.StockOperations
                         throw new InvalidOperationException($"Chưa xác định sức chứa tại {string.Join(", ", unknown)}; cần xác nhận và ghi lý do ít nhất 5 ký tự.");
                 }
 
-                var confirmedOrder = await _repository.ConfirmTransferAsync(
+                await _repository.ConfirmTransferAsync(
                     transferOrderId, staffId, confirmedItems, dto.DestinationChangeReason, dto.ShortfallReason, dto.Notes);
 
-                await _auditLogService.RecordAsync(new AuditEventDto { UserId = staffId, ActionType = "CONFIRM_TRANSFER", EntityName = "TransferOrder", EntityId = transferOrderId.ToString() });
+                await _auditLogService.RecordAsync(new AuditEventDto { UserId = staffId, ActionType = "EXECUTE_TRANSFER", EntityName = "TransferOrder", EntityId = transferOrderId.ToString() });
 
                 await tx.CommitAsync();
 
-                return new TransferResultDto { Success = true, Message = "Xác nhận chuyển kho thành công." };
+                return new TransferResultDto { Success = true, Message = "Thực hiện chuyển kho thành công." };
             }
             catch
             {

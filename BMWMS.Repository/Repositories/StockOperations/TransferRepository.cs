@@ -8,7 +8,6 @@ namespace BMWMS.Repository.Repositories.StockOperations
     public class TransferRepository : ITransferRepository
     {
         public const string StatusDraft = "DRAFT";
-        public const string StatusApproved = "APPROVED";
         public const string StatusCompleted = "COMPLETED";
         public const string StatusCancelled = "CANCELLED";
 
@@ -83,7 +82,7 @@ namespace BMWMS.Repository.Repositories.StockOperations
         public async Task<List<User>> GetStaffUsersAsync() =>
             await _context.Users.Include(u => u.Role).Where(u => u.Role.RoleCode == "WAREHOUSE_STAFF" && u.Status == "ACTIVE").ToListAsync();
 
-        public async Task<(List<TransferOrder> Items, int TotalCount, int DraftCount, int ApprovedCount, int CompletedCount, int CancelledCount)>
+        public async Task<(List<TransferOrder> Items, int TotalCount, int DraftCount, int CompletedCount, int CancelledCount)>
             GetPagedOrdersAsync(string? keyword, string? status, long? warehouseId, int pageIndex, int pageSize, long? currentStaffId)
         {
             var query = _context.TransferOrders
@@ -108,7 +107,6 @@ namespace BMWMS.Repository.Repositories.StockOperations
             var counts = await query.GroupBy(o => o.Status).Select(g => new { Status = g.Key, Count = g.Count() }).ToListAsync();
             var totalCount = counts.Sum(x => x.Count);
             var draftCount = counts.FirstOrDefault(x => x.Status == StatusDraft)?.Count ?? 0;
-            var approvedCount = counts.FirstOrDefault(x => x.Status == StatusApproved)?.Count ?? 0;
             var completedCount = counts.FirstOrDefault(x => x.Status == StatusCompleted)?.Count ?? 0;
             var cancelledCount = counts.FirstOrDefault(x => x.Status == StatusCancelled)?.Count ?? 0;
 
@@ -117,7 +115,7 @@ namespace BMWMS.Repository.Repositories.StockOperations
 
             var items = await query.OrderByDescending(o => o.CreatedAt).Skip(pageIndex * pageSize).Take(pageSize).ToListAsync();
 
-            return (items, totalCount, draftCount, approvedCount, completedCount, cancelledCount);
+            return (items, totalCount, draftCount, completedCount, cancelledCount);
         }
 
         public async Task<IReadOnlyList<string>> ValidateTransferItemsAsync(
@@ -371,104 +369,6 @@ namespace BMWMS.Repository.Repositories.StockOperations
             return await GetOrderWithDetailsAsync(order.TransferOrderId) ?? order;
         }
 
-        public async Task<TransferOrder> ApproveOrderAsync(long transferOrderId, long approvedByUserId, string? notes)
-        {
-            await using var tx = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
-            try
-            {
-                var order = await _context.TransferOrders.Include(o => o.TransferOrderDetails)
-                    .FirstOrDefaultAsync(o => o.TransferOrderId == transferOrderId);
-                if (order == null) throw new ArgumentException("Không tìm thấy phiếu");
-                if (order.Status != StatusDraft) throw new InvalidOperationException("Chỉ duyệt phiếu DRAFT");
-
-                var sourceGroups = order.TransferOrderDetails
-                    .GroupBy(d => new { d.ProductId, d.ProductLotId, d.SourceLocationId })
-                    .Select(g => new
-                    {
-                        g.Key.ProductId,
-                        g.Key.ProductLotId,
-                        g.Key.SourceLocationId,
-                        Quantity = g.Sum(d => d.RequestedQuantity)
-                    })
-                    .ToList();
-
-                if (sourceGroups.Any(g => !g.ProductLotId.HasValue || !g.SourceLocationId.HasValue))
-                    throw new InvalidOperationException("Chi tiết phiếu chưa đủ thông tin lô hàng hoặc vị trí nguồn.");
-
-                var productIds = sourceGroups.Select(g => g.ProductId).Distinct().ToList();
-                var lotIds = sourceGroups.Select(g => g.ProductLotId!.Value).Distinct().ToList();
-                var sourceLocationIds = sourceGroups.Select(g => g.SourceLocationId!.Value).Distinct().ToList();
-                var inventories = await _context.Inventories
-                    .Where(i =>
-                        productIds.Contains(i.ProductId) &&
-                        lotIds.Contains(i.ProductLotId) &&
-                        sourceLocationIds.Contains(i.StorageLocationId))
-                    .Select(i => new
-                    {
-                        i.ProductId,
-                        i.ProductLotId,
-                        i.StorageLocationId,
-                        AvailableQuantity = i.AvailableQuantity ?? (i.OnHandQuantity - i.ReservedQuantity)
-                    })
-                    .ToListAsync();
-
-                foreach (var group in sourceGroups)
-                {
-                    var available = inventories.FirstOrDefault(i =>
-                        i.ProductId == group.ProductId &&
-                        i.ProductLotId == group.ProductLotId &&
-                        i.StorageLocationId == group.SourceLocationId)?.AvailableQuantity ?? 0;
-                    if (available < group.Quantity)
-                        throw new InvalidOperationException($"Tồn khả dụng không đủ để duyệt phiếu: sản phẩm {group.ProductId}, vị trí {group.SourceLocationId}, yêu cầu {group.Quantity}, khả dụng {available}.");
-                }
-
-                order.Status = StatusApproved;
-                order.ApprovedByUserId = approvedByUserId;
-                order.ApprovedAt = DateTime.UtcNow;
-                order.Notes = AppendNote(order.Notes, "APPROVED", notes);
-
-                // Thêm InventoryTransaction RESERVE
-                foreach (var detail in order.TransferOrderDetails)
-                {
-                    var reservation = new InventoryReservation
-                    {
-                        ProductId = detail.ProductId,
-                        StorageLocationId = detail.SourceLocationId!.Value,
-                        ProductLotId = detail.ProductLotId!.Value,
-                        ReservedQuantity = detail.RequestedQuantity,
-                        ConsumedQuantity = 0,
-                        Status = "ACTIVE",
-                        ReservedByUserId = approvedByUserId,
-                        ReservedAt = DateTime.UtcNow
-                    };
-                    _context.InventoryReservations.Add(reservation);
-
-                    _context.InventoryTransactions.Add(new InventoryTransaction
-                    {
-                        TransactionType = "RESERVE",
-                        ProductId = detail.ProductId,
-                        StorageLocationId = detail.SourceLocationId.Value,
-                        ProductLotId = detail.ProductLotId.Value,
-                        OnHandDelta = 0,
-                        ReservedDelta = detail.RequestedQuantity,
-                        TransferOrderDetailId = detail.TransferOrderDetailId,
-                        InventoryReservation = reservation,
-                        PerformedByUserId = approvedByUserId,
-                        TransactionAt = DateTime.UtcNow
-                    });
-                }
-
-                await _context.SaveChangesAsync();
-                await tx.CommitAsync();
-                return await GetOrderWithDetailsAsync(order.TransferOrderId) ?? order;
-            }
-            catch
-            {
-                await tx.RollbackAsync();
-                throw;
-            }
-        }
-
         public async Task<TransferOrder> CancelOrderAsync(long transferOrderId, long cancelledByUserId, string? notes, bool isManager)
         {
             await using var tx = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
@@ -479,41 +379,12 @@ namespace BMWMS.Repository.Repositories.StockOperations
                 if (order == null) throw new ArgumentException("Không tìm thấy phiếu");
                 if (order.Status == StatusCompleted || order.Status == StatusCancelled) 
                     throw new InvalidOperationException("Không thể hủy phiếu đã hoàn thành hoặc đã hủy.");
-                if (isManager ? order.Status is not (StatusDraft or StatusApproved) :
+                if (isManager ? order.Status != StatusDraft :
                     order.Status != StatusDraft || order.CreatedByUserId != cancelledByUserId)
-                    throw new UnauthorizedAccessException("Chỉ người tạo được hủy phiếu nháp; chỉ Quản lý kho được hủy phiếu đã duyệt.");
+                    throw new UnauthorizedAccessException("Chỉ người tạo hoặc Quản lý kho được hủy phiếu chưa thực hiện.");
 
-                var oldStatus = order.Status;
                 order.Status = StatusCancelled;
                 order.Notes = AppendNote(order.Notes, "CANCELLED", notes);
-
-                // Nếu đang APPROVED, trả lại hàng (RELEASE_RESERVATION)
-                if (oldStatus == StatusApproved)
-                {
-                    foreach (var detail in order.TransferOrderDetails)
-                    {
-                        var reservation = await FindActiveReservationAsync(detail);
-                        if (reservation == null)
-                            throw new InvalidOperationException($"Không tìm thấy giữ tồn đang hoạt động cho chi tiết {detail.TransferOrderDetailId}.");
-
-                        _context.InventoryTransactions.Add(new InventoryTransaction
-                        {
-                            TransactionType = "RELEASE_RESERVATION",
-                            ProductId = detail.ProductId,
-                            StorageLocationId = detail.SourceLocationId.Value,
-                            ProductLotId = detail.ProductLotId.Value,
-                            OnHandDelta = 0,
-                            ReservedDelta = -detail.RequestedQuantity,
-                            TransferOrderDetailId = detail.TransferOrderDetailId,
-                            InventoryReservationId = reservation.InventoryReservationId,
-                            PerformedByUserId = cancelledByUserId,
-                            TransactionAt = DateTime.UtcNow
-                        });
-
-                        reservation.Status = "RELEASED";
-                        reservation.ReleasedAt = DateTime.UtcNow;
-                    }
-                }
 
                 await _context.SaveChangesAsync();
                 await tx.CommitAsync();
@@ -534,18 +405,12 @@ namespace BMWMS.Repository.Repositories.StockOperations
             string? shortfallReason, 
             string? notes)
         {
-            // Transaction Serializable for Layer 1 & 2 locks are handled inside Service, 
-            // but since we do DB inserts here, we expect Service to have created Transaction, 
-            // or we create it here if not passed.
-            // Actually, best to do it here.
-            
-            // Note: The UPDLOCK and HOLDLOCK logic will be in Service, so this repository method 
-            // is just doing the final insert. Service passes in the items.
+            // The service owns the serializable transaction and source inventory locks.
             var order = await _context.TransferOrders.Include(o => o.TransferOrderDetails)
                 .FirstOrDefaultAsync(o => o.TransferOrderId == transferOrderId);
                 
             if (order == null) throw new ArgumentException("Phiếu không tồn tại.");
-            if (order.Status != StatusApproved) throw new InvalidOperationException("Chỉ xác nhận phiếu APPROVED.");
+            if (order.Status != StatusDraft) throw new InvalidOperationException("Chỉ thực hiện phiếu chưa hoàn tất.");
             if (order.AssignedToUserId != staffUserId)
                 throw new UnauthorizedAccessException("Chỉ nhân viên kho được giao mới được xác nhận chuyển kho.");
             if (items.Count != order.TransferOrderDetails.Count ||
@@ -576,34 +441,8 @@ namespace BMWMS.Repository.Repositories.StockOperations
                     detail.DestinationLocationId = input.DestinationLocationId.Value;
                 }
 
-                // 1. Release Reservation (trừ lại lượng đã reserve lúc Approve)
-                var reservation = await FindActiveReservationAsync(detail);
-                if (reservation != null && detail.MovedQuantity > reservation.ReservedQuantity)
-                    throw new InvalidOperationException($"So luong xac nhan vuot qua so luong da giu cho chi tiet {detail.TransferOrderDetailId}.");
-                if (reservation == null)
-                    throw new InvalidOperationException($"Không tìm thấy giữ tồn đang hoạt động cho chi tiết {detail.TransferOrderDetailId}.");
-
-                _context.InventoryTransactions.Add(new InventoryTransaction
-                {
-                    TransactionType = "RELEASE_RESERVATION",
-                    ProductId = detail.ProductId,
-                    StorageLocationId = detail.SourceLocationId.Value,
-                    ProductLotId = detail.ProductLotId.Value,
-                    OnHandDelta = 0,
-                    ReservedDelta = -reservation.ReservedQuantity,
-                    TransferOrderDetailId = detail.TransferOrderDetailId,
-                    InventoryReservationId = reservation.InventoryReservationId,
-                    PerformedByUserId = staffUserId,
-                    TransactionAt = DateTime.UtcNow
-                });
-
-                reservation.ConsumedQuantity = detail.MovedQuantity;
-                reservation.Status = detail.MovedQuantity >= reservation.ReservedQuantity ? "CONSUMED" : "RELEASED";
-                reservation.ReleasedAt = DateTime.UtcNow;
-
                 if (detail.MovedQuantity > 0)
                 {
-                    // 2. Transfer Out
                     _context.InventoryTransactions.Add(new InventoryTransaction
                     {
                         TransactionType = "TRANSFER_OUT",
@@ -616,7 +455,6 @@ namespace BMWMS.Repository.Repositories.StockOperations
                         TransactionAt = DateTime.UtcNow
                     });
 
-                    // 3. Transfer In
                     _context.InventoryTransactions.Add(new InventoryTransaction
                     {
                         TransactionType = "TRANSFER_IN",
@@ -633,20 +471,6 @@ namespace BMWMS.Repository.Repositories.StockOperations
 
             await _context.SaveChangesAsync();
             return await GetOrderWithDetailsAsync(order.TransferOrderId) ?? order;
-        }
-
-        private async Task<InventoryReservation?> FindActiveReservationAsync(TransferOrderDetail detail)
-        {
-            return await _context.InventoryTransactions
-                .Where(t =>
-                    t.TransferOrderDetailId == detail.TransferOrderDetailId &&
-                    t.TransactionType == "RESERVE" &&
-                    t.InventoryReservation != null &&
-                    t.InventoryReservation.Status == "ACTIVE" &&
-                    t.InventoryReservation.ReservedQuantity > t.InventoryReservation.ConsumedQuantity)
-                .OrderBy(t => t.InventoryReservationId)
-                .Select(t => t.InventoryReservation)
-                .FirstOrDefaultAsync();
         }
 
         private static string? AppendNote(string? existing, string tag, string? note)

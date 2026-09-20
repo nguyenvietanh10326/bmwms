@@ -28,7 +28,7 @@ namespace BMWMS.Repository.Interfaces.StockOperations
         Task<List<Warehouse>> GetAllWarehousesAsync();
         Task<List<User>> GetStaffUsersAsync();
 
-        Task<(List<TransferOrder> Items, int TotalCount, int DraftCount, int ApprovedCount, int CompletedCount, int CancelledCount)>
+        Task<(List<TransferOrder> Items, int TotalCount, int DraftCount, int CompletedCount, int CancelledCount)>
             GetPagedOrdersAsync(string? keyword, string? status, long? warehouseId, int pageIndex, int pageSize, long? currentStaffId);
 
         Task<TransferOrder?> GetOrderWithDetailsAsync(long transferOrderId);
@@ -52,7 +52,6 @@ namespace BMWMS.Repository.Interfaces.StockOperations
             long updatedByUserId,
             string? notes);
 
-        Task<TransferOrder> ApproveOrderAsync(long transferOrderId, long approvedByUserId, string? notes);
         Task<TransferOrder> CancelOrderAsync(long transferOrderId, long cancelledByUserId, string? notes, bool isManager);
         
         Task<TransferOrder> ConfirmTransferAsync(

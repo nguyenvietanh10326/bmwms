@@ -25,6 +25,9 @@
             <a asp-page-handler="ExportExcel" 
                asp-route-keyword="@Model.Filter.Keyword"
                asp-route-warehouseId="@Model.Filter.WarehouseId"
+               asp-route-zoneId="@Model.Filter.ZoneId"
+               asp-route-rackId="@Model.Filter.RackId"
+               asp-route-storageLocationId="@Model.Filter.StorageLocationId"
                asp-route-status="@Model.Filter.Status"
                style="display: inline-flex; align-items: center; gap: 6px; background: #ffffff; border: 1px solid #cbd5e1; color: #334155; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 500; text-decoration: none;">
                 <i class="ri-download-2-line"></i> Xuất Excel
@@ -64,14 +67,14 @@
 
     <!-- BỘ LỌC (FILTER BAR) -->
     <div style="background: #ffffff; border-radius: 10px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.03); padding: 16px 20px; margin-bottom: 20px;">
-        <form method="get" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
+        <form id="inventoryFilterForm" method="get" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
             <div style="position: relative; flex: 1; min-width: 240px;">
                 <i class="ri-search-line" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 15px;"></i>
                 <input type="text" asp-for="Filter.Keyword" placeholder="Tìm theo mã hoặc tên sản phẩm..." 
                        style="width: 100%; padding: 8px 12px 8px 34px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; outline: none; box-sizing: border-box;" />
             </div>
 
-            <select asp-for="Filter.ZoneId" onchange="this.form.submit()" style="padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; background: #fff; outline: none; min-width: 140px;">
+            <select id="zoneFilter" asp-for="Filter.ZoneId" style="padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; background: #fff; outline: none; min-width: 140px;">
                 <option value="">Tất cả Zone</option>
                 @foreach (var zone in Model.Zones)
                 {
@@ -79,7 +82,7 @@
                 }
             </select>
 
-            <select asp-for="Filter.RackId" onchange="this.form.submit()" style="padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; background: #fff; outline: none; min-width: 140px;">
+            <select id="rackFilter" asp-for="Filter.RackId" style="padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; background: #fff; outline: none; min-width: 140px;">
                 <option value="">Tất cả Kệ</option>
                 @foreach (var rack in Model.Racks)
                 {
@@ -87,7 +90,7 @@
                 }
             </select>
 
-            <select asp-for="Filter.StorageLocationId" onchange="this.form.submit()" style="padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; background: #fff; outline: none; min-width: 140px;">
+            <select id="binFilter" asp-for="Filter.StorageLocationId" style="padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; background: #fff; outline: none; min-width: 140px;">
                 <option value="">Tất cả Vị trí (Bin)</option>
                 @foreach (var location in Model.StorageLocations)
                 {
@@ -117,6 +120,34 @@
             </button>
         </form>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const form = document.getElementById('inventoryFilterForm');
+            const zoneSelect = document.getElementById('zoneFilter');
+            const rackSelect = document.getElementById('rackFilter');
+            const binSelect = document.getElementById('binFilter');
+
+            if (!form || !zoneSelect || !rackSelect || !binSelect) {
+                return;
+            }
+
+            zoneSelect.addEventListener('change', function () {
+                rackSelect.value = '';
+                binSelect.value = '';
+                form.submit();
+            });
+
+            rackSelect.addEventListener('change', function () {
+                binSelect.value = '';
+                form.submit();
+            });
+
+            binSelect.addEventListener('change', function () {
+                form.submit();
+            });
+        });
+    </script>
 
     <!-- DATA TABLE -->
     <div style="background: #ffffff; border-radius: 10px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.03); overflow: hidden;">
@@ -189,7 +220,7 @@
                     @for (int i = 1; i <= Model.Data.TotalPages; i++)
                     {
                         var active = i == Model.Data.PageIndex;
-                        var query = $"?keyword={Uri.EscapeDataString(Model.Filter.Keyword ?? string.Empty)}&warehouseId={Model.Filter.WarehouseId ?? 0}&storageLocationId={Model.Filter.StorageLocationId ?? 0}&status={Uri.EscapeDataString(Model.Filter.Status ?? string.Empty)}&pageIndex={i}&pageSize={Model.Filter.PageSize}";
+                        var query = $"?keyword={Uri.EscapeDataString(Model.Filter.Keyword ?? string.Empty)}&warehouseId={Model.Filter.WarehouseId ?? 0}&zoneId={Model.Filter.ZoneId ?? 0}&rackId={Model.Filter.RackId ?? 0}&storageLocationId={Model.Filter.StorageLocationId ?? 0}&status={Uri.EscapeDataString(Model.Filter.Status ?? string.Empty)}&pageIndex={i}&pageSize={Model.Filter.PageSize}";
                         <a href="@(pageUrl + query)" style="min-width: 32px; height: 32px; padding: 0 8px; border-radius: 6px; text-decoration: none; font-size: 12.5px; font-weight: @(active ? "600" : "500"); display: inline-flex; align-items: center; justify-content: center; border: 1px solid @(active ? "#2563eb" : "#cbd5e1"); background: @(active ? "#2563eb" : "#fff"); color: @(active ? "#fff" : "#334155");">
                             @i
                         </a>

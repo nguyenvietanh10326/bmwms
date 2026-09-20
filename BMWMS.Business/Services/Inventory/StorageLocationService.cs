@@ -69,6 +69,7 @@ namespace BMWMS.Business.Services.Inventory
             var items = rawItems.Select(l =>
             {
                 var onHand = l.Inventories.Sum(inv => inv.OnHandQuantity);
+                var available = l.Inventories.Sum(inv => inv.AvailableQuantity ?? (inv.OnHandQuantity - inv.ReservedQuantity));
                 var prodCount = l.Inventories.Where(inv => inv.OnHandQuantity > 0).Select(inv => inv.ProductId).Distinct().Count();
                 var lotCount = l.Inventories.Where(inv => inv.OnHandQuantity > 0).Select(inv => inv.ProductLotId).Distinct().Count();
 
@@ -98,7 +99,8 @@ namespace BMWMS.Business.Services.Inventory
 
                     StoredProductCount = prodCount,
                     StoredLotCount = lotCount,
-                    TotalOnHandQuantity = onHand
+                    TotalOnHandQuantity = onHand,
+                    TotalAvailableQuantity = available
                 };
             }).ToList();
 
@@ -118,6 +120,7 @@ namespace BMWMS.Business.Services.Inventory
             if (item == null) return null;
 
             var onHand = item.Inventories.Sum(inv => inv.OnHandQuantity);
+            var available = item.Inventories.Sum(inv => inv.AvailableQuantity ?? (inv.OnHandQuantity - inv.ReservedQuantity));
             var prodCount = item.Inventories.Where(inv => inv.OnHandQuantity > 0).Select(inv => inv.ProductId).Distinct().Count();
             var lotCount = item.Inventories.Where(inv => inv.OnHandQuantity > 0).Select(inv => inv.ProductLotId).Distinct().Count();
 
@@ -143,7 +146,8 @@ namespace BMWMS.Business.Services.Inventory
                 Status = item.Status,
                 StoredProductCount = prodCount,
                 StoredLotCount = lotCount,
-                TotalOnHandQuantity = onHand
+                TotalOnHandQuantity = onHand,
+                TotalAvailableQuantity = available
             };
 
             var evaluations = await _capacityEvaluationService.EvaluateCurrentAsync([locationId]);
@@ -372,6 +376,7 @@ public async Task<(bool Success, string Message)> UpdateLocationAsync(CreateUpda
                 .Select(l =>
             {
                 var onHand = l.Inventories.Sum(inv => inv.OnHandQuantity);
+                var available = l.Inventories.Sum(inv => inv.AvailableQuantity ?? (inv.OnHandQuantity - inv.ReservedQuantity));
                 var prodCount = l.Inventories.Where(inv => inv.OnHandQuantity > 0).Select(inv => inv.ProductId).Distinct().Count();
                 var lotCount = l.Inventories.Where(inv => inv.OnHandQuantity > 0).Select(inv => inv.ProductLotId).Distinct().Count();
 
@@ -398,7 +403,8 @@ public async Task<(bool Success, string Message)> UpdateLocationAsync(CreateUpda
                     Status = l.Status,
                     StoredProductCount = prodCount,
                     StoredLotCount = lotCount,
-                    TotalOnHandQuantity = onHand
+                    TotalOnHandQuantity = onHand,
+                    TotalAvailableQuantity = available
                 };
             }).ToList();
 

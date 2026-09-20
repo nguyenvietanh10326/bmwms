@@ -6,7 +6,6 @@ namespace BMWMS.Business.Interfaces.Stocktake
     {
         Task<List<StocktakeLocationOptionDto>> GetLocationOptionsAsync(long warehouseId, List<long>? rackIds = null, List<long>? productGroupIds = null);
         Task<List<StocktakeStaffOptionDto>> GetStaffUsersAsync();
-        Task<List<StocktakeProductLotOptionDto>> SearchProductLotsAsync(string? keyword, int take = 20);
 
         Task<StocktakeSessionPagedResultDto> GetSessionsAsync(StocktakeFilterDto filter, long currentUserId, bool canManage);
         Task<StocktakeSessionDetailDto?> GetSessionDetailAsync(long stocktakeSessionId, long currentUserId, bool canManage);
@@ -18,7 +17,6 @@ namespace BMWMS.Business.Interfaces.Stocktake
         Task<StocktakeActionResultDto> SaveCountsAsync(long stocktakeSessionId, long storageLocationId, List<StocktakeCountLineDto> lines, long countedByUserId, bool canManage, string? notes = null);
         Task<StocktakeActionResultDto> SaveSessionCountsAsync(long stocktakeSessionId, SaveStocktakeSessionCountsDto request, long countedByUserId);
         Task<StocktakeActionResultDto> SubmitSessionAsync(long stocktakeSessionId, long submittedByUserId);
-        Task<StocktakeActionResultDto> AddUnexpectedItemAsync(long stocktakeSessionId, UnexpectedStocktakeItemDto dto, long countedByUserId, bool canManage);
         Task<StocktakeActionResultDto> ApproveSessionAsync(long stocktakeSessionId, long approvedByUserId, StocktakeNoteDto request);
         Task<StocktakeActionResultDto> RejectSessionAsync(long stocktakeSessionId, long rejectedByUserId, string? reason);
     }

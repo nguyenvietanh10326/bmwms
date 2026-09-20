@@ -14,6 +14,18 @@
         overflow: hidden;
         background-position: right .75rem center;
     }
+    .transfer-page .btn:not(.btn-close) {
+        min-height: 36px;
+        padding: 8px 12px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        font-size: 13px;
+        font-weight: 600;
+        line-height: 1.2;
+        letter-spacing: 0;
+    }
 </style>
 
 <div class="transfer-page">
@@ -38,8 +50,7 @@
             <input type="text" name="Keyword" value="@Model.Keyword" placeholder="Nhập mã phiếu..." class="form-control" style="max-width:300px;" />
             <select name="Status" class="form-select" style="max-width:200px;">
                 <option value="">-- Tất cả trạng thái --</option>
-                <option value="DRAFT" selected="@(Model.Status == "DRAFT" ? "selected" : null)">Nháp</option>
-                <option value="APPROVED" selected="@(Model.Status == "APPROVED" ? "selected" : null)">Đã duyệt</option>
+                <option value="DRAFT" selected="@(Model.Status == "DRAFT" ? "selected" : null)">Chờ thực hiện</option>
                 <option value="ASSIGNED" selected="@(Model.Status == "ASSIGNED" ? "selected" : null)">Phiếu cũ - chỉ xem</option>
                 <option value="COMPLETED" selected="@(Model.Status == "COMPLETED" ? "selected" : null)">Hoàn thành</option>
                 <option value="CANCELLED" selected="@(Model.Status == "CANCELLED" ? "selected" : null)">Đã hủy</option>

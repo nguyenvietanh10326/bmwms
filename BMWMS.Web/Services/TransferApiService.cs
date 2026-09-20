@@ -21,7 +21,6 @@ namespace BMWMS.Web.Services
             public int PageIndex { get; set; }
             public int PageSize { get; set; }
             public int DraftCount { get; set; }
-            public int ApprovedCount { get; set; }
             public int CompletedCount { get; set; }
             public int CancelledCount { get; set; }
             public int TotalPages => PageSize > 0 ? (int)Math.Ceiling(TotalCount / (double)PageSize) : 0;
@@ -70,10 +69,8 @@ namespace BMWMS.Web.Services
             public string? AssignedToName { get; set; }
             public string? ConfirmedByName { get; set; }
             public DateTime? ConfirmedAt { get; set; }
-            public bool InventoryPosted { get; set; }
             public bool CanEdit { get; set; }
             public bool CanCancel { get; set; }
-            public bool CanApprove { get; set; }
             public bool CanConfirm { get; set; }
             public decimal TotalRequestedQuantity { get; set; }
             public decimal TotalMovedQuantity { get; set; }
@@ -122,12 +119,6 @@ namespace BMWMS.Web.Services
         public class UpdateTransferOrderDto : CreateTransferOrderDto
         {
             public long TransferOrderId { get; set; }
-        }
-
-        public class ApproveTransferDto
-        {
-            public long TransferOrderId { get; set; }
-            public string? Notes { get; set; }
         }
 
         public class CancelTransferDto
@@ -272,20 +263,6 @@ namespace BMWMS.Web.Services
             {
                 var content = new StringContent(JsonSerializer.Serialize(request), Encoding.UTF8, "application/json");
                 var response = await _httpClient.PutAsync($"api/transfers/{id}", content);
-                if (response.IsSuccessStatusCode)
-                    return await response.Content.ReadFromJsonAsync<TransferResultDto>(_jsonOpts) ?? new TransferResultDto { Success = false };
-                return new TransferResultDto { Success = false, Message = await response.Content.ReadAsStringAsync() };
-            }
-            catch (Exception ex) { return new TransferResultDto { Success = false, Message = ex.Message }; }
-        }
-
-        public async Task<TransferResultDto> ApproveOrderAsync(long id, string? notes)
-        {
-            try
-            {
-                var dto = new ApproveTransferDto { TransferOrderId = id, Notes = notes };
-                var content = new StringContent(JsonSerializer.Serialize(dto), Encoding.UTF8, "application/json");
-                var response = await _httpClient.PostAsync($"api/transfers/{id}/approve", content);
                 if (response.IsSuccessStatusCode)
                     return await response.Content.ReadFromJsonAsync<TransferResultDto>(_jsonOpts) ?? new TransferResultDto { Success = false };
                 return new TransferResultDto { Success = false, Message = await response.Content.ReadAsStringAsync() };
