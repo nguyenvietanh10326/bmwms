@@ -19,5 +19,9 @@ namespace BMWMS.Web.Services
         Task<StocktakeActionResultModel> SubmitSessionAsync(long id);
         Task<StocktakeActionResultModel> ApproveSessionAsync(long id, StocktakeNoteModel request);
         Task<StocktakeActionResultModel> RejectSessionAsync(long id, string reason);
+        Task<StocktakeActionResultModel> AddUnbookedItemAsync(long id, AddUnbookedStocktakeItemModel request);
+        Task<StocktakeActionResultModel> RemoveUnbookedItemAsync(long id, long itemId);
+        Task<StocktakeActionResultModel> SetTargetLocationAsync(long id, long itemId, long? targetStorageLocationId);
+        Task<List<CompatibleLocationModel>> GetCompatibleLocationsAsync(long id, long productId, decimal quantity = 0);
     }
 }

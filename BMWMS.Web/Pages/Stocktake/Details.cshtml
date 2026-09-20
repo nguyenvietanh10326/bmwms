@@ -18,12 +18,12 @@
         <partial name="_DetailsSummary" model="session" />
         @if (Model.IsStaff && session.Status == "IN_PROGRESS")
         {
-            <partial name="_DetailsCountSheet" model="session" />
+            <partial name="_DetailsCountSheet" model="session" view-data='new ViewDataDictionary(ViewData) { ["AvailableProducts"] = Model.AvailableProducts, ["StocktakeSessionId"] = Model.Id }' />
         }
         else
         {
             <partial name="_DetailsLocations" model="session" view-data='new ViewDataDictionary(ViewData) { ["IsStaff"] = Model.IsStaff, ["IsManager"] = Model.IsManager }' />
         }
-        @if (Model.IsManager || session.Status is "COMPLETED" or "REJECTED") { <partial name="_DetailsVariance" model="session" view-data='new ViewDataDictionary(ViewData) { ["IsManager"] = Model.IsManager }' /> }
+        @if (Model.IsManager || session.Status is "COMPLETED" or "REJECTED") { <partial name="_DetailsVariance" model="session" view-data='new ViewDataDictionary(ViewData) { ["IsManager"] = Model.IsManager, ["StocktakeSessionId"] = Model.Id }' /> }
     }
 </main>

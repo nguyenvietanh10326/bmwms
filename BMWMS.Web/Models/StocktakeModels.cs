@@ -173,6 +173,35 @@ namespace BMWMS.Web.Models
         public decimal? AdjustmentQuantity { get; set; }
         public string? Resolution { get; set; }
         public string? Notes { get; set; }
+        public bool IsUnbooked => BookQuantity == null || BookQuantity == 0;
+        public long? TargetStorageLocationId { get; set; }
+        public string? TargetLocationCode { get; set; }
+    }
+
+    public class AddUnbookedStocktakeItemModel
+    {
+        public long StorageLocationId { get; set; }
+        public long? TargetStorageLocationId { get; set; }
+        public long ProductId { get; set; }
+        public decimal CountedQuantity { get; set; }
+        public DateOnly? FirstReceivedDate { get; set; }
+        public DateOnly? ExpiryDate { get; set; }
+        public string? Notes { get; set; }
+    }
+
+    public class CompatibleLocationModel
+    {
+        public long StorageLocationId { get; set; }
+        public string LocationCode { get; set; } = string.Empty;
+        public string LocationName { get; set; } = string.Empty;
+        public string LocationPath { get; set; } = string.Empty;
+        public string ZoneCode { get; set; } = string.Empty;
+        public string ZoneName { get; set; } = string.Empty;
+        public decimal? MaxCapacity { get; set; }
+        public decimal CurrentOccupancy { get; set; }
+        public decimal RemainingCapacity { get; set; }
+        public string UnitName { get; set; } = string.Empty;
+        public bool IsCompatibleZone { get; set; } = true;
     }
 
     public class SaveStocktakeSessionCountsModel
@@ -214,4 +243,8 @@ namespace BMWMS.Web.Models
         public string RoleName { get; set; } = string.Empty;
     }
 
+    public class SetTargetLocationModel
+    {
+        public long? TargetStorageLocationId { get; set; }
+    }
 }

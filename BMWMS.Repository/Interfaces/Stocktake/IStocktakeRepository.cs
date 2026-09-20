@@ -9,6 +9,17 @@ namespace BMWMS.Repository.Interfaces.Stocktake
         public string? Notes { get; set; }
     }
 
+    public class AddUnbookedStocktakeItemParam
+    {
+        public long StorageLocationId { get; set; }
+        public long? TargetStorageLocationId { get; set; }
+        public long ProductId { get; set; }
+        public decimal CountedQuantity { get; set; }
+        public DateOnly? FirstReceivedDate { get; set; }
+        public DateOnly? ExpiryDate { get; set; }
+        public string? Notes { get; set; }
+    }
+
     public interface IStocktakeRepository
     {
         Task<List<Warehouse>> GetActiveWarehousesAsync();
@@ -34,6 +45,10 @@ namespace BMWMS.Repository.Interfaces.Stocktake
         Task<StocktakeLocation?> GetLocationCountTaskAsync(long stocktakeSessionId, long storageLocationId);
         Task<StocktakeSession> SaveCountsAsync(long stocktakeSessionId, long storageLocationId, List<StocktakeCountUpdateParam> lines, long countedByUserId, string? notes);
         Task<StocktakeSession> SaveSessionCountsAsync(long stocktakeSessionId, List<StocktakeCountUpdateParam> lines, List<long> confirmedEmptyLocationIds, long countedByUserId);
+        Task<StocktakeItem> AddUnbookedItemAsync(long stocktakeSessionId, AddUnbookedStocktakeItemParam param, long countedByUserId);
+        Task<bool> RemoveUnbookedItemAsync(long stocktakeSessionId, long stocktakeItemId, long currentUserId);
+        Task<StocktakeItem> SetTargetLocationAsync(long stocktakeSessionId, long stocktakeItemId, long? targetStorageLocationId, long currentUserId);
+        Task<List<StorageLocation>> GetCompatibleLocationsAsync(long warehouseId, long productId, decimal quantity);
         Task<StocktakeSession> SubmitSessionAsync(long stocktakeSessionId, long submittedByUserId);
         Task<StocktakeSession> ApproveSessionAsync(long stocktakeSessionId, long approvedByUserId, string? notes);
         Task<StocktakeSession> RejectSessionAsync(long stocktakeSessionId, long rejectedByUserId, string reason);

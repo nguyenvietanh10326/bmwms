@@ -176,6 +176,9 @@ namespace BMWMS.Business.DTOs.Stocktake
         public decimal? AdjustmentQuantity { get; set; }
         public string? Resolution { get; set; }
         public string? Notes { get; set; }
+        public bool IsUnbooked => BookQuantity == null || BookQuantity == 0;
+        public long? TargetStorageLocationId { get; set; }
+        public string? TargetLocationCode { get; set; }
     }
 
     public class SaveStocktakeSessionCountsDto

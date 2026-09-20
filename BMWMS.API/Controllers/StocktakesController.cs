@@ -170,6 +170,53 @@ namespace BMWMS.API.Controllers
             return Ok(result);
         }
 
+        [HttpPost("{id:long}/unbooked-items")]
+        [Authorize(Roles = "WAREHOUSE_STAFF,WAREHOUSE_MANAGER,SYSTEM_ADMIN")]
+        public async Task<IActionResult> AddUnbookedItem(long id, [FromBody] AddUnbookedStocktakeItemDto request)
+        {
+            if (request == null)
+                return BadRequest(new { message = "Dữ liệu không hợp lệ." });
+
+            var result = await _stocktakeService.AddUnbookedItemAsync(id, request, GetCurrentUserId());
+            if (!result.Success)
+                return BadRequest(new { message = result.Message });
+
+            return Ok(result);
+        }
+
+        [HttpDelete("{id:long}/items/{itemId:long}")]
+        [Authorize(Roles = "WAREHOUSE_STAFF,WAREHOUSE_MANAGER,SYSTEM_ADMIN")]
+        public async Task<IActionResult> RemoveUnbookedItem(long id, long itemId)
+        {
+            var result = await _stocktakeService.RemoveUnbookedItemAsync(id, itemId, GetCurrentUserId());
+            if (!result.Success)
+                return BadRequest(new { message = result.Message });
+
+            return Ok(result);
+        }
+
+        [HttpPut("{id:long}/items/{itemId:long}/target-location")]
+        [Authorize(Roles = "WAREHOUSE_STAFF,WAREHOUSE_MANAGER,SYSTEM_ADMIN")]
+        public async Task<IActionResult> SetTargetLocation(long id, long itemId, [FromBody] SetTargetLocationDto request)
+        {
+            var result = await _stocktakeService.SetTargetLocationAsync(id, itemId, request?.TargetStorageLocationId, GetCurrentUserId());
+            if (!result.Success)
+                return BadRequest(new { message = result.Message });
+
+            return Ok(result);
+        }
+
+        [HttpGet("{id:long}/compatible-locations")]
+        [Authorize(Roles = "WAREHOUSE_STAFF,WAREHOUSE_MANAGER,SYSTEM_ADMIN")]
+        public async Task<IActionResult> GetCompatibleLocations(long id, [FromQuery] long productId, [FromQuery] decimal quantity = 0)
+        {
+            if (productId <= 0)
+                return BadRequest(new { message = "Sản phẩm không hợp lệ." });
+
+            var result = await _stocktakeService.GetCompatibleLocationsAsync(id, productId, quantity);
+            return Ok(result);
+        }
+
         private long GetCurrentUserId()
         {
             var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value

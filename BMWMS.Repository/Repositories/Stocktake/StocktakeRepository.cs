@@ -1,3 +1,4 @@
+using BMWMS.Repository.Common;
 using BMWMS.Repository.Interfaces.Stocktake;
 using BMWMS.Repository.Models;
 using Microsoft.EntityFrameworkCore;
@@ -413,7 +414,10 @@ namespace BMWMS.Repository.Repositories.Stocktake
                     item.CountedQuantity = line.CountedQuantity;
                     item.CountedByUserId = line.CountedQuantity.HasValue ? countedByUserId : null;
                     item.CountedAt = line.CountedQuantity.HasValue ? DateTime.UtcNow : null;
-                    item.Notes = line.Notes;
+                    var (targetId, targetCode, _) = StocktakeLocationHelper.ParseTargetLocation(item.Notes);
+                    item.Notes = targetId.HasValue
+                        ? StocktakeLocationHelper.FormatNotesWithTargetLocation(targetId, targetCode, line.Notes)
+                        : line.Notes?.Trim();
                     
                     item.Resolution = null;
                     item.AdjustmentQuantity = null;
@@ -433,6 +437,209 @@ namespace BMWMS.Repository.Repositories.Stocktake
                 await transaction.RollbackAsync();
                 throw;
             }
+        }
+
+        public async Task<StocktakeItem> AddUnbookedItemAsync(
+            long stocktakeSessionId,
+            AddUnbookedStocktakeItemParam param,
+            long countedByUserId)
+        {
+            var session = await GetTrackedSessionForMutationAsync(stocktakeSessionId);
+            if (session.Status != SessionInProgress)
+                throw new InvalidOperationException("Chỉ có thể thêm hàng phát sinh khi phiếu kiểm kho đang ở trạng thái 'Đang kiểm'.");
+
+            if (session.PlannedDate > DateOnly.FromDateTime(DateTime.Today))
+                throw new InvalidOperationException($"Chưa đến ngày thực hiện kiểm kho ({session.PlannedDate:dd/MM/yyyy}). Không thể thêm hàng phát sinh.");
+
+            var stocktakeLocation = session.StocktakeLocations
+                .FirstOrDefault(l => l.StorageLocationId == param.StorageLocationId);
+            if (stocktakeLocation == null)
+                throw new InvalidOperationException("Vị trí phát hiện không thuộc phạm vi kiểm kê của phiếu này.");
+
+            var product = await _context.Products
+                .Include(p => p.UnitOfMeasure)
+                .Include(p => p.ProductGroup)
+                .FirstOrDefaultAsync(p => p.ProductId == param.ProductId);
+            if (product == null || product.Status != "ACTIVE")
+                throw new InvalidOperationException("Sản phẩm không tồn tại hoặc đã bị ngừng hoạt động.");
+
+            var quantityScale = product.UnitOfMeasure.QuantityScale;
+            if (param.CountedQuantity <= 0)
+                throw new InvalidOperationException("Số lượng đếm thực tế phải lớn hơn 0.");
+
+            if (decimal.Round(param.CountedQuantity, quantityScale) != param.CountedQuantity)
+                throw new InvalidOperationException($"Số lượng {product.ProductCode} chỉ được có tối đa {quantityScale} chữ số thập phân.");
+
+            if (product.TrackExpiry && !param.ExpiryDate.HasValue)
+                throw new InvalidOperationException($"Sản phẩm '{product.ProductName}' bắt buộc phải nhập Hạn sử dụng.");
+
+            long? targetLocationId = null;
+            string? targetLocationCode = null;
+            if (param.TargetStorageLocationId.HasValue &&
+                param.TargetStorageLocationId.Value > 0 &&
+                param.TargetStorageLocationId.Value != param.StorageLocationId)
+            {
+                var targetLoc = await _context.StorageLocations
+                    .Include(l => l.StorageRack)
+                        .ThenInclude(r => r.WarehouseZone)
+                    .FirstOrDefaultAsync(l => l.StorageLocationId == param.TargetStorageLocationId.Value);
+
+                if (targetLoc == null || targetLoc.Status != "ACTIVE")
+                    throw new InvalidOperationException("Vị trí phân bổ được chọn không tồn tại hoặc đã ngừng hoạt động.");
+
+                if (targetLoc.WarehouseId != session.WarehouseId)
+                    throw new InvalidOperationException("Vị trí phân bổ phải thuộc cùng kho với phiếu kiểm kê.");
+
+                if (targetLoc.StorageRack?.WarehouseZone?.ProductGroupId.HasValue == true &&
+                    targetLoc.StorageRack.WarehouseZone.ProductGroupId.Value != product.ProductGroupId)
+                    throw new InvalidOperationException($"Vị trí phân bổ '{targetLoc.LocationCode}' thuộc khu vực không tương thích với nhóm hàng của sản phẩm.");
+
+                targetLocationId = targetLoc.StorageLocationId;
+                targetLocationCode = targetLoc.LocationCode;
+            }
+
+            var firstReceived = param.FirstReceivedDate ?? DateOnly.FromDateTime(DateTime.Today);
+            var lot = await _context.ProductLots
+                .FirstOrDefaultAsync(l => l.ProductId == product.ProductId &&
+                                          l.ExpiryDate == param.ExpiryDate &&
+                                          l.FirstReceivedDate == firstReceived);
+
+            if (lot == null)
+            {
+                var lotNumber = $"LOT-{product.ProductCode}-{DateTime.UtcNow:yyyyMMddHHmmss}";
+                lot = new ProductLot
+                {
+                    ProductId = product.ProductId,
+                    LotNumber = lotNumber,
+                    FirstReceivedDate = firstReceived,
+                    ExpiryDate = param.ExpiryDate,
+                    Status = "AVAILABLE",
+                    CreatedAt = DateTime.UtcNow
+                };
+                _context.ProductLots.Add(lot);
+                await _context.SaveChangesAsync();
+            }
+
+            var existingItem = session.StocktakeItems
+                .FirstOrDefault(i => i.StorageLocationId == param.StorageLocationId &&
+                                     i.ProductId == param.ProductId &&
+                                     i.ProductLotId == lot.ProductLotId);
+
+            var now = DateTime.UtcNow;
+            string formattedNotes = StocktakeLocationHelper.FormatNotesWithTargetLocation(targetLocationId, targetLocationCode, param.Notes);
+
+            if (existingItem != null)
+            {
+                existingItem.CountedQuantity = (existingItem.CountedQuantity ?? 0) + param.CountedQuantity;
+                existingItem.CountedByUserId = countedByUserId;
+                existingItem.CountedAt = now;
+                if (!string.IsNullOrWhiteSpace(formattedNotes))
+                    existingItem.Notes = string.IsNullOrWhiteSpace(existingItem.Notes)
+                        ? formattedNotes
+                        : $"{existingItem.Notes} | {formattedNotes}";
+
+                await _context.SaveChangesAsync();
+                return existingItem;
+            }
+
+            var newItem = new StocktakeItem
+            {
+                StocktakeSessionId = session.StocktakeSessionId,
+                StorageLocationId = param.StorageLocationId,
+                ProductId = product.ProductId,
+                ProductLotId = lot.ProductLotId,
+                BookQuantity = 0,
+                CountedQuantity = param.CountedQuantity,
+                CountedByUserId = countedByUserId,
+                CountedAt = now,
+                Notes = formattedNotes
+            };
+
+            _context.StocktakeItems.Add(newItem);
+
+            if (stocktakeLocation.CountStatus == LocationPending)
+            {
+                stocktakeLocation.CountStatus = LocationInProgress;
+                stocktakeLocation.CountedByUserId = countedByUserId;
+                stocktakeLocation.CountedAt = now;
+            }
+
+            await _context.SaveChangesAsync();
+            return newItem;
+        }
+
+        public async Task<bool> RemoveUnbookedItemAsync(long stocktakeSessionId, long stocktakeItemId, long currentUserId)
+        {
+            var session = await GetTrackedSessionForMutationAsync(stocktakeSessionId);
+            if (session.Status != SessionInProgress)
+                throw new InvalidOperationException("Chỉ có thể xóa hàng phát sinh khi phiếu kiểm kho đang ở trạng thái 'Đang kiểm'.");
+
+            var item = session.StocktakeItems.FirstOrDefault(i => i.StocktakeItemId == stocktakeItemId);
+            if (item == null)
+                throw new KeyNotFoundException("Không tìm thấy dòng kiểm kho.");
+
+            if (item.BookQuantity > 0)
+                throw new InvalidOperationException("Không thể xóa dòng hàng đã có tồn sổ sách. Chỉ có thể xóa dòng hàng phát sinh ngoài sổ (Sổ = 0).");
+
+            _context.StocktakeItems.Remove(item);
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<StocktakeItem> SetTargetLocationAsync(
+            long stocktakeSessionId,
+            long stocktakeItemId,
+            long? targetStorageLocationId,
+            long currentUserId)
+        {
+            var session = await GetTrackedSessionForMutationAsync(stocktakeSessionId);
+            if (session.Status is SessionCompleted or SessionCancelled or SessionRejected)
+                throw new InvalidOperationException("Phiếu kiểm kho đã đóng, không thể thay đổi vị trí.");
+
+            var item = session.StocktakeItems.FirstOrDefault(i => i.StocktakeItemId == stocktakeItemId);
+            if (item == null)
+                throw new KeyNotFoundException("Không tìm thấy dòng kiểm kho.");
+
+            string? targetLocationCode = null;
+            if (targetStorageLocationId.HasValue && targetStorageLocationId.Value > 0)
+            {
+                var loc = await _context.StorageLocations.AsNoTracking()
+                    .FirstOrDefaultAsync(l => l.StorageLocationId == targetStorageLocationId.Value && l.WarehouseId == session.WarehouseId)
+                    ?? throw new InvalidOperationException("Vị trí mục tiêu không tồn tại hoặc không thuộc kho hiện tại.");
+
+                targetLocationCode = loc.LocationCode;
+            }
+
+            item.Notes = StocktakeLocationHelper.FormatNotesWithTargetLocation(
+                targetStorageLocationId.HasValue && targetStorageLocationId.Value > 0 ? targetStorageLocationId.Value : null,
+                targetLocationCode,
+                item.Notes);
+
+            await _context.SaveChangesAsync();
+            return item;
+        }
+
+        public async Task<List<StorageLocation>> GetCompatibleLocationsAsync(long warehouseId, long productId, decimal quantity)
+        {
+            var product = await _context.Products.AsNoTracking().FirstOrDefaultAsync(p => p.ProductId == productId);
+            if (product == null)
+                return new List<StorageLocation>();
+
+            var query = _context.StorageLocations.AsNoTracking()
+                .Include(l => l.StorageRack)
+                    .ThenInclude(r => r.WarehouseZone)
+                .Include(l => l.Inventories)
+                .Where(l => l.WarehouseId == warehouseId &&
+                            l.Status == "ACTIVE" &&
+                            l.IsPutawayAllowed);
+
+            if (product.ProductGroupId > 0)
+            {
+                query = query.Where(l => l.StorageRack != null &&
+                                         l.StorageRack.WarehouseZone.ProductGroupId == product.ProductGroupId);
+            }
+
+            return await query.OrderBy(l => l.LocationCode).ToListAsync();
         }
 
         public async Task<StocktakeSession> SubmitSessionAsync(long stocktakeSessionId, long submittedByUserId)
@@ -540,18 +747,27 @@ namespace BMWMS.Repository.Repositories.Stocktake
                         item.AdjustmentQuantity.Value != 0 &&
                         item.InventoryTransaction == null)
                     {
+                        var effectiveLocationId = item.StorageLocationId;
+                        var (targetId, targetCode, _) = StocktakeLocationHelper.ParseTargetLocation(item.Notes);
+                        if (targetId.HasValue && targetId.Value > 0)
+                        {
+                            effectiveLocationId = targetId.Value;
+                        }
+
                         _context.InventoryTransactions.Add(new InventoryTransaction
                         {
                             TransactionType = "STOCKTAKE_ADJUSTMENT",
                             ProductId = item.ProductId,
-                            StorageLocationId = item.StorageLocationId,
+                            StorageLocationId = effectiveLocationId,
                             ProductLotId = item.ProductLotId,
                             OnHandDelta = item.AdjustmentQuantity.Value,
                             ReservedDelta = 0,
                             StocktakeItemId = item.StocktakeItemId,
                             PerformedByUserId = approvedByUserId,
                             TransactionAt = now,
-                            Notes = $"Stocktake {session.StocktakeNumber}: adjustment {item.AdjustmentQuantity.Value}"
+                            Notes = targetId.HasValue
+                                ? $"Stocktake {session.StocktakeNumber}: adjustment +{item.AdjustmentQuantity.Value} (Phát hiện tại {item.StorageLocation?.LocationCode}, phân bổ về {targetCode ?? effectiveLocationId.ToString()})"
+                                : $"Stocktake {session.StocktakeNumber}: adjustment {item.AdjustmentQuantity.Value}"
                         });
                     }
 
@@ -622,7 +838,10 @@ namespace BMWMS.Repository.Repositories.Stocktake
                     item.CountedQuantity = line.CountedQuantity;
                     item.CountedByUserId = line.CountedQuantity.HasValue ? countedByUserId : null;
                     item.CountedAt = line.CountedQuantity.HasValue ? DateTime.UtcNow : null;
-                    item.Notes = line.Notes?.Trim();
+                    var (targetId, targetCode, _) = StocktakeLocationHelper.ParseTargetLocation(item.Notes);
+                    item.Notes = targetId.HasValue
+                        ? StocktakeLocationHelper.FormatNotesWithTargetLocation(targetId, targetCode, line.Notes)
+                        : line.Notes?.Trim();
                     item.Resolution = null;
                     item.AdjustmentQuantity = null;
                 }
