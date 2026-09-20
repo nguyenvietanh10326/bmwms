@@ -7,7 +7,7 @@ using BMWMS.Web.Services;
 
 namespace BMWMS.Web.Pages.OutboundOrders;
 
-[Authorize(Roles = "WAREHOUSE_STAFF,WAREHOUSE_MANAGER,SYSTEM_ADMIN")]
+[Authorize(Roles = "WAREHOUSE_STAFF,SYSTEM_ADMIN")]
 public class CreateModel : PageModel
 {
     private readonly IHttpClientFactory _httpClientFactory;
@@ -18,50 +18,49 @@ public class CreateModel : PageModel
     public List<SelectListItem> PurchaseOrderOptions { get; set; } = new();
     public List<SelectListItem> AssigneeOptions { get; set; } = new();
 
-    public async Task OnGetAsync(long? selectedSalesOrderId, long? selectedPurchaseOrderId, long? salesOrderId = null, long? purchaseOrderId = null)
+    public async Task OnGetAsync(long? selectedSalesOrderId, long? selectedPurchaseOrderId, long? salesOrderId = null, long? purchaseOrderId = null, string? sourceType = null)
     {
         // Chấp nhận cả tên query cũ để các liên kết từ màn SO/PO không bị gãy.
         selectedSalesOrderId ??= salesOrderId;
         selectedPurchaseOrderId ??= purchaseOrderId;
         Input.ExpectedIssueDate = DateTime.Today;
-        var isPurchaseReturn = User.IsInRole("WAREHOUSE_MANAGER") || User.IsInRole("SYSTEM_ADMIN");
-        Input.SourceType = isPurchaseReturn ? "PURCHASE_RETURN" : "SALES_ORDER";
-        Input.SalesOrderId = isPurchaseReturn ? null : selectedSalesOrderId;
-        Input.PurchaseOrderId = isPurchaseReturn ? selectedPurchaseOrderId : null;
+        Input.SourceType = selectedPurchaseOrderId.HasValue || string.Equals(sourceType, "PURCHASE_RETURN", StringComparison.OrdinalIgnoreCase)
+            ? "PURCHASE_RETURN" : "SALES_ORDER";
+        Input.SalesOrderId = Input.SourceType == "SALES_ORDER" ? selectedSalesOrderId : null;
+        Input.PurchaseOrderId = Input.SourceType == "PURCHASE_RETURN" ? selectedPurchaseOrderId : null;
         await LoadDropdownsAsync();
         if (Input.SalesOrderId.HasValue) await LoadSalesOrderDetailAsync(Input.SalesOrderId.Value);
         if (Input.PurchaseOrderId.HasValue) await LoadPurchaseOrderDetailAsync(Input.PurchaseOrderId.Value);
     }
 
     public async Task<IActionResult> OnGetSalesOrderDetailAsync(long id)
-        => User.IsInRole("WAREHOUSE_STAFF")
+        => User.IsInRole("WAREHOUSE_STAFF") || User.IsInRole("SYSTEM_ADMIN")
             ? await ProxyJsonAsync($"api/OutboundOrders/sales-order/{id}")
             : Forbid();
 
     public async Task<IActionResult> OnGetPurchaseOrderDetailAsync(long id)
-        => User.IsInRole("WAREHOUSE_MANAGER") || User.IsInRole("SYSTEM_ADMIN")
+        => User.IsInRole("WAREHOUSE_STAFF") || User.IsInRole("SYSTEM_ADMIN")
             ? await ProxyJsonAsync($"api/OutboundOrders/purchase-order/{id}/return")
             : Forbid();
 
     public async Task<IActionResult> OnPostAsync()
     {
-        var requiredSourceType = User.IsInRole("WAREHOUSE_STAFF") ? "SALES_ORDER" : "PURCHASE_RETURN";
-        Input.SourceType = requiredSourceType;
+        Input.SourceType = Input.SourceType?.Trim().ToUpperInvariant() ?? string.Empty;
+        if (Input.SourceType is not ("SALES_ORDER" or "PURCHASE_RETURN"))
+            ModelState.AddModelError("Input.SourceType", "Vui lòng chọn nghiệp vụ xuất kho.");
         if (Input.SourceType == "SALES_ORDER" && !Input.SalesOrderId.HasValue)
             ModelState.AddModelError(string.Empty, "Vui lòng chọn đơn bán hàng (SO).");
         if (Input.SourceType == "PURCHASE_RETURN" && !Input.PurchaseOrderId.HasValue)
             ModelState.AddModelError(string.Empty, "Vui lòng chọn đơn mua hàng (PO) cần trả nhà cung cấp.");
-        if (Input.SourceType == "PURCHASE_RETURN" && !Input.AssignedToUserId.HasValue)
-            ModelState.AddModelError("Input.AssignedToUserId", "Vui lòng chọn Nhân viên kho thực hiện đợt trả hàng.");
+        if (User.IsInRole("SYSTEM_ADMIN") && !Input.AssignedToUserId.HasValue)
+            ModelState.AddModelError("Input.AssignedToUserId", "Vui lòng chọn Nhân viên kho thực hiện phiếu xuất.");
         if (Input.Items == null || Input.Items.Count == 0)
             ModelState.AddModelError(string.Empty, "Đơn tham chiếu không còn mặt hàng có thể xuất.");
-        if (Input.Items?.Any(item => item.RequestedQuantity < 0) == true)
-            ModelState.AddModelError(string.Empty, "Số lượng xuất không được âm.");
         var selectedItems = (Input.Items ?? new List<OutboundOrderItemVM>())
-            .Where(item => item.RequestedQuantity > 0)
+            .Where(item => item.ProductId > 0 && item.AvailableQuantity > 0)
             .ToList();
         if (selectedItems.Count == 0)
-            ModelState.AddModelError(string.Empty, "Vui lòng nhập số lượng lớn hơn 0 cho ít nhất một mặt hàng.");
+            ModelState.AddModelError(string.Empty, "Đơn tham chiếu không còn mặt hàng có thể xuất.");
         if (Input.SourceType == "PURCHASE_RETURN" && (Input.Notes?.Trim().Length ?? 0) < 10)
             ModelState.AddModelError("Input.Notes", "Phiếu trả nhà cung cấp phải ghi rõ lý do (ít nhất 10 ký tự).");
         if (!ModelState.IsValid)
@@ -76,14 +75,13 @@ public class CreateModel : PageModel
             SalesOrderId = Input.SourceType == "SALES_ORDER" ? Input.SalesOrderId : null,
             PurchaseOrderId = Input.SourceType == "PURCHASE_RETURN" ? Input.PurchaseOrderId : null,
             ExpectedIssueDate = Input.ExpectedIssueDate.ToString("yyyy-MM-dd"),
-            AssignedToUserId = Input.SourceType == "PURCHASE_RETURN" ? Input.AssignedToUserId : null,
+            AssignedToUserId = User.IsInRole("SYSTEM_ADMIN") ? Input.AssignedToUserId : null,
             Notes = Input.Notes,
             IsSubmit = true,
             Items = selectedItems.Select(i => new OutboundOrderItemRequest
             {
                 ProductId = i.ProductId,
-                RequestedQuantity = i.RequestedQuantity,
-                RequestedLocations = i.SourceLocations.Where(s => s.Quantity > 0).ToList(),
+                RequestedQuantity = i.AvailableQuantity,
                 Notes = i.Notes
             }).ToList()
         };
@@ -95,7 +93,7 @@ public class CreateModel : PageModel
             {
                 TempData["SuccessMessage"] = Input.SourceType == "SALES_ORDER"
                     ? "Đã tạo và tự nhận đợt xuất bán. Phiếu sẵn sàng để kiểm tra hàng vật lý."
-                    : "Đã tạo lệnh trả nhà cung cấp và phân công Nhân viên kho.";
+                    : "Đã tạo và tự nhận đợt trả nhà cung cấp. Phiếu sẵn sàng để kiểm tra hàng vật lý.";
                 return RedirectToPage("./Index");
             }
             ModelState.AddModelError(string.Empty, await ApiErrorReader.ReadAsync(response));
@@ -125,7 +123,7 @@ public class CreateModel : PageModel
     private async Task LoadDropdownsAsync()
     {
         var client = _httpClientFactory.CreateClient("ApiClient");
-        if (User.IsInRole("WAREHOUSE_STAFF"))
+        if (User.IsInRole("WAREHOUSE_STAFF") || User.IsInRole("SYSTEM_ADMIN"))
         {
             try
             {
@@ -135,7 +133,7 @@ public class CreateModel : PageModel
             catch { SalesOrderOptions = new(); }
         }
 
-        if (User.IsInRole("WAREHOUSE_MANAGER") || User.IsInRole("SYSTEM_ADMIN"))
+        if (User.IsInRole("WAREHOUSE_STAFF") || User.IsInRole("SYSTEM_ADMIN"))
         {
             try
             {
@@ -157,7 +155,7 @@ public class CreateModel : PageModel
         PurchaseOrderOptions.Insert(0, new SelectListItem(
             PurchaseOrderOptions.Count == 0 ? "-- Không có PO đã cất kho còn hàng để trả --" : "-- Chọn PO đã nhập kho --", ""));
         AssigneeOptions.Insert(0, new SelectListItem(
-            AssigneeOptions.Count == 0 ? "-- Không có Nhân viên kho đang rảnh --" : "-- Chọn Nhân viên kho --", ""));
+            AssigneeOptions.Count == 0 ? "-- Không có Nhân viên kho đang hoạt động --" : "-- Chọn Nhân viên kho --", ""));
     }
 
     private async Task LoadSalesOrderDetailAsync(long id)
@@ -171,7 +169,7 @@ public class CreateModel : PageModel
         {
             ProductId = x.ProductId, ProductCode = x.ProductCode, ProductName = x.ProductName,
             UnitName = x.UnitName, ReferenceQuantity = x.Quantity,
-            AvailableQuantity = x.ReservedQuantity, RequestedQuantity = x.ReservedQuantity,
+            AvailableQuantity = x.ReservedQuantity,
             QuantityScale = x.QuantityScale, TrackLot = x.TrackLot
         }).ToList();
     }
@@ -187,7 +185,7 @@ public class CreateModel : PageModel
         {
             ProductId = x.ProductId, ProductCode = x.ProductCode, ProductName = x.ProductName,
             UnitName = x.UnitName, ReferenceQuantity = x.ReceivedQuantity, SourceLocations = x.SourceLocations,
-            AvailableQuantity = x.RemainingQuantity, RequestedQuantity = x.RemainingQuantity,
+            AvailableQuantity = x.RemainingQuantity,
             QuantityScale = x.QuantityScale, TrackLot = x.TrackLot
         }).ToList();
     }

@@ -110,7 +110,7 @@ namespace BMWMS.Web.Models.Inventory
         public List<SelectListItem> StatusOptions { get; set; } = new()
         {
             new SelectListItem { Text = "-- Tất cả trạng thái --", Value = "" },
-            new SelectListItem { Text = "Nháp (DRAFT)", Value = "DRAFT" },
+            new SelectListItem { Text = "Dữ liệu nháp cũ", Value = "DRAFT" },
             new SelectListItem { Text = "Đã phân công (ASSIGNED)", Value = "ASSIGNED" },
             new SelectListItem { Text = "Đang xử lý (IN_PROGRESS)", Value = "IN_PROGRESS" },
             new SelectListItem { Text = "Hoàn thành (COMPLETED)", Value = "COMPLETED" },

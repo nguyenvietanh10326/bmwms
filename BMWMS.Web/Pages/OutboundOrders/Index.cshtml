@@ -11,9 +11,9 @@
     @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage)) { <div class="alert alert-danger">@Model.ErrorMessage</div> }
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div><h3 class="mb-1">Phiếu xuất kho</h3></div>
-        @if (User.IsInRole("WAREHOUSE_STAFF") || User.IsInRole("WAREHOUSE_MANAGER") || User.IsInRole("SYSTEM_ADMIN"))
+        @if (User.IsInRole("WAREHOUSE_STAFF") || User.IsInRole("SYSTEM_ADMIN"))
         {
-            <a asp-page="./Create" class="btn btn-primary">@(User.IsInRole("WAREHOUSE_STAFF") ? "Nhận đợt xuất từ SO" : "Tạo lệnh trả NCC")</a>
+            <a asp-page="./Create" class="btn btn-primary">Tạo phiếu xuất kho</a>
         }
     </div>
 
@@ -21,7 +21,7 @@
         <div class="col-md-5"><label class="form-label">Tìm kiếm</label><input asp-for="Filter.Search" class="form-control" placeholder="Mã phiếu, SO hoặc PO" /></div>
         <div class="col-md-5"><label class="form-label">Trạng thái</label><select asp-for="Filter.Status" asp-items="Model.StatusOptions" class="form-select"></select></div>
         <div class="col-md-3"><label class="form-label">Phiếu tham chiếu</label><select asp-for="Filter.SourceType" class="form-select"><option value="">Tất cả</option><option value="PURCHASE_RETURN">Trả NCC (PO)</option><option value="SALES_ORDER">Bán hàng (SO)</option></select></div>
-        <div class="col-md-3"><label class="form-label">Sắp xếp</label><select asp-for="Filter.SortOrder" class="form-select"><option value="approval">Ưu tiên cần duyệt</option><option value="newest">Mới nhất</option><option value="oldest">Cũ nhất</option></select></div>
+        <div class="col-md-3"><label class="form-label">Sắp xếp</label><select asp-for="Filter.SortOrder" class="form-select"><option value="newest">Mới nhất</option><option value="oldest">Cũ nhất</option>@if (User.IsInRole("WAREHOUSE_MANAGER") || User.IsInRole("SYSTEM_ADMIN")) { <option value="approval">Dữ liệu cũ cần xử lý</option> }</select></div>
         <div class="col-md-2 d-flex gap-2"><button class="btn btn-primary flex-fill">Lọc</button><a asp-page="./Index" class="btn btn-outline-secondary">Đặt lại</a></div>
     </div></form>
 
@@ -39,10 +39,8 @@
                 <td><span class="badge @StatusClass(item.Status)">@StatusLabel(item.Status)</span></td>
                 <td class="text-end">@item.LineCount dòng</td>
                 <td class="text-end">
-                    @if ((User.IsInRole("WAREHOUSE_MANAGER") || User.IsInRole("SYSTEM_ADMIN")) && item.Status == "DRAFT")
-                    { <a asp-page="./Details" asp-route-id="@item.OutboundOrderId" class="btn btn-sm btn-primary">Duyệt &amp; phân công</a> }
-                    else if ((User.IsInRole("WAREHOUSE_MANAGER") || User.IsInRole("SYSTEM_ADMIN")) && item.Status == "PENDING_APPROVAL")
-                    { <a asp-page="./Details" asp-route-id="@item.OutboundOrderId" class="btn btn-sm btn-primary">Duyệt chốt đợt</a> }
+                    @if ((User.IsInRole("WAREHOUSE_MANAGER") || User.IsInRole("SYSTEM_ADMIN")) && item.Status == "PENDING_APPROVAL")
+                    { <a asp-page="./Details" asp-route-id="@item.OutboundOrderId" class="btn btn-sm btn-outline-warning">Xử lý phiếu dữ liệu cũ</a> }
                     else if (User.IsInRole("WAREHOUSE_STAFF") && item.Status == "READY")
                     { <a asp-page="./Details" asp-route-id="@item.OutboundOrderId" class="btn btn-sm btn-primary">Bắt đầu xử lý</a> }
                     else if (User.IsInRole("WAREHOUSE_STAFF") && item.Status == "ISSUING")
@@ -59,6 +57,6 @@
 </div>
 
 @functions {
-    string StatusLabel(string status) => status switch { "DRAFT" => "Nháp", "READY" => "Sẵn sàng xuất", "ISSUING" => "Đang xuất hàng", "PENDING_APPROVAL" => "Chờ duyệt chốt đợt", "ISSUED" => "Đã xuất", "CANCELLED" => "Đã hủy", _ => status };
+    string StatusLabel(string status) => status switch { "DRAFT" => "Dữ liệu nháp cũ", "READY" => "Sẵn sàng xuất", "ISSUING" => "Đang xuất hàng", "PENDING_APPROVAL" => "Chờ xử lý dữ liệu cũ", "ISSUED" => "Đã xuất", "CANCELLED" => "Đã hủy", _ => status };
     string StatusClass(string status) => status switch { "ISSUED" => "bg-success", "ISSUING" => "bg-warning text-dark", "READY" => "bg-primary", "CANCELLED" => "bg-danger", _ => "bg-secondary" };
 }

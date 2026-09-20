@@ -25,7 +25,7 @@
                 <i class="bi bi-arrow-left me-1"></i>Quay lại
             </a>
             <button type="submit" asp-page-handler="SaveDraft" class="btn btn-primary px-4">
-                <i class="bi bi-save me-1"></i>@(Model.SalesOrder.SalesOrderId.HasValue ? "Lưu thay đổi" : "Tạo đơn nháp")
+                <i class="bi bi-save me-1"></i>@(Model.SalesOrder.SalesOrderId.HasValue ? "Lưu thay đổi" : "Tạo đơn bán hàng")
             </button>
         </div>
     </div>
@@ -68,8 +68,8 @@
                     <label asp-for="SalesOrder.OrderDate" class="form-label fw-semibold">
                         Ngày đặt hàng <span class="text-danger">*</span>
                     </label>
-                    <input asp-for="SalesOrder.OrderDate" type="date" class="form-control" />
-                    <span asp-validation-for="SalesOrder.OrderDate" class="text-danger small"></span>
+                    <input asp-for="SalesOrder.OrderDate" type="date" class="form-control" readonly />
+                    <div class="form-text">Ngày hệ thống, không chỉnh sửa.</div>
                 </div>
 
                 <div class="col-lg-3 col-md-6">
@@ -99,7 +99,7 @@
                     <h2 class="h5 fw-bold text-primary mb-1">
                         <i class="bi bi-box-seam me-2"></i>Vật tư cần xuất
                     </h2>
-                    <p class="text-muted small mb-0">Khi lưu nháp, hệ thống giữ tồn ngay để nhân viên khác không thể chọn trùng lượng hàng này.</p>
+                    <p class="text-muted small mb-0">Đơn nháp chưa giữ tồn. Tồn kho chỉ được giữ sau khi Quản lý kho duyệt đơn.</p>
                 </div>
                 <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#productModal">
                     <i class="bi bi-plus-lg me-1"></i>Chọn sản phẩm

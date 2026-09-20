@@ -21,7 +21,7 @@
         <div class="d-flex align-items-center gap-2">
             <h2 class="mb-0">@order?.SalesOrderNumber</h2>
             <span class="badge @StatusClass(order?.Status)">@StatusLabel(order?.Status)</span>
-            @if (pendingBatches.Any()) { <span class="badge bg-primary">Chờ duyệt đợt xuất</span> }
+            @if (pendingBatches.Any()) { <span class="badge bg-warning text-dark">Có phiếu dữ liệu cũ cần xử lý</span> }
         </div>
         <div class="text-muted mt-1">Theo dõi giữ tồn và lượng hàng đã xuất; không bao gồm giá bán hoặc hóa đơn.</div>
     </div>
@@ -68,26 +68,13 @@
 
 @foreach (var batch in pendingBatches)
 {
-    <section class="card border-primary shadow-sm mb-4" aria-label="Duyệt đợt xuất">
-        <div class="card-header bg-primary-subtle d-flex justify-content-between align-items-center">
-            <strong>Chờ Quản lý kho duyệt · @batch.OutboundOrderNumber</strong>
+    <section class="card border-warning shadow-sm mb-4" aria-label="Phiếu xuất dữ liệu cũ">
+        <div class="card-header bg-warning-subtle d-flex justify-content-between align-items-center">
+            <strong>Phiếu dữ liệu cũ · @batch.OutboundOrderNumber</strong>
             <a asp-page="/OutboundOrders/Details" asp-route-id="@batch.OutboundOrderId" class="btn btn-sm btn-outline-primary">Xem phiếu xuất</a>
         </div>
         <div class="card-body">
-            @if (canReview)
-            {
-                <form method="post" asp-page-handler="ReviewOutboundCompletion" asp-route-id="@order!.SalesOrderId" class="row g-3" onsubmit="return confirm('Chốt số thực giao và quyết định phần còn lại của SO?');">
-                    <input type="hidden" name="outboundOrderId" value="@batch.OutboundOrderId" />
-                    @if (hasRemainder)
-                    {
-                        <div class="col-md-4"><label class="form-label">Quyết định theo ý khách hàng</label><select name="remainderAction" class="form-select" required><option value="">Chọn quyết định</option><option value="CONTINUE">Xuất tiếp phần còn lại</option><option value="CLOSE">Đóng SO — Đã xuất</option></select></div>
-                        <div class="col-md-8"><label class="form-label">Căn cứ đã thống nhất với khách hàng</label><textarea name="reason" class="form-control" rows="2" minlength="10" maxlength="500" required></textarea></div>
-                    }
-                    else { <div class="col-12 text-muted">Đã giao đủ số lượng đặt. Duyệt đợt này để hoàn tất SO.</div> }
-                    <div class="col-12 text-end"><button type="submit" class="btn btn-primary">Duyệt chốt đợt xuất</button></div>
-                </form>
-            }
-            else { <p class="mb-0">Chờ Quản lý kho duyệt đợt này trước khi tạo phiếu xuất tiếp theo.</p> }
+            <p class="mb-0">Luồng mới tự động hoàn tất sau khi nhân viên kho xác nhận thực xuất. Mở phiếu xuất để xử lý dữ liệu còn lại của phiên bản cũ.</p>
         </div>
     </section>
 }
@@ -138,7 +125,7 @@
 {
     <div class="card border-0 shadow-sm mt-4">
         <div class="card-header bg-white"><h5 class="mb-0">Các đợt xuất của SO</h5></div>
-        <div class="table-responsive"><table class="table align-middle mb-0"><thead class="table-light"><tr><th>Phiếu xuất</th><th>Ngày tạo</th><th>Nhân viên kho</th><th>Trạng thái</th><th>Người duyệt chốt</th></tr></thead><tbody>
+        <div class="table-responsive"><table class="table align-middle mb-0"><thead class="table-light"><tr><th>Phiếu xuất</th><th>Ngày tạo</th><th>Nhân viên kho</th><th>Trạng thái</th><th>Người xác nhận xuất</th></tr></thead><tbody>
         @foreach (var batch in order.OutboundBatches)
         {
             <tr><td><a asp-page="/OutboundOrders/Details" asp-route-id="@batch.OutboundOrderId">@batch.OutboundOrderNumber</a></td><td>@batch.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td><td>@(batch.AssignedToUserName ?? "—")</td><td>@BatchStatusLabel(batch.Status)</td><td>@(batch.ReviewedByName ?? "—") @batch.ReviewedAt?.ToString("dd/MM/yyyy HH:mm")</td></tr>
@@ -173,7 +160,7 @@
     string FormatQuantity(decimal value, byte scale) => FormatHelper.FormatQuantity(value, scale);
     string BatchStatusLabel(string status) => status switch
     {
-        "PENDING_APPROVAL" => "Chờ duyệt chốt đợt", "COMPLETED" => "Đã xuất",
+        "PENDING_APPROVAL" => "Chờ xử lý dữ liệu cũ", "COMPLETED" => "Đã xuất",
         "ASSIGNED" or "READY" => "Sẵn sàng xuất", "IN_PROGRESS" or "ISSUING" => "Đang xuất hàng",
         "CANCELLED" => "Đã hủy", "DRAFT" => "Nháp", _ => status
     };

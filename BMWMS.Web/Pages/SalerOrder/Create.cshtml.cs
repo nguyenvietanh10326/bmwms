@@ -67,8 +67,11 @@ namespace BMWMS.Web.Pages.SalesOrders
             return Page();
         }
 
-        public async Task<IActionResult> OnPostSaveDraftAsync()
-        {
+    public async Task<IActionResult> OnPostSaveDraftAsync()
+    {
+        if (!SalesOrder.SalesOrderId.HasValue)
+            SalesOrder.OrderDate = DateOnly.FromDateTime(DateTime.Today);
+
             ValidateBusinessInput();
 
             if (!ModelState.IsValid)
@@ -98,7 +101,7 @@ namespace BMWMS.Web.Pages.SalesOrders
 
                 if (SalesOrder.SalesOrderId.HasValue)
                 {
-                    TempData["SuccessMessage"] = "Đã cập nhật SO nháp và giữ tồn theo số mới.";
+                    TempData["SuccessMessage"] = "Đã cập nhật đơn bán hàng. Đơn cần được duyệt lại trước khi giữ tồn.";
                     return RedirectToPage("./Details", new { id = SalesOrder.SalesOrderId });
                 }
                 var result = await response.Content
@@ -112,7 +115,7 @@ namespace BMWMS.Web.Pages.SalesOrders
                     return Page();
                 }
 
-                TempData["SuccessMessage"] = "Tạo đơn bán hàng nháp thành công.";
+                TempData["SuccessMessage"] = "Tạo đơn bán hàng thành công. Đơn đang chờ Quản lý kho duyệt.";
                 return RedirectToPage("./Details", new { id = salesOrderId });
             }
             catch (Exception ex)

@@ -77,14 +77,13 @@ public class OutboundOrderService : IOutboundOrderService
     public async Task<List<PurchaseOrderReturnOptionDto>> GetReturnablePurchaseOrdersAsync()
     {
         var orders = await _context.PurchaseOrders
+            .AsNoTracking()
             .Include(p => p.Supplier)
-            .Where(p => p.Status == "PARTIALLY_RECEIVED" || p.Status == "RECEIVED" ||
-                        p.Status == "COMPLETED" || p.Status == "CLOSED" ||
-                        p.Status == "PENDING_RECEIPT_REVIEW" || p.Status == "PENDING_REMAINDER_CONFIRMATION")
             .OrderByDescending(p => p.PurchaseOrderId)
             .ToListAsync();
         var result = new List<PurchaseOrderReturnOptionDto>();
-        foreach (var order in orders)
+        foreach (var order in orders.Where(order =>
+                     NormalizePurchaseStatus(order.Status) is "PARTIALLY_RECEIVED" or "RECEIVED"))
         {
             var detail = await GetPurchaseOrderForReturnAsync(order.PurchaseOrderId);
             if (detail?.Items.Any(i => i.RemainingQuantity > 0) == true)
@@ -100,7 +99,6 @@ public class OutboundOrderService : IOutboundOrderService
 
     public async Task<PurchaseOrderForReturnDto?> GetPurchaseOrderForReturnAsync(long purchaseOrderId)
     {
-        if (await _context.OutboundOrders.AnyAsync(o => o.PurchaseOrderId == purchaseOrderId && o.SourceType == "PURCHASE_RETURN" && o.Status == "PENDING_APPROVAL")) return null;
         var warehouseIds = await _context.Warehouses.Where(warehouse => warehouse.Status == "ACTIVE")
             .Select(warehouse => warehouse.WarehouseId).Take(2).ToListAsync();
         if (warehouseIds.Count != 1) return null;
@@ -157,22 +155,10 @@ public class OutboundOrderService : IOutboundOrderService
             throw new ArgumentException("Ngày dự kiến xuất không được trước ngày hiện tại.");
         if (request.SourceType == "PURCHASE_RETURN" && (request.Notes?.Trim().Length ?? 0) < 10)
             throw new ArgumentException("Phiếu trả nhà cung cấp phải ghi rõ lý do (ít nhất 10 ký tự).");
-        if (request.Items == null || request.Items.Count == 0 || request.Items.Any(i => i.RequestedQuantity <= 0))
-            throw new ArgumentException("Phiếu xuất phải có ít nhất một mặt hàng với số lượng lớn hơn 0.");
+        if (request.Items == null || request.Items.Count == 0 || request.Items.Any(i => i.ProductId <= 0))
+            throw new ArgumentException("Phiếu xuất phải có ít nhất một mặt hàng hợp lệ.");
         if (request.Items.GroupBy(i => i.ProductId).Any(g => g.Count() > 1))
             throw new ArgumentException("Mỗi sản phẩm chỉ được xuất hiện một lần trong phiếu xuất.");
-
-        var productIds = request.Items.Select(i => i.ProductId).Distinct().ToList();
-        var products = await _context.Products
-            .Include(p => p.UnitOfMeasure)
-            .Where(p => productIds.Contains(p.ProductId))
-            .ToDictionaryAsync(p => p.ProductId);
-        foreach (var requested in request.Items)
-        {
-            if (!products.TryGetValue(requested.ProductId, out var product) || !IsActive(product.Status))
-                throw new ArgumentException($"Sản phẩm ID {requested.ProductId} không tồn tại hoặc đã ngừng hoạt động.");
-            QuantityRules.EnsureValid(product, requested.RequestedQuantity, "Số lượng yêu cầu");
-        }
 
         var activeWarehouses = await _context.Warehouses
             .Where(w => w.Status == "ACTIVE")
@@ -192,23 +178,18 @@ public class OutboundOrderService : IOutboundOrderService
                 .FirstOrDefaultAsync(user => user.UserId == createdByUserId && user.Status == "ACTIVE")
                 ?? throw new InvalidOperationException("Tài khoản tạo phiếu không tồn tại hoặc đã ngừng hoạt động.");
             var creatorRole = creator.Role?.RoleCode;
-            if (request.SourceType == "SALES_ORDER" && creatorRole != "WAREHOUSE_STAFF")
-                throw new InvalidOperationException("Chỉ Nhân viên kho được tự nhận và tạo đợt xuất bán từ SO đã được Quản lý kho xác nhận.");
-            if (request.SourceType == "PURCHASE_RETURN" && creatorRole is not ("WAREHOUSE_MANAGER" or "SYSTEM_ADMIN"))
-                throw new InvalidOperationException("Chỉ Quản lý kho được quyết định tạo đợt trả hàng nhà cung cấp từ PO.");
+            if (creatorRole is not ("WAREHOUSE_STAFF" or "SYSTEM_ADMIN"))
+                throw new InvalidOperationException("Chỉ Nhân viên kho được tự nhận và tạo phiếu xuất.");
 
             // Outbound là chứng từ tác nghiệp vật lý, không có bước Nháp riêng.
-            // Xuất bán: nhân viên kho tự nhận đợt. Trả NCC: quản lý chọn nhân viên thực hiện.
-            request.AssignedToUserId = request.SourceType == "SALES_ORDER"
+            // Nhân viên kho tự nhận cả đợt xuất bán lẫn đợt trả nhà cung cấp.
+            // Quản trị viên được chọn nhân viên để hỗ trợ kiểm thử/vận hành.
+            request.AssignedToUserId = creatorRole == "WAREHOUSE_STAFF"
                 ? createdByUserId
                 : request.AssignedToUserId;
             if (!request.AssignedToUserId.HasValue)
-                throw new ArgumentException("Phải chọn Nhân viên kho thực hiện đợt trả nhà cung cấp.");
+                throw new ArgumentException("Phải chọn Nhân viên kho thực hiện phiếu xuất.");
             await EnsureWarehouseStaffAssigneeAsync(request.AssignedToUserId);
-            if (await _context.OutboundOrders.AnyAsync(o => o.Status == "PENDING_APPROVAL" &&
-                (request.SourceType == "SALES_ORDER" ? o.SalesOrderId == request.SalesOrderId :
-                    o.PurchaseOrderId == request.PurchaseOrderId && o.SourceType == "PURCHASE_RETURN")))
-                throw new InvalidOperationException("Đợt xuất trước đang chờ Quản lý kho duyệt chốt. Chưa thể tạo đợt mới.");
             Dictionary<long, decimal> maximumByProduct;
             if (request.SourceType == "SALES_ORDER")
             {
@@ -272,13 +253,40 @@ public class OutboundOrderService : IOutboundOrderService
                                     i.OutboundOrder.PurchaseOrderId == purchaseOrder.PurchaseOrderId &&
                                     i.OutboundOrder.Status != "CANCELLED" && i.ProductId == detail.ProductId)
                         .SumAsync(i => i.OutboundOrder.Status == "COMPLETED" ? i.IssuedQuantity : i.RequestedQuantity);
-                    maximumByProduct[detail.ProductId] = Math.Max(0, received - plannedReturns);
+                    var physicalAvailable = (await GetPurchaseReturnSourceRowsAsync(
+                        purchaseOrder.PurchaseOrderId,
+                        request.WarehouseId,
+                        detail.ProductId)).Sum(row => row.Quantity);
+                    maximumByProduct[detail.ProductId] = Math.Max(0, Math.Min(received - plannedReturns, physicalAvailable));
                 }
             }
 
+            // Tạo phiếu chỉ chọn chứng từ nguồn. Số lượng kế hoạch được hệ thống khóa theo
+            // phần còn có thể xử lý; số lượng thực tế do nhân viên nhập tại màn lấy hàng.
+            var notesByProduct = request.Items
+                .GroupBy(item => item.ProductId)
+                .ToDictionary(group => group.Key, group => group.First().Notes);
+            request.Items = maximumByProduct
+                .Where(entry => entry.Value > 0)
+                .Select(entry => new CreateOutboundOrderItemRequest
+                {
+                    ProductId = entry.Key,
+                    RequestedQuantity = entry.Value,
+                    Notes = notesByProduct.GetValueOrDefault(entry.Key)
+                }).ToList();
+            if (request.Items.Count == 0)
+                throw new InvalidOperationException("Chứng từ nguồn không còn số lượng khả dụng để tạo phiếu xuất.");
+
+            var productIds = request.Items.Select(item => item.ProductId).ToList();
+            var products = await _context.Products.Include(product => product.UnitOfMeasure)
+                .Where(product => productIds.Contains(product.ProductId))
+                .ToDictionaryAsync(product => product.ProductId);
             foreach (var requested in request.Items)
-                if (!maximumByProduct.TryGetValue(requested.ProductId, out var maximum) || requested.RequestedQuantity > maximum)
-                    throw new ArgumentException($"Sản phẩm ID {requested.ProductId} vượt số lượng có thể xuất ({maximum}).");
+            {
+                if (!products.TryGetValue(requested.ProductId, out var product) || !IsActive(product.Status))
+                    throw new ArgumentException($"Sản phẩm ID {requested.ProductId} không tồn tại hoặc đã ngừng hoạt động.");
+                QuantityRules.EnsureValid(product, requested.RequestedQuantity, "Số lượng có thể xuất");
+            }
 
             var orderNumber = $"OUT-{DateTime.UtcNow:yyyyMMddHHmmssfff}";
             var outbound = new OutboundOrder
@@ -294,8 +302,8 @@ public class OutboundOrderService : IOutboundOrderService
                 Notes = request.Notes,
                 Status = "ASSIGNED",
                 CreatedByUserId = createdByUserId,
-                ApprovedByUserId = request.SourceType == "PURCHASE_RETURN" ? createdByUserId : null,
-                ApprovedAt = request.SourceType == "PURCHASE_RETURN" ? DateTime.UtcNow : null,
+                ApprovedByUserId = null,
+                ApprovedAt = null,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -313,8 +321,8 @@ public class OutboundOrderService : IOutboundOrderService
             _context.OutboundOrders.Add(outbound);
             await _context.SaveChangesAsync();
 
-            // Phiếu trả NCC giữ đúng lượng hàng từng được nhập từ PO. Việc giữ hàng
-            // diễn ra ngay khi Quản lý kho tạo lệnh, trước khi nhân viên bắt đầu lấy.
+            // Phiếu trả NCC giữ đúng hàng từng được nhập từ PO ngay khi nhân viên kho
+            // tạo phiếu; không cho thay thế bằng một lô/vị trí khác chỉ vì cùng sản phẩm.
             if (outbound.SourceType == "PURCHASE_RETURN")
             {
                 foreach (var item in outbound.OutboundOrderItems)
@@ -324,23 +332,6 @@ public class OutboundOrderService : IOutboundOrderService
                         outbound.WarehouseId,
                         item.ProductId,
                         item.RequestedQuantity);
-                    var selectedLocations = request.Items.Single(r => r.ProductId == item.ProductId).RequestedLocations;
-                    if (selectedLocations.Count > 0)
-                    {
-                        if (selectedLocations.Any(r => r.Quantity <= 0) || selectedLocations.Sum(r => r.Quantity) != item.RequestedQuantity ||
-                            selectedLocations.GroupBy(r => (r.StorageLocationId, r.ProductLotId)).Any(g => g.Count() > 1))
-                            throw new ArgumentException("Số lượng chọn theo vị trí phải lớn hơn 0, không trùng và bằng tổng số muốn trả.");
-                        var productForReturn = await _context.Products.Include(p => p.UnitOfMeasure).SingleAsync(p => p.ProductId == item.ProductId);
-                        var sourceRows = await GetPurchaseReturnSourceRowsAsync(outbound.PurchaseOrderId.Value, outbound.WarehouseId, item.ProductId);
-                        allocations = selectedLocations.Select(r =>
-                        {
-                            QuantityRules.EnsureValid(productForReturn, r.Quantity, "Số muốn trả theo vị trí");
-                            var source = sourceRows.SingleOrDefault(s => s.StorageLocationId == r.StorageLocationId && s.ProductLotId == r.ProductLotId);
-                            if (source == null || r.Quantity > source.Quantity)
-                                throw new ArgumentException("Vị trí không còn đủ hàng khả dụng thuộc đúng PO này.");
-                            return source with { Quantity = r.Quantity };
-                        }).ToList();
-                    }
                     var remaining = item.RequestedQuantity;
                     foreach (var allocation in allocations)
                     {
@@ -383,7 +374,7 @@ public class OutboundOrderService : IOutboundOrderService
             {
                 UserId = request.AssignedToUserId.Value,
                 NotificationType = "WORK_ASSIGNMENT",
-                Title = request.SourceType == "SALES_ORDER" ? "Bạn đã nhận một đợt xuất bán" : "Bạn được giao một đợt trả nhà cung cấp",
+                Title = request.SourceType == "SALES_ORDER" ? "Bạn đã nhận một đợt xuất bán" : "Bạn đã nhận một đợt trả nhà cung cấp",
                 Message = $"Phiếu {outbound.OutboundOrderNumber} đã sẵn sàng. Hãy đối chiếu hàng vật lý trước khi bắt đầu.",
                 ReferenceType = "OUTBOUND_ORDER",
                 ReferenceId = outbound.OutboundOrderId,
@@ -945,16 +936,21 @@ public class OutboundOrderService : IOutboundOrderService
             }
 
             var completed = order.OutboundOrderItems.All(i => i.IssuedQuantity >= i.RequestedQuantity);
-            order.Status = completed ? "PENDING_APPROVAL" : "IN_PROGRESS";
+            order.Status = completed ? "COMPLETED" : "IN_PROGRESS";
             if (completed)
             {
                 order.CompletionType = "FULL";
                 order.CompletionReason = null;
+                order.ConfirmedByUserId = userId;
+                order.ConfirmedAt = DateTime.UtcNow;
+                if (order.SourceType == "PURCHASE_RETURN")
+                    await ReleaseReturnReservationsAsync(order, userId, "Hoàn tất đợt trả nhà cung cấp.");
             }
             if (order.SalesOrder != null)
             {
-                // The physical delivered quantity is current; final SO fulfilment is manager-owned.
-                order.SalesOrder.Status = "PARTIALLY_FULFILLED";
+                order.SalesOrder.Status = order.SalesOrder.SalesOrderDetails
+                    .All(detail => detail.FulfilledQuantity >= detail.OrderedQuantity)
+                    ? "FULFILLED" : "PARTIALLY_FULFILLED";
                 order.SalesOrder.UpdatedAt = DateTime.UtcNow;
             }
             await _auditLogService.StageAsync(new AuditEventDto
@@ -966,7 +962,7 @@ public class OutboundOrderService : IOutboundOrderService
                 NewValues = new
                 {
                     order.OutboundOrderNumber,
-                    Status = completed ? "PENDING_APPROVAL" : "IN_PROGRESS",
+                    Status = completed ? "COMPLETED" : "IN_PROGRESS",
                     Rows = requests.Select(request => new
                     {
                         request.OutboundOrderItemId,
@@ -982,7 +978,7 @@ public class OutboundOrderService : IOutboundOrderService
             });
             await _context.SaveChangesAsync();
             await dbTransaction.CommitAsync();
-            return (true, completed ? "Đã ghi đủ thực xuất và gửi Quản lý kho duyệt chốt đợt." : "Đã ghi nhận số lượng thực xuất; có thể lấy tiếp hoặc gửi chốt đợt giao thiếu.");
+            return (true, completed ? "Đã ghi đủ thực xuất và tự động hoàn tất phiếu xuất." : "Đã ghi nhận số lượng thực xuất; có thể lấy tiếp hoặc hoàn tất đợt xuất thiếu.");
         }
         catch (Exception ex)
         {
@@ -1001,6 +997,7 @@ public class OutboundOrderService : IOutboundOrderService
         {
             var order = await _context.OutboundOrders
                 .Include(o => o.OutboundOrderItems)
+                .Include(o => o.SalesOrder).ThenInclude(s => s!.SalesOrderDetails)
                 .FirstOrDefaultAsync(o => o.OutboundOrderId == outboundOrderId);
             if (order == null) return (false, "Không tìm thấy phiếu xuất.");
             if (order.Status != "IN_PROGRESS" || !order.OutboundOrderItems.Any(item => item.IssuedQuantity > 0))
@@ -1013,21 +1010,32 @@ public class OutboundOrderService : IOutboundOrderService
             if (!userIsWarehouseStaff)
                 return (false, "Chỉ nhân viên kho đang hoạt động mới được hoàn tất đợt giao.");
 
-            order.Status = "PENDING_APPROVAL";
+            order.Status = "COMPLETED";
             order.CompletionType = order.OutboundOrderItems.All(item => item.IssuedQuantity >= item.RequestedQuantity)
                 ? "FULL" : "PARTIAL";
             order.CompletionReason = order.CompletionType == "PARTIAL" ? reason : null;
+            order.ConfirmedByUserId = userId;
+            order.ConfirmedAt = DateTime.UtcNow;
+            if (order.SalesOrder != null)
+            {
+                order.SalesOrder.Status = order.SalesOrder.SalesOrderDetails
+                    .All(detail => detail.FulfilledQuantity >= detail.OrderedQuantity)
+                    ? "FULFILLED" : "PARTIALLY_FULFILLED";
+                order.SalesOrder.UpdatedAt = DateTime.UtcNow;
+            }
+            if (order.SourceType == "PURCHASE_RETURN")
+                await ReleaseReturnReservationsAsync(order, userId, "Hoàn tất đợt trả nhà cung cấp còn thiếu.");
 
             await _auditLogService.StageAsync(new AuditEventDto
             {
                 UserId = userId,
-                ActionType = "SUBMIT_OUTBOUND_COMPLETION",
+                ActionType = "COMPLETE_OUTBOUND",
                 EntityName = AuditEntities.OutboundOrder,
                 EntityId = order.OutboundOrderNumber,
                 OldValues = new { Status = "IN_PROGRESS" },
                 NewValues = new
                 {
-                    Status = "PENDING_APPROVAL",
+                    Status = "COMPLETED",
                     order.CompletionType,
                     Reason = reason,
                     Items = order.OutboundOrderItems.Select(item => new
@@ -1042,8 +1050,8 @@ public class OutboundOrderService : IOutboundOrderService
             await _context.SaveChangesAsync();
             await dbTransaction.CommitAsync();
             return (true, order.CompletionType == "FULL"
-                ? "Đã gửi chốt đợt xuất đủ hàng để Quản lý kho duyệt."
-                : "Đã gửi số thực giao để Quản lý kho duyệt và quyết định phần còn lại.");
+                ? "Đã hoàn tất phiếu xuất đủ hàng."
+                : "Đã hoàn tất đợt xuất thiếu; chứng từ nguồn vẫn còn phần có thể xử lý ở đợt sau.");
         }
         catch (Exception ex)
         {
@@ -1306,15 +1314,16 @@ public class OutboundOrderService : IOutboundOrderService
             .Distinct();
         var query = _context.Inventories.Where(i => i.ProductId == productId && i.StorageLocation.WarehouseId == warehouseId &&
             sourceLotIds.Contains(i.ProductLotId) &&
-            i.StorageLocation.IsPickable &&
-            (i.StorageLocation.StorageRack == null ||
-             (i.StorageLocation.StorageRack.Status == "ACTIVE" &&
-              i.StorageLocation.StorageRack.WarehouseZone.Status == "ACTIVE" &&
-              (i.StorageLocation.StorageRack.WarehouseZone.ProductGroupId == null ||
-               i.StorageLocation.StorageRack.WarehouseZone.ProductGroupId == product.ProductGroupId))) &&
+            i.StorageLocation.LocationType == "BIN" &&
+            i.StorageLocation.StorageRack != null &&
+            (i.StorageLocation.StorageRack.Status == "ACTIVE" ||
+             i.StorageLocation.StorageRack.Status == "AVAILABLE" ||
+             i.StorageLocation.StorageRack.Status == "OCCUPIED") &&
+            (i.StorageLocation.StorageRack.WarehouseZone.Status == "ACTIVE" ||
+             i.StorageLocation.StorageRack.WarehouseZone.Status == "AVAILABLE" ||
+             i.StorageLocation.StorageRack.WarehouseZone.Status == "OCCUPIED") &&
             (i.StorageLocation.Status == "ACTIVE" || i.StorageLocation.Status == "AVAILABLE" || i.StorageLocation.Status == "OCCUPIED") &&
             i.ProductLot.Status == "AVAILABLE" &&
-            (i.ProductLot.ExpiryDate == null || i.ProductLot.ExpiryDate >= DateOnly.FromDateTime(DateTime.UtcNow)) &&
             i.OnHandQuantity - i.ReservedQuantity > 0);
         var rows = await query.Select(i => new Allocation(
             i.StorageLocationId,
