@@ -1,22 +1,32 @@
-
-name: Build and push Docker images v2
-
+name: CI/CD Pipeline - Build, Push & Deploy
 
 on:
   push:
     branches:
       - master
   workflow_dispatch:
+    inputs:
+      deploy:
+        description: 'Deploy lên Server sau khi build & push'
+        type: boolean
+        required: true
+        default: true
+      image_tag:
+        description: 'Custom Image Tag (để trống sẽ tự sinh theo timestamp & git sha)'
+        required: false
+        default: ''
 
 env:
   DOCKERHUB_NAMESPACE: ${{ vars.DOCKERHUB_NAMESPACE || github.repository_owner }}
 
 jobs:
-  docker:
-    name: Build and push API and Web images
+  build-and-push:
+    name: Build and push API & Web images
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    outputs:
+      image_tag: ${{ steps.metadata.outputs.tag }}
 
     steps:
       - name: Checkout merged code
@@ -26,7 +36,13 @@ jobs:
         id: metadata
         shell: bash
         run: |
-          echo "timestamp=$(date -u +'%Y%m%d-%H%M%S')" >> "$GITHUB_OUTPUT"
+          TIMESTAMP=$(date -u +'%Y%m%d-%H%M%S')
+          CUSTOM_TAG="${{ inputs.image_tag }}"
+          TAG="${CUSTOM_TAG:-$TIMESTAMP}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "timestamp=$TIMESTAMP" >> "$GITHUB_OUTPUT"
+          echo "sha_short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+          echo "Deploy Image Tag: $TAG"
 
       - name: Validate Docker Hub configuration
         shell: bash
@@ -60,7 +76,9 @@ jobs:
           file: ./BMWMS.API/Dockerfile
           push: true
           tags: |
-            ${{ env.DOCKERHUB_NAMESPACE }}/bmwms-api:${{ steps.metadata.outputs.timestamp }}
+            ${{ env.DOCKERHUB_NAMESPACE }}/bmwms-api:${{ steps.metadata.outputs.tag }}
+            ${{ env.DOCKERHUB_NAMESPACE }}/bmwms-api:latest
+            ${{ env.DOCKERHUB_NAMESPACE }}/bmwms-api:${{ steps.metadata.outputs.sha_short }}
           cache-from: type=gha,scope=bmwms-api
           cache-to: type=gha,mode=max,scope=bmwms-api
 
@@ -71,6 +89,83 @@ jobs:
           file: ./BMWMS.Web/Dockerfile
           push: true
           tags: |
-            ${{ env.DOCKERHUB_NAMESPACE }}/bmwms-web:${{ steps.metadata.outputs.timestamp }}
+            ${{ env.DOCKERHUB_NAMESPACE }}/bmwms-web:${{ steps.metadata.outputs.tag }}
+            ${{ env.DOCKERHUB_NAMESPACE }}/bmwms-web:latest
+            ${{ env.DOCKERHUB_NAMESPACE }}/bmwms-web:${{ steps.metadata.outputs.sha_short }}
           cache-from: type=gha,scope=bmwms-web
           cache-to: type=gha,mode=max,scope=bmwms-web
+
+  deploy:
+    name: Deploy to Server via SSH
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: ${{ always() && needs.build-and-push.result == 'success' && (github.event_name == 'push' || inputs.deploy != false) }}
+
+    steps:
+      - name: Check Server SSH Configuration
+        id: check-config
+        shell: bash
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+        run: |
+          if [[ -z "$SERVER_HOST" || -z "$SERVER_USER" ]]; then
+            echo "::warning::SERVER_HOST or SERVER_USER secret is not set. Skipping SSH deployment."
+            echo "has_server=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_server=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Deploy to Remote Server
+        if: steps.check-config.outputs.has_server == 'true'
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          password: ${{ secrets.SERVER_PASSWORD }}
+          port: ${{ secrets.SERVER_PORT || 22 }}
+          script_stop: true
+          script: |
+            set -e
+            DEPLOY_PATH="${{ vars.SERVER_DEPLOY_PATH || '~/bmwms' }}"
+            eval DEPLOY_PATH="$DEPLOY_PATH"
+            cd "$DEPLOY_PATH"
+
+            echo "🚀 [Deploy] Target Directory: $DEPLOY_PATH"
+            echo "🚀 [Deploy] Image Tag: ${{ needs.build-and-push.outputs.image_tag }}"
+
+            # Ensure .env file exists
+            if [ ! -f .env ]; then
+              if [ -f .env.example ]; then
+                cp .env.example .env
+                echo "⚠️ [Deploy] .env was missing, copied from .env.example. Please update configuration!"
+              else
+                touch .env
+              fi
+            fi
+
+            # Update IMAGE_TAG in .env
+            if grep -q "^IMAGE_TAG=" .env; then
+              sed -i "s/^IMAGE_TAG=.*/IMAGE_TAG=${{ needs.build-and-push.outputs.image_tag }}/" .env
+            else
+              echo "IMAGE_TAG=${{ needs.build-and-push.outputs.image_tag }}" >> .env
+            fi
+
+            # Ensure docker network exists
+            NETWORK_NAME=$(grep "^BMWMS_NETWORK=" .env | cut -d '=' -f2 | tr -d ' ' || echo "bmwms")
+            NETWORK_NAME="${NETWORK_NAME:-bmwms}"
+            docker network create "$NETWORK_NAME" 2>/dev/null || true
+
+            # Pull images and start containers
+            echo "📥 [Deploy] Pulling new images..."
+            docker compose -f docker-compose.app.yml pull
+
+            echo "🔄 [Deploy] Recreating app containers..."
+            docker compose -f docker-compose.app.yml up -d --remove-orphans
+
+            # Clean dangling images
+            docker image prune -f
+
+            echo "✅ [Deploy] Containers status:"
+            docker compose -f docker-compose.app.yml ps
