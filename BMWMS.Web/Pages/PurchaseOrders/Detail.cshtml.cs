@@ -120,7 +120,7 @@ public class DetailModel : PageModel
         "READY" => "Sẵn sàng nhận",
         "RECEIVING" => "Đang nhận hàng",
         "RECEIVED" => "Đã nhận hàng",
-        "PUTAWAY_COMPLETED" => "Đã xếp vị trí",
+        "PUTAWAY_COMPLETED" => "Đã hoàn tất cất hàng",
         "CANCELLED" => "Đã hủy",
         _ => "Không xác định"
     };

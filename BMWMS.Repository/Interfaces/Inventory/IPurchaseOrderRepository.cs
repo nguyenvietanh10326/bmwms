@@ -15,7 +15,9 @@ namespace BMWMS.Repository.Interfaces.Inventory
             string? status,
             long? warehouseId,
             int pageIndex,
-            int pageSize, string? sortOrder = null);
+            int pageSize,
+            string? sortOrder = null,
+            long? createdByUserId = null);
 
         // Lấy chi tiết 1 PO đầy đủ gồm Supplier, Details, Products, InboundOrders
         Task<PurchaseOrder?> GetByIdWithDetailsAsync(long purchaseOrderId);

@@ -49,7 +49,9 @@ namespace BMWMS.Business.Services.Inventory
                 filter.Status,
                 filter.WarehouseId,
                 Math.Max(1, filter.PageIndex),
-                Math.Clamp(filter.PageSize, 1, 100), filter.SortOrder
+                Math.Clamp(filter.PageSize, 1, 100),
+                filter.SortOrder,
+                filter.CreatedByUserId
             );
 
             var pageIds = items.Select(p => p.PurchaseOrderId).ToList();
@@ -543,15 +545,16 @@ namespace BMWMS.Business.Services.Inventory
 
         public async Task<(bool Success, string Message)> UpdateAsync(long id, PurchaseOrderCreateDto request, long userId)
         {
-            if (request.OrderDate == default || request.ExpectedDeliveryDate < request.OrderDate ||
-                request.OrderDetails == null || request.OrderDetails.Count == 0 || (request.Notes?.Length ?? 0) > 2000 || request.OrderDetails.Any(d => (d.Notes?.Length ?? 0) > 1000) ||
+            if (request.OrderDetails == null || request.OrderDetails.Count == 0 || (request.Notes?.Length ?? 0) > 2000 || request.OrderDetails.Any(d => (d.Notes?.Length ?? 0) > 1000) ||
                 request.OrderDetails.GroupBy(i => i.ProductId).Any(g => g.Count() > 1))
-                return (false, "Ngày, danh sách vật tư hoặc ghi chú không hợp lệ.");
+                return (false, "Danh sách vật tư hoặc ghi chú không hợp lệ.");
             await using var tx = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
             await OrderWorkflowLock.AcquireAsync(_context, "PO", id);
             var actor = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == userId && u.Status == "ACTIVE");
             var po = await _context.PurchaseOrders.IgnoreQueryFilters().Include(p => p.PurchaseOrderDetails).FirstOrDefaultAsync(p => p.PurchaseOrderId == id);
             if (po == null || NormalizePurchaseOrderStatus(po.Status) != "DRAFT") return (false, "Chỉ được sửa PO nháp trước khi Manager duyệt.");
+            if (request.ExpectedDeliveryDate.HasValue && request.ExpectedDeliveryDate.Value < po.OrderDate)
+                return (false, "Ngày giao dự kiến không được trước ngày đặt hàng.");
             if (actor?.Role.RoleCode is not ("PURCHASING_STAFF" or "SYSTEM_ADMIN") ||
                 (actor.Role.RoleCode == "PURCHASING_STAFF" && po.CreatedByUserId != userId)) return (false, "Bạn không được sửa PO này.");
             if (request.RowVersion != Convert.ToBase64String(po.RowVersion)) return (false, "PO đã thay đổi. Vui lòng tải lại trước khi sửa.");
@@ -574,7 +577,7 @@ namespace BMWMS.Business.Services.Inventory
             foreach (var item in request.OrderDetails.Where(i => !po.PurchaseOrderDetails.Any(d => d.ProductId == i.ProductId)))
                 po.PurchaseOrderDetails.Add(new PurchaseOrderDetail { ProductId = item.ProductId, OrderedQuantity = item.OrderedQuantity, Notes = item.Notes });
             po.SupplierId = request.SupplierId;
-            po.OrderDate = request.OrderDate;
+            // Ngày đặt là dấu thời gian do hệ thống cấp khi tạo PO, không cho sửa lại.
             po.ExpectedDeliveryDate = request.ExpectedDeliveryDate;
             po.Notes = request.Notes;
             po.Status = "DRAFT";
@@ -595,12 +598,13 @@ namespace BMWMS.Business.Services.Inventory
             var actor = await _context.Users.Include(u => u.Role).SingleOrDefaultAsync(u => u.UserId == userId && u.Status == "ACTIVE");
             if (actor?.Role.RoleCode is not ("PURCHASING_STAFF" or "SYSTEM_ADMIN"))
                 return (false, "Chỉ Purchasing Staff được tạo đơn mua hàng.");
-            if (request.OrderDate == default || request.OrderDetails == null || (request.Notes?.Length ?? 0) > 2000 || request.OrderDetails.Any(d => (d.Notes?.Length ?? 0) > 1000))
-                return (false, "Ngày đặt, danh sách vật tư hoặc ghi chú không hợp lệ.");
+            if (request.OrderDetails == null || (request.Notes?.Length ?? 0) > 2000 || request.OrderDetails.Any(d => (d.Notes?.Length ?? 0) > 1000))
+                return (false, "Danh sách vật tư hoặc ghi chú không hợp lệ.");
             if (!await _context.Suppliers.AnyAsync(s => s.SupplierId == request.SupplierId && s.Status == "ACTIVE" && s.Email != null && s.Email != ""))
                 return (false, "Nhà cung cấp phải đang hoạt động và có email.");
             // 1. Validate
-            if (request.ExpectedDeliveryDate.HasValue && request.ExpectedDeliveryDate.Value < request.OrderDate)
+            var systemOrderDate = DateOnly.FromDateTime(DateTime.Today);
+            if (request.ExpectedDeliveryDate.HasValue && request.ExpectedDeliveryDate.Value < systemOrderDate)
             {
                 return (false, "Ngày giao dự kiến không được nhỏ hơn ngày đặt hàng.");
             }
@@ -643,7 +647,7 @@ namespace BMWMS.Business.Services.Inventory
             {
                 PurchaseOrderNumber = poNumber,
                 SupplierId = request.SupplierId,
-                OrderDate = request.OrderDate,
+                OrderDate = systemOrderDate,
                 ExpectedDeliveryDate = request.ExpectedDeliveryDate,
                 Status = "DRAFT", // Hardcoded as per implementation plan
                 Notes = request.Notes,

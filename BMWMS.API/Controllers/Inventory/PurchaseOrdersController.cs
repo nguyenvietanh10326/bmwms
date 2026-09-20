@@ -71,6 +71,13 @@ public class PurchaseOrdersController : ControllerBase
     [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF,ACCOUNTANT,DIRECTOR")]
     public async Task<IActionResult> GetPaged([FromQuery] PurchaseOrderFilterDto filter)
     {
+        if (User.IsInRole("PURCHASING_STAFF"))
+        {
+            if (!TryGetCurrentUserId(out var currentUserId)) return Unauthorized();
+            filter.CreatedByUserId = currentUserId;
+        }
+        else filter.CreatedByUserId = null;
+
         filter.SortOrder = filter.SortOrder?.Trim().ToLowerInvariant();
         if (filter.SortOrder is not ("approval" or "priority" or "expected" or "newest" or "oldest"))
             filter.SortOrder = User.IsInRole("WAREHOUSE_MANAGER") ? "approval" : "priority";
