@@ -24,6 +24,6 @@
         {
             <partial name="_DetailsLocations" model="session" view-data='new ViewDataDictionary(ViewData) { ["IsStaff"] = Model.IsStaff, ["IsManager"] = Model.IsManager }' />
         }
-        @if (Model.IsManager || session.Status is "COMPLETED" or "REJECTED") { <partial name="_DetailsVariance" model="session" /> }
+        @if (Model.IsManager || session.Status is "COMPLETED" or "REJECTED") { <partial name="_DetailsVariance" model="session" view-data='new ViewDataDictionary(ViewData) { ["IsManager"] = Model.IsManager }' /> }
     }
 </main>

@@ -20,6 +20,7 @@ namespace BMWMS.Repository.Repositories.Stocktake
 
         private const string ResolutionAcceptDifference = "ACCEPT_DIFFERENCE";
         private const string ResolutionNoAdjustment = "NO_ADJUSTMENT";
+        private const string ResolutionReservedShortage = ResolutionNoAdjustment;
 
         private readonly BmwmsContext _context;
 
@@ -581,7 +582,11 @@ namespace BMWMS.Repository.Repositories.Stocktake
             }
         }
 
-        public async Task<StocktakeSession> ApproveSessionAsync(long stocktakeSessionId, long approvedByUserId, string? notes)
+        public async Task<StocktakeSession> ApproveSessionAsync(
+            long stocktakeSessionId,
+            long approvedByUserId,
+            string? notes,
+            IReadOnlySet<long> exceptionItemIds)
         {
             var ownedTransaction = _context.Database.CurrentTransaction == null
                 ? await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable)
@@ -596,10 +601,18 @@ namespace BMWMS.Repository.Repositories.Stocktake
                     throw new InvalidOperationException("Vẫn còn vị trí chưa nhập đủ số đếm.");
 
                 var now = DateTime.UtcNow;
-                foreach (var item in session.StocktakeItems)
+                foreach (var item in session.StocktakeItems.Where(item => item.InventoryTransaction == null))
                 {
                     if (!item.CountedQuantity.HasValue)
                         throw new InvalidOperationException("Còn dòng kiểm kho chưa có số đếm.");
+
+                    if (exceptionItemIds.Contains(item.StocktakeItemId))
+                    {
+                        item.Resolution = ResolutionReservedShortage;
+                        item.AdjustmentQuantity = null;
+                        item.Notes = AppendNote(item.Notes, "RESERVED_SHORTAGE", "Không khớp tồn do số đếm nhỏ hơn số lượng đã giữ.");
+                        continue;
+                    }
 
                     var diff = CalculateDifference(item);
                     if (diff == 0)
@@ -732,8 +745,9 @@ namespace BMWMS.Repository.Repositories.Stocktake
 
         public async Task<StocktakeSession> RejectSessionAsync(long stocktakeSessionId, long rejectedByUserId, string reason)
         {
-            if (string.IsNullOrWhiteSpace(reason))
-                throw new InvalidOperationException("Phải nhập lý do từ chối kết quả kiểm kho.");
+            reason = string.IsNullOrWhiteSpace(reason)
+                ? "Quản lý từ chối kết quả kiểm kho."
+                : reason.Trim();
 
             await using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
             try
@@ -745,7 +759,7 @@ namespace BMWMS.Repository.Repositories.Stocktake
                 session.Status = SessionRejected;
                 session.ApprovedByUserId = rejectedByUserId;
                 session.ApprovedAt = DateTime.UtcNow;
-                session.Notes = AppendNote(session.Notes, "Reject", reason.Trim());
+                session.Notes = AppendNote(session.Notes, "Reject", reason);
 
                 await _context.SaveChangesAsync();
                 await ReleaseLocationLocksAsync(stocktakeSessionId);
@@ -798,6 +812,7 @@ namespace BMWMS.Repository.Repositories.Stocktake
                             .ThenInclude(pl => pl.Product)
                                 .ThenInclude(product => product.UnitOfMeasure)
                 .Include(s => s.StocktakeItems)
+                    .ThenInclude(i => i.InventoryTransaction)
                 .FirstOrDefaultAsync(s => s.StocktakeSessionId == stocktakeSessionId)
                 ?? throw new InvalidOperationException("Không tìm thấy phiếu kiểm kho.");
         }
@@ -815,9 +830,21 @@ namespace BMWMS.Repository.Repositories.Stocktake
                 throw new InvalidOperationException("Người phụ trách phải có vai trò nhân viên kho.");
         }
 
-        private Task<int> ReleaseLocationLocksAsync(long stocktakeSessionId) =>
-            _context.Database.ExecuteSqlInterpolatedAsync(
-                $"DELETE FROM dbo.StocktakeLocationLocks WHERE StocktakeSessionID = {stocktakeSessionId}");
+        private async Task<int> ReleaseLocationLocksAsync(long stocktakeSessionId, IReadOnlySet<long>? locationIds = null)
+        {
+            if (locationIds == null || locationIds.Count == 0)
+                return await _context.Database.ExecuteSqlInterpolatedAsync(
+                    $"DELETE FROM dbo.StocktakeLocationLocks WHERE StocktakeSessionID = {stocktakeSessionId}");
+
+            var deleted = 0;
+            foreach (var locationId in locationIds)
+            {
+                deleted += await _context.Database.ExecuteSqlInterpolatedAsync(
+                    $"DELETE FROM dbo.StocktakeLocationLocks WHERE StocktakeSessionID = {stocktakeSessionId} AND StorageLocationID = {locationId}");
+            }
+
+            return deleted;
+        }
 
         private static IQueryable<StocktakeSession> ApplyStatusFilter(IQueryable<StocktakeSession> query, string? status)
         {

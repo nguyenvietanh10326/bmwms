@@ -301,11 +301,43 @@ namespace BMWMS.Business.Services.Stocktake
                 var snapshot = await _context.StocktakeSessions
                     .AsNoTracking()
                     .Include(session => session.StocktakeItems)
+                    .Include(session => session.StocktakeLocations)
+                        .ThenInclude(location => location.StorageLocation)
                     .FirstOrDefaultAsync(session => session.StocktakeSessionId == stocktakeSessionId)
                     ?? throw new InvalidOperationException("Không tìm thấy phiếu kiểm kho.");
 
                 if (snapshot.Status != SessionPendingApproval)
                     throw new InvalidOperationException("Chỉ có thể phê duyệt phiếu đang chờ xử lý chênh lệch.");
+
+                var inventoryKeys = snapshot.StocktakeItems
+                    .Select(item => new { item.ProductId, item.ProductLotId, item.StorageLocationId })
+                    .ToList();
+                var productIds = inventoryKeys.Select(key => key.ProductId).Distinct().ToList();
+                var productLotIds = inventoryKeys.Select(key => key.ProductLotId).Distinct().ToList();
+                var storageLocationIds = inventoryKeys.Select(key => key.StorageLocationId).Distinct().ToList();
+                var inventoryRows = await _context.Inventories
+                    .AsNoTracking()
+                    .Where(inventory => productIds.Contains(inventory.ProductId) &&
+                        productLotIds.Contains(inventory.ProductLotId) &&
+                        storageLocationIds.Contains(inventory.StorageLocationId))
+                    .Select(inventory => new
+                    {
+                        inventory.ProductId,
+                        inventory.ProductLotId,
+                        inventory.StorageLocationId,
+                        inventory.ReservedQuantity
+                    })
+                    .ToListAsync();
+                var reservedByKey = inventoryRows.ToDictionary(
+                    row => (row.ProductId, row.ProductLotId, row.StorageLocationId),
+                    row => row.ReservedQuantity);
+                var exceptionRows = snapshot.StocktakeItems
+                    .Where(item => item.CountedQuantity.HasValue &&
+                        reservedByKey.GetValueOrDefault((item.ProductId, item.ProductLotId, item.StorageLocationId)) > item.CountedQuantity.Value)
+                    .ToList();
+                var exceptionItemIds = exceptionRows
+                    .Select(item => item.StocktakeItemId)
+                    .ToHashSet();
 
                 var adjustments = snapshot.StocktakeItems
                     .Select(item => new
@@ -313,7 +345,8 @@ namespace BMWMS.Business.Services.Stocktake
                         Item = item,
                         Adjustment = (item.CountedQuantity ?? 0) - item.BookQuantity
                     })
-                    .Where(row => row.Adjustment != 0)
+                    .Where(row => row.Adjustment != 0 &&
+                        !exceptionItemIds.Contains(row.Item.StocktakeItemId))
                     .Select(row => new CapacityAllocationDto
                     {
                         StorageLocationId = row.Item.StorageLocationId,
@@ -341,7 +374,8 @@ namespace BMWMS.Business.Services.Stocktake
                 var session = await _stocktakeRepo.ApproveSessionAsync(
                     stocktakeSessionId,
                     approvedByUserId,
-                    request.Notes);
+                    request.Notes,
+                    exceptionItemIds);
                 await _auditLogService.StageAsync(new AuditEventDto
                 {
                     UserId = approvedByUserId,
@@ -361,7 +395,14 @@ namespace BMWMS.Business.Services.Stocktake
                 });
                 await _context.SaveChangesAsync();
                 await dbTransaction.CommitAsync();
-                return Success(session, $"Đã khớp tồn và hoàn tất phiếu kiểm kho {session.StocktakeNumber}.");
+                var message = exceptionRows.Count == 0
+                    ? $"Đã khớp tồn và hoàn tất phiếu kiểm kho {session.StocktakeNumber}."
+                    : $"Cảnh báo: các vị trí {string.Join(", ", exceptionRows
+                        .Select(item => snapshot.StocktakeLocations
+                            .FirstOrDefault(location => location.StorageLocationId == item.StorageLocationId)
+                            ?.StorageLocation?.LocationCode ?? $"ID {item.StorageLocationId}")
+                        .Distinct())} không thể khớp vì số đếm nhỏ hơn số lượng đã giữ. Các bin được chọn hợp lệ đã khớp; phiếu đã hoàn tất và đã mở khóa các vị trí.";
+                return Success(session, message);
             }
             catch (Exception ex)
             {

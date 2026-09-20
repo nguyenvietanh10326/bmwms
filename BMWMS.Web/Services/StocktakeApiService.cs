@@ -291,6 +291,10 @@ namespace BMWMS.Web.Services
                 var json = JsonSerializer.Deserialize<JsonElement>(body);
                 if (json.TryGetProperty("message", out var message))
                     return message.GetString() ?? body;
+                if (json.TryGetProperty("detail", out var detail))
+                    return detail.GetString() ?? body;
+                if (json.TryGetProperty("title", out var title))
+                    return title.GetString() ?? body;
             }
             catch
             {
