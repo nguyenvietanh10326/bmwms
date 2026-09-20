@@ -1,4 +1,4 @@
-﻿using BMWMS.Web.Models;
+using BMWMS.Web.Models;
 using BMWMS.Web.Models.Inventory;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -22,23 +22,62 @@ namespace BMWMS.Web.Pages.Inventory
         public InventoryDashboardPageDto Data { get; set; } = new();
         public List<WarehouseModel> Warehouses { get; set; } = new();
         public List<StorageLocationModel> StorageLocations { get; set; } = new();
+        public List<ZoneModel> Zones { get; set; } = new();
+        public List<RackModel> Racks { get; set; } = new();
 
         public async Task<IActionResult> OnGetAsync()
         {
             Filter.PageIndex = Filter.PageIndex < 1 ? 1 : Filter.PageIndex;
             Filter.PageSize = Filter.PageSize < 1 ? 10 : Filter.PageSize;
 
-            var client = _httpClientFactory.CreateClient("ApiClient");
-            Warehouses = await GetWarehousesAsync(client);
-            StorageLocations = await GetStorageLocationsAsync(client, Filter.WarehouseId);
-
             if (Filter.WarehouseId is null || Filter.WarehouseId <= 0)
+            {
+                Filter.WarehouseId = 1;
+            }
+
+            if (Filter.ZoneId is <= 0)
+            {
+                Filter.ZoneId = null;
+            }
+
+            if (Filter.RackId is <= 0)
+            {
+                Filter.RackId = null;
+            }
+
+            if (Filter.StorageLocationId is <= 0)
             {
                 Filter.StorageLocationId = null;
             }
-            else if (Filter.StorageLocationId.HasValue && !StorageLocations.Any(x => x.StorageLocationId == Filter.StorageLocationId.Value))
+
+            var client = _httpClientFactory.CreateClient("ApiClient");
+            Warehouses = await GetWarehousesAsync(client);
+            Zones = await GetZonesAsync(client, Filter.WarehouseId ?? 1);
+            Racks = await GetRacksAsync(client, Filter.WarehouseId ?? 1, Filter.ZoneId);
+
+            if (Filter.ZoneId.HasValue && Filter.ZoneId > 0 && !Zones.Any(z => z.ZoneId == Filter.ZoneId.Value))
+            {
+                Filter.ZoneId = null;
+                Racks = await GetRacksAsync(client, Filter.WarehouseId ?? 1, null);
+            }
+
+            if (Filter.RackId.HasValue && Filter.RackId > 0 && !Racks.Any(r => r.RackId == Filter.RackId.Value))
+            {
+                Filter.RackId = null;
+            }
+
+            StorageLocations = await GetStorageLocationsAsync(client, Filter.WarehouseId ?? 1, Filter.ZoneId, Filter.RackId);
+
+            if (Filter.StorageLocationId.HasValue && !StorageLocations.Any(x => x.StorageLocationId == Filter.StorageLocationId.Value))
             {
                 Filter.StorageLocationId = null;
+            }
+
+            if (Filter.StorageLocationId.HasValue)
+            {
+                Filter.ZoneId = null;
+                Filter.RackId = null;
+                StorageLocations = await GetStorageLocationsAsync(client, Filter.WarehouseId ?? 1, null, null);
             }
 
             var query = BuildInventoryQuery();
@@ -68,13 +107,13 @@ namespace BMWMS.Web.Pages.Inventory
             var result = JsonSerializer.Deserialize<InventoryDashboardPageDto>(content, options);
 
             var builder = new StringBuilder();
-            builder.AppendLine("Mã sản phẩm,Tên sản phẩm,Kho - Vị trí,On Hand,Reserved,Available,Lô - Hạn dùng,Trạng thái");
+            builder.AppendLine("Mã sản phẩm,Tên sản phẩm,Nhóm sản phẩm,Kho - Vị trí,On Hand,Reserved,Available,Lô - Hạn dùng,Trạng thái");
 
             if (result?.Items != null)
             {
                 foreach (var item in result.Items)
                 {
-                    builder.AppendLine($"\"{item.ProductCode}\",\"{item.ProductName}\",\"{item.WarehouseAndBin}\",{item.OnHandQuantity},{item.ReservedQuantity},{item.AvailableQuantity},\"{item.LotAndExpiryDisplay}\",\"{item.Status}\"");
+                    builder.AppendLine($"\"{item.ProductCode}\",\"{item.ProductName}\",\"{item.ProductGroupName}\",\"{item.WarehouseAndBin}\",{item.OnHandQuantity},{item.ReservedQuantity},{item.AvailableQuantity},\"{item.LotAndExpiryDisplay}\",\"{item.Status}\"");
                 }
             }
 
@@ -87,12 +126,14 @@ namespace BMWMS.Web.Pages.Inventory
             var keyword = Uri.EscapeDataString(Filter.Keyword ?? string.Empty);
             var warehouseId = Filter.WarehouseId ?? 0;
             var storageLocationId = Filter.StorageLocationId ?? 0;
+            var zoneId = Filter.ZoneId ?? 0;
+            var rackId = Filter.RackId ?? 0;
             var status = Uri.EscapeDataString(Filter.Status ?? string.Empty);
 
             var currentPageIndex = pageIndex ?? Filter.PageIndex;
             var currentPageSize = pageSize ?? Filter.PageSize;
 
-            return $"?keyword={keyword}&warehouseId={warehouseId}&storageLocationId={storageLocationId}&status={status}&pageIndex={currentPageIndex}&pageSize={currentPageSize}";
+            return $"?keyword={keyword}&warehouseId={warehouseId}&storageLocationId={storageLocationId}&zoneId={zoneId}&rackId={rackId}&status={status}&pageIndex={currentPageIndex}&pageSize={currentPageSize}";
         }
 
         private static async Task<List<WarehouseModel>> GetWarehousesAsync(HttpClient client)
@@ -105,12 +146,11 @@ namespace BMWMS.Web.Pages.Inventory
             return payload?.Items ?? new List<WarehouseModel>();
         }
 
-        private static async Task<List<StorageLocationModel>> GetStorageLocationsAsync(HttpClient client, long? warehouseId)
+        private static async Task<List<StorageLocationModel>> GetStorageLocationsAsync(HttpClient client, long warehouseId, long? zoneId, long? rackId)
         {
-            if (!warehouseId.HasValue || warehouseId.Value <= 0)
-                return new List<StorageLocationModel>();
+            
 
-            var response = await client.GetAsync($"/api/storagelocations?warehouseId={warehouseId}&pageIndex=1&pageSize=500");
+            var response = await client.GetAsync($"/api/storagelocations?warehouseId={warehouseId}&zoneId={zoneId}&rackId={rackId}&pageIndex=1&pageSize=500");
             if (!response.IsSuccessStatusCode)
                 return new List<StorageLocationModel>();
 
@@ -118,15 +158,47 @@ namespace BMWMS.Web.Pages.Inventory
             return payload?.Items ?? new List<StorageLocationModel>();
         }
 
+                private static async Task<List<ZoneModel>> GetZonesAsync(HttpClient client, long warehouseId)
+        {
+            var response = await client.GetAsync($"/api/storagelocations/zones?warehouseId={warehouseId}");
+            if (!response.IsSuccessStatusCode)
+                return new List<ZoneModel>();
+            
+            return await response.Content.ReadFromJsonAsync<List<ZoneModel>>() ?? new List<ZoneModel>();
+        }
+
+        private static async Task<List<RackModel>> GetRacksAsync(HttpClient client, long warehouseId, long? zoneId)
+        {
+            var url = $"/api/storagelocations/racks?warehouseId={warehouseId}";
+            if (zoneId.HasValue) url += $"&zoneId={zoneId.Value}";
+            var response = await client.GetAsync(url);
+            if (!response.IsSuccessStatusCode)
+                return new List<RackModel>();
+            
+            return await response.Content.ReadFromJsonAsync<List<RackModel>>() ?? new List<RackModel>();
+        }
+
         private sealed class WarehousePageResult
         {
             public List<WarehouseModel> Items { get; set; } = new();
         }
 
+                public class ZoneModel { public long ZoneId { get; set; } public string ZoneCode { get; set; } = string.Empty; public string ZoneName { get; set; } = string.Empty; }
+        public class RackModel { public long RackId { get; set; } public string RackCode { get; set; } = string.Empty; public string RackName { get; set; } = string.Empty; }
         private sealed class StorageLocationPageResult
         {
             public List<StorageLocationModel> Items { get; set; } = new();
         }
+
+        public class ProductGroupOptionDto
+        {
+            public long ProductGroupId { get; set; }
+            public string GroupCode { get; set; } = string.Empty;
+            public string GroupName { get; set; } = string.Empty;
+        }
     }
 
 }
+
+
+
