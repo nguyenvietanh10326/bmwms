@@ -19,11 +19,9 @@ public class DetailModel : PageModel
     public SupplierDetailResponseModel Supplier { get; set; } = null!;
     [BindProperty(SupportsGet = true)] public string? ProductSearch { get; set; }
     [BindProperty(SupportsGet = true)] public string? ProductGroup { get; set; }
-    [BindProperty(SupportsGet = true)] public string? ProductStatus { get; set; }
     public IEnumerable<SupplierProductModel> FilteredProducts => Supplier.SuppliedProducts
         .Where(p => string.IsNullOrWhiteSpace(ProductSearch) || p.ProductCode.Contains(ProductSearch, StringComparison.OrdinalIgnoreCase) || p.ProductName.Contains(ProductSearch, StringComparison.OrdinalIgnoreCase))
-        .Where(p => string.IsNullOrWhiteSpace(ProductGroup) || p.GroupName == ProductGroup)
-        .Where(p => string.IsNullOrWhiteSpace(ProductStatus) || p.Status == ProductStatus);
+        .Where(p => string.IsNullOrWhiteSpace(ProductGroup) || p.GroupName == ProductGroup);
     public List<ProductResponseModel> AllProducts { get; set; } = new();
 
     [BindProperty]
