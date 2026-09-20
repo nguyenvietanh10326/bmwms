@@ -1,186 +1,193 @@
-# Hướng Dẫn Chi Tiết CI/CD: Deploy Bằng Nút Bấm & Rollback Bằng SSH Vào Server
+# Huong Dan Chi Tiet CI/CD: Build, Deploy, Phe Duyet Nut Bam & Rollback
 
-Tài liệu này hướng dẫn đầy đủ quy trình:
-1. **Thiết lập Secrets & Variables** trên GitHub Actions.
-2. **Deploy bằng nút bấm** trên giao diện GitHub (Manual Trigger).
-3. **Rollback hệ thống khi có sự cố** bằng cách SSH trực tiếp vào Server (thực thi trong vòng 10 giây).
+Tai lieu nay huong dan toan dien ve quy trinh CI/CD cua he thong BMWMS tren GitHub Actions va Server Linux/VPS:
+
+1. **Kien truc he thong CI/CD**: Build image, day len Docker Hub, co che quyet dinh deploy bang nut bam, va co che tu dong phuc hoi (auto-rollback).
+2. **Thiet lap Secrets va Variables** tren GitHub Actions.
+3. **Co che nut bam phe duyet truoc khi Deploy** (co the bat/tat tuy chon nay).
+4. **Deploy chu dong bang nut bam** (Manual Trigger qua workflow_dispatch).
+5. **Co che Tu Dong Rollback khi Deploy gap su co** (Auto-Rollback on Deploy Failure).
+6. **Huong dan Rollback chu dong** (Qua nut bam GitHub hoac qua SSH vao Server).
 
 ---
 
-## 1. Kiến trúc luồng CI/CD & Deploy
+## 1. Kien Truc Tong Quan Luong CI/CD
 
 ```
 [Developer]
-    │
-    ├─ (1) Push lên branch `master`  ────────┐
-    │                                        ├──► [GitHub Actions Workflow]
-    └─ (2) Bấm nút "Run workflow" (Manual) ──┘        │
-                                                      ├─► [Job 1: Build & Push Docker Hub]
-                                                      │     Tags: :latest, :<timestamp>, :<sha>
-                                                      │
-                                                      └─► [Job 2: SSH Deploy to Server]
-                                                            ├─► SSH vào Server
-                                                            ├─► Cập nhật IMAGE_TAG trong .env
-                                                            ├─► docker compose pull
-                                                            └─► docker compose up -d (Zero Downtime)
+    |
+    |-- Push code vao branch `master` --------------------+
+    |                                                     |
+    |-- Bam nut "Run workflow" (workflow_dispatch) -------+
+                                                          |
+                                           [GitHub Actions Workflow]
+                                                          |
+                     +------------------------------------+------------------------------------+
+                     |                                                                         |
+        [Truong hop Rollback nut bam]                                            [Luong Build va Deploy thuong]
+     (Nhap rollback_tag tren giao dien)                                                        |
+                     |                                                            [Job 1: Build and Push]
+                     |                                                            - Build API & Web Docker images
+                     |                                                            - Tag: :latest, :<timestamp>, :<sha>
+                     |                                                            - Push len Docker Hub
+                     |                                                                         |
+                     |                                                        +----------------+----------------+
+                     |                                                        |                                 |
+                     |                                              [Neu bat nut bam duyet]          [Neu tat nut bam duyet]
+                     |                                              (Environment: production)       (Tu dong chay tiep)
+                     |                                                        |                                 |
+                     |                                              Tam dung pipeline,                  Chay luon
+                     |                                              hien nut "Review deployments"       khong can hoi
+                     |                                                        |                                 |
+                     |                                                        +----------------+----------------+
+                     |                                                                         |
+                     +------------------------------------------------------------> [Job 2: Deploy to Server]
+                                                                                    - SSH vao server VPS
+                                                                                    - Luu phien ban cu vao .last_image_tag
+                                                                                    - Cap nhat IMAGE_TAG trong .env
+                                                                                    - docker compose pull & up -d
+                                                                                    - Kiem tra Health Check containers
+                                                                                               |
+                                                                              +----------------+----------------+
+                                                                              |                                 |
+                                                                         [Thanh cong]                       [That bai]
+                                                                              |                                 |
+                                                                      Hoan tat deploy            [Step: Auto-Rollback]
+                                                                                                 - Doc lai .last_image_tag
+                                                                                                 - Khoi phuc .env ve tag cu
+                                                                                                 - docker compose up -d lai
 ```
 
 ---
 
-## 2. Thiết lập Secrets & Variables trên GitHub
+## 2. Thiet Lap Secrets & Variables tren GitHub
 
-Trước khi sử dụng nút bấm hoặc đẩy code tự động deploy, bạn cần thiết lập các thông số sau trên GitHub repository:
+Vao **GitHub Repository** -> **Settings** -> **Secrets and variables** -> **Actions**.
 
-Vào **GitHub Repo** $\rightarrow$ **Settings** $\rightarrow$ **Secrets and variables** $\rightarrow$ **Actions**.
+### 2.1. Repository Secrets (Bao mat)
+Chon **New repository secret**:
 
-### 2.1. Repository Secrets (Bảo mật)
-Nhấn **New repository secret** để thêm:
-
-| Tên Secret | Bắt buộc | Mô tả | Ví dụ |
+| Ten Secret | Bat buoc | Mo ta | Vi du |
 | :--- | :---: | :--- | :--- |
-| `DOCKERHUB_USERNAME` | **Có** | Username đăng nhập Docker Hub | `vietanh103` |
-| `DOCKERHUB_TOKEN` | **Có** | Access Token từ Docker Hub *(Account Settings $\rightarrow$ Security $\rightarrow$ New Access Token)* | `dckr_pat_xxx...` |
-| `SERVER_HOST` | **Có** | Địa chỉ IP công khai hoặc Domain của VPS / Server | `103.153.xx.xx` |
-| `SERVER_USER` | **Có** | Tên tài khoản SSH trên server | `ubuntu` hoặc `root` |
-| `SERVER_SSH_KEY` | Khuyên dùng | Private SSH Key để đăng nhập server (nội dung file `id_rsa` / `id_ed25519`) | `-----BEGIN OPENSSH PRIVATE KEY...` |
-| `SERVER_PASSWORD` | Tùy chọn | Mật khẩu SSH (chỉ cần nếu không dùng SSH Key) | `MySecretPass123` |
-| `SERVER_PORT` | Tùy chọn | Cổng SSH (mặc định là `22`) | `22` |
+| `DOCKERHUB_USERNAME` | Co | Ten tai khoan dang nhap Docker Hub | `vietanh103` |
+| `DOCKERHUB_TOKEN` | Co | Personal Access Token tao tu Docker Hub | `dckr_pat_xxx...` |
+| `SERVER_HOST` | Co | Dia chi IP cong khai hoac domain cua Server/VPS | `103.153.xx.xx` |
+| `SERVER_USER` | Co | Ten tai khoan SSH tren server | `ubuntu` hoac `root` |
+| `SERVER_SSH_KEY` | Khuyen dung | Private SSH Key de dang nhap khong can mat khau | `-----BEGIN OPENSSH PRIVATE KEY...` |
+| `SERVER_PASSWORD` | Tuy chon | Mat khau SSH (chi dung khi khong dung SSH Key) | `MySecretPass123` |
+| `SERVER_PORT` | Tuy chon | Cong SSH cua server (mac dinh la 22) | `22` |
 
-### 2.2. Repository Variables (Cấu hình chung)
-Chuyển sang tab **Variables** $\rightarrow$ nhấn **New repository variable**:
+### 2.2. Repository Variables (Bien cau hinh)
+Chon tab **Variables** -> **New repository variable**:
 
-| Tên Variable | Bắt buộc | Mô tả | Giá trị mặc định |
+| Ten Variable | Bat buoc | Mo ta | Gia tri mac dinh |
 | :--- | :---: | :--- | :--- |
-| `DOCKERHUB_NAMESPACE` | Tùy chọn | Namespace trên Docker Hub (thường là username hoặc tổ chức) | Mặc định lấy theo repo owner |
-| `SERVER_DEPLOY_PATH` | Tùy chọn | Thư mục chứa project trên Server | `~/bmwms` |
+| `DOCKERHUB_NAMESPACE` | Tuy chon | Namespace chua repository tren Docker Hub | Mac dinh lay owner repo |
+| `SERVER_DEPLOY_PATH` | Tuy chon | Thu muc chua ma nguon/docker-compose tren server | `~/bmwms` |
+| `AUTO_DEPLOY` | Tuy chon | Tu dong deploy khi push code len master (true/false) | `false` (Chi build, khong tu deploy) |
 
 ---
 
-## 3. Hướng dẫn Deploy Bằng "Nút Bấm" (Manual Trigger)
+## 3. Co Che Nut Bam Quyet Dinh Deploy (Co The Bat Hoac Tat)
 
-Khi bạn muốn chủ động deploy một phiên bản mới lên Server mà không cần push commit:
+De tranh viec deploy nham len production khi chua san sang, he thong duoc thiet ke de nguoi quan tri co quyen quyet dinh khi nao deploy. Co 3 cach su dung:
 
-### Các bước thực hiện:
-1. Truy cập vào GitHub repository của dự án.
-2. Nhấn vào tab **Actions** trên thanh điều hướng phía trên.
-3. Ở thanh danh sách bên trái, chọn workflow: **`CI/CD Pipeline - Build, Push & Deploy`**.
-4. Bạn sẽ thấy một banner màu xanh xuất hiện bên phải với nút **`Run workflow`**:
-   ![Run workflow](https://docs.github.com/assets/cb-32007/mw-1440/images/help/actions/workflow-dispatch.webp)
-5. Nhấp vào nút **`Run workflow`**, một bảng điều khiển sẽ mở ra với các tùy chọn:
-   - **Use workflow from**: Chọn nhánh muốn build (mặc định: `master`).
-   - **Deploy lên Server sau khi build & push**: Đánh dấu tích `[x]` (mặc định là bật). Nếu chỉ muốn build & push image lên Docker Hub mà chưa muốn deploy thì bỏ tích.
-   - **Custom Image Tag**:
-     - *Để trống*: Hệ thống tự động tạo tag dạng `YYYYMMDD-HHmmss` (ví dụ: `20260920-143000`) và gắn thêm tag `latest`.
-     - *Nhập tag*: Bạn có thể điền tag tùy chỉnh (ví dụ: `v1.2.0` hoặc `hotfix-1`).
-6. Nhấn nút xanh **`Run workflow`** ở dưới cùng bảng điều khiển để bắt đầu.
-7. Bạn có thể nhấp vào lượt chạy đang thực thi để xem trực tiếp logs từng bước:
-   - Bước 1: Build Docker images `bmwms-api` và `bmwms-web`, đẩy lên Docker Hub.
-   - Bước 2: SSH kết nối vào VPS, kéo image mới về và khởi chạy container.
+### 3.1. Cach 1: Nut bam phe duyet truc tiep tren man hinh Workflow (GitHub Environment)
+Job deploy duoc gan vao `environment: production`.
 
----
+* **De BAT tuy chon nut bam duyet:**
+  1. Vao **Settings** tren GitHub repo -> muc **Environments**.
+  2. Nhan **New environment** -> dat ten la `production` (neu chua co).
+  3. Trong muc **Deployment protection rules**, tich chon **Required reviewers**.
+  4. Them tai khoan GitHub cua ban (hoac team phu trach) -> Nhan **Save protection rules**.
+* **Cach hoat dong khi bat:**
+  - Moi khi workflow chay xong buoc Build and Push, pipeline se tam dung o trang thai *Waiting*.
+  - Tren giao dien GitHub se hien nut **Review deployments**.
+  - Ban nhan vao nut nay, tich chon moi truong `production` va bam **Approve and deploy**.
+  - Chi khi do, lenh SSH deploy moi duoc phep thuc thi tren server.
+* **De TAT tuy chon nut bam duyet:**
+  - Vao lai **Settings** -> **Environments** -> `production` -> bo tich muc **Required reviewers**. Khi do buoc deploy se chay luon ma khong can bam nut phe duyet.
 
-## 4. Hướng dẫn Rollback Bằng Cách SSH Vào Server
+### 3.2. Cach 2: Tuy chon Deploy khi bam "Run workflow" thu cong
+Khi vao tab **Actions** -> Chon **CI/CD Pipeline - Build, Push & Deploy** -> Bam nut **Run workflow**:
+* O input **deploy**:
+  - Tich chon `[x]` (true): Cho phep tien hanh deploy len server sau khi build xong.
+  - Bo tich `[ ]` (false): Chi thuc hien build va day image len Docker Hub, bo qua hoan toan buoc deploy.
 
-Khi bản deploy mới gặp sự cố ngoài ý muốn trên production, bạn có thể rollback về phiên bản trước **ngay lập tức** thông qua SSH mà không cần phải chờ GitHub Actions build lại.
-
-### 4.1. Cách 1: Sử dụng Script tự động `rollback.sh` (Nhanh nhất & Tiện lợi nhất)
-
-Script [`scripts/rollback.sh`](file:///c:/bmwms/scripts/rollback.sh) đã được tích hợp sẵn trong thư mục dự án trên server.
-
-**Bước 1: SSH vào Server:**
-```bash
-ssh <SERVER_USER>@<SERVER_HOST>
-# Ví dụ: ssh ubuntu@103.153.xx.xx
-```
-
-**Bước 2: Di chuyển vào thư mục dự án:**
-```bash
-cd ~/bmwms
-```
-
-**Bước 3: Chạy script rollback:**
-- **Cách A - Tương tác (Xem danh sách tag trước rồi chọn):**
-  ```bash
-  chmod +x scripts/rollback.sh
-  ./scripts/rollback.sh
-  ```
-  Script sẽ in ra bảng danh sách các image đang có sẵn trên máy:
-  ```text
-  📋 Danh sách các Docker Image BMWMS hiện có trên server:
-  REPOSITORY              TAG                  CREATED              SIZE
-  nguyenvietanh10326/bmwms-api   20260920-143000      10 minutes ago       250MB
-  nguyenvietanh10326/bmwms-api   20260920-120000      2 hours ago          248MB
-  nguyenvietanh10326/bmwms-api   b50365d              3 hours ago          248MB
-
-  👉 Nhập Image Tag bạn muốn rollback về: 20260920-120000
-  ```
-- **Cách B - Truyền tag trực tiếp:**
-  ```bash
-  ./scripts/rollback.sh 20260920-120000
-  ```
-
-Script sẽ tự động cập nhật `IMAGE_TAG` trong `.env`, khởi động lại containers trong khoảng **3 - 5 giây**!
+### 3.3. Cach 3: Kiem soat hanh vi khi Push code vao nhanh `master`
+* **Mac dinh an toan**: Khi co commit moi tren `master`, workflow **chi thuc hien Build va Push Docker image**, khong tu y can thiep vao server production.
+* **Neu muon tu dong deploy khi push**: Vao Settings -> Variables -> dat bien `AUTO_DEPLOY` co gia tri la `true`.
 
 ---
 
-### 4.2. Cách 2: Rollback Thủ Công Bằng Lệnh Docker Compose
+## 4. Co Che Tu Dong Rollback Khi Deploy Gap Su Co (Auto-Rollback)
 
-Nếu bạn muốn tự tay thao tác từng lệnh:
+Trong qua trinh deploy len Server, neu container gap loi khoi dong (vi du loi cau hinh, loi database connection, crash app...):
 
-**Bước 1: SSH vào server và vào thư mục dự án:**
-```bash
-ssh ubuntu@<SERVER_HOST>
-cd ~/bmwms
-```
-
-**Bước 2: Xem các tag image đã từng tải về:**
-```bash
-docker images | grep bmwms
-```
-
-**Bước 3: Thay đổi `IMAGE_TAG` trong file `.env`:**
-```bash
-# Ví dụ muốn đổi về tag 20260920-120000:
-sed -i 's/^IMAGE_TAG=.*/IMAGE_TAG=20260920-120000/' .env
-
-# Hoặc dùng nano để mở và sửa trực tiếp:
-nano .env
-```
-
-**Bước 4: Áp dụng phiên bản cũ cho containers:**
-```bash
-docker compose -f docker-compose.app.yml up -d
-```
-
-**Bước 5: Kiểm tra trạng thái và logs:**
-```bash
-# Xem trạng thái running của containers
-docker compose -f docker-compose.app.yml ps
-
-# Xem log kiểm tra lỗi
-docker compose -f docker-compose.app.yml logs -f --tail=50
-```
+1. **Tu dong luu tag cu**: Truoc khi thay doi `.env`, script deploy se tu dong sao luu tag hien tai dang on dinh vao file `.last_image_tag`.
+2. **Kiem tra Health Check**: Sau khi chay `docker compose up -d`, script cho 15 giay va kiem tra trang thai cua tat ca containers qua `docker compose ps`.
+3. **Phat hien su co**: Neu co bat ky container nao khong o trang thai `running`, buoc deploy se bao loi (`exit 1`).
+4. **Kich hoat Auto-Rollback**:
+   - Step `Auto-Rollback on Deploy Failure` tu dong chay (su dung dieu kien `if: failure()`).
+   - Doc nguoc lai tag cu tu `.last_image_tag`.
+   - Ghi lai tag cu vao file `.env`.
+   - Khoi dong lai toan bo containers ve phien ban on dinh truoc do.
+   - Tranh hoan toan tinh trang he thong bi chet (downtime) do loi phien ban moi.
 
 ---
 
-### 4.3. Cách 3: Rollback Cơ Sở Dữ Liệu (Nếu có migration SQL đi kèm)
+## 5. Huong Dan Rollback Chu Dong (Khi Phat Hien Loi Nghiep Vu)
 
-Nếu bản deploy vừa rồi có chạy file migration SQL thay đổi cấu trúc bảng:
-1. Kết nối vào SQL Server container:
+Neu ban deploy thanh cong nhung trong qua trinh su dung nguoi dung phat hien loi logic/nghiep vu va muon quay ve phien ban truoc do, ban co the chon 1 trong 2 cach sau:
+
+### 5.1. Cach A: Rollback bang nut bam tren giao dien GitHub (Khong can dung Terminal)
+1. Vao tab **Actions** tren GitHub repo.
+2. Chon workflow **CI/CD Pipeline - Build, Push & Deploy**.
+3. Nhan nut **Run workflow**:
+   - O o **Rollback to specific tag**: Nhap tag muon quay ve (Vi du: `20260920-143000` hoac `b50365d`).
+   - Nhan nut xanh **Run workflow**.
+4. Workflow se **bo qua hoan toan buoc build**, ket noi thang vao server, cap nhat `.env` va khoi dong lai ung dung ve tag da chi dinh trong vong duoi 10 giay.
+
+### 5.2. Cach B: Rollback truc tiep qua SSH bang script `rollback.sh`
+1. Mo terminal va SSH vao server:
    ```bash
-   docker exec -it $(docker ps -qf "name=db") /opt/mssql-tools18/bin/sqlcmd \
-     -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -C
+   ssh ubuntu@<SERVER_HOST>
+   cd ~/bmwms
    ```
-2. Thực thi script rollback tương ứng trong thư mục `docs/migrations/` (nếu có chuẩn bị file rollback riêng).
+2. Chay script rollback:
+   * **Cach chon tu danh sach image co san tren server:**
+     ```bash
+     chmod +x scripts/rollback.sh
+     ./scripts/rollback.sh
+     ```
+     Script se liet ke cac image da tai ve, ban chi can go tag muon quay ve va Enter.
+   * **Cach truyen truc tiep tag:**
+     ```bash
+     ./scripts/rollback.sh 20260920-143000
+     ```
+
+### 5.3. Cach C: Rollback thu cong bang Docker Compose
+```bash
+cd ~/bmwms
+# 1. Sua tag trong file .env ve tag cu
+sed -i 's/^IMAGE_TAG=.*/IMAGE_TAG=20260920-143000/' .env
+
+# 2. Khoi dong lai containers
+docker compose -f docker-compose.app.yml up -d
+
+# 3. Kiem tra trang thai
+docker compose -f docker-compose.app.yml ps
+```
 
 ---
 
-## 5. Tóm tắt các lệnh cần nhớ khi SSH vào Server
+## 6. Bang Tra Cuu Lenh Nhanh Tren Server
 
-| Mục đích | Lệnh thực thi |
+| Yeu cau | Lenh thuc thi |
 | :--- | :--- |
-| **Xem trạng thái hệ thống** | `docker compose -f docker-compose.app.yml ps` |
-| **Xem log trực tiếp** | `docker compose -f docker-compose.app.yml logs -f --tail=100` |
-| **Rollback nhanh 1 lệnh** | `./scripts/rollback.sh <TAG>` |
-| **Khởi động lại toàn bộ app** | `docker compose -f docker-compose.app.yml restart` |
-| **Dọn dẹp rác & image cũ** | `docker system prune -f` |
+| Xem trang thai containers | `docker compose -f docker-compose.app.yml ps` |
+| Xem log realtime he thong | `docker compose -f docker-compose.app.yml logs -f --tail=100` |
+| Rollback nhanh ve 1 tag | `./scripts/rollback.sh <TAG>` |
+| Khoi dong lai toan bo app | `docker compose -f docker-compose.app.yml restart` |
+| Xem danh sach image da pull | `docker images \| grep bmwms` |
+| Don dep cac image cu khong dung | `docker image prune -f` |
