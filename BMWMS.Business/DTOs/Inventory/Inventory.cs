@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -10,7 +10,9 @@ namespace BMWMS.Business.DTOs.Inventory
     {
         public string? Keyword { get; set; }        
         public long? WarehouseId { get; set; }         
-        public long? StorageLocationId { get; set; }   
+        public long? StorageLocationId { get; set; }
+        public long? ZoneId { get; set; }
+        public long? RackId { get; set; }
         public string? Status { get; set; }
         public int PageIndex { get; set; } = 1;
         public int PageSize { get; set; } = 10;
@@ -22,6 +24,7 @@ namespace BMWMS.Business.DTOs.Inventory
         public long ProductId { get; set; }
         public string ProductCode { get; set; } = string.Empty;
         public string ProductName { get; set; } = string.Empty;
+        public string ProductGroupName { get; set; } = string.Empty;
         public string UnitName { get; set; } = string.Empty;
 
         public string WarehouseName { get; set; } = string.Empty;
@@ -31,6 +34,7 @@ namespace BMWMS.Business.DTOs.Inventory
         public decimal OnHandQuantity { get; set; }
         public decimal ReservedQuantity { get; set; }
         public decimal AvailableQuantity { get; set; }
+        public decimal MinimumStockQuantity { get; set; }
 
         public string LotNumber { get; set; } = string.Empty;
         public DateOnly? ExpiryDate { get; set; }
@@ -57,3 +61,4 @@ namespace BMWMS.Business.DTOs.Inventory
         public int TotalPages => (int)Math.Ceiling((double)TotalCount / PageSize);
     }
 }
+

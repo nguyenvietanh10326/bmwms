@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -11,7 +11,8 @@ namespace BMWMS.Repository.Interfaces.Inventory
         Task<int> GetTotalProductsCountAsync();
         Task<int> GetActiveWarehousesCountAsync();
 
-        Task<List<BMWMS.Repository.Models.Inventory>> GetLowStockInventoriesAsync(int top = 5);
+        /// <summary>Lấy danh sách cảnh báo tồn kho thấp từ view VwLowStockAlert (đúng theo MinimumStockQuantity từ ProductWarehousePolicy)</summary>
+        Task<List<BMWMS.Repository.Models.VwLowStockAlert>> GetLowStockAlertsAsync(int top = 10);
 
         Task<List<BMWMS.Repository.Models.InventoryTransaction>> GetRecentActivitiesAsync(int top = 5);
 

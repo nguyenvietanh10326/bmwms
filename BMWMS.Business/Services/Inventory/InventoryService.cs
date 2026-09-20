@@ -1,4 +1,4 @@
-﻿using BMWMS.Business.DTOs.Inventory;
+using BMWMS.Business.DTOs.Inventory;
 using BMWMS.Business.Interfaces.Inventory;
 using BMWMS.Repository.Interfaces.Inventory;
 using System;
@@ -32,6 +32,7 @@ namespace BMWMS.Business.Services.Inventory
                 filter.WarehouseId,
                 filter.StorageLocationId,
                 filter.Status,
+                filter.ZoneId, filter.RackId,
                 filter.PageIndex,
                 filter.PageSize);
 
@@ -39,18 +40,29 @@ namespace BMWMS.Business.Services.Inventory
             {
                 var available = item.AvailableQuantity ?? (item.OnHandQuantity - item.ReservedQuantity);
 
-                string statusText = "Bình thường";
-                string cssClass = "status-normal"; 
+                // Lấy ngưỡng MinimumStockQuantity từ ProductWarehousePolicy nếu có
+                var warehouseId = item.StorageLocation?.WarehouseId;
+                var policy = item.Product?.ProductWarehousePolicies
+                    ?.FirstOrDefault(p => warehouseId.HasValue && p.WarehouseId == warehouseId.Value);
+                decimal minStockQty = policy?.MinimumStockQuantity ?? 0m;
+
+                string statusText;
+                string cssClass;
 
                 if (available <= 0)
                 {
                     statusText = "Hết hàng";
-                    cssClass = "status-danger"; 
+                    cssClass = "status-danger";
                 }
-                else if (available < 300)
+                else if (minStockQty > 0 && available < minStockQty)
                 {
                     statusText = "Sắp hết";
-                    cssClass = "status-warning"; 
+                    cssClass = "status-warning";
+                }
+                else
+                {
+                    statusText = "Bình thường";
+                    cssClass = "status-normal";
                 }
 
                 return new InventoryListItemDto
@@ -60,6 +72,7 @@ namespace BMWMS.Business.Services.Inventory
                     ProductCode = item.Product?.ProductCode ?? "N/A",
                     ProductName = item.Product?.ProductName ?? "N/A",
                     UnitName = item.Product?.UnitOfMeasure?.UnitName ?? "",
+                    ProductGroupName = item.Product?.ProductGroup?.GroupName ?? "",
 
                     WarehouseName = item.StorageLocation?.Warehouse?.WarehouseName ?? "N/A",
                     LocationCode = item.StorageLocation?.LocationCode ?? "N/A",
@@ -67,6 +80,7 @@ namespace BMWMS.Business.Services.Inventory
                     OnHandQuantity = item.OnHandQuantity,
                     ReservedQuantity = item.ReservedQuantity,
                     AvailableQuantity = available,
+                    MinimumStockQuantity = minStockQty,
 
                     LotNumber = item.ProductLot?.LotNumber ?? "N/A",
                     ExpiryDate = item.ProductLot?.ExpiryDate,
@@ -90,3 +104,5 @@ namespace BMWMS.Business.Services.Inventory
         }
     }
 }
+
+

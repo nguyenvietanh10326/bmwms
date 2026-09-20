@@ -22,12 +22,15 @@ namespace BMWMS.Repository.Repositories.Inventory
             string? keyword,
             long? warehouseId,
             long? storageLocationId,
-            string? status)
+            string? status,
+            long? zoneId = null, long? rackId = null)
         {
             var query = _context.Inventories
                 .AsNoTracking()
                 .Include(i => i.Product)
                     .ThenInclude(p => p.UnitOfMeasure)
+                .Include(i => i.Product)
+                    .ThenInclude(p => p.ProductGroup)
                 .Include(i => i.ProductLot)
                 .Include(i => i.StorageLocation)
                     .ThenInclude(sl => sl.Warehouse)
@@ -54,23 +57,48 @@ namespace BMWMS.Repository.Repositories.Inventory
                 query = query.Where(i => i.StorageLocationId == storageLocationId.Value);
             }
 
-            // 4. Lọc theo Trạng thái 
+            if (zoneId.HasValue && zoneId.Value > 0)
+            {
+                query = query.Where(i => i.StorageLocation.StorageRack != null && i.StorageLocation.StorageRack.ZoneId == zoneId.Value);
+            }
+
+            if (rackId.HasValue && rackId.Value > 0)
+            {
+                query = query.Where(i => i.StorageLocation.RackId == rackId.Value);
+            }
+
+            // 4. Lọc theo Nhóm sản phẩm
+            
+
+            // 5. Lọc theo Trạng thái (dùng JOIN với ProductWarehousePolicy để lấy ngưỡng đúng)
             if (!string.IsNullOrWhiteSpace(status) && status.ToUpper() != "ALL")
             {
                 var upperStatus = status.Trim().ToUpper();
-                if (upperStatus == "OUT_OF_STOCK") 
+                if (upperStatus == "OUT_OF_STOCK")
                 {
                     query = query.Where(i => (i.AvailableQuantity ?? (i.OnHandQuantity - i.ReservedQuantity)) <= 0);
                 }
-                else if (upperStatus == "LOW_STOCK") 
+                else if (upperStatus == "LOW_STOCK")
                 {
-
-                    query = query.Where(i => (i.AvailableQuantity ?? (i.OnHandQuantity - i.ReservedQuantity)) > 0
-                                          && (i.AvailableQuantity ?? (i.OnHandQuantity - i.ReservedQuantity)) < 300);
+                    // Sắp hết: available > 0 nhưng dưới ngưỡng MinimumStockQuantity của kho
+                    query = query.Where(i =>
+                        (i.AvailableQuantity ?? (i.OnHandQuantity - i.ReservedQuantity)) > 0
+                        && _context.Set<ProductWarehousePolicy>().Any(p =>
+                            p.ProductId == i.ProductId
+                            && p.WarehouseId == i.StorageLocation.WarehouseId
+                            && (i.AvailableQuantity ?? (i.OnHandQuantity - i.ReservedQuantity)) < p.MinimumStockQuantity));
                 }
-                else if (upperStatus == "NORMAL") 
+                else if (upperStatus == "NORMAL")
                 {
-                    query = query.Where(i => (i.AvailableQuantity ?? (i.OnHandQuantity - i.ReservedQuantity)) >= 300);
+                    // Bình thường: available >= ngưỡng MinimumStockQuantity
+                    query = query.Where(i =>
+                        _context.Set<ProductWarehousePolicy>().Any(p =>
+                            p.ProductId == i.ProductId
+                            && p.WarehouseId == i.StorageLocation.WarehouseId
+                            && (i.AvailableQuantity ?? (i.OnHandQuantity - i.ReservedQuantity)) >= p.MinimumStockQuantity)
+                        || !_context.Set<ProductWarehousePolicy>().Any(p =>
+                            p.ProductId == i.ProductId
+                            && p.WarehouseId == i.StorageLocation.WarehouseId));
                 }
             }
 
@@ -89,8 +117,19 @@ namespace BMWMS.Repository.Repositories.Inventory
             var totalReserved = await query.SumAsync(i => (decimal?)i.ReservedQuantity) ?? 0m;
             var totalAvailable = await query.SumAsync(i => (decimal?)(i.AvailableQuantity ?? (i.OnHandQuantity - i.ReservedQuantity))) ?? 0m;
 
-            // Giả định InTransit tính từ đơn chuyển kho hoặc tạm tính 0 nếu chưa có logic riêng
-            decimal totalInTransit = 720m; // Có thể query từ bảng TransferOrder nếu có
+            // Tính InTransit từ TransferOrderDetails đang trong trạng thái chưa hoàn tất
+            var inTransitQuery = _context.TransferOrderDetails
+                .AsNoTracking()
+                .Where(td => td.TransferOrder.Status == "IN_TRANSIT" || td.TransferOrder.Status == "PENDING");
+
+            if (warehouseId.HasValue && warehouseId.Value > 0)
+            {
+                inTransitQuery = inTransitQuery.Where(td =>
+                    td.TransferOrder.SourceWarehouseId == warehouseId.Value ||
+                    td.TransferOrder.DestinationWarehouseId == warehouseId.Value);
+            }
+
+            decimal totalInTransit = await inTransitQuery.SumAsync(td => (decimal?)td.RequestedQuantity) ?? 0m;
 
             return (totalOnHand, totalAvailable, totalReserved, totalInTransit);
         }
@@ -101,10 +140,16 @@ namespace BMWMS.Repository.Repositories.Inventory
             long? warehouseId,
             long? storageLocationId,
             string? status,
+            long? zoneId, long? rackId,
             int pageIndex,
             int pageSize)
         {
-            var query = BuildFilterQuery(keyword, warehouseId, storageLocationId, status);
+            var query = BuildFilterQuery(keyword, warehouseId, storageLocationId, status, zoneId, rackId);
+
+            // Load thêm ProductWarehousePolicies để InventoryService tính ngưỡng đúng
+            query = query
+                .Include(i => i.Product)
+                    .ThenInclude(p => p.ProductWarehousePolicies);
 
             var totalCount = await query.CountAsync();
 
@@ -262,3 +307,6 @@ namespace BMWMS.Repository.Repositories.Inventory
 
     }
 }
+
+
+
