@@ -1,7 +1,6 @@
 @using BMWMS.Web.Helpers
 @model BMWMS.Web.Models.StocktakeSessionDetailModel
 @{
-    var emptyLocations = Model.Locations.Where(location => location.TotalItems == 0).ToList();
     var availableProducts = ViewData["AvailableProducts"] as List<BMWMS.Web.Models.ProductResponseModel> ?? new();
 }
 <section class="stocktake-section stocktake-count-sheet">
@@ -66,8 +65,6 @@
                             <input type="number" class="form-control form-control-sm text-end counted-input" name="Lines[@index].CountedQuantity"
                                    value="@(item.CountedQuantity?.ToString(System.Globalization.CultureInfo.InvariantCulture))"
                                    min="0" step="@(item.QuantityScale == 0 ? "1" : "0." + new string('0', item.QuantityScale - 1) + "1")"
-                                   placeholder="@(item.QuantityScale == 0 ? "Số nguyên" : "0." + new string('0', item.QuantityScale))"
-                                   title="@(item.QuantityScale == 0 ? "Chỉ nhập số nguyên (0 chữ số thập phân)" : $"Tối đa {item.QuantityScale} chữ số thập phân")"
                                    inputmode="decimal" aria-label="Số lượng đếm thực tế @item.ProductCode tại @item.LocationCode" />
                         </td>
                         <td><input class="form-control form-control-sm" name="Lines[@index].Notes" value="@item.Notes" maxlength="1000" /></td>
@@ -84,18 +81,6 @@
                 </tbody>
             </table>
         </div>
-        @if (emptyLocations.Count > 0)
-        {
-            <div class="empty-location-panel">
-                <h3>Vị trí không có hàng khả dụng theo sổ</h3><p>Xác nhận không có hàng sẵn sàng xuất bán trước khi gửi phiếu.</p>
-                <div class="empty-location-grid">
-                @foreach (var location in emptyLocations)
-                {
-                    <label class="form-check"><input class="form-check-input" type="checkbox" name="ConfirmedEmptyLocationIds" value="@location.StorageLocationId" checked="@(location.CountStatus == "COUNTED" ? "checked" : null)" /><span><strong>@location.LocationCode</strong><small>@location.LocationPath</small></span></label>
-                }
-                </div>
-            </div>
-        }
         <div class="stocktake-form-actions" style="justify-content: flex-end;">
             <div><button class="btn btn-light" type="submit" asp-page-handler="SaveCounts"><i class="ri-save-line"></i>Lưu nháp</button><button class="btn btn-primary" type="submit" asp-page-handler="Submit"><i class="ri-send-plane-line"></i>Hoàn tất và gửi</button></div>
         </div>
@@ -163,10 +148,9 @@
                         <div class="col-md-4">
                             <label class="form-label fw-semibold">Số lượng đếm thực tế <span class="text-danger">*</span></label>
                             <div class="input-group">
-                                <input type="number" class="form-control text-end" name="UnbookedItem.CountedQuantity" id="unbookedQuantityInput" required min="1" step="1" placeholder="0" oninput="onUnbookedQuantityChange()" />
+                                <input type="number" class="form-control text-end" name="UnbookedItem.CountedQuantity" id="unbookedQuantityInput" required min="1" step="1" oninput="onUnbookedQuantityChange()" />
                                 <span class="input-group-text" id="unbookedUnitSpan">ĐVT</span>
                             </div>
-                            <div id="unbookedScaleHint" class="text-muted mt-1" style="font-size: 0.78rem;"></div>
                         </div>
 
                         <!-- Ngày nhập -->
@@ -228,19 +212,14 @@ async function onUnbookedProductChange(select) {
     if (unitSpan) unitSpan.innerText = unit || 'ĐVT';
 
     const qtyInput = document.getElementById('unbookedQuantityInput');
-    const scaleHint = document.getElementById('unbookedScaleHint');
     if (qtyInput) {
         if (scale <= 0) {
             qtyInput.min = '1';
             qtyInput.step = '1';
-            qtyInput.placeholder = '1, 2, 5...';
-            if (scaleHint) scaleHint.innerText = 'ĐVT này chỉ cho phép nhập số nguyên (0 chữ số thập phân).';
         } else {
             const stepStr = '0.' + '0'.repeat(scale - 1) + '1';
             qtyInput.min = stepStr;
             qtyInput.step = stepStr;
-            qtyInput.placeholder = stepStr;
-            if (scaleHint) scaleHint.innerText = `ĐVT này cho phép tối đa ${scale} chữ số thập phân.`;
         }
     }
 
@@ -274,7 +253,8 @@ async function loadCompatibleLocations(productId, quantity) {
                     const opt = document.createElement('option');
                     opt.value = loc.storageLocationId;
                     const capText = loc.remainingCapacity >= 99999 ? 'Không giới hạn' : `${loc.remainingCapacity} ${loc.unitName || ''}`.trim();
-                    opt.text = `[${loc.locationCode}] ${loc.locationPath} · Còn trống: ${capText}`;
+                    const tag = loc.isCompatibleZone ? '' : ' (Khác nhóm SP)';
+                    opt.text = `[${loc.locationCode}] ${loc.locationPath} · Còn trống: ${capText}${tag}`;
                     targetSelect.appendChild(opt);
                 });
             }

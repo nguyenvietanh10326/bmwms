@@ -460,6 +460,7 @@ namespace BMWMS.Business.Services.Stocktake
                 var zone = loc.StorageRack?.WarehouseZone;
                 var rack = loc.StorageRack;
                 var path = $"{zone?.ZoneCode ?? ""}/{rack?.RackCode ?? ""}/{loc.LocationCode}".TrimStart('/');
+                var isCompatible = zone?.ProductGroupId == null || (product != null && zone.ProductGroupId == product.ProductGroupId);
 
                 results.Add(new CompatibleLocationDto
                 {
@@ -473,7 +474,7 @@ namespace BMWMS.Business.Services.Stocktake
                     CurrentOccupancy = currentOccupancy,
                     RemainingCapacity = remaining,
                     UnitName = unitName,
-                    IsCompatibleZone = true
+                    IsCompatibleZone = isCompatible
                 });
             }
 

@@ -99,22 +99,6 @@ public sealed class ProductGroupCapacityEvaluationService : ICapacityEvaluationS
             .Where(unit => unitIds.Contains(unit.UnitOfMeasureId))
             .ToDictionaryAsync(unit => unit.UnitOfMeasureId);
 
-        foreach (var allocation in allocations.Where(item => item.Quantity > 0))
-        {
-            var bin = allBins[allocation.StorageLocationId];
-            var zone = bin.StorageRack?.WarehouseZone;
-            if (zone?.ProductGroupId is not long groupId ||
-                !groups.TryGetValue(groupId, out var group) ||
-                !group.BaseUnitOfMeasureId.HasValue)
-                throw new InvalidOperationException(
-                    $"Zone của Bin {bin.LocationCode} chưa cấu hình Product Group và ĐVT cơ sở; không thể đưa hàng vào.");
-            var product = allocationProducts[allocation.ProductId];
-            if (product.ProductGroupId != groupId ||
-                product.UnitOfMeasureId != group.BaseUnitOfMeasureId.Value)
-                throw new InvalidOperationException(
-                    $"Sản phẩm {product.ProductCode} không thuộc Product Group/ĐVT cơ sở của Zone {zone.ZoneCode}.");
-        }
-
         var stockByBin = stock.GroupBy(row => row.StorageLocationId)
             .ToDictionary(group => group.Key, group => group.ToList());
         var addedByBin = allocations.GroupBy(item => item.StorageLocationId)
@@ -137,9 +121,9 @@ public sealed class ProductGroupCapacityEvaluationService : ICapacityEvaluationS
                 .Where(item => item.StorageRack?.ZoneId == zone.ZoneId)
                 .Select(item => item.StorageLocationId).ToArray();
 
-            var binScope = Calculate(binIds, bin.MaxCapacityQuantity, group, stockByBin, addedByBin);
-            var rackScope = Calculate(rackBinIds, rack?.MaxCapacityQuantity, group, stockByBin, addedByBin);
-            var zoneScope = Calculate(zoneBinIds, zone?.MaxCapacityQuantity, group, stockByBin, addedByBin);
+            var binScope = Calculate(binIds, bin.MaxCapacityQuantity, group, stockByBin, addedByBin, allocations, allocationProducts);
+            var rackScope = Calculate(rackBinIds, rack?.MaxCapacityQuantity, group, stockByBin, addedByBin, allocations, allocationProducts);
+            var zoneScope = Calculate(zoneBinIds, zone?.MaxCapacityQuantity, group, stockByBin, addedByBin, allocations, allocationProducts);
             var scopes = new List<CapacityScopeEvaluationDto>();
             if (rack is not null)
                 scopes.Add(ToScope("RACK", rack.RackId, rack.RackCode, rack.MaxCapacityQuantity, rackScope));
@@ -169,11 +153,24 @@ public sealed class ProductGroupCapacityEvaluationService : ICapacityEvaluationS
         decimal? max,
         ProductGroup? group,
         IReadOnlyDictionary<long, List<BMWMS.Repository.Models.Inventory>> stock,
-        IReadOnlyDictionary<long, decimal> added)
+        IReadOnlyDictionary<long, decimal> added,
+        IReadOnlyCollection<CapacityAllocationDto> allocations,
+        IReadOnlyDictionary<long, BMWMS.Repository.Models.Product> allocationProducts)
     {
         if (group?.BaseUnitOfMeasureId is not int unitId)
             return (null, binIds.Sum(id => added.GetValueOrDefault(id)), null,
                     CapacityEvaluationStatuses.NotConfigured);
+
+        var allocatedProducts = allocations
+            .Where(item => item.Quantity > 0 && binIds.Contains(item.StorageLocationId))
+            .Select(item => allocationProducts.TryGetValue(item.ProductId, out var prod) ? prod : null)
+            .Where(p => p != null)
+            .ToList();
+        if (allocatedProducts.Any(p => p!.ProductGroupId != group.ProductGroupId ||
+                                       p.UnitOfMeasureId != unitId))
+            return (null, binIds.Sum(id => added.GetValueOrDefault(id)), null,
+                    CapacityEvaluationStatuses.Unknown);
+
         var rows = binIds.SelectMany(id => stock.GetValueOrDefault(id) ??
             new List<BMWMS.Repository.Models.Inventory>()).ToList();
         if (rows.Any(row => row.Product.ProductGroupId != group.ProductGroupId ||

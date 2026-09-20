@@ -625,21 +625,22 @@ namespace BMWMS.Repository.Repositories.Stocktake
             if (product == null)
                 return new List<StorageLocation>();
 
-            var query = _context.StorageLocations.AsNoTracking()
+            var validStatuses = new[] { "ACTIVE", "AVAILABLE", "OCCUPIED" };
+            var locations = await _context.StorageLocations.AsNoTracking()
                 .Include(l => l.StorageRack)
                     .ThenInclude(r => r.WarehouseZone)
                 .Include(l => l.Inventories)
                 .Where(l => l.WarehouseId == warehouseId &&
-                            l.Status == "ACTIVE" &&
-                            l.IsPutawayAllowed);
+                            validStatuses.Contains(l.Status) &&
+                            l.IsPutawayAllowed &&
+                            l.LocationType == "BIN")
+                .ToListAsync();
 
-            if (product.ProductGroupId > 0)
-            {
-                query = query.Where(l => l.StorageRack != null &&
-                                         l.StorageRack.WarehouseZone.ProductGroupId == product.ProductGroupId);
-            }
-
-            return await query.OrderBy(l => l.LocationCode).ToListAsync();
+            return locations
+                .OrderBy(l => l.StorageRack?.WarehouseZone?.ProductGroupId == product.ProductGroupId ? 0 :
+                              l.StorageRack?.WarehouseZone?.ProductGroupId == null ? 1 : 2)
+                .ThenBy(l => l.LocationCode)
+                .ToList();
         }
 
         public async Task<StocktakeSession> SubmitSessionAsync(long stocktakeSessionId, long submittedByUserId)
@@ -661,6 +662,14 @@ namespace BMWMS.Repository.Repositories.Stocktake
                     .ToList();
                 if (missing.Any())
                     throw new InvalidOperationException($"Còn {missing.Count} dòng chưa nhập: {string.Join(", ", missing.Take(5))}.");
+
+                foreach (var location in session.StocktakeLocations)
+                {
+                    if (location.StocktakeItems.Count == 0)
+                    {
+                        location.CountStatus = LocationCounted;
+                    }
+                }
 
                 var incompleteLocations = session.StocktakeLocations
                     .Where(location => location.CountStatus != LocationCounted)
@@ -846,16 +855,10 @@ namespace BMWMS.Repository.Repositories.Stocktake
                     item.AdjustmentQuantity = null;
                 }
 
-                var confirmedEmptySet = confirmedEmptyLocationIds.Where(id => id > 0).ToHashSet();
-                if (confirmedEmptySet.Any(id => session.StocktakeLocations.All(location => location.StorageLocationId != id)))
-                    throw new InvalidOperationException("Danh sách xác nhận vị trí trống không hợp lệ.");
-
                 foreach (var location in session.StocktakeLocations)
                 {
                     var items = location.StocktakeItems.ToList();
-                    var isComplete = items.Count > 0
-                        ? items.All(item => item.CountedQuantity.HasValue)
-                        : confirmedEmptySet.Contains(location.StorageLocationId);
+                    var isComplete = items.Count == 0 || items.All(item => item.CountedQuantity.HasValue);
                     location.CountStatus = isComplete ? LocationCounted : LocationInProgress;
                     location.CountedByUserId = isComplete ? countedByUserId : null;
                     location.CountedAt = isComplete ? DateTime.UtcNow : null;

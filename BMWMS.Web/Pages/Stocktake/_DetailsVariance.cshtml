@@ -42,7 +42,7 @@
                                 </span>
                             </div>
                         }
-                        @if (isManager && Model.Status == "PENDING_APPROVAL" && (isUnbooked || (item.DifferenceQuantity ?? 0) > 0))
+                        @if (isManager && (Model.Status == "PENDING_APPROVAL" || Model.Status == "IN_PROGRESS") && (isUnbooked || (item.DifferenceQuantity ?? 0) > 0))
                         {
                             <div class="mt-1">
                                 <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none" style="font-size: 0.78rem;"
@@ -69,7 +69,7 @@
     </div>
 </section>
 
-@if (isManager && Model.Status == "PENDING_APPROVAL")
+@if (isManager && (Model.Status == "PENDING_APPROVAL" || Model.Status == "IN_PROGRESS"))
 {
     <div class="modal fade" id="setTargetLocationModal" tabindex="-1" aria-labelledby="setTargetLocationModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
@@ -117,7 +117,7 @@
         loading.classList.remove('d-none');
 
         const modalElement = document.getElementById('setTargetLocationModal');
-        const bsModal = new bootstrap.Modal(modalElement);
+        const bsModal = bootstrap.Modal.getOrCreateInstance(modalElement);
         bsModal.show();
 
         try {
@@ -130,7 +130,8 @@
                         const opt = document.createElement('option');
                         opt.value = loc.storageLocationId;
                         const capText = loc.remainingCapacity >= 99999 ? 'Không giới hạn' : `${loc.remainingCapacity} ${loc.unitName || ''}`.trim();
-                        opt.text = `[${loc.locationCode}] ${loc.locationPath} · Còn trống: ${capText}`;
+                        const tag = loc.isCompatibleZone ? '' : ' (Khác nhóm SP)';
+                        opt.text = `[${loc.locationCode}] ${loc.locationPath} · Còn trống: ${capText}${tag}`;
                         if (currentTargetId && loc.storageLocationId == currentTargetId) {
                             opt.selected = true;
                         }
