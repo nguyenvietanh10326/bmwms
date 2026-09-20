@@ -108,7 +108,7 @@
                         <a href="/PurchaseOrders/Index" class="nav-sub-item @(Context.Request.Path == "/PurchaseOrders" || Context.Request.Path == "/PurchaseOrders/Index" ? "active" : "")">Danh sách PO</a>
                         @if (isSysAdmin || isPurchasing)
                         {
-                            <a href="/PurchaseOrders/Create" class="nav-sub-item @(Context.Request.Path == "/PurchaseOrders/Create" ? "active" : "")">Tạo PO mới</a>
+                            <a href="/PurchaseOrders/Create" class="nav-sub-item @(Context.Request.Path == "/PurchaseOrders/Create" ? "active" : "")">Tạo đơn mua hàng</a>
                         }
                     </div>
                 }
@@ -179,9 +179,9 @@
                 </div>
                 <div class="nav-submenu @(isOutboundActive ? "expanded" : "")">
                     <a href="/OutboundOrders/Index" class="nav-sub-item @(Context.Request.Path == "/OutboundOrders/Index" ? "active" : "")">Danh sách phiếu xuất</a>
-                    @if (isWhStaff || isWhManager || isSysAdmin)
+                    @if (isWhStaff || isSysAdmin)
                     {
-                        <a href="/OutboundOrders/Create" class="nav-sub-item @(Context.Request.Path == "/OutboundOrders/Create" ? "active" : "")">@(isWhStaff ? "Tạo phiếu xuất bán" : "Duyệt lệnh trả NCC")</a>
+                        <a href="/OutboundOrders/Create" class="nav-sub-item @(Context.Request.Path == "/OutboundOrders/Create" ? "active" : "")">Tạo phiếu xuất kho</a>
                     }
                 </div>
                 <!-- Chuyển vị trí nội bộ -->
