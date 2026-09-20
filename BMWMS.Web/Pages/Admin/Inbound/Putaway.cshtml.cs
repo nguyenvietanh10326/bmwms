@@ -91,7 +91,7 @@ public class PutawayModel : PageModel
                 return null;
             }
 
-            TempData["ErrorMessage"] = "Chỉ được xếp vị trí khi phiếu đã ghi nhận thực nhận và còn hàng chưa cất.";
+            TempData["ErrorMessage"] = "Chỉ được xác nhận vị trí cất khi phiếu đã ghi nhận thực nhận và còn hàng chưa cất.";
             return RedirectToPage("Details", new { id });
         }
 
