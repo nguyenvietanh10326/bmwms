@@ -1,12 +1,43 @@
 @page
 @model BMWMS.Web.Pages.CustomerReturns.IndexModel
-@{ Layout = "_AdminLayout"; ViewData["Title"] = "Khách trả hàng theo SO"; }
-<div class="d-flex justify-content-between align-items-center mb-4"><h2>Khách trả hàng theo SO</h2>
-@if (User.IsInRole("SALES_STAFF") || User.IsInRole("SYSTEM_ADMIN")) { <a asp-page="./Create" class="btn btn-primary">Tạo phiếu khách trả theo SO</a> }</div>
-<div asp-validation-summary="All" class="text-danger"></div>
+@{ Layout = "_AdminLayout"; ViewData["Title"] = "Khách trả hàng theo đơn bán"; }
+
+<div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
+    <div><h1 class="h3 mb-1">Khách trả hàng theo đơn bán</h1><p class="text-muted mb-0">Theo dõi yêu cầu trả hàng, phê duyệt và các đợt nhập hàng hoàn trả.</p></div>
+    @if (User.IsInRole("SALES_STAFF") || User.IsInRole("SYSTEM_ADMIN")) { <a asp-page="./Create" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>Tạo yêu cầu trả hàng</a> }
+</div>
+
+<div asp-validation-summary="All" class="alert alert-danger"></div>
 @if (TempData["SuccessMessage"] != null) { <div class="alert alert-success">@TempData["SuccessMessage"]</div> }
 @if (TempData["ErrorMessage"] != null) { <div class="alert alert-danger">@TempData["ErrorMessage"]</div> }
-<div class="card"><div class="table-responsive"><table class="table align-middle mb-0"><thead><tr><th>Phiếu đề nghị</th><th>SO tham chiếu</th><th>Khách hàng</th><th>Ngày tạo</th><th>Trạng thái</th></tr></thead><tbody>
-@foreach (var r in Model.Requests) { <tr><td><a asp-page="./Details" asp-route-id="@r.Id">@r.RequestNumber</a></td><td>@(r.SalesOrderNumber ?? "Lịch sử nhiều SO")</td><td>@r.CustomerName</td><td>@r.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td><td>@BMWMS.Web.Pages.CustomerReturns.IndexModel.Label(r.Status)</td></tr> }
-@if (!Model.Requests.Any()) { <tr><td colspan="5" class="text-center text-muted py-4">Chưa có phiếu khách trả.</td></tr> }
-</tbody></table></div></div>
+
+<section class="card border-0 shadow-sm mb-4"><div class="card-body">
+    <form method="get" class="row g-3 align-items-end">
+        <div class="col-lg-5"><label asp-for="Keyword" class="form-label">Tìm kiếm</label><input asp-for="Keyword" class="form-control" placeholder="Mã yêu cầu, mã SO hoặc tên khách hàng" /></div>
+        <div class="col-lg-3"><label asp-for="Status" class="form-label">Trạng thái</label><select asp-for="Status" class="form-select">
+            <option value="">Tất cả trạng thái</option><option value="SUBMITTED">Chờ duyệt</option><option value="APPROVED">Đã duyệt</option><option value="PARTIALLY_RECEIVED">Đã nhận trả một phần</option><option value="COMPLETED">Hoàn tất</option><option value="REJECTED">Từ chối</option><option value="CANCELLED">Đã hủy</option>
+        </select></div>
+        <div class="col-lg-2"><label asp-for="Sort" class="form-label">Sắp xếp</label><select asp-for="Sort" class="form-select">
+            @if (User.IsInRole("WAREHOUSE_MANAGER") || User.IsInRole("SYSTEM_ADMIN")) { <option value="priority">Cần duyệt trước</option> }
+            <option value="newest">Mới nhất</option><option value="oldest">Cũ nhất</option>
+        </select></div>
+        <div class="col-lg-2 d-flex gap-2"><button type="submit" class="btn btn-primary flex-grow-1">Lọc</button><a asp-page="./Index" class="btn btn-outline-secondary">Đặt lại</a></div>
+    </form>
+</div></section>
+
+<section class="card border-0 shadow-sm">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center"><h2 class="h5 mb-0">Danh sách yêu cầu</h2><span class="text-muted small">@Model.Requests.Count phiếu</span></div>
+    <div class="table-responsive"><table class="table table-hover align-middle mb-0">
+        <thead class="table-light"><tr><th>Phiếu đề nghị</th><th>SO tham chiếu</th><th>Khách hàng</th><th>Lý do</th><th>Ngày tạo</th><th>Trạng thái</th><th></th></tr></thead>
+        <tbody>
+        @foreach (var request in Model.Requests)
+        {
+            <tr><td class="fw-semibold">@request.RequestNumber</td><td>@(request.SalesOrderNumber ?? "Nhiều lần giao")</td><td>@request.CustomerName</td>
+                <td class="text-truncate" style="max-width:260px" title="@request.Reason">@(string.IsNullOrWhiteSpace(request.Reason) ? "—" : request.Reason)</td>
+                <td>@request.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td><td><span class="badge @BMWMS.Web.Pages.CustomerReturns.IndexModel.StatusCss(request.Status)">@BMWMS.Web.Pages.CustomerReturns.IndexModel.Label(request.Status)</span></td>
+                <td class="text-end"><a asp-page="./Details" asp-route-id="@request.Id" class="btn btn-sm btn-outline-primary">Chi tiết</a></td></tr>
+        }
+        @if (!Model.Requests.Any()) { <tr><td colspan="7" class="text-center text-muted py-5">Không có yêu cầu trả hàng phù hợp.</td></tr> }
+        </tbody>
+    </table></div>
+</section>

@@ -102,6 +102,7 @@ namespace BMWMS.Business.DTOs.Inventory
         public string? SearchTerm { get; set; }
         public string? Status { get; set; }
         public long? WarehouseId { get; set; }
+        public long? CreatedByUserId { get; set; }
         public int PageIndex { get; set; } = 1;
         public int PageSize { get; set; } = 10;
     }

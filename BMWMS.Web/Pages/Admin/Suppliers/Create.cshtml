@@ -44,8 +44,9 @@
             </div>
 
             <div>
-                <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px; color: var(--text-main);">Email</label>
-                <input type="text" asp-for="Input.Email" class="form-control" placeholder="Email liên hệ" style="width: 100%; box-sizing: border-box; padding: 10px 12px;" />
+                <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px; color: var(--text-main);">Email *</label>
+                <input type="email" asp-for="Input.Email" required maxlength="150" class="form-control" placeholder="Email liên hệ" style="width: 100%; box-sizing: border-box; padding: 10px 12px;" />
+                <span asp-validation-for="Input.Email" class="text-danger small"></span>
             </div>
             <div>
                 <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px; color: var(--text-main);">Địa chỉ *</label>

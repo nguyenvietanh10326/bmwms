@@ -28,7 +28,7 @@
             }
             @if (isAssignedStaff && hasPendingPutaway && Model.Order.Status == "RECEIVED")
             {
-                <a asp-page="./Putaway" asp-route-id="@Model.Order.InboundOrderId" class="btn btn-primary">Cất hàng vào vị trí</a>
+                <a asp-page="./Putaway" asp-route-id="@Model.Order.InboundOrderId" class="btn btn-primary">Xác nhận cất hàng</a>
             }
             <a asp-page="./Index" class="btn btn-outline-secondary">Danh sách phiếu nhập</a>
             @if (Model.Order.ReturnRequestId.HasValue) { <a asp-page="/CustomerReturns/Details" asp-route-id="@Model.Order.ReturnRequestId" class="btn btn-outline-secondary">Yêu cầu trả hàng</a> }

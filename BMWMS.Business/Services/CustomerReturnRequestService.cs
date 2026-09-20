@@ -57,7 +57,10 @@ public class CustomerReturnRequestService(BmwmsContext context, IAuditLogService
             t.OutboundOrderDetail != null && t.OutboundOrderDetail.OutboundOrderItem.OutboundOrder.SourceType == "SALES_ORDER" &&
             t.OutboundOrderDetail.OutboundOrderItem.OutboundOrder.Status == "COMPLETED")
             .Select(t => t.OutboundOrderDetail!.OutboundOrderItem.OutboundOrder.SalesOrderId!.Value).Distinct().ToListAsync();
-        return await context.SalesOrders.AsNoTracking().Where(s => ids.Contains(s.SalesOrderId))
+        return await context.SalesOrders.AsNoTracking().Where(s => ids.Contains(s.SalesOrderId) &&
+                (s.Status == "PARTIALLY_ISSUED" || s.Status == "PARTIALLY_FULFILLED" ||
+                 s.Status == "ISSUED" || s.Status == "FULFILLED" ||
+                 s.Status == "COMPLETED" || s.Status == "CLOSED"))
             .OrderByDescending(s => s.OrderDate).ThenByDescending(s => s.SalesOrderId)
             .Select(s => new CustomerReturnSalesOrderDto { SalesOrderId = s.SalesOrderId, SalesOrderNumber = s.SalesOrderNumber,
                 CustomerId = s.CustomerId, CustomerName = s.Customer.CustomerName }).ToListAsync();
@@ -67,6 +70,8 @@ public class CustomerReturnRequestService(BmwmsContext context, IAuditLogService
     {
         var so = await context.SalesOrders.AsNoTracking().SingleOrDefaultAsync(s => s.SalesOrderId == salesOrderId)
             ?? throw new KeyNotFoundException("SO tham chiếu không tồn tại.");
+        if (!IsReturnableSalesOrderStatus(so.Status))
+            throw new InvalidOperationException("Chỉ được nhận hàng khách trả từ SO đã giao một phần hoặc đã giao xong.");
         if (editingRequestId.HasValue)
         {
             if (!userId.HasValue) throw new UnauthorizedAccessException();
@@ -97,6 +102,8 @@ public class CustomerReturnRequestService(BmwmsContext context, IAuditLogService
         await using var tx = await context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
         var so = await context.SalesOrders.AsNoTracking().SingleOrDefaultAsync(s => s.SalesOrderId == dto.SalesOrderId)
             ?? throw new ArgumentException("Chọn SO tham chiếu hợp lệ.");
+        if (!IsReturnableSalesOrderStatus(so.Status))
+            throw new ArgumentException("Chỉ được nhận hàng khách trả từ SO đã giao một phần hoặc đã giao xong.");
         if (dto.CustomerId != 0 && dto.CustomerId != so.CustomerId) throw new ArgumentException("Khách hàng không khớp SO tham chiếu.");
         await OrderWorkflowLock.AcquireAsync(context, "CUSTOMER_RETURN", so.CustomerId);
         if (!await context.Customers.AnyAsync(c => c.CustomerId == so.CustomerId && c.Status == "ACTIVE")) throw new ArgumentException("Khách hàng không còn hoạt động.");
@@ -111,6 +118,11 @@ public class CustomerReturnRequestService(BmwmsContext context, IAuditLogService
         await tx.CommitAsync();
         return request.CustomerReturnRequestId;
     }
+
+    private static bool IsReturnableSalesOrderStatus(string? status) =>
+        (status ?? string.Empty).Trim().ToUpperInvariant() is
+            "PARTIALLY_ISSUED" or "PARTIALLY_FULFILLED" or
+            "ISSUED" or "FULFILLED" or "COMPLETED" or "CLOSED";
 
     private static void PopulateItems(CustomerReturnRequest request, CreateCustomerReturnRequestDto dto,
         List<(SalesOrderDetail Line, decimal Delivered, decimal Available)> sources)

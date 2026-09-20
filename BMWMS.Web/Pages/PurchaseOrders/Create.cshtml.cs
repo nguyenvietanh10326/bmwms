@@ -47,6 +47,9 @@ namespace BMWMS.Web.Pages.PurchaseOrders
 
         public async Task<IActionResult> OnPostAsync()
         {
+            if (!Id.HasValue)
+                PurchaseOrder.OrderDate = DateOnly.FromDateTime(DateTime.Today);
+
             if (!ModelState.IsValid)
             {
                 await LoadSuppliersAsync();

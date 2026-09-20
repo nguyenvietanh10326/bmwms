@@ -23,7 +23,9 @@ namespace BMWMS.Repository.Repositories.Inventory
             string? status,
             long? warehouseId,
             int pageIndex,
-            int pageSize, string? sortOrder = null)
+            int pageSize,
+            string? sortOrder = null,
+            long? createdByUserId = null)
         {
             var query = _context.PurchaseOrders
                 .Include(po => po.Supplier)
@@ -32,6 +34,9 @@ namespace BMWMS.Repository.Repositories.Inventory
                 .Include(po => po.InboundOrders)
                 .AsNoTracking()
                 .AsQueryable();
+
+            if (createdByUserId.HasValue)
+                query = query.Where(po => po.CreatedByUserId == createdByUserId.Value);
 
             // 1. Lọc theo Từ khóa (Mã PO hoặc Tên/Mã Nhà cung cấp)
             if (!string.IsNullOrWhiteSpace(searchTerm))
