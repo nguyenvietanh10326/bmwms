@@ -34,7 +34,7 @@ namespace BMWMS.Business.DTOs.Warehouse
     {
         [Required(ErrorMessage = "Trạng thái không được để trống.")]
         [RegularExpression(@"^(ACTIVE|INACTIVE)$", ErrorMessage = "Trạng thái chỉ nhận giá trị ACTIVE hoặc INACTIVE.")]
-        public string Status { get; set; } = "ACTIVE";
+        public new string Status { get; set; } = "ACTIVE";
     }
 
     // Response trả ra cho UI
