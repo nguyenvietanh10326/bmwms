@@ -4,6 +4,7 @@ using System.Text;
 using BCrypt.Net;
 using BMWMS.Business.DTOs.Auth;
 using BMWMS.Business.DTOs.Audit;
+using BMWMS.Business.Common;
 using BMWMS.Business.Interfaces;
 using BMWMS.Repository.Interfaces;
 using BMWMS.Repository.Models;
@@ -150,11 +151,12 @@ public class AuthService : IAuthService
         });
 
         // 10. Tạo JWT Token
+        var canonicalRoleCode = BusinessRoleCodes.Normalize(user.Role.RoleCode);
         var claims = new[]
         {
             new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
             new Claim(ClaimTypes.Name, user.Username),
-            new Claim(ClaimTypes.Role, user.Role.RoleCode),
+            new Claim(ClaimTypes.Role, canonicalRoleCode),
             new Claim("SessionId", session.SessionId.ToString())
         };
 
@@ -181,7 +183,7 @@ public class AuthService : IAuthService
             Username = user.Username,
             FullName = user.FullName,
             Email = user.Email,
-            RoleCode = user.Role.RoleCode,
+            RoleCode = canonicalRoleCode,
             RoleName = user.Role.RoleName,
             AvatarUrl = user.AvatarUrl,
             LoginAt = DateTime.UtcNow,
