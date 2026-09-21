@@ -84,12 +84,6 @@ namespace BMWMS.Web.Models.Inventory
         public string? Notes { get; set; }
     }
 
-    // Request Cập nhật trạng thái lệnh xuất kho
-    public class UpdateOutboundOrderStatusRequest
-    {
-        public long OutboundOrderId { get; set; }
-        public string Status { get; set; } = null!; // "Nháp", "Chờ xử lý", "Đang picking", "Đã xuất", "Đã hủy"
-    }
     // Request chứa các tham số lọc + phân trang
     public class OutboundOrderQueryFilter
     {

@@ -9,7 +9,7 @@ namespace BMWMS.API.Controllers.Inventory
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,SALES_STAFF,ACCOUNTANT,DIRECTOR")]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,SALES_STAFF")]
     public class SalesOrdersController : ControllerBase
     {
         private readonly ISalesOrderService _salesOrderService;
@@ -160,7 +160,7 @@ namespace BMWMS.API.Controllers.Inventory
             }
             catch (ArgumentException ex) { return BadRequest(new { success = false, message = ex.Message }); }
             catch (InvalidOperationException ex) { return BadRequest(new { success = false, message = ex.Message }); }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return StatusCode(500, new { success = false, message = "Không thể cập nhật SO. Vui lòng kiểm tra database/migration hoặc liên hệ quản trị viên." });
             }

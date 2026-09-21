@@ -6,7 +6,7 @@ using System.Text.Json.Serialization;
 
 namespace BMWMS.Web.Pages.SaleOrder
 {
-    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,SALES_STAFF,ACCOUNTANT,DIRECTOR")]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,SALES_STAFF")]
     public class DetailsModel : PageModel
     {
         private readonly IHttpClientFactory _httpClientFactory;
@@ -115,6 +115,7 @@ namespace BMWMS.Web.Pages.SaleOrder
 
     public class SalesOrderDto
     {
+        public bool CanExternalCancel { get; set; }
         public long CreatedByUserId { get; set; }
         public string RowVersion { get; set; } = "";
         public bool CanEdit { get; set; }

@@ -303,7 +303,7 @@ namespace BMWMS.Business.Services.Inventory
         public async Task<SalesOrderDetailDto> CreateDraftAsync(CreateUpdateSalesOrderDto dto)
         {
             var creator = await _context.Users.Include(u => u.Role).AsNoTracking().FirstOrDefaultAsync(u => u.UserId == dto.CurrentUserId && u.Status == "ACTIVE");
-            if (creator?.Role?.RoleCode is not ("SALES_STAFF" or "SYSTEM_ADMIN"))
+            if (BusinessRoleCodes.Normalize(creator?.Role?.RoleCode) is not ("SALES_STAFF" or "SYSTEM_ADMIN"))
                 throw new UnauthorizedAccessException("Chỉ Sales Staff được tạo đơn bán hàng.");
             if (dto.CustomerId <= 0)
                 throw new ArgumentException("Vui lòng chọn khách hàng.");
@@ -384,7 +384,7 @@ namespace BMWMS.Business.Services.Inventory
         {
             var actor = await _context.Users.Include(u => u.Role).AsNoTracking()
                 .FirstOrDefaultAsync(u => u.UserId == dto.CurrentUserId && u.Status == "ACTIVE");
-            if (actor?.Role?.RoleCode is not ("SALES_STAFF" or "SYSTEM_ADMIN"))
+            if (BusinessRoleCodes.Normalize(actor?.Role?.RoleCode) is not ("SALES_STAFF" or "SYSTEM_ADMIN"))
                 throw new InvalidOperationException("Chỉ nhân viên bán hàng được sửa SO nháp.");
             if (await _salesOrderRepository.GetActiveCustomerAsync(dto.CustomerId) == null)
                 throw new ArgumentException("Khách hàng không còn hoạt động.");
@@ -408,7 +408,7 @@ namespace BMWMS.Business.Services.Inventory
                     .Include(s => s.SalesOrderDetails)
                     .FirstOrDefaultAsync(s => s.SalesOrderId == dto.SalesOrderId.Value);
                 if (existing == null || existing.Status != "DRAFT") return false;
-                if (actor.Role.RoleCode == "SALES_STAFF" && existing.CreatedByUserId != dto.CurrentUserId)
+                if (BusinessRoleCodes.Normalize(actor!.Role!.RoleCode) == "SALES_STAFF" && existing.CreatedByUserId != dto.CurrentUserId)
                     throw new InvalidOperationException("Bạn chỉ được sửa đơn bán hàng mình phụ trách.");
                 if (await _context.OutboundOrders.AnyAsync(o => o.SalesOrderId == existing.SalesOrderId) ||
                     await _context.InboundOrders.AnyAsync(o => o.SalesOrderId == existing.SalesOrderId))
@@ -532,11 +532,12 @@ namespace BMWMS.Business.Services.Inventory
             var permittedRoles = new[] { "SALES_STAFF", "WAREHOUSE_MANAGER", "SYSTEM_ADMIN" };
             if (actor?.Role == null || !permittedRoles.Contains(actor.Role.RoleCode))
                 return (false, "Bạn không có quyền hủy đơn bán hàng.");
-            if (actor.Role.RoleCode == "SALES_STAFF" && order.CreatedByUserId != userId)
+            var actorRole = BusinessRoleCodes.Normalize(actor.Role.RoleCode);
+            if (actorRole == "SALES_STAFF" && order.CreatedByUserId != userId)
                 return (false, "Bạn chỉ được hủy SO mình phụ trách.");
-            if (actor.Role.RoleCode == "SALES_STAFF" && order.Status != "DRAFT")
+            if (actorRole == "SALES_STAFF" && order.Status != "DRAFT")
                 return (false, "SO đã được Manager duyệt; nhân viên bán hàng không được hủy.");
-            if (actor.Role.RoleCode == "WAREHOUSE_MANAGER" && order.Status == "DRAFT")
+            if (actorRole == "WAREHOUSE_MANAGER" && order.Status == "DRAFT")
                 return (false, "SO đang nháp; hãy dùng chức năng từ chối đơn hàng.");
             reason = reason?.Trim() ?? string.Empty;
             if (reason.Length is < 5 or > 500)

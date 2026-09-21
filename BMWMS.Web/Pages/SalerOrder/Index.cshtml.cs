@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace BMWMS.Web.Pages.SalesOrders
 {
-    [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,SALES_STAFF,ACCOUNTANT,DIRECTOR")]
+    [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,SALES_STAFF")]
     public class IndexModel : PageModel
     {
         private readonly IHttpClientFactory _httpClientFactory;
