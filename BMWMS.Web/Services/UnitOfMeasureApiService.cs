@@ -27,38 +27,42 @@ namespace BMWMS.Web.Services
 
         public async Task<UnitOfMeasureDto?> GetByIdAsync(int id)
         {
-            return await _httpClient.GetFromJsonAsync<UnitOfMeasureDto>($"/api/UnitOfMeasures/{id}");
+            var response = await _httpClient.GetAsync($"/api/UnitOfMeasures/{id}");
+            if (!response.IsSuccessStatusCode) return null;
+            return await response.Content.ReadFromJsonAsync<UnitOfMeasureDto>();
         }
 
-        public async Task CreateAsync(CreateUnitOfMeasureDto dto)
+        public async Task<(bool Success, string Message)> CreateAsync(CreateUnitOfMeasureDto dto)
         {
             var response = await _httpClient.PostAsJsonAsync("/api/UnitOfMeasures", dto);
             if (!response.IsSuccessStatusCode)
             {
-                var error = await response.Content.ReadAsStringAsync();
-                throw new System.Exception(error);
+                var error = await ApiErrorReader.ReadAsync(response);
+                return (false, error);
             }
+            return (true, "Thêm đơn vị tính thành công.");
         }
 
-        public async Task UpdateAsync(int id, UpdateUnitOfMeasureDto dto)
+        public async Task<(bool Success, string Message)> UpdateAsync(int id, UpdateUnitOfMeasureDto dto)
         {
             var response = await _httpClient.PutAsJsonAsync($"/api/UnitOfMeasures/{id}", dto);
             if (!response.IsSuccessStatusCode)
             {
-                var error = await response.Content.ReadAsStringAsync();
-                throw new System.Exception(error);
+                var error = await ApiErrorReader.ReadAsync(response);
+                return (false, error);
             }
+            return (true, "Cập nhật đơn vị tính thành công.");
         }
 
-        public async Task DeleteAsync(int id)
+        public async Task<(bool Success, string Message)> DeleteAsync(int id)
         {
             var response = await _httpClient.DeleteAsync($"/api/UnitOfMeasures/{id}");
             if (!response.IsSuccessStatusCode)
             {
-                var error = await response.Content.ReadAsStringAsync();
-                throw new System.Exception(error);
+                var error = await ApiErrorReader.ReadAsync(response);
+                return (false, error);
             }
+            return (true, "Xóa đơn vị tính thành công.");
         }
     }
 }
-

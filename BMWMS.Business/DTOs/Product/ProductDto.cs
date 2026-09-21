@@ -135,6 +135,8 @@ namespace BMWMS.Business.DTOs.Product
         public string UnitCode { get; set; } = string.Empty;
         public string UnitName { get; set; } = string.Empty;
         public byte QuantityScale { get; set; }
+        public string Status { get; set; } = "ACTIVE";
+        public bool IsInUse { get; set; }
     }
 
     public class ProductGroupOptionDto

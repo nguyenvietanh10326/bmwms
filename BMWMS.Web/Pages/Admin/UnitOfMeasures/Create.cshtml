@@ -1,4 +1,4 @@
-﻿@page
+@page
 @model BMWMS.Web.Pages.Admin.UnitOfMeasures.CreateModel
 @{
     ViewData["Title"] = "Thêm Đơn vị tính";
@@ -33,7 +33,7 @@
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label asp-for="Input.QuantityScale" class="form-label fw-bold">Thang tỷ lệ (Scale)</label>
-                    <input asp-for="Input.QuantityScale" class="form-control" type="number" min="0" value="0" />
+                    <input asp-for="Input.QuantityScale" class="form-control" type="number" min="0" max="4" value="0" />
                     <span asp-validation-for="Input.QuantityScale" class="text-danger small"></span>
                     <small class="text-muted d-block mt-1">Số chữ số thập phân tối đa cho phép. VD: 0 = số nguyên, 2 = 2 chữ số thập phân.</small>
                 </div>

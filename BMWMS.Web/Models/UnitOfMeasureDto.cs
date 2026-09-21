@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace BMWMS.Web.Models
 {
@@ -9,6 +9,7 @@ namespace BMWMS.Web.Models
         public string UnitName { get; set; } = string.Empty;
         public byte QuantityScale { get; set; } = 0;
         public string Status { get; set; } = "ACTIVE";
+        public bool IsInUse { get; set; }
     }
 
     public class CreateUnitOfMeasureDto
@@ -21,6 +22,7 @@ namespace BMWMS.Web.Models
         [StringLength(50)]
         public string UnitName { get; set; } = string.Empty;
 
+        [Range(0, 4, ErrorMessage = "Thang tỷ lệ phải từ 0 đến 4")]
         public byte QuantityScale { get; set; } = 0;
         public string Status { get; set; } = "ACTIVE";
     }
@@ -35,8 +37,8 @@ namespace BMWMS.Web.Models
         [StringLength(50)]
         public string UnitName { get; set; } = string.Empty;
 
+        [Range(0, 4, ErrorMessage = "Thang tỷ lệ phải từ 0 đến 4")]
         public byte QuantityScale { get; set; } = 0;
         public string Status { get; set; } = "ACTIVE";
     }
 }
-
