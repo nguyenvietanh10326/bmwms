@@ -19,7 +19,34 @@ else { <div class="text-muted mt-2">Phiếu lịch sử: xem các SO trong ngu�
 @if (r.Status == "SUBMITTED" && (User.IsInRole("SYSTEM_ADMIN") || (User.IsInRole("SALES_STAFF") && User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value == r.CreatedByUserId.ToString()))) { <form method="post" asp-page-handler="Decision" asp-route-id="@r.Id" class="d-flex gap-2 mb-3"><input name="Id" type="hidden" value="@r.Id" /><input name="rowVersion" type="hidden" value="@r.RowVersion" /><input name="action" type="hidden" value="CANCEL" /><input name="reason" class="form-control" placeholder="Lý do hủy" minlength="5" maxlength="500" required /><button class="btn btn-outline-danger">Hủy yêu cầu</button></form> }
 @if (r.Status is "APPROVED" or "PARTIALLY_RECEIVED") {
  if (User.IsInRole("WAREHOUSE_STAFF")) { <form method="post" asp-page-handler="Receipt" asp-route-id="@r.Id" class="card card-body mb-3"><input name="Id" type="hidden" value="@r.Id" /><label for="receiptDate" class="form-label">Ngày nhận hàng trả</label><div class="d-flex gap-2"><input id="receiptDate" name="receiptDate" type="date" class="form-control" value="@DateTime.Today.ToString("yyyy-MM-dd")" max="@DateTime.Today.ToString("yyyy-MM-dd")" required /><button class="btn btn-primary">Nhận trách nhiệm đợt này</button></div></form> }
- if (manager) { <form method="post" asp-page-handler="Decision" asp-route-id="@r.Id" class="d-flex gap-2 mb-3"><input name="Id" type="hidden" value="@r.Id" /><input name="rowVersion" type="hidden" value="@r.RowVersion" /><input name="action" type="hidden" value="CLOSE" /><input name="reason" class="form-control" placeholder="Lý do kết thúc phần chưa nhận trả" minlength="10" maxlength="500" required /><button class="btn btn-outline-warning">Kết thúc yêu cầu</button></form> }
+}
+@if (r.Status == "PENDING_REMAINDER_REVIEW")
+{
+    <div class="card border-warning mb-3">
+        <div class="card-header bg-warning-subtle fw-semibold">Manager quyết định phần khách còn trả</div>
+        <div class="card-body">
+            <p class="text-muted">Đợt nhận gần nhất đã cất xong nhưng chưa đủ số lượng được duyệt. Chọn đúng thỏa thuận đã xác nhận với khách hàng.</p>
+            @if (manager)
+            {
+                <div class="row g-3">
+                    <form method="post" asp-page-handler="Decision" asp-route-id="@r.Id" class="col-lg-6">
+                        <input name="Id" type="hidden" value="@r.Id" /><input name="rowVersion" type="hidden" value="@r.RowVersion" /><input name="action" type="hidden" value="CONTINUE" />
+                        <label class="form-label">Căn cứ cho phép nhận tiếp</label><textarea name="reason" class="form-control mb-2" minlength="10" maxlength="500" required></textarea>
+                        <button class="btn btn-primary">Cho phép nhận đợt tiếp theo</button>
+                    </form>
+                    <form method="post" asp-page-handler="Decision" asp-route-id="@r.Id" class="col-lg-6" onsubmit="return confirm('Đóng phần khách chưa trả? Yêu cầu hiện tại sẽ không thể tạo thêm đợt nhận.');">
+                        <input name="Id" type="hidden" value="@r.Id" /><input name="rowVersion" type="hidden" value="@r.RowVersion" /><input name="action" type="hidden" value="CLOSE" />
+                        <label class="form-label">Căn cứ kết thúc phần còn lại</label><textarea name="reason" class="form-control mb-2" minlength="10" maxlength="500" required></textarea>
+                        <button class="btn btn-outline-warning">Đóng yêu cầu theo số thực nhận</button>
+                    </form>
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-info mb-0">Đang chờ Manager quyết định nhận tiếp hay đóng phần còn lại.</div>
+            }
+        </div>
+    </div>
 }
 <div class="card card-body"><h5>Các đợt nhận hàng trả</h5>@foreach (var id in r.InboundIds) { <a asp-page="/Admin/Inbound/Details" asp-route-id="@id">Phiếu nhập #@id</a> }@if (!r.InboundIds.Any()) { <span class="text-muted">Chưa có đợt tiếp nhận.</span> }</div>
 }

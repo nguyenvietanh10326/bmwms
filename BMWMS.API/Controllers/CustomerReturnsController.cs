@@ -7,14 +7,16 @@ using Microsoft.AspNetCore.Mvc;
 namespace BMWMS.API.Controllers;
 
 [ApiController, Route("api/customer-returns")]
-[Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,SALES_STAFF,WAREHOUSE_STAFF,ACCOUNTANT,DIRECTOR")]
+[Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,SALES_STAFF,WAREHOUSE_STAFF")]
 public class CustomerReturnsController(CustomerReturnRequestService service, ILogger<CustomerReturnsController> logger) : ControllerBase
 {
     private long CurrentUserId => long.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : throw new UnauthorizedAccessException();
     [HttpGet] public async Task<IActionResult> List()
     {
         var rows = await service.GetListAsync();
-        return Ok(User.IsInRole("WAREHOUSE_STAFF") ? rows.Where(r => r.Status is "APPROVED" or "PARTIALLY_RECEIVED" or "COMPLETED") : rows);
+        return Ok(User.IsInRole("WAREHOUSE_STAFF")
+            ? rows.Where(r => r.Status is "APPROVED" or "PARTIALLY_RECEIVED" or "PENDING_REMAINDER_REVIEW" or "COMPLETED")
+            : rows);
     }
     [HttpGet("{id:long}")] public async Task<IActionResult> Get(long id) => await service.GetAsync(id) is { } r ? Ok(r) : NotFound();
     [HttpGet("sales-orders")]

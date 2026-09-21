@@ -10,10 +10,10 @@ namespace BMWMS.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF,PURCHASING_STAFF,SALES_STAFF,ACCOUNTANT,DIRECTOR")]
+[Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF,PURCHASING_STAFF,SALES_STAFF")]
 public class InboundsController : ControllerBase
 {
-    private bool CanReadAllOrders => User.IsInRole("SYSTEM_ADMIN") || User.IsInRole("WAREHOUSE_MANAGER") || User.IsInRole("ACCOUNTANT") || User.IsInRole("DIRECTOR");
+    private bool CanReadAllOrders => User.IsInRole("SYSTEM_ADMIN") || User.IsInRole("WAREHOUSE_MANAGER");
     private readonly IInboundService _inboundService;
     private readonly ILogger<InboundsController> _logger;
 
