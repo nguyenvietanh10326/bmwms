@@ -241,63 +241,6 @@ namespace BMWMS.Web.Services
             }
         }
 
-        public async Task<StocktakeActionResultModel> AddUnbookedItemAsync(long id, AddUnbookedStocktakeItemModel request)
-        {
-            try
-            {
-                var response = await _httpClient.PostAsJsonAsync($"api/stocktakes/{id}/unbooked-items", request);
-                return await ReadActionResultAsync(response);
-            }
-            catch (Exception ex)
-            {
-                return Failure($"Lỗi kết nối: {ex.Message}");
-            }
-        }
-
-        public async Task<StocktakeActionResultModel> RemoveUnbookedItemAsync(long id, long itemId)
-        {
-            try
-            {
-                var response = await _httpClient.DeleteAsync($"api/stocktakes/{id}/items/{itemId}");
-                return await ReadActionResultAsync(response);
-            }
-            catch (Exception ex)
-            {
-                return Failure($"Lỗi kết nối: {ex.Message}");
-            }
-        }
-
-        public async Task<StocktakeActionResultModel> SetTargetLocationAsync(long id, long itemId, long? targetStorageLocationId)
-        {
-            try
-            {
-                var response = await _httpClient.PutAsJsonAsync(
-                    $"api/stocktakes/{id}/items/{itemId}/target-location",
-                    new SetTargetLocationModel { TargetStorageLocationId = targetStorageLocationId });
-                return await ReadActionResultAsync(response);
-            }
-            catch (Exception ex)
-            {
-                return Failure($"Lỗi kết nối: {ex.Message}");
-            }
-        }
-
-        public async Task<List<CompatibleLocationModel>> GetCompatibleLocationsAsync(long id, long productId, decimal quantity = 0)
-        {
-            try
-            {
-                var response = await _httpClient.GetAsync($"api/stocktakes/{id}/compatible-locations?productId={productId}&quantity={quantity}");
-                if (!response.IsSuccessStatusCode)
-                    return new List<CompatibleLocationModel>();
-
-                return await response.Content.ReadFromJsonAsync<List<CompatibleLocationModel>>(JsonOptions)
-                    ?? new List<CompatibleLocationModel>();
-            }
-            catch
-            {
-                return new List<CompatibleLocationModel>();
-            }
-        }
 
         private static async Task<StocktakeActionResultModel> ReadActionResultAsync(HttpResponseMessage response)
         {

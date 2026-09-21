@@ -5,7 +5,6 @@ using BMWMS.Business.DTOs.Capacity;
 using BMWMS.Business.DTOs.Stocktake;
 using BMWMS.Business.Interfaces;
 using BMWMS.Business.Interfaces.Stocktake;
-using BMWMS.Repository.Common;
 using BMWMS.Repository.Interfaces.Stocktake;
 using BMWMS.Repository.Models;
 using Microsoft.EntityFrameworkCore;
@@ -270,7 +269,7 @@ namespace BMWMS.Business.Services.Stocktake
                     .Where(row => row.Adjustment != 0)
                     .Select(row => new CapacityAllocationDto
                     {
-                        StorageLocationId = StocktakeLocationHelper.ExtractTargetLocationId(row.Item.Notes) ?? row.Item.StorageLocationId,
+                        StorageLocationId = row.Item.StorageLocationId,
                         ProductId = row.Item.ProductId,
                         Quantity = row.Adjustment
                     })
@@ -359,127 +358,6 @@ namespace BMWMS.Business.Services.Stocktake
             }
         }
 
-        public async Task<StocktakeActionResultDto> AddUnbookedItemAsync(
-            long stocktakeSessionId,
-            AddUnbookedStocktakeItemDto dto,
-            long currentUserId)
-        {
-            var access = await EnsureAccessAsync(stocktakeSessionId, currentUserId, canManage: false);
-            if (!access)
-                return Fail("Bạn không có quyền thực hiện thao tác trên phiếu kiểm kho này.", stocktakeSessionId);
-
-            try
-            {
-                var param = new AddUnbookedStocktakeItemParam
-                {
-                    StorageLocationId = dto.StorageLocationId,
-                    TargetStorageLocationId = dto.TargetStorageLocationId,
-                    ProductId = dto.ProductId,
-                    CountedQuantity = dto.CountedQuantity,
-                    FirstReceivedDate = dto.FirstReceivedDate,
-                    ExpiryDate = dto.ExpiryDate,
-                    Notes = dto.Notes
-                };
-
-                var item = await _stocktakeRepo.AddUnbookedItemAsync(stocktakeSessionId, param, currentUserId);
-                var session = await _stocktakeRepo.GetSessionDetailAsync(stocktakeSessionId);
-                return Success(session!, "Đã thêm hàng phát sinh ngoài sổ sách thành công.");
-            }
-            catch (Exception ex)
-            {
-                return Fail(ex.Message, stocktakeSessionId);
-            }
-        }
-
-        public async Task<StocktakeActionResultDto> RemoveUnbookedItemAsync(
-            long stocktakeSessionId,
-            long stocktakeItemId,
-            long currentUserId)
-        {
-            var access = await EnsureAccessAsync(stocktakeSessionId, currentUserId, canManage: false);
-            if (!access)
-                return Fail("Bạn không có quyền thực hiện thao tác trên phiếu kiểm kho này.", stocktakeSessionId);
-
-            try
-            {
-                await _stocktakeRepo.RemoveUnbookedItemAsync(stocktakeSessionId, stocktakeItemId, currentUserId);
-                var session = await _stocktakeRepo.GetSessionDetailAsync(stocktakeSessionId);
-                return Success(session!, "Đã xóa hàng phát sinh thành công.");
-            }
-            catch (Exception ex)
-            {
-                return Fail(ex.Message, stocktakeSessionId);
-            }
-        }
-
-        public async Task<StocktakeActionResultDto> SetTargetLocationAsync(
-            long stocktakeSessionId,
-            long stocktakeItemId,
-            long? targetStorageLocationId,
-            long currentUserId)
-        {
-            var access = await EnsureAccessAsync(stocktakeSessionId, currentUserId, canManage: false);
-            if (!access)
-                return Fail("Bạn không có quyền thực hiện thao tác trên phiếu kiểm kho này.", stocktakeSessionId);
-
-            try
-            {
-                await _stocktakeRepo.SetTargetLocationAsync(stocktakeSessionId, stocktakeItemId, targetStorageLocationId, currentUserId);
-                var session = await _stocktakeRepo.GetSessionDetailAsync(stocktakeSessionId);
-                return Success(session!, "Đã cập nhật vị trí nhận hàng.");
-            }
-            catch (Exception ex)
-            {
-                return Fail(ex.Message, stocktakeSessionId);
-            }
-        }
-
-        public async Task<List<CompatibleLocationDto>> GetCompatibleLocationsAsync(
-            long stocktakeSessionId,
-            long productId,
-            decimal quantity)
-        {
-            var session = await _stocktakeRepo.GetSessionDetailAsync(stocktakeSessionId);
-            if (session == null)
-                return new List<CompatibleLocationDto>();
-
-            var product = await _context.Products
-                .Include(p => p.UnitOfMeasure)
-                .FirstOrDefaultAsync(p => p.ProductId == productId);
-            var unitName = product?.UnitOfMeasure?.UnitName ?? string.Empty;
-
-            var locations = await _stocktakeRepo.GetCompatibleLocationsAsync(session.WarehouseId, productId, quantity);
-            var results = new List<CompatibleLocationDto>();
-
-            foreach (var loc in locations)
-            {
-                var currentOccupancy = loc.Inventories.Sum(i => i.OnHandQuantity);
-                var maxCap = loc.MaxCapacityQuantity;
-                var remaining = maxCap.HasValue ? Math.Max(0, maxCap.Value - currentOccupancy) : 999999m;
-
-                var zone = loc.StorageRack?.WarehouseZone;
-                var rack = loc.StorageRack;
-                var path = $"{zone?.ZoneCode ?? ""}/{rack?.RackCode ?? ""}/{loc.LocationCode}".TrimStart('/');
-                var isCompatible = zone?.ProductGroupId == null || (product != null && zone.ProductGroupId == product.ProductGroupId);
-
-                results.Add(new CompatibleLocationDto
-                {
-                    StorageLocationId = loc.StorageLocationId,
-                    LocationCode = loc.LocationCode,
-                    LocationName = loc.LocationName ?? loc.LocationCode,
-                    LocationPath = path,
-                    ZoneCode = zone?.ZoneCode ?? string.Empty,
-                    ZoneName = zone?.ZoneName ?? string.Empty,
-                    MaxCapacity = maxCap,
-                    CurrentOccupancy = currentOccupancy,
-                    RemainingCapacity = remaining,
-                    UnitName = unitName,
-                    IsCompatibleZone = isCompatible
-                });
-            }
-
-            return results;
-        }
 
         public async Task<StocktakeActionResultDto> RejectSessionAsync(
             long stocktakeSessionId,
@@ -684,7 +562,6 @@ namespace BMWMS.Business.Services.Stocktake
             var product = item.ProductLot?.Product;
             var location = item.StorageLocation;
             var difference = item.CountedQuantity.HasValue ? item.CountedQuantity.Value - item.BookQuantity : (decimal?)null;
-            var (targetLocationId, targetLocationCode, _) = StocktakeLocationHelper.ParseTargetLocation(item.Notes);
 
             return new StocktakeCountLineDto
             {
@@ -710,9 +587,7 @@ namespace BMWMS.Business.Services.Stocktake
                 DifferenceQuantity = includeBookQuantities ? difference : null,
                 AdjustmentQuantity = includeBookQuantities ? item.AdjustmentQuantity : null,
                 Resolution = includeBookQuantities ? item.Resolution : null,
-                Notes = item.Notes,
-                TargetStorageLocationId = targetLocationId,
-                TargetLocationCode = targetLocationCode
+                Notes = item.Notes
             };
         }
 

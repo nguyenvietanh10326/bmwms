@@ -1,8 +1,5 @@
 @using BMWMS.Web.Helpers
 @model BMWMS.Web.Models.StocktakeSessionDetailModel
-@{
-    var isManager = (bool?)ViewData["IsManager"] == true;
-}
 <section class="stocktake-section">
     <div class="stocktake-section__heading">
         <div>
@@ -25,32 +22,10 @@
             <tbody>
             @foreach (var item in Model.Items)
             {
-                var isUnbooked = item.IsUnbooked || (item.BookQuantity ?? 0) == 0;
                 <tr class="@(item.DifferenceQuantity != 0 ? "stocktake-row--variance" : null)">
                     <td>
                         <div><span class="location-chip">@item.LocationCode</span></div>
                         <small class="text-muted d-block">@item.LocationPath</small>
-                        @if (isUnbooked)
-                        {
-                            <div class="mt-1"><span class="badge bg-warning text-dark" style="font-size:0.75rem;"><i class="ri-alert-line"></i> Phát sinh ngoài sổ</span></div>
-                        }
-                        @if (item.TargetStorageLocationId.HasValue)
-                        {
-                            <div class="mt-1">
-                                <span class="badge bg-info text-dark" style="font-size:0.75rem;" title="Hàng phát sinh sẽ được ghi nhận vào vị trí này khi duyệt">
-                                    <i class="ri-arrow-right-line"></i> Nhập về: <strong>@item.TargetLocationCode</strong>
-                                </span>
-                            </div>
-                        }
-                        @if (isManager && (Model.Status == "PENDING_APPROVAL" || Model.Status == "IN_PROGRESS") && (isUnbooked || (item.DifferenceQuantity ?? 0) > 0))
-                        {
-                            <div class="mt-1">
-                                <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none" style="font-size: 0.78rem;"
-                                        onclick="openTargetLocationModal(@item.StocktakeItemId, '@item.ProductCode', @item.ProductId, @(item.TargetStorageLocationId?.ToString() ?? "null"), @(item.DifferenceQuantity ?? 0))">
-                                    <i class="ri-edit-line"></i> @(item.TargetStorageLocationId.HasValue ? "Đổi vị trí nhận" : "Gán vị trí nhận")
-                                </button>
-                            </div>
-                        }
                     </td>
                     <td>
                         <strong>@item.ProductCode</strong>
@@ -68,82 +43,3 @@
         </table>
     </div>
 </section>
-
-@if (isManager && (Model.Status == "PENDING_APPROVAL" || Model.Status == "IN_PROGRESS"))
-{
-    <div class="modal fade" id="setTargetLocationModal" tabindex="-1" aria-labelledby="setTargetLocationModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <form method="post" asp-page-handler="SetTargetLocation" asp-route-id="@Model.StocktakeSessionId">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="itemId" id="modalStocktakeItemId" />
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="setTargetLocationModalLabel">
-                            <i class="ri-route-line text-primary me-1"></i> Gán vị trí nhận hàng
-                        </h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <p class="text-muted small mb-3">
-                            Chọn vị trí lưu kho phù hợp cho sản phẩm <strong id="modalProductCode"></strong>. Khi phê duyệt phiếu kiểm kho, lượng hàng chênh lệch thừa sẽ được cập nhật nhập vào vị trí này.
-                        </p>
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">Vị trí nhận hàng (Target Location)</label>
-                            <select class="form-select" name="targetStorageLocationId" id="modalTargetLocationSelect">
-                                <option value="">-- Mặc định: Giữ nguyên tại vị trí kiểm --</option>
-                            </select>
-                            <div id="modalTargetLoading" class="text-muted small mt-1 d-none">
-                                <i class="ri-loader-4-line spin"></i> Đang tải danh sách vị trí phù hợp...
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                        <button type="submit" class="btn btn-primary">Lưu vị trí nhận</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <script>
-    async function openTargetLocationModal(itemId, productCode, productId, currentTargetId, quantity) {
-        document.getElementById('modalStocktakeItemId').value = itemId;
-        document.getElementById('modalProductCode').innerText = productCode;
-        const select = document.getElementById('modalTargetLocationSelect');
-        const loading = document.getElementById('modalTargetLoading');
-
-        select.innerHTML = '<option value="">-- Mặc định: Giữ nguyên tại vị trí kiểm --</option>';
-        loading.classList.remove('d-none');
-
-        const modalElement = document.getElementById('setTargetLocationModal');
-        const bsModal = bootstrap.Modal.getOrCreateInstance(modalElement);
-        bsModal.show();
-
-        try {
-            const url = `?handler=CompatibleLocations&id=@Model.StocktakeSessionId&productId=${productId}&quantity=${quantity || 0}`;
-            const res = await fetch(url);
-            if (res.ok) {
-                const data = await res.json();
-                if (Array.isArray(data) && data.length > 0) {
-                    data.forEach(loc => {
-                        const opt = document.createElement('option');
-                        opt.value = loc.storageLocationId;
-                        const capText = loc.remainingCapacity >= 99999 ? 'Không giới hạn' : `${loc.remainingCapacity} ${loc.unitName || ''}`.trim();
-                        const tag = loc.isCompatibleZone ? '' : ' (Khác nhóm SP)';
-                        opt.text = `[${loc.locationCode}] ${loc.locationPath} · Còn trống: ${capText}${tag}`;
-                        if (currentTargetId && loc.storageLocationId == currentTargetId) {
-                            opt.selected = true;
-                        }
-                        select.appendChild(opt);
-                    });
-                }
-            }
-        } catch (e) {
-            console.error("Failed to load compatible locations", e);
-        } finally {
-            loading.classList.add('d-none');
-        }
-    }
-    </script>
-}

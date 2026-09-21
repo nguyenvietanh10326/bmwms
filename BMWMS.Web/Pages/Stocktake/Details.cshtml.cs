@@ -8,18 +8,15 @@ namespace BMWMS.Web.Pages.Stocktake
     public class DetailsModel : PageModel
     {
         private readonly IStocktakeApiService _stocktakeService;
-        private readonly ProductApiService _productService;
 
-        public DetailsModel(IStocktakeApiService stocktakeService, ProductApiService productService)
+        public DetailsModel(IStocktakeApiService stocktakeService)
         {
             _stocktakeService = stocktakeService;
-            _productService = productService;
         }
 
         public StocktakeSessionDetailModel? SessionDetail { get; set; }
         public bool IsManager { get; set; }
         public bool IsStaff { get; set; }
-        public List<ProductResponseModel> AvailableProducts { get; set; } = new();
 
         [BindProperty(SupportsGet = true)]
         public long Id { get; set; }
@@ -29,9 +26,6 @@ namespace BMWMS.Web.Pages.Stocktake
 
         [BindProperty]
         public List<long> ConfirmedEmptyLocationIds { get; set; } = new();
-
-        [BindProperty]
-        public AddUnbookedStocktakeItemModel UnbookedItem { get; set; } = new();
 
         [TempData]
         public string? SuccessMessage { get; set; }
@@ -49,12 +43,6 @@ namespace BMWMS.Web.Pages.Stocktake
             SessionDetail = await _stocktakeService.GetSessionByIdAsync(id);
             if (SessionDetail == null)
                 return NotFound();
-
-            if (IsStaff || IsManager)
-            {
-                var productsResult = await _productService.GetPagedListAsync(new ProductFilterModel { PageSize = 1000, Status = "ACTIVE" });
-                AvailableProducts = productsResult.Items ?? new();
-            }
 
             return Page();
         }
@@ -143,7 +131,6 @@ namespace BMWMS.Web.Pages.Stocktake
             return RedirectToPage("/Stocktake/Details", new { id });
         }
 
-        // BP-05: Warehouse Manager — Approve stock adjustment → BMWMS posts adjustment + audit
         public async Task<IActionResult> OnPostApproveAsync(
             long id,
             string? notes,
@@ -162,49 +149,6 @@ namespace BMWMS.Web.Pages.Stocktake
             });
             TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] = result.Message;
             return RedirectToPage("/Stocktake/Details", new { id });
-        }
-
-        public async Task<IActionResult> OnPostAddUnbookedItemAsync(long id)
-        {
-            CheckRole();
-            if (!IsStaff && !IsManager)
-                return Deny(id, "Bạn không có quyền thực hiện thao tác trên phiếu kiểm kho.");
-
-            var session = await _stocktakeService.GetSessionByIdAsync(id);
-            if (session != null && session.PlannedDate > DateOnly.FromDateTime(DateTime.Today) && !IsManager)
-                return Deny(id, $"Chưa đến ngày thực hiện kiểm kho ({session.PlannedDate:dd/MM/yyyy}).");
-
-            var result = await _stocktakeService.AddUnbookedItemAsync(id, UnbookedItem);
-            TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] = result.Message;
-            return RedirectToPage("/Stocktake/Details", new { id });
-        }
-
-        public async Task<IActionResult> OnPostRemoveUnbookedItemAsync(long id, long itemId)
-        {
-            CheckRole();
-            if (!IsStaff && !IsManager)
-                return Deny(id, "Bạn không có quyền thực hiện thao tác trên phiếu kiểm kho.");
-
-            var result = await _stocktakeService.RemoveUnbookedItemAsync(id, itemId);
-            TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] = result.Message;
-            return RedirectToPage("/Stocktake/Details", new { id });
-        }
-
-        public async Task<IActionResult> OnPostSetTargetLocationAsync(long id, long itemId, long? targetStorageLocationId)
-        {
-            CheckRole();
-            if (!IsStaff && !IsManager)
-                return Deny(id, "Bạn không có quyền thực hiện thao tác trên phiếu kiểm kho.");
-
-            var result = await _stocktakeService.SetTargetLocationAsync(id, itemId, targetStorageLocationId);
-            TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] = result.Message;
-            return RedirectToPage("/Stocktake/Details", new { id });
-        }
-
-        public async Task<IActionResult> OnGetCompatibleLocationsAsync(long id, long productId, decimal quantity = 0)
-        {
-            var list = await _stocktakeService.GetCompatibleLocationsAsync(id, productId, quantity);
-            return new JsonResult(list);
         }
 
         private IActionResult Deny(long id, string message)

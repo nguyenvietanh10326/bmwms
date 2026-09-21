@@ -1,20 +1,7 @@
 @using BMWMS.Web.Helpers
 @model BMWMS.Web.Models.StocktakeSessionDetailModel
-@{
-    var availableProducts = ViewData["AvailableProducts"] as List<BMWMS.Web.Models.ProductResponseModel> ?? new();
-}
 <section class="stocktake-section stocktake-count-sheet">
-    <div class="stocktake-section__heading d-flex flex-wrap justify-content-between align-items-center gap-2">
-        <div>
-            <h2>Nhập số lượng kiểm kho</h2>
-            <p>Nhập số lượng đếm thực tế, sẵn sàng xuất bán.</p>
-        </div>
-        <div>
-            <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addUnbookedItemModal">
-                <i class="ri-add-circle-line me-1"></i> Ghi nhận hàng phát sinh ngoài sổ
-            </button>
-        </div>
-    </div>
+    <div class="stocktake-section__heading"><div><h2>Nhập số lượng kiểm kho</h2><p>Nhập số lượng đếm thực tế, sẵn sàng xuất bán.</p></div></div>
     <form method="post" asp-route-id="@Model.StocktakeSessionId" id="stocktakeCountForm">
         @Html.AntiForgeryToken()
         <input type="hidden" name="id" value="@Model.StocktakeSessionId" />
@@ -28,32 +15,14 @@
                         <th class="text-end">Khả dụng</th>
                         <th style="width:190px">Đếm thực tế</th>
                         <th>Ghi chú</th>
-                        <th style="width:40px"></th>
                     </tr>
                 </thead>
                 <tbody>
                 @for (var index = 0; index < Model.Items.Count; index++)
                 {
                     var item = Model.Items[index];
-                    var isUnbooked = item.IsUnbooked || (item.BookQuantity ?? 0) == 0;
-                    <tr class="@(isUnbooked ? "table-warning bg-opacity-10" : null)">
-                        <td>
-                            <span class="location-chip">@item.LocationCode</span><small>@item.LocationPath</small>
-                            @if (isUnbooked)
-                            {
-                                <div class="mt-1">
-                                    <span class="badge bg-warning text-dark" style="font-size:0.75rem;"><i class="ri-alert-line"></i> Phát sinh ngoài sổ</span>
-                                </div>
-                            }
-                            @if (item.TargetStorageLocationId.HasValue)
-                            {
-                                <div class="mt-1">
-                                    <span class="badge bg-info text-dark" style="font-size:0.72rem;" title="Hàng sẽ được nhập vào vị trí đích này khi duyệt">
-                                        <i class="ri-arrow-right-line"></i> Vị trí nhận: <strong>@item.TargetLocationCode</strong>
-                                    </span>
-                                </div>
-                            }
-                        </td>
+                    <tr>
+                        <td><span class="location-chip">@item.LocationCode</span><small>@item.LocationPath</small></td>
                         <td><strong>@item.ProductCode</strong><small>@item.ProductName · @item.UnitName</small></td>
                         <td>
                             <div><small class="text-muted">Nhập:</small> @(item.FirstReceivedDate?.ToString("dd/MM/yyyy") ?? "—")</div>
@@ -68,14 +37,6 @@
                                    inputmode="decimal" aria-label="Số lượng đếm thực tế @item.ProductCode tại @item.LocationCode" />
                         </td>
                         <td><input class="form-control form-control-sm" name="Lines[@index].Notes" value="@item.Notes" maxlength="1000" /></td>
-                        <td class="text-center align-middle">
-                            @if (isUnbooked)
-                            {
-                                <button type="submit" form="removeUnbookedForm_@item.StocktakeItemId" class="btn btn-sm btn-outline-danger p-1 border-0" title="Xóa hàng phát sinh" onclick="return confirm('Bạn có chắc muốn xóa dòng hàng phát sinh này khỏi phiếu kiểm kho?');">
-                                    <i class="ri-delete-bin-line"></i>
-                                </button>
-                            }
-                        </td>
                     </tr>
                 }
                 </tbody>
@@ -86,183 +47,3 @@
         </div>
     </form>
 </section>
-
-@* Forms for deleting unbooked items (external to main count form to avoid nesting) *@
-@for (var index = 0; index < Model.Items.Count; index++)
-{
-    var item = Model.Items[index];
-    if (item.IsUnbooked || (item.BookQuantity ?? 0) == 0)
-    {
-        <form method="post" asp-page-handler="RemoveUnbookedItem" asp-route-id="@Model.StocktakeSessionId" asp-route-itemId="@item.StocktakeItemId" id="removeUnbookedForm_@item.StocktakeItemId" style="display:none;">
-            @Html.AntiForgeryToken()
-        </form>
-    }
-}
-
-@* Modal ghi nhận hàng phát sinh ngoài sổ sách *@
-<div class="modal fade" id="addUnbookedItemModal" tabindex="-1" aria-labelledby="addUnbookedItemModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content">
-            <form method="post" asp-page-handler="AddUnbookedItem" asp-route-id="@Model.StocktakeSessionId" id="addUnbookedItemForm">
-                @Html.AntiForgeryToken()
-                <div class="modal-header bg-light">
-                    <h5 class="modal-title" id="addUnbookedItemModalLabel">
-                        <i class="ri-add-box-line me-1 text-primary"></i> Ghi nhận hàng phát sinh ngoài sổ sách
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body p-4">
-                    <div class="alert alert-info py-2 px-3 mb-3" style="font-size: 0.875rem;">
-                        <i class="ri-information-line me-1"></i> Sử dụng chức năng này khi kiểm kê thực tế phát hiện hàng tại vị trí nhưng trên hệ thống không có dữ liệu tồn sổ sách (Sổ = 0).
-                    </div>
-
-                    <div class="row g-3">
-                        <!-- Vị trí tìm thấy -->
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Vị trí phát hiện hàng <span class="text-danger">*</span></label>
-                            <select class="form-select" name="UnbookedItem.StorageLocationId" id="unbookedFoundLocationSelect" required>
-                                <option value="">-- Chọn vị trí phát hiện --</option>
-                                @foreach (var loc in Model.Locations)
-                                {
-                                    <option value="@loc.StorageLocationId">@loc.LocationCode (@loc.LocationPath)</option>
-                                }
-                            </select>
-                            <div class="form-text">Vị trí thực tế tìm thấy sản phẩm trong đợt kiểm kho này.</div>
-                        </div>
-
-                        <!-- Chọn sản phẩm -->
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Sản phẩm phát sinh <span class="text-danger">*</span></label>
-                            <select class="form-select" name="UnbookedItem.ProductId" id="unbookedProductSelect" required onchange="onUnbookedProductChange(this)">
-                                <option value="">-- Chọn sản phẩm --</option>
-                                @foreach (var prod in availableProducts)
-                                {
-                                    <option value="@prod.ProductId" data-unit="@prod.UnitName" data-scale="@prod.QuantityScale">
-                                        @prod.ProductCode - @prod.ProductName (@prod.UnitName)
-                                    </option>
-                                }
-                            </select>
-                        </div>
-
-                        <!-- Số lượng đếm -->
-                        <div class="col-md-4">
-                            <label class="form-label fw-semibold">Số lượng đếm thực tế <span class="text-danger">*</span></label>
-                            <div class="input-group">
-                                <input type="number" class="form-control text-end" name="UnbookedItem.CountedQuantity" id="unbookedQuantityInput" required min="1" step="1" oninput="onUnbookedQuantityChange()" />
-                                <span class="input-group-text" id="unbookedUnitSpan">ĐVT</span>
-                            </div>
-                        </div>
-
-                        <!-- Ngày nhập -->
-                        <div class="col-md-4">
-                            <label class="form-label">Ngày nhập hàng (nếu có)</label>
-                            <input type="date" class="form-control" name="UnbookedItem.FirstReceivedDate" />
-                        </div>
-
-                        <!-- Hạn sử dụng -->
-                        <div class="col-md-4">
-                            <label class="form-label">Hạn sử dụng (nếu có)</label>
-                            <input type="date" class="form-control" name="UnbookedItem.ExpiryDate" />
-                        </div>
-
-                        <!-- Vị trí đích / Vị trí phù hợp -->
-                        <div class="col-12">
-                            <div class="card bg-light border-0 p-3 mt-1">
-                                <label class="form-label fw-semibold mb-1">
-                                    <i class="ri-route-line text-primary me-1"></i> Vị trí nhận hàng phù hợp (Target Location)
-                                </label>
-                                <p class="text-muted small mb-2">
-                                    Trường hợp vị trí phát hiện không phù hợp khu vực (khác nhóm sản phẩm) hoặc quá tải sức chứa, hãy chọn vị trí lưu kho mục tiêu để hệ thống nhập hàng vào vị trí này khi phê duyệt.
-                                </p>
-                                <select class="form-select" name="UnbookedItem.TargetStorageLocationId" id="unbookedTargetLocationSelect">
-                                    <option value="">-- Mặc định: Nhập tại vị trí phát hiện (nếu phù hợp) --</option>
-                                </select>
-                                <div id="targetLocationLoading" class="text-muted small mt-1 d-none">
-                                    <i class="ri-loader-4-line spin"></i> Đang tải danh sách vị trí phù hợp với nhóm sản phẩm...
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Ghi chú -->
-                        <div class="col-12">
-                            <label class="form-label">Ghi chú</label>
-                            <input type="text" class="form-control" name="UnbookedItem.Notes" maxlength="500" placeholder="VD: Hàng thừa để quên, bao bì nguyên vẹn..." />
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer bg-light">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="ri-check-line me-1"></i> Xác nhận ghi nhận
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<script>
-async function onUnbookedProductChange(select) {
-    const productId = select.value;
-    const selectedOption = select.options[select.selectedIndex];
-    const unit = selectedOption ? selectedOption.getAttribute('data-unit') : 'ĐVT';
-    const scale = parseInt(selectedOption ? selectedOption.getAttribute('data-scale') : '0') || 0;
-
-    const unitSpan = document.getElementById('unbookedUnitSpan');
-    if (unitSpan) unitSpan.innerText = unit || 'ĐVT';
-
-    const qtyInput = document.getElementById('unbookedQuantityInput');
-    if (qtyInput) {
-        if (scale <= 0) {
-            qtyInput.min = '1';
-            qtyInput.step = '1';
-        } else {
-            const stepStr = '0.' + '0'.repeat(scale - 1) + '1';
-            qtyInput.min = stepStr;
-            qtyInput.step = stepStr;
-        }
-    }
-
-    await loadCompatibleLocations(productId, qtyInput ? qtyInput.value : 0);
-}
-
-function onUnbookedQuantityChange() {
-    const prodSelect = document.getElementById('unbookedProductSelect');
-    const qtyInput = document.getElementById('unbookedQuantityInput');
-    if (prodSelect && prodSelect.value && qtyInput) {
-        // can re-evaluate or filter locations based on quantity if needed
-    }
-}
-
-async function loadCompatibleLocations(productId, quantity) {
-    const targetSelect = document.getElementById('unbookedTargetLocationSelect');
-    const loading = document.getElementById('targetLocationLoading');
-    if (!targetSelect) return;
-
-    targetSelect.innerHTML = '<option value="">-- Mặc định: Nhập tại vị trí phát hiện (nếu phù hợp) --</option>';
-    if (!productId) return;
-
-    if (loading) loading.classList.remove('d-none');
-    try {
-        const url = `?handler=CompatibleLocations&id=@Model.StocktakeSessionId&productId=${productId}&quantity=${quantity || 0}`;
-        const res = await fetch(url);
-        if (res.ok) {
-            const data = await res.json();
-            if (Array.isArray(data) && data.length > 0) {
-                data.forEach(loc => {
-                    const opt = document.createElement('option');
-                    opt.value = loc.storageLocationId;
-                    const capText = loc.remainingCapacity >= 99999 ? 'Không giới hạn' : `${loc.remainingCapacity} ${loc.unitName || ''}`.trim();
-                    const tag = loc.isCompatibleZone ? '' : ' (Khác nhóm SP)';
-                    opt.text = `[${loc.locationCode}] ${loc.locationPath} · Còn trống: ${capText}${tag}`;
-                    targetSelect.appendChild(opt);
-                });
-            }
-        }
-    } catch (e) {
-        console.error("Failed to load compatible locations", e);
-    } finally {
-        if (loading) loading.classList.add('d-none');
-    }
-}
-</script>
