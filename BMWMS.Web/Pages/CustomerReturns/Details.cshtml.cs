@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace BMWMS.Web.Pages.CustomerReturns;
-[Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,SALES_STAFF,WAREHOUSE_STAFF,ACCOUNTANT,DIRECTOR")]
+[Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,SALES_STAFF,WAREHOUSE_STAFF")]
 public class DetailsModel(IHttpClientFactory factory) : PageModel
 {
     [BindProperty(SupportsGet = true)] public long Id { get; set; }

@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace BMWMS.Web.Pages.CustomerReturns;
 
-[Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,SALES_STAFF,WAREHOUSE_STAFF,ACCOUNTANT,DIRECTOR")]
+[Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,SALES_STAFF,WAREHOUSE_STAFF")]
 public class IndexModel(IHttpClientFactory factory) : PageModel
 {
     [BindProperty(SupportsGet = true)] public string? Keyword { get; set; }
@@ -49,7 +49,7 @@ public class IndexModel(IHttpClientFactory factory) : PageModel
         {
             "oldest" => Requests.OrderBy(request => request.CreatedAt).ToList(),
             "priority" when canPrioritizeApproval => Requests
-                .OrderBy(request => request.Status == "SUBMITTED" ? 0 : request.Status is "APPROVED" or "PARTIALLY_RECEIVED" ? 1 : 2)
+                .OrderBy(request => request.Status is "SUBMITTED" or "PENDING_REMAINDER_REVIEW" ? 0 : request.Status is "APPROVED" or "PARTIALLY_RECEIVED" ? 1 : 2)
                 .ThenByDescending(request => request.CreatedAt).ToList(),
             _ => Requests.OrderByDescending(request => request.CreatedAt).ToList()
         };
@@ -58,7 +58,7 @@ public class IndexModel(IHttpClientFactory factory) : PageModel
     public static string Label(string status) => status switch
     {
         "SUBMITTED" => "Chờ duyệt", "APPROVED" => "Đã duyệt",
-        "PARTIALLY_RECEIVED" => "Đã nhận trả một phần", "COMPLETED" => "Hoàn tất",
+        "PARTIALLY_RECEIVED" => "Được nhận tiếp", "PENDING_REMAINDER_REVIEW" => "Chờ duyệt phần còn lại", "COMPLETED" => "Hoàn tất",
         "REJECTED" => "Từ chối", "CANCELLED" => "Đã hủy", _ => status
     };
 
@@ -66,7 +66,7 @@ public class IndexModel(IHttpClientFactory factory) : PageModel
     {
         "SUBMITTED" => "bg-warning-subtle text-warning-emphasis",
         "APPROVED" => "bg-primary-subtle text-primary-emphasis",
-        "PARTIALLY_RECEIVED" => "bg-info-subtle text-info-emphasis",
+        "PARTIALLY_RECEIVED" => "bg-info-subtle text-info-emphasis", "PENDING_REMAINDER_REVIEW" => "bg-warning-subtle text-warning-emphasis",
         "COMPLETED" => "bg-success-subtle text-success-emphasis",
         "REJECTED" or "CANCELLED" => "bg-danger-subtle text-danger-emphasis",
         _ => "bg-secondary-subtle text-secondary-emphasis"
