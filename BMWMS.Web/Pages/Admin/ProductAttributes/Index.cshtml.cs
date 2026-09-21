@@ -29,9 +29,13 @@ namespace BMWMS.Web.Pages.Admin.ProductAttributes
         public int PageSize { get; set; } = 10;
 
         public PagedResultModel<ProductAttributeDto> PagedAttributes { get; set; } = new();
+        public bool CanManage { get; set; }
 
         public async Task OnGetAsync()
         {
+            var roleCode = HttpContext.Session.GetString("RoleCode")?.ToUpperInvariant() ?? "";
+            CanManage = roleCode is "SYSTEM_ADMIN" or "WAREHOUSE_MANAGER";
+
             if (PageIndex < 1) PageIndex = 1;
             if (PageSize < 1) PageSize = 10;
 

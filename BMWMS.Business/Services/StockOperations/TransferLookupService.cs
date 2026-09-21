@@ -61,6 +61,7 @@ namespace BMWMS.Business.Services.StockOperations
                 QuantityScale = i.Product?.UnitOfMeasure?.QuantityScale ?? 0,
                 ProductLotId = i.ProductLotId,
                 LotNumber = i.ProductLot?.LotNumber ?? string.Empty,
+                FirstReceivedDate = i.ProductLot?.FirstReceivedDate,
                 ExpiryDate = i.ProductLot?.ExpiryDate,
                 OnHandQuantity = i.OnHandQuantity,
                 ReservedQuantity = i.ReservedQuantity,

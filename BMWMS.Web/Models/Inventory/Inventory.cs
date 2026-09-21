@@ -31,10 +31,10 @@ namespace BMWMS.Web.Models.Inventory
         public decimal MinimumStockQuantity { get; set; }
 
         public string LotNumber { get; set; } = string.Empty;
+        public DateOnly? FirstReceivedDate { get; set; }
         public DateOnly? ExpiryDate { get; set; }
-        public string LotAndExpiryDisplay => ExpiryDate.HasValue
-            ? $"{LotNumber} - {ExpiryDate.Value:dd/MM/yyyy}"
-            : $"{LotNumber} - —";
+        public string LotAndExpiryDisplay =>
+            $"Nhập: {(FirstReceivedDate.HasValue ? FirstReceivedDate.Value.ToString("dd/MM/yyyy") : "—")} - HSD: {(ExpiryDate.HasValue ? ExpiryDate.Value.ToString("dd/MM/yyyy") : "—")}";
 
         public string Status { get; set; } = string.Empty;
         public string StatusCssClass { get; set; } = string.Empty; 

@@ -33,6 +33,13 @@ namespace BMWMS.Web.Pages.Products
 
         public async Task<IActionResult> OnGetAsync(long id)
         {
+            var roleCode = HttpContext.Session.GetString("RoleCode")?.ToUpperInvariant() ?? "";
+            if (roleCode is not ("SYSTEM_ADMIN" or "WAREHOUSE_MANAGER"))
+            {
+                TempData["WarningMessage"] = "Bạn không có quyền chỉnh sửa thông tin hàng hóa/vật tư! Chỉ Quản trị hệ thống hoặc Trưởng kho mới được thao tác.";
+                return RedirectToPage("./Index");
+            }
+
             Id = id;
             var detail = await _productApiService.GetByIdAsync(id);
             if (detail == null)
@@ -71,6 +78,13 @@ namespace BMWMS.Web.Pages.Products
 
         public async Task<IActionResult> OnPostAsync()
         {
+            var roleCode = HttpContext.Session.GetString("RoleCode")?.ToUpperInvariant() ?? "";
+            if (roleCode is not ("SYSTEM_ADMIN" or "WAREHOUSE_MANAGER"))
+            {
+                TempData["WarningMessage"] = "Bạn không có quyền chỉnh sửa thông tin hàng hóa/vật tư! Chỉ Quản trị hệ thống hoặc Trưởng kho mới được thao tác.";
+                return RedirectToPage("./Index");
+            }
+
             if (!ModelState.IsValid)
             {
                 await LoadDropdownsAsync();

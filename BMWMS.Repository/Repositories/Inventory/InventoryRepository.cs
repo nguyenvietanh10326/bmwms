@@ -80,26 +80,33 @@ namespace BMWMS.Repository.Repositories.Inventory
                 }
                 else if (upperStatus == "LOW_STOCK")
                 {
-                    // Sắp hết: available > 0 nhưng dưới ngưỡng MinimumStockQuantity của kho
+                    // Sắp hết: onHand > 0, available > 0 nhưng dưới ngưỡng MinimumStockQuantity của kho
                     query = query.Where(i =>
-                        (i.AvailableQuantity ?? (i.OnHandQuantity - i.ReservedQuantity)) > 0
+                        i.OnHandQuantity > 0
+                        && (i.AvailableQuantity ?? (i.OnHandQuantity - i.ReservedQuantity)) > 0
                         && _context.Set<ProductWarehousePolicy>().Any(p =>
                             p.ProductId == i.ProductId
                             && p.WarehouseId == i.StorageLocation.WarehouseId
+                            && p.MinimumStockQuantity > 0
                             && (i.AvailableQuantity ?? (i.OnHandQuantity - i.ReservedQuantity)) < p.MinimumStockQuantity));
                 }
                 else if (upperStatus == "NORMAL")
                 {
-                    // Bình thường: available >= ngưỡng MinimumStockQuantity
+                    // Bình thường: onHand > 0, available > 0 và KHÔNG bị dưới ngưỡng MinimumStockQuantity
                     query = query.Where(i =>
-                        _context.Set<ProductWarehousePolicy>().Any(p =>
+                        i.OnHandQuantity > 0
+                        && (i.AvailableQuantity ?? (i.OnHandQuantity - i.ReservedQuantity)) > 0
+                        && !_context.Set<ProductWarehousePolicy>().Any(p =>
                             p.ProductId == i.ProductId
                             && p.WarehouseId == i.StorageLocation.WarehouseId
-                            && (i.AvailableQuantity ?? (i.OnHandQuantity - i.ReservedQuantity)) >= p.MinimumStockQuantity)
-                        || !_context.Set<ProductWarehousePolicy>().Any(p =>
-                            p.ProductId == i.ProductId
-                            && p.WarehouseId == i.StorageLocation.WarehouseId));
+                            && p.MinimumStockQuantity > 0
+                            && (i.AvailableQuantity ?? (i.OnHandQuantity - i.ReservedQuantity)) < p.MinimumStockQuantity));
                 }
+            }
+            else
+            {
+                // Mặc định hoặc ALL: chỉ hiển thị các vị trí còn hàng on-hand
+                query = query.Where(i => i.OnHandQuantity > 0);
             }
 
             return query;

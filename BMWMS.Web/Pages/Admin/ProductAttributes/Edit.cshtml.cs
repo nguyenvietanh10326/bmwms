@@ -25,6 +25,13 @@ namespace BMWMS.Web.Pages.Admin.ProductAttributes
 
         public async Task<IActionResult> OnGetAsync()
         {
+            var roleCode = HttpContext.Session.GetString("RoleCode")?.ToUpperInvariant() ?? "";
+            if (roleCode is not ("SYSTEM_ADMIN" or "WAREHOUSE_MANAGER"))
+            {
+                TempData["WarningMessage"] = "Bạn không có quyền chỉnh sửa thông số kỹ thuật! Chỉ Quản trị hệ thống hoặc Trưởng kho mới được thao tác.";
+                return RedirectToPage("./Index");
+            }
+
             var attribute = await _apiService.GetByIdAsync(Id);
             if (attribute == null)
             {
@@ -55,6 +62,13 @@ namespace BMWMS.Web.Pages.Admin.ProductAttributes
 
         public async Task<IActionResult> OnPostAsync()
         {
+            var roleCode = HttpContext.Session.GetString("RoleCode")?.ToUpperInvariant() ?? "";
+            if (roleCode is not ("SYSTEM_ADMIN" or "WAREHOUSE_MANAGER"))
+            {
+                TempData["WarningMessage"] = "Bạn không có quyền chỉnh sửa thông số kỹ thuật! Chỉ Quản trị hệ thống hoặc Trưởng kho mới được thao tác.";
+                return RedirectToPage("./Index");
+            }
+
             if (!ModelState.IsValid)
             {
                 return Page();
@@ -89,6 +103,13 @@ namespace BMWMS.Web.Pages.Admin.ProductAttributes
 
         public async Task<IActionResult> OnPostDeleteAsync()
         {
+            var roleCode = HttpContext.Session.GetString("RoleCode")?.ToUpperInvariant() ?? "";
+            if (roleCode is not ("SYSTEM_ADMIN" or "WAREHOUSE_MANAGER"))
+            {
+                TempData["WarningMessage"] = "Bạn không có quyền xóa thông số kỹ thuật! Chỉ Quản trị hệ thống hoặc Trưởng kho mới được thao tác.";
+                return RedirectToPage("./Index");
+            }
+
             try
             {
                 await _apiService.DeleteAsync(Id);

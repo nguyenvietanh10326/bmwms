@@ -2,8 +2,8 @@
 @model BMWMS.Web.Pages.Admin.Reports.ExpiringLotModel
 @{
     Layout = "_AdminLayout";
-    ViewData["Title"] = "Cảnh báo lô sắp hết hạn";
-    ViewData["HeaderTitle"] = "Cảnh báo lô hàng sắp hết hạn";
+    ViewData["Title"] = "Cảnh báo sản phẩm sắp hết hạn";
+    ViewData["HeaderTitle"] = "Cảnh báo sản phẩm sắp hết hạn";
     ViewData["FooterVersion"] = "UC48 Premium UI";
 }
 
@@ -349,7 +349,7 @@
     <!-- Header -->
     <div class="glass-header">
         <div>
-            <div class="glass-header-title"><i class="ri-calendar-event-line"></i> Lô hàng sắp hết hạn</div>
+            <div class="glass-header-title"><i class="ri-calendar-event-line"></i> Sản phẩm sắp hết hạn</div>
             <div class="glass-header-sub">
                 <i class="ri-time-line"></i> 
                 Dữ liệu tính đến: @Model.ReportData.CutOffTime.ToString("dd/MM/yyyy HH:mm")
@@ -387,7 +387,7 @@
         <div class="premium-stat-card stat-blue">
             <div class="stat-header">
                 <div class="stat-icon"><i class="ri-box-1-line"></i></div>
-                <div class="stat-title">Số lô cần chú ý</div>
+                <div class="stat-title">Số sản phẩm cần chú ý</div>
             </div>
             <div class="stat-value">@Model.ReportData.Data.TotalCount.ToString("N0")</div>
         </div>
@@ -428,7 +428,7 @@
                 <thead>
                     <tr>
                         <th style="width: 25%;">Sản phẩm</th>
-                        <th>Lô hàng</th>
+                        <th>Kho hàng</th>
                         <th>Ngày hết hạn</th>
                         <th class="text-right">Tồn hiện tại</th>
                         <th class="text-center">Số ngày còn lại</th>
@@ -459,8 +459,7 @@
                                     </div>
                                 </td>
                                 <td>
-                                    <div style="font-weight: 700; color: #0f172a;">@item.LotNumber</div>
-                                    <div style="font-size: 12px; color: #64748b;">Kho: @item.WarehouseCode</div>
+                                    <div style="font-weight: 700; color: #0f172a;">Kho: @item.WarehouseCode</div>
                                 </td>
                                 <td>
                                     <span style="font-weight: 600; color: #334155;">
@@ -517,8 +516,8 @@
                                     <div class="empty-icon-wrapper" style="color: #10b981; background: #ecfdf5;">
                                         <i class="ri-checkbox-circle-line"></i>
                                     </div>
-                                    <div class="empty-title">Tuyệt vời! Không có lô hàng nào sắp hết hạn.</div>
-                                    <div class="empty-subtitle">Các lô hàng hiện tại đều còn hạn sử dụng rất dài.</div>
+                                    <div class="empty-title">Tuyệt vời! Không có sản phẩm nào sắp hết hạn.</div>
+                                    <div class="empty-subtitle">Các sản phẩm hiện tại đều còn hạn sử dụng rất dài.</div>
                                 </div>
                             </td>
                         </tr>

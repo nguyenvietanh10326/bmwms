@@ -46,9 +46,6 @@ namespace BMWMS.Business.DTOs.Product
         [Required(ErrorMessage = "Trạng thái không được để trống.")]
         [RegularExpression(@"^(ACTIVE|INACTIVE)$", ErrorMessage = "Trạng thái chỉ nhận giá trị ACTIVE hoặc INACTIVE.")]
         public new string Status { get; set; } = "ACTIVE";
-
-        [StringLength(500, ErrorMessage = "Lý do điều chỉnh sức chứa tối đa 500 ký tự.")]
-        public string? CapacityChangeReason { get; set; }
     }
 
     public class ProductAttributeValueDto
@@ -138,6 +135,8 @@ namespace BMWMS.Business.DTOs.Product
         public string UnitCode { get; set; } = string.Empty;
         public string UnitName { get; set; } = string.Empty;
         public byte QuantityScale { get; set; }
+        public string Status { get; set; } = "ACTIVE";
+        public bool IsInUse { get; set; }
     }
 
     public class ProductGroupOptionDto

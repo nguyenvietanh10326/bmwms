@@ -54,6 +54,10 @@ namespace BMWMS.Web.Pages.Stocktake
             if (!IsStaff || IsManager)
                 return Deny(id, "Bạn không có quyền bắt đầu phiếu kiểm kho.");
 
+            var session = await _stocktakeService.GetSessionByIdAsync(id);
+            if (session != null && session.PlannedDate > DateOnly.FromDateTime(DateTime.Today))
+                return Deny(id, $"Chưa đến ngày thực hiện kiểm kho ({session.PlannedDate:dd/MM/yyyy}). Người thực hiện chỉ có thể bắt đầu khi đến ngày dự kiến.");
+
             var result = await _stocktakeService.StartSessionAsync(id);
             TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] = result.Message;
             return RedirectToPage("/Stocktake/Details", new { id });
@@ -77,6 +81,10 @@ namespace BMWMS.Web.Pages.Stocktake
             if (!IsStaff || IsManager)
                 return Deny(id, "Bạn không có quyền nhập phiếu kiểm kho.");
 
+            var session = await _stocktakeService.GetSessionByIdAsync(id);
+            if (session != null && session.PlannedDate > DateOnly.FromDateTime(DateTime.Today))
+                return Deny(id, $"Chưa đến ngày thực hiện kiểm kho ({session.PlannedDate:dd/MM/yyyy}).");
+
             var result = await _stocktakeService.SaveSessionCountsAsync(id, new SaveStocktakeSessionCountsModel
             {
                 Lines = Lines,
@@ -91,6 +99,10 @@ namespace BMWMS.Web.Pages.Stocktake
             CheckRole();
             if (!IsStaff || IsManager)
                 return Deny(id, "Bạn không có quyền gửi kết quả phiếu kiểm kho.");
+
+            var session = await _stocktakeService.GetSessionByIdAsync(id);
+            if (session != null && session.PlannedDate > DateOnly.FromDateTime(DateTime.Today))
+                return Deny(id, $"Chưa đến ngày thực hiện kiểm kho ({session.PlannedDate:dd/MM/yyyy}).");
 
             var saveResult = await _stocktakeService.SaveSessionCountsAsync(id, new SaveStocktakeSessionCountsModel
             {
@@ -119,7 +131,6 @@ namespace BMWMS.Web.Pages.Stocktake
             return RedirectToPage("/Stocktake/Details", new { id });
         }
 
-        // BP-05: Warehouse Manager — Approve stock adjustment → BMWMS posts adjustment + audit
         public async Task<IActionResult> OnPostApproveAsync(
             long id,
             string? notes,

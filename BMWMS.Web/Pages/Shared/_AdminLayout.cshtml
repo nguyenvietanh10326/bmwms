@@ -191,12 +191,12 @@
                 <div class="nav-item nav-item-has-sub @(isTransferActive ? "expanded active" : "")" onclick="toggleSubmenu(this)">
                     <div class="nav-item-main">
                         <i class="ri-arrow-left-right-line nav-item-icon"></i>
-                        Chuyển kho (Transfer)
+                        Chuyển vị trí kho (Transfer)
                     </div>
                     <i class="ri-arrow-right-s-line nav-item-arrow"></i>
                 </div>
                 <div class="nav-submenu @(isTransferActive ? "expanded" : "")">
-                    <a href="/Transfer/Index" class="nav-sub-item @(Context.Request.Path == "/Transfer/Index" || Context.Request.Path == "/Transfer" ? "active" : "")">Danh sách phiếu chuyển kho</a>
+                    <a href="/Transfer/Index" class="nav-sub-item @(Context.Request.Path == "/Transfer/Index" || Context.Request.Path == "/Transfer" ? "active" : "")">Danh sách phiếu chuyển vị trí kho</a>
                     @if (isWhStaff)
                     {
                         <a href="/Transfer/Create" class="nav-sub-item @(Context.Request.Path == "/Transfer/Create" ? "active" : "")">Tạo phiếu chuyển vị trí</a>
@@ -241,7 +241,7 @@
                     <a href="/Admin/Reports/InOutStock" class="nav-sub-item @(Context.Request.Path == "/Admin/Reports/InOutStock" ? "active" : "")">Báo cáo Nhập-Xuất-Tồn</a>
                     <a href="/Admin/Reports/SupplierStatistics" class="nav-sub-item @(Context.Request.Path == "/Admin/Reports/SupplierStatistics" ? "active" : "")">Thống kê NCC</a>
                     <a href="/Admin/Reports/LowStock" class="nav-sub-item @(Context.Request.Path == "/Admin/Reports/LowStock" ? "active" : "")">Cảnh báo tồn kho</a>
-                    <a href="/Admin/Reports/ExpiringLot" class="nav-sub-item @(Context.Request.Path == "/Admin/Reports/ExpiringLot" ? "active" : "")">Lô sắp hết hạn</a>
+                    <a href="/Admin/Reports/ExpiringLot" class="nav-sub-item @(Context.Request.Path == "/Admin/Reports/ExpiringLot" ? "active" : "")">Hàng sắp hết hạn</a>
                 </div>
             </div>
 

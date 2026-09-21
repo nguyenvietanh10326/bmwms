@@ -259,6 +259,7 @@ namespace BMWMS.Web.Models.Inventory
 
         public long ProductLotId { get; set; }
         public string LotNumber { get; set; } = string.Empty;
+        public DateOnly? FirstReceivedDate { get; set; }
         public DateOnly? ManufactureDate { get; set; }
         public DateOnly? ExpiryDate { get; set; }
         public string LotStatus { get; set; } = string.Empty;

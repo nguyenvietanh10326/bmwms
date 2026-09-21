@@ -1,9 +1,45 @@
 @using BMWMS.Web.Helpers
 @model BMWMS.Web.Models.StocktakeSessionDetailModel
-<section class="stocktake-section"><div class="stocktake-section__heading"><div><h2>Kết quả kiểm kho</h2><p>So sánh số lượng khả dụng sổ sách và khả dụng thực đếm.</p></div></div>
-<div class="table-responsive"><table class="table stocktake-table"><thead><tr><th>Vị trí</th><th>Sản phẩm / lô</th><th class="text-end">Khả dụng sổ</th><th class="text-end">Khả dụng thực đếm</th><th class="text-end">Chênh lệch</th><th>Trạng thái</th></tr></thead><tbody>
-@foreach (var item in Model.Items)
-{
-    <tr class="@(item.DifferenceQuantity != 0 ? "stocktake-row--variance" : null)"><td>@item.LocationCode</td><td><strong>@item.ProductCode</strong><small>@item.ProductName · Lô @item.LotNumber</small></td><td class="text-end">@FormatHelper.FormatQuantity(item.BookQuantity ?? 0, item.QuantityScale)</td><td class="text-end">@FormatHelper.FormatQuantity(item.CountedQuantity ?? 0, item.QuantityScale)</td><td class="text-end fw-semibold">@FormatHelper.FormatQuantity(item.DifferenceQuantity ?? 0, item.QuantityScale)</td><td>@(item.Resolution == "ACCEPT_DIFFERENCE" || item.Resolution == "NO_ADJUSTMENT" ? "Đã khớp khả dụng" : "Chưa xử lý")</td></tr>
-}
-</tbody></table></div></section>
+<section class="stocktake-section">
+    <div class="stocktake-section__heading">
+        <div>
+            <h2>Kết quả kiểm kho</h2>
+            <p>So sánh số lượng khả dụng và đếm thực tế.</p>
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table class="table stocktake-table">
+            <thead>
+                <tr>
+                    <th>Vị trí</th>
+                    <th>Sản phẩm / Ngày nhập - HSD</th>
+                    <th class="text-end">Khả dụng</th>
+                    <th class="text-end">Đếm thực tế</th>
+                    <th class="text-end">Chênh lệch</th>
+                    <th>Trạng thái</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var item in Model.Items)
+            {
+                <tr class="@(item.DifferenceQuantity != 0 ? "stocktake-row--variance" : null)">
+                    <td>
+                        <div><span class="location-chip">@item.LocationCode</span></div>
+                        <small class="text-muted d-block">@item.LocationPath</small>
+                    </td>
+                    <td>
+                        <strong>@item.ProductCode</strong>
+                        <small>@item.ProductName · Nhập: @(item.FirstReceivedDate?.ToString("dd/MM/yyyy") ?? "—") - HSD: @(item.ExpiryDate?.ToString("dd/MM/yyyy") ?? "—")</small>
+                    </td>
+                    <td class="text-end">@FormatHelper.FormatQuantity(item.BookQuantity ?? 0, item.QuantityScale)</td>
+                    <td class="text-end">@FormatHelper.FormatQuantity(item.CountedQuantity ?? 0, item.QuantityScale)</td>
+                    <td class="text-end fw-semibold @((item.DifferenceQuantity ?? 0) > 0 ? "text-success" : (item.DifferenceQuantity ?? 0) < 0 ? "text-danger" : "")">
+                        @FormatHelper.FormatQuantity(item.DifferenceQuantity ?? 0, item.QuantityScale)
+                    </td>
+                    <td>@(item.Resolution == "ACCEPT_DIFFERENCE" || item.Resolution == "NO_ADJUSTMENT" ? "Đã khớp khả dụng" : "Chưa xử lý")</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</section>

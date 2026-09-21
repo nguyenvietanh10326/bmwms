@@ -26,7 +26,8 @@ namespace BMWMS.Business.Services
                 UnitOfMeasureId = u.UnitOfMeasureId,
                 UnitCode = u.UnitCode,
                 UnitName = u.UnitName,
-                QuantityScale = u.QuantityScale
+                QuantityScale = u.QuantityScale,
+                Status = u.Status
             }).ToList();
         }
 
@@ -39,7 +40,9 @@ namespace BMWMS.Business.Services
                 UnitOfMeasureId = u.UnitOfMeasureId,
                 UnitCode = u.UnitCode,
                 UnitName = u.UnitName,
-                QuantityScale = u.QuantityScale
+                QuantityScale = u.QuantityScale,
+                Status = u.Status,
+                IsInUse = await _repository.IsInUseAsync(id)
             };
         }
 

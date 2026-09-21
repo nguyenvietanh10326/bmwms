@@ -165,6 +165,7 @@ namespace BMWMS.Web.Models
         public byte QuantityScale { get; set; }
         public long ProductLotId { get; set; }
         public string LotNumber { get; set; } = string.Empty;
+        public DateOnly? FirstReceivedDate { get; set; }
         public DateOnly? ExpiryDate { get; set; }
         public decimal? BookQuantity { get; set; }
         public decimal? CountedQuantity { get; set; }
@@ -212,5 +213,4 @@ namespace BMWMS.Web.Models
         public string RoleCode { get; set; } = string.Empty;
         public string RoleName { get; set; } = string.Empty;
     }
-
 }

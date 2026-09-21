@@ -2,6 +2,6 @@
 <section class="stocktake-section"><div class="stocktake-section__heading"><div><h2>Vị trí kiểm kho</h2><p>Phạm vi vị trí thuộc phiếu kiểm kho.</p></div></div><div class="table-responsive"><table class="table stocktake-table"><thead><tr><th>Vị trí</th><th>Tiến độ</th><th>Trạng thái</th><th>Người nhập</th></tr></thead><tbody>
 @foreach (var location in Model.Locations)
 {
-    <tr><td><strong>@location.LocationCode</strong><small>@location.LocationPath</small></td><td>@location.CountedItems/@location.TotalItems dòng</td><td><span class="stocktake-location-status">@location.CountStatusLabel</span></td><td>@(location.CountedByName ?? "-")</td></tr>
+    <tr><td><strong>@location.LocationCode</strong><small>@location.LocationPath</small></td><td>@location.CountedItems/@location.TotalItems</td><td><span class="stocktake-location-status">@location.CountStatusLabel</span></td><td>@(location.CountedByName ?? "-")</td></tr>
 }
 </tbody></table></div></section>

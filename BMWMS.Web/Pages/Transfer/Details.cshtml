@@ -37,7 +37,7 @@
 
 <div class="transfer-page">
     <div class="breadcrumb">
-        <a href="/Transfer/Index" style="color:var(--ink-3); text-decoration:none;">Điều chuyển kho</a>
+        <a href="/Transfer/Index" style="color:var(--ink-3); text-decoration:none;">Chuyển vị trí kho</a>
         <span style="margin:0 4px;">/</span>
         <span>Chi tiết</span>
     </div>
@@ -49,7 +49,7 @@
     <div class="card" style="padding: 20px; background: #fff; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 20px;">
         <div style="display:flex; justify-content:space-between; align-items:flex-start;">
             <div>
-                <h2 style="font-size:20px; font-weight:700;">Phiếu Điều Chuyển: @Model.Order?.TransferOrderNumber</h2>
+                <h2 style="font-size:20px; font-weight:700;">Phiếu chuyển vị trí kho: @Model.Order?.TransferOrderNumber</h2>
                 <p style="color:#64748b; font-size:13px;">Ngày tạo: @Model.Order?.CreatedAt.ToString("dd/MM/yyyy HH:mm") bởi @Model.Order?.CreatedByName</p>
             </div>
             <div style="display:flex; flex-direction:column; align-items:flex-end; gap:10px;">
@@ -76,7 +76,7 @@
             <thead style="background:#f8fafc;">
                 <tr>
                     <th>Sản phẩm</th>
-                    <th>Lot/Batch</th>
+                    <th>Ngày nhập / HSD</th>
                     <th>Từ vị trí</th>
                     <th>Đến vị trí</th>
                     <th class="text-end">SL Yêu cầu</th>
@@ -92,7 +92,10 @@
                                 <strong>@d.ProductCode</strong><br />
                                 <span style="color:#64748b;">@d.ProductName</span>
                             </td>
-                            <td>@d.LotNumber</td>
+                            <td>
+                                <div><small class="text-muted">Nhập:</small> @(d.FirstReceivedDate?.ToString("dd/MM/yyyy") ?? "—")</div>
+                                <div><small class="text-muted">HSD:</small> @(d.ExpiryDate?.ToString("dd/MM/yyyy") ?? "—")</div>
+                            </td>
                             <td><span class="badge b-gy">@d.SourceLocationCode</span></td>
                             <td><span class="badge b-gy">@d.DestLocationCode</span></td>
                             <td class="text-end fw-bold text-primary">@FormatHelper.FormatQuantity(d.RequestedQuantity, d.QuantityScale) @d.UnitName</td>
@@ -110,7 +113,7 @@
         <div class="modal-content">
             <form method="post" asp-page-handler="Cancel" asp-route-id="@Model.Order?.TransferOrderId">
                 <div class="modal-header">
-                    <h5 class="modal-title text-danger">Hủy lệnh chuyển kho</h5>
+                    <h5 class="modal-title text-danger">Hủy lệnh chuyển vị trí kho</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -134,12 +137,11 @@
             <div class="modal-content">
                 <form method="post" asp-page-handler="Confirm" asp-route-id="@Model.Order.TransferOrderId">
                     <div class="modal-header">
-                        <h5 class="modal-title">Xác nhận chuyển kho</h5>
+                        <h5 class="modal-title">Xác nhận chuyển vị trí kho</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
-                        <p class="mb-2">Xác nhận thực hiện chuyển hàng theo phiếu <strong>@Model.Order.TransferOrderNumber</strong>.</p>
-                        <p class="mb-0 text-muted small">Hệ thống sẽ kiểm tra tồn khả dụng, giữ nguyên phần hàng của Sales/Outbound và kiểm tra sức chứa vị trí đích trước khi hoàn tất.</p>
+                        <p class="mb-0">Xác nhận thực hiện chuyển hàng theo phiếu <strong>@Model.Order.TransferOrderNumber</strong>.</p>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-light" data-bs-dismiss="modal">Đóng</button>

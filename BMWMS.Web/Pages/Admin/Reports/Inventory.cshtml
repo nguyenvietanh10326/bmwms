@@ -435,7 +435,7 @@
         <div class="premium-stat-card stat-blue">
             <div class="stat-header">
                 <div class="stat-icon"><i class="ri-database-2-line"></i></div>
-                <div class="stat-title">Số dòng tồn kho</div>
+                <div class="stat-title">Số lượng bản ghi</div>
             </div>
             <div class="stat-value">@Model.ReportData.Data.TotalCount</div>
         </div>
@@ -456,11 +456,6 @@
             <div class="form-group-float">
                 <label class="form-label-float">Vị trí kho</label>
                 <input type="text" class="form-control-float" asp-for="Filter.LocationCode" placeholder="Mã vị trí..." />
-            </div>
-
-            <div class="form-group-float">
-                <label class="form-label-float">Số lô</label>
-                <input type="text" class="form-control-float" asp-for="Filter.LotNumber" placeholder="Số lô..." />
             </div>
             
             <div class="checkbox-wrapper">
@@ -517,7 +512,7 @@
                                 <td>
                                     <div style="display: flex; gap: 6px; flex-wrap: wrap;">
                                         <span class="tag-lite"><i class="ri-map-pin-line"></i> @item.LocationCode</span>
-                                        <span class="tag-lite"><i class="ri-price-tag-3-line"></i> @item.LotNumber</span>
+                                        <span class="tag-lite"><i class="ri-calendar-line"></i> Nhập: @(item.FirstReceivedDate?.ToString("dd/MM/yyyy") ?? "-")</span>
                                         <span class="tag-lite">@item.UnitCode</span>
                                     </div>
                                 </td>
@@ -588,9 +583,8 @@
                         var active = i == Model.ReportData.Data.PageIndex;
                         var productSearch = Uri.EscapeDataString(Model.Filter.ProductSearch ?? string.Empty);
                         var locationCode = Uri.EscapeDataString(Model.Filter.LocationCode ?? string.Empty);
-                        var lotNumber = Uri.EscapeDataString(Model.Filter.LotNumber ?? string.Empty);
                         var positiveStockOnly = Model.Filter.PositiveStockOnly.ToString().ToLower();
-                        var query = $"?ProductSearch={productSearch}&LocationCode={locationCode}&LotNumber={lotNumber}&PositiveStockOnly={positiveStockOnly}&PageIndex={i}&PageSize={Model.Filter.PageSize}";
+                        var query = $"?ProductSearch={productSearch}&LocationCode={locationCode}&PositiveStockOnly={positiveStockOnly}&PageIndex={i}&PageSize={Model.Filter.PageSize}";
                         
                         <a href="@(pageUrl + query)" style="min-width: 32px; height: 32px; padding: 0 8px; border-radius: 6px; text-decoration: none; font-size: 12.5px; font-weight: @(active ? "600" : "500"); display: inline-flex; align-items: center; justify-content: center; border: 1px solid @(active ? "#2563eb" : "#cbd5e1"); background: @(active ? "#2563eb" : "#fff"); color: @(active ? "#fff" : "#334155");">
                             @i

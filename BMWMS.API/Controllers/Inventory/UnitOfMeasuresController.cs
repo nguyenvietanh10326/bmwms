@@ -1,7 +1,8 @@
-﻿using BMWMS.Business.DTOs.Product;
+using BMWMS.Business.DTOs.Product;
 using BMWMS.Business.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -37,22 +38,45 @@ namespace BMWMS.API.Controllers.Inventory
         [HttpPost]
         public async Task<ActionResult> Create([FromBody] CreateUnitOfMeasureDto dto)
         {
-            var id = await _service.CreateAsync(dto);
-            return Ok(new { id, message = "Thêm ÐVT thành công" });
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            try
+            {
+                var id = await _service.CreateAsync(dto);
+                return Ok(new { id, message = "Thêm ĐVT thành công" });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         [HttpPut("{id}")]
         public async Task<ActionResult> Update(int id, [FromBody] UpdateUnitOfMeasureDto dto)
         {
-            await _service.UpdateAsync(id, dto);
-            return Ok(new { message = "Cập nhật ÐVT thành công" });
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            try
+            {
+                await _service.UpdateAsync(id, dto);
+                return Ok(new { message = "Cập nhật ĐVT thành công" });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         [HttpDelete("{id}")]
         public async Task<ActionResult> Delete(int id)
         {
-            await _service.DeleteAsync(id);
-            return Ok(new { message = "Xóa ÐVT thành công" });
+            try
+            {
+                await _service.DeleteAsync(id);
+                return Ok(new { message = "Xóa ĐVT thành công" });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
     }
 }

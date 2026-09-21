@@ -1,4 +1,4 @@
-﻿@page "{id:int}"
+@page "{id:int}"
 @model BMWMS.Web.Pages.Admin.UnitOfMeasures.EditModel
 @{
     ViewData["Title"] = "Sửa Đơn vị tính";
@@ -14,8 +14,17 @@
 
 <div class="card shadow-sm mb-4 border-0">
     <div class="card-body p-4">
+        @if (Model.IsInUse)
+        {
+            <div class="alert alert-warning mb-3">
+                <i class="ri-error-warning-line me-1"></i>
+                Đơn vị tính này đang được sử dụng trong sản phẩm/nhóm sản phẩm.
+                Bạn chỉ có thể thay đổi <strong>Mã ĐVT</strong> và <strong>Tên ĐVT</strong>.
+            </div>
+        }
         <form method="post">
             <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+            <input type="hidden" asp-for="Input.Status" />
 
             <div class="row">
                 <div class="col-md-6 mb-3">
@@ -33,7 +42,15 @@
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label asp-for="Input.QuantityScale" class="form-label fw-bold">Thang tỷ lệ (Scale)</label>
-                    <input asp-for="Input.QuantityScale" class="form-control" type="number" min="0" />
+                    @if (Model.IsInUse)
+                    {
+                        <input asp-for="Input.QuantityScale" class="form-control bg-light" type="number" min="0" max="4" readonly />
+                        <small class="text-warning d-block mt-1">Không thể thay đổi vì đơn vị tính đang được sử dụng.</small>
+                    }
+                    else
+                    {
+                        <input asp-for="Input.QuantityScale" class="form-control" type="number" min="0" max="4" />
+                    }
                     <span asp-validation-for="Input.QuantityScale" class="text-danger small"></span>
                     <small class="text-muted d-block mt-1">Số chữ số thập phân tối đa cho phép.</small>
                 </div>

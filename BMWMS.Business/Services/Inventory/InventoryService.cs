@@ -85,6 +85,7 @@ namespace BMWMS.Business.Services.Inventory
                     MinimumStockQuantity = minStockQty,
 
                     LotNumber = item.ProductLot?.LotNumber ?? "N/A",
+                    FirstReceivedDate = item.ProductLot?.FirstReceivedDate,
                     ExpiryDate = item.ProductLot?.ExpiryDate,
 
                     Status = statusText,

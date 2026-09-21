@@ -20,12 +20,26 @@ namespace BMWMS.Web.Pages.Admin.ProductAttributes
         [BindProperty]
         public CreateProductAttributeDto Input { get; set; } = new();
 
-        public void OnGet()
+        public IActionResult OnGet()
         {
+            var roleCode = HttpContext.Session.GetString("RoleCode")?.ToUpperInvariant() ?? "";
+            if (roleCode is not ("SYSTEM_ADMIN" or "WAREHOUSE_MANAGER"))
+            {
+                TempData["WarningMessage"] = "Bạn không có quyền thêm mới thông số kỹ thuật! Chỉ Quản trị hệ thống hoặc Trưởng kho mới được thao tác.";
+                return RedirectToPage("./Index");
+            }
+            return Page();
         }
 
         public async Task<IActionResult> OnPostAsync()
         {
+            var roleCode = HttpContext.Session.GetString("RoleCode")?.ToUpperInvariant() ?? "";
+            if (roleCode is not ("SYSTEM_ADMIN" or "WAREHOUSE_MANAGER"))
+            {
+                TempData["WarningMessage"] = "Bạn không có quyền thêm mới thông số kỹ thuật! Chỉ Quản trị hệ thống hoặc Trưởng kho mới được thao tác.";
+                return RedirectToPage("./Index");
+            }
+
             if (!ModelState.IsValid)
             {
                 return Page();

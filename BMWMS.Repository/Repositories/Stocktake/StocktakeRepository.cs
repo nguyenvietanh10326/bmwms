@@ -223,6 +223,9 @@ namespace BMWMS.Repository.Repositories.Stocktake
                 if (session.Status != SessionScheduled)
                     throw new InvalidOperationException($"Phiếu đang ở trạng thái '{session.Status}', không thể bắt đầu.");
 
+                if (session.PlannedDate > DateOnly.FromDateTime(DateTime.Today))
+                    throw new InvalidOperationException($"Chưa đến ngày thực hiện kiểm kho ({session.PlannedDate:dd/MM/yyyy}). Không thể bắt đầu trước thời gian dự kiến.");
+
                 if (session.AssignedToUserId != startedByUserId)
                     throw new UnauthorizedAccessException("Chỉ nhân viên được giao mới có thể bắt đầu phiếu kiểm kho.");
 
@@ -387,6 +390,9 @@ namespace BMWMS.Repository.Repositories.Stocktake
                 if (session.Status != SessionInProgress)
                     throw new InvalidOperationException("Chỉ có thể nhập số đếm khi phiếu đang được kiểm.");
 
+                if (session.PlannedDate > DateOnly.FromDateTime(DateTime.Today))
+                    throw new InvalidOperationException($"Chưa đến ngày thực hiện kiểm kho ({session.PlannedDate:dd/MM/yyyy}).");
+
                 var location = session.StocktakeLocations.FirstOrDefault(l => l.StorageLocationId == storageLocationId)
                     ?? throw new InvalidOperationException("Không tìm thấy vị trí trong phiếu kiểm kho.");
 
@@ -407,13 +413,13 @@ namespace BMWMS.Repository.Repositories.Stocktake
                     item.CountedQuantity = line.CountedQuantity;
                     item.CountedByUserId = line.CountedQuantity.HasValue ? countedByUserId : null;
                     item.CountedAt = line.CountedQuantity.HasValue ? DateTime.UtcNow : null;
-                    item.Notes = line.Notes;
+                    item.Notes = line.Notes?.Trim();
                     
                     item.Resolution = null;
                     item.AdjustmentQuantity = null;
                 }
 
-                location.CountStatus = location.StocktakeItems.All(i => i.CountedQuantity.HasValue)
+                location.CountStatus = location.StocktakeItems.Count == 0 || location.StocktakeItems.All(i => i.CountedQuantity.HasValue)
                     ? LocationCounted
                     : LocationInProgress;
                 location.Notes = AppendNote(location.Notes, "Count", notes);
@@ -437,6 +443,8 @@ namespace BMWMS.Repository.Repositories.Stocktake
                 var session = await GetTrackedSessionForMutationAsync(stocktakeSessionId);
                 if (session.Status != SessionInProgress)
                     throw new InvalidOperationException("Chỉ có thể gửi kết quả khi phiếu đang được kiểm.");
+                if (session.PlannedDate > DateOnly.FromDateTime(DateTime.Today))
+                    throw new InvalidOperationException($"Chưa đến ngày thực hiện kiểm kho ({session.PlannedDate:dd/MM/yyyy}).");
                 if (session.AssignedToUserId != submittedByUserId)
                     throw new UnauthorizedAccessException("Chỉ nhân viên được giao mới có thể gửi kết quả kiểm kho.");
 
@@ -446,6 +454,14 @@ namespace BMWMS.Repository.Repositories.Stocktake
                     .ToList();
                 if (missing.Any())
                     throw new InvalidOperationException($"Còn {missing.Count} dòng chưa nhập: {string.Join(", ", missing.Take(5))}.");
+
+                foreach (var location in session.StocktakeLocations)
+                {
+                    if (location.StocktakeItems.Count == 0)
+                    {
+                        location.CountStatus = LocationCounted;
+                    }
+                }
 
                 var incompleteLocations = session.StocktakeLocations
                     .Where(location => location.CountStatus != LocationCounted)
@@ -619,16 +635,10 @@ namespace BMWMS.Repository.Repositories.Stocktake
                     item.AdjustmentQuantity = null;
                 }
 
-                var confirmedEmptySet = confirmedEmptyLocationIds.Where(id => id > 0).ToHashSet();
-                if (confirmedEmptySet.Any(id => session.StocktakeLocations.All(location => location.StorageLocationId != id)))
-                    throw new InvalidOperationException("Danh sách xác nhận vị trí trống không hợp lệ.");
-
                 foreach (var location in session.StocktakeLocations)
                 {
                     var items = location.StocktakeItems.ToList();
-                    var isComplete = items.Count > 0
-                        ? items.All(item => item.CountedQuantity.HasValue)
-                        : confirmedEmptySet.Contains(location.StorageLocationId);
+                    var isComplete = items.Count == 0 || items.All(item => item.CountedQuantity.HasValue);
                     location.CountStatus = isComplete ? LocationCounted : LocationInProgress;
                     location.CountedByUserId = isComplete ? countedByUserId : null;
                     location.CountedAt = isComplete ? DateTime.UtcNow : null;

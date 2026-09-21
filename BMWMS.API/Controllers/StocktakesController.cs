@@ -170,6 +170,7 @@ namespace BMWMS.API.Controllers
             return Ok(result);
         }
 
+
         private long GetCurrentUserId()
         {
             var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value

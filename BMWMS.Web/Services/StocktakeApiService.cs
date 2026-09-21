@@ -241,6 +241,7 @@ namespace BMWMS.Web.Services
             }
         }
 
+
         private static async Task<StocktakeActionResultModel> ReadActionResultAsync(HttpResponseMessage response)
         {
             if (response.IsSuccessStatusCode)

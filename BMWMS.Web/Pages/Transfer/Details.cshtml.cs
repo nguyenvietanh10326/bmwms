@@ -50,11 +50,11 @@ public class DetailsModel : PageModel
         var request = new ConfirmTransferDto
         {
             AcknowledgeCapacityWarning = true,
-            CapacityWarningReason = "Xác nhận theo số lượng và vị trí trên phiếu chuyển kho."
+            CapacityWarningReason = "Xác nhận theo số lượng và vị trí trên phiếu chuyển vị trí kho."
         };
         var result = await _transferService.ConfirmTransferAsync(id, request);
         TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] = result.Success
-            ? "Đã xác nhận và hoàn thành chuyển kho."
+            ? "Đã khớp."
             : result.Message;
         return RedirectToPage("/Transfer/Details", new { id });
     }

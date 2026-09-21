@@ -1,4 +1,4 @@
-﻿using BMWMS.Web.Models;
+using BMWMS.Web.Models;
 using BMWMS.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -28,14 +28,14 @@ namespace BMWMS.Web.Pages.Admin.UnitOfMeasures
 
         public async Task<IActionResult> OnPostDeleteAsync(int id)
         {
-            try
+            var (success, message) = await _apiService.DeleteAsync(id);
+            if (success)
             {
-                await _apiService.DeleteAsync(id);
-                
+                TempData["SuccessMessage"] = message;
             }
-            catch (System.Exception ex)
+            else
             {
-                TempData["ErrorMessage"] = ex.Message;
+                TempData["ErrorMessage"] = message;
             }
             return RedirectToPage("./Index");
         }

@@ -86,6 +86,8 @@ namespace BMWMS.Web.Services
             public string ProductName { get; set; } = "";
             public string UnitName { get; set; } = "";
             public string LotNumber { get; set; } = "";
+            public DateOnly? FirstReceivedDate { get; set; }
+            public DateOnly? ExpiryDate { get; set; }
             public long SourceLocationId { get; set; }
             public long? SourceZoneId { get; set; }
             public long? SourceRackId { get; set; }
@@ -183,6 +185,7 @@ namespace BMWMS.Web.Services
             public string UnitName { get; set; } = "";
             public long ProductLotId { get; set; }
             public string LotNumber { get; set; } = "";
+            public DateOnly? FirstReceivedDate { get; set; }
             public DateOnly? ExpiryDate { get; set; }
             public decimal OnHandQuantity { get; set; }
             public decimal ReservedQuantity { get; set; }

@@ -1,4 +1,4 @@
-﻿using BMWMS.Web.Models;
+using BMWMS.Web.Models;
 using BMWMS.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -29,17 +29,15 @@ namespace BMWMS.Web.Pages.Admin.UnitOfMeasures
                 return Page();
             }
 
-            try
+            var (success, message) = await _apiService.CreateAsync(Input);
+            if (!success)
             {
-                await _apiService.CreateAsync(Input);
-                TempData["SuccessMessage"] = "Thêm đơn vị tính thành công.";
-                return RedirectToPage("./Index");
-            }
-            catch (System.Exception ex)
-            {
-                ModelState.AddModelError(string.Empty, ex.Message);
+                ModelState.AddModelError(string.Empty, message);
                 return Page();
             }
+
+            TempData["SuccessMessage"] = message;
+            return RedirectToPage("./Index");
         }
     }
 }

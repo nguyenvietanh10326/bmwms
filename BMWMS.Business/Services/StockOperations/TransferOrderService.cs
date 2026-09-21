@@ -99,6 +99,8 @@ namespace BMWMS.Business.Services.StockOperations
                     UnitName = d.Product?.UnitOfMeasure?.UnitName ?? "",
                     QuantityScale = d.Product?.UnitOfMeasure?.QuantityScale ?? 0,
                     LotNumber = d.ProductLot?.LotNumber ?? "",
+                    FirstReceivedDate = d.ProductLot?.FirstReceivedDate,
+                    ExpiryDate = d.ProductLot?.ExpiryDate,
                     SourceLocationId = d.SourceLocationId ?? 0,
                     SourceLocationCode = d.SourceLocation?.LocationCode ?? "",
                     DestLocationId = d.DestinationLocationId ?? 0,

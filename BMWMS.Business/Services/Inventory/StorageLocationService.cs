@@ -608,6 +608,7 @@ public async Task<(bool Success, string Message)> UpdateLocationAsync(CreateUpda
                 ProductGroupName = inv.Product.ProductGroup?.GroupName ?? "Chưa cấu hình",
                 ProductLotId = inv.ProductLotId,
                 LotNumber = inv.ProductLot?.LotNumber ?? "N/A",
+                FirstReceivedDate = inv.ProductLot?.FirstReceivedDate,
                 ManufactureDate = inv.ProductLot?.ManufactureDate,
                 ExpiryDate = inv.ProductLot?.ExpiryDate,
                 LotStatus = inv.ProductLot?.Status ?? "Active",

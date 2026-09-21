@@ -14,11 +14,6 @@ namespace BMWMS.Business.Services
 {
     public class ProductService : IProductService
     {
-        private const decimal MaximumStorageFactor = 1_000_000m;
-        private const int MaximumStorageFactorDecimalPlaces = 8;
-        private const string StorageFactorBasisAttributeCode = "STORAGE_FACTOR_BASIS";
-        private const string StorageFactorReferenceAttributeCode = "STORAGE_FACTOR_REFERENCE";
-
         private readonly IProductRepository _productRepository;
         private readonly IProductGroupRepository _productGroupRepository;
         private readonly IAuditLogService _auditLogService;
@@ -233,15 +228,7 @@ namespace BMWMS.Business.Services
                     product.ProductGroupId,
                     product.UnitOfMeasureId,
                     product.RotationMethod,
-                    product.Status,
-                    StorageVolumeM3PerBaseUom = GetAttributeValue(
-                        dto.AttributeValues,
-                        CapacityEvaluationService.StorageVolumeAttributeCode),
-                    StorageWeightKgPerBaseUom = GetAttributeValue(
-                        dto.AttributeValues,
-                        CapacityEvaluationService.StorageWeightAttributeCode),
-                    StorageFactorBasis = GetAttributeValue(dto.AttributeValues, StorageFactorBasisAttributeCode),
-                    StorageFactorReference = GetAttributeValue(dto.AttributeValues, StorageFactorReferenceAttributeCode)
+                    product.Status
                 }
             });
 
@@ -270,28 +257,6 @@ namespace BMWMS.Business.Services
                 .Any(unit => unit.UnitOfMeasureId == dto.UnitOfMeasureId))
                 throw new InvalidOperationException("Đơn vị tính cơ sở không tồn tại hoặc đang ngừng hoạt động.");
 
-            var oldStorageVolume = GetAttributeValue(
-                product.ProductAttributeValues.Select(value => new ProductAttributeValueDto
-                {
-                    ProductAttributeId = value.ProductAttributeId,
-                    AttributeCode = value.ProductAttribute?.AttributeCode,
-                    AttributeValue = value.AttributeValue
-                }),
-                CapacityEvaluationService.StorageVolumeAttributeCode);
-            var newStorageVolume = GetAttributeValue(
-                dto.AttributeValues,
-                CapacityEvaluationService.StorageVolumeAttributeCode);
-            var oldStorageWeight = GetAttributeValue(
-                product.ProductAttributeValues.Select(value => new ProductAttributeValueDto
-                {
-                    ProductAttributeId = value.ProductAttributeId,
-                    AttributeCode = value.ProductAttribute?.AttributeCode,
-                    AttributeValue = value.AttributeValue
-                }),
-                CapacityEvaluationService.StorageWeightAttributeCode);
-            var newStorageWeight = GetAttributeValue(
-                dto.AttributeValues,
-                CapacityEvaluationService.StorageWeightAttributeCode);
             var hasHistory = await _productRepository.HasTransactionsOrInventoryAsync(productId);
 
             if (hasHistory && product.UnitOfMeasureId != dto.UnitOfMeasureId)
@@ -301,13 +266,6 @@ namespace BMWMS.Business.Services
                 throw new InvalidOperationException(
                     "Không thể đổi nhóm của sản phẩm đã phát sinh tồn kho hoặc giao dịch. Hãy tạo sản phẩm mới nếu thay đổi bản chất vật tư.");
 
-            var capacityFactorChanged =
-                !string.Equals(oldStorageVolume, newStorageVolume, StringComparison.Ordinal) ||
-                !string.Equals(oldStorageWeight, newStorageWeight, StringComparison.Ordinal);
-            if (hasHistory && capacityFactorChanged && string.IsNullOrWhiteSpace(dto.CapacityChangeReason))
-                throw new InvalidOperationException(
-                    "Sản phẩm đã phát sinh tồn kho hoặc giao dịch. Phải nhập lý do khi điều chỉnh hệ số lưu kho.");
-
             var oldValues = new
             {
                 product.ProductCode,
@@ -315,23 +273,7 @@ namespace BMWMS.Business.Services
                 product.ProductGroupId,
                 product.UnitOfMeasureId,
                 product.RotationMethod,
-                product.Status,
-                StorageVolumeM3PerBaseUom = oldStorageVolume,
-                StorageWeightKgPerBaseUom = oldStorageWeight,
-                StorageFactorBasis = GetAttributeValue(
-                    product.ProductAttributeValues.Select(value => new ProductAttributeValueDto
-                    {
-                        AttributeCode = value.ProductAttribute?.AttributeCode,
-                        AttributeValue = value.AttributeValue
-                    }),
-                    StorageFactorBasisAttributeCode),
-                StorageFactorReference = GetAttributeValue(
-                    product.ProductAttributeValues.Select(value => new ProductAttributeValueDto
-                    {
-                        AttributeCode = value.ProductAttribute?.AttributeCode,
-                        AttributeValue = value.AttributeValue
-                    }),
-                    StorageFactorReferenceAttributeCode)
+                product.Status
             };
 
             string cleanCode = dto.ProductCode.Trim().ToUpper();
@@ -391,14 +333,7 @@ namespace BMWMS.Business.Services
                     product.ProductGroupId,
                     product.UnitOfMeasureId,
                     product.RotationMethod,
-                    product.Status,
-                    StorageVolumeM3PerBaseUom = newStorageVolume,
-                    StorageWeightKgPerBaseUom = newStorageWeight,
-                    StorageFactorBasis = GetAttributeValue(dto.AttributeValues, StorageFactorBasisAttributeCode),
-                    StorageFactorReference = GetAttributeValue(dto.AttributeValues, StorageFactorReferenceAttributeCode),
-                    CapacityChangeReason = capacityFactorChanged
-                        ? dto.CapacityChangeReason?.Trim()
-                        : null
+                    product.Status
                 }
             });
         }
@@ -501,47 +436,7 @@ namespace BMWMS.Business.Services
                         out var number))
                     throw new InvalidOperationException($"Thuộc tính '{attribute.AttributeName}' phải là số hợp lệ.");
 
-                var isCapacityAttribute = attribute.AttributeCode is
-                    CapacityEvaluationService.StorageWeightAttributeCode or
-                    CapacityEvaluationService.StorageVolumeAttributeCode;
-                if (isCapacityAttribute && number <= 0)
-                    throw new InvalidOperationException($"Thuộc tính '{attribute.AttributeName}' phải lớn hơn 0.");
-                if (isCapacityAttribute && number > MaximumStorageFactor)
-                    throw new InvalidOperationException(
-                        $"Thuộc tính '{attribute.AttributeName}' không được vượt quá {MaximumStorageFactor.ToString(CultureInfo.InvariantCulture)}.");
-                if (isCapacityAttribute && CountSignificantDecimalPlaces(normalized) > MaximumStorageFactorDecimalPlaces)
-                    throw new InvalidOperationException(
-                        $"Thuộc tính '{attribute.AttributeName}' chỉ được có tối đa {MaximumStorageFactorDecimalPlaces} chữ số thập phân.");
-
                 submittedValue.AttributeValue = number.ToString(CultureInfo.InvariantCulture);
-            }
-
-            var submittedByCode = submitted
-                .Where(value => !string.IsNullOrWhiteSpace(value.AttributeCode))
-                .ToDictionary(value => value.AttributeCode!, StringComparer.OrdinalIgnoreCase);
-            var hasStorageFactor =
-                submittedByCode.ContainsKey(CapacityEvaluationService.StorageWeightAttributeCode) ||
-                submittedByCode.ContainsKey(CapacityEvaluationService.StorageVolumeAttributeCode);
-
-            if (hasStorageFactor)
-            {
-                if (!configuredAttributesByCode.ContainsKey(StorageFactorBasisAttributeCode) ||
-                    !configuredAttributesByCode.ContainsKey(StorageFactorReferenceAttributeCode))
-                    throw new InvalidOperationException(
-                        "Nhóm sản phẩm phải bật 'Cơ sở xác định hệ số lưu kho' và 'Nguồn tham chiếu hệ số lưu kho' trước khi khai báo hệ số kg/m³.");
-
-                if (!submittedByCode.TryGetValue(StorageFactorBasisAttributeCode, out var basis) ||
-                    string.IsNullOrWhiteSpace(basis.AttributeValue))
-                    throw new InvalidOperationException("Phải chọn cơ sở xác định cho hệ số lưu kho.");
-
-                if (!submittedByCode.TryGetValue(StorageFactorReferenceAttributeCode, out var reference) ||
-                    string.IsNullOrWhiteSpace(reference.AttributeValue))
-                    throw new InvalidOperationException(
-                        "Phải nhập nguồn tham chiếu hoặc biên bản đo cho hệ số lưu kho.");
-
-                if (reference.AttributeValue.Trim().Length > 500)
-                    throw new InvalidOperationException(
-                        "Nguồn tham chiếu hệ số lưu kho không được vượt quá 500 ký tự.");
             }
         }
 
@@ -552,32 +447,6 @@ namespace BMWMS.Business.Services
                 throw new InvalidOperationException(
                     "Nhóm sản phẩm chưa cấu hình ĐVT cơ sở thống nhất. Hãy cấu hình hoặc phân tách nhóm trước khi tạo sản phẩm.");
             return unitId;
-        }
-
-        private static int CountSignificantDecimalPlaces(string value)
-        {
-            var separatorIndex = value.IndexOf('.');
-            return separatorIndex < 0
-                ? 0
-                : value[(separatorIndex + 1)..].TrimEnd('0').Length;
-        }
-
-        private static string? GetAttributeValue(
-            IEnumerable<ProductAttributeValueDto>? values,
-            string attributeCode)
-        {
-            if (values == null)
-                return null;
-
-            var value = values.FirstOrDefault(item =>
-                string.Equals(item.AttributeCode, attributeCode, StringComparison.OrdinalIgnoreCase));
-            if (string.IsNullOrWhiteSpace(value?.AttributeValue))
-                return null;
-
-            var normalized = value.AttributeValue.Trim().Replace(',', '.');
-            return decimal.TryParse(normalized, NumberStyles.Number, CultureInfo.InvariantCulture, out var number)
-                ? number.ToString(CultureInfo.InvariantCulture)
-                : normalized;
         }
 
         public async Task ToggleStatusAsync(long productId, long currentUserId)
