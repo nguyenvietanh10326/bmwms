@@ -7,7 +7,7 @@ public class SupplierListResponseDto
     public string SupplierName { get; set; } = null!;
     public string PhoneNumber { get; set; } = null!;
     public string RepresentativeName { get; set; } = null!;
-    public string TaxCode { get; set; } = null!;
+    public string? TaxCode { get; set; }
     public int SuppliedProductCount { get; set; }
     public DateTime? UpdatedAt { get; set; }
     public string Status { get; set; } = null!;

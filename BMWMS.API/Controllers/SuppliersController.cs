@@ -17,7 +17,7 @@ public class SuppliersController : ControllerBase
         _supplierService = supplierService;
     }
 
-    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF,WAREHOUSE_STAFF,SALES_STAFF,ACCOUNTANT,DIRECTOR")]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF,WAREHOUSE_STAFF,SALES_STAFF")]
     [HttpGet]
     public async Task<IActionResult> GetSuppliers([FromQuery] SupplierFilterDto filter)
     {
@@ -32,7 +32,7 @@ public class SuppliersController : ControllerBase
         }
     }
 
-    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF,WAREHOUSE_STAFF,SALES_STAFF,ACCOUNTANT,DIRECTOR")]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF,WAREHOUSE_STAFF,SALES_STAFF")]
     [HttpGet("{supplierCode}")]
     public async Task<IActionResult> GetSupplierDetail(string supplierCode)
     {
@@ -107,7 +107,7 @@ public class SuppliersController : ControllerBase
         }
     }
 
-    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF,WAREHOUSE_STAFF,SALES_STAFF,ACCOUNTANT,DIRECTOR")]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF,WAREHOUSE_STAFF,SALES_STAFF")]
     [HttpGet("{supplierCode}/products")]
     public async Task<IActionResult> GetSupplierProducts(string supplierCode, [FromQuery] SupplierProductFilterDto filter)
     {
@@ -126,7 +126,7 @@ public class SuppliersController : ControllerBase
         }
     }
 
-    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF,WAREHOUSE_STAFF,ACCOUNTANT,DIRECTOR")]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF,WAREHOUSE_STAFF")]
     [HttpGet("{supplierCode}/inbound-history")]
     public async Task<IActionResult> GetSupplierInboundHistory(string supplierCode, [FromQuery] SupplierInboundHistoryFilterDto filter)
     {
@@ -145,7 +145,7 @@ public class SuppliersController : ControllerBase
         }
     }
 
-    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF,WAREHOUSE_STAFF,ACCOUNTANT,DIRECTOR")]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF,WAREHOUSE_STAFF")]
     [HttpGet("{supplierCode}/inbound-history/{inboundOrderNumber}")]
     public async Task<IActionResult> GetSupplierInboundHistoryDetail(string supplierCode, string inboundOrderNumber)
     {
