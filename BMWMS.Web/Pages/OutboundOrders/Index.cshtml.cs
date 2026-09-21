@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace BMWMS.Web.Pages.OutboundOrders
 {
-    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF,SALES_STAFF,PURCHASING_STAFF,ACCOUNTANT,DIRECTOR")]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF,SALES_STAFF,PURCHASING_STAFF")]
     public class IndexModel : PageModel
     {
         private readonly IHttpClientFactory _httpClientFactory;
@@ -29,7 +29,7 @@ namespace BMWMS.Web.Pages.OutboundOrders
             new SelectListItem { Text = "-- Tất cả trạng thái --", Value = "" },
             new SelectListItem { Text = "Sẵn sàng xuất", Value = "READY" },
             new SelectListItem { Text = "Đang xuất hàng", Value = "ISSUING" },
-            new SelectListItem { Text = "Chờ xử lý dữ liệu cũ", Value = "PENDING_APPROVAL" },
+            new SelectListItem { Text = "Chờ Manager duyệt phần còn lại", Value = "PENDING_APPROVAL" },
             new SelectListItem { Text = "Đã xuất", Value = "ISSUED" },
             new SelectListItem { Text = "Đã hủy", Value = "CANCELLED" }
         };

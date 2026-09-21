@@ -409,7 +409,9 @@ public class OutboundOrderService : IOutboundOrderService
         }
     }
 
-    public async Task<(bool Success, string Message)> UpdateDraftAsync(
+    // Kept private only to support controlled conversion of legacy DRAFT records during data repair.
+    // No HTTP route or screen may create/edit/approve an Outbound draft in the final workflow.
+    private async Task<(bool Success, string Message)> UpdateLegacyDraftAsync(
         long outboundOrderId,
         UpdateOutboundOrderRequest request,
         long userId)
@@ -512,7 +514,7 @@ public class OutboundOrderService : IOutboundOrderService
         }
     }
 
-    public async Task<(bool Success, string Message)> ApproveAndAssignAsync(
+    private async Task<(bool Success, string Message)> ActivateLegacyDraftAsync(
         long outboundOrderId,
         long assignedToUserId,
         long approvedByUserId)
@@ -1010,12 +1012,14 @@ public class OutboundOrderService : IOutboundOrderService
             if (!userIsWarehouseStaff)
                 return (false, "Chỉ nhân viên kho đang hoạt động mới được hoàn tất đợt giao.");
 
-            order.Status = "COMPLETED";
             order.CompletionType = order.OutboundOrderItems.All(item => item.IssuedQuantity >= item.RequestedQuantity)
                 ? "FULL" : "PARTIAL";
+            // A full physical issue closes immediately. A short issue must be reviewed by
+            // the warehouse manager before the source order becomes eligible for a new batch.
+            order.Status = order.CompletionType == "FULL" ? "COMPLETED" : "PENDING_APPROVAL";
             order.CompletionReason = order.CompletionType == "PARTIAL" ? reason : null;
-            order.ConfirmedByUserId = userId;
-            order.ConfirmedAt = DateTime.UtcNow;
+            order.ConfirmedByUserId = order.CompletionType == "FULL" ? userId : null;
+            order.ConfirmedAt = order.CompletionType == "FULL" ? DateTime.UtcNow : null;
             if (order.SalesOrder != null)
             {
                 order.SalesOrder.Status = order.SalesOrder.SalesOrderDetails
@@ -1023,7 +1027,7 @@ public class OutboundOrderService : IOutboundOrderService
                     ? "FULFILLED" : "PARTIALLY_FULFILLED";
                 order.SalesOrder.UpdatedAt = DateTime.UtcNow;
             }
-            if (order.SourceType == "PURCHASE_RETURN")
+            if (order.SourceType == "PURCHASE_RETURN" && order.CompletionType == "FULL")
                 await ReleaseReturnReservationsAsync(order, userId, "Hoàn tất đợt trả nhà cung cấp còn thiếu.");
 
             await _auditLogService.StageAsync(new AuditEventDto
@@ -1035,7 +1039,7 @@ public class OutboundOrderService : IOutboundOrderService
                 OldValues = new { Status = "IN_PROGRESS" },
                 NewValues = new
                 {
-                    Status = "COMPLETED",
+                    Status = order.Status,
                     order.CompletionType,
                     Reason = reason,
                     Items = order.OutboundOrderItems.Select(item => new
@@ -1051,7 +1055,7 @@ public class OutboundOrderService : IOutboundOrderService
             await dbTransaction.CommitAsync();
             return (true, order.CompletionType == "FULL"
                 ? "Đã hoàn tất phiếu xuất đủ hàng."
-                : "Đã hoàn tất đợt xuất thiếu; chứng từ nguồn vẫn còn phần có thể xử lý ở đợt sau.");
+                : "Đã ghi nhận đợt xuất thiếu và chuyển Manager duyệt tiếp tục hoặc đóng phần còn lại.");
         }
         catch (Exception ex)
         {
@@ -1144,7 +1148,7 @@ public class OutboundOrderService : IOutboundOrderService
         }
     }
 
-    public async Task<(bool Success, string Message)> CloseRemainingSalesDemandAsync(long outboundOrderId, long userId, string reason)
+    private async Task<(bool Success, string Message)> CloseLegacySalesRemainderAsync(long outboundOrderId, long userId, string reason)
     {
         reason = reason?.Trim() ?? string.Empty;
         if (reason.Length is < 10 or > 500)

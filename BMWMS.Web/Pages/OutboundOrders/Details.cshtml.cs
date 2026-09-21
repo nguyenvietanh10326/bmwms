@@ -1,11 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace BMWMS.Web.Pages.OutboundOrders
 {
-    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF,SALES_STAFF,PURCHASING_STAFF,ACCOUNTANT,DIRECTOR")]
+    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF,SALES_STAFF,PURCHASING_STAFF")]
     public class DetailsModel : PageModel
     {
         private readonly IHttpClientFactory _httpClientFactory;
@@ -16,7 +15,6 @@ namespace BMWMS.Web.Pages.OutboundOrders
         }
 
         public OutboundOrderDetailDto Order { get; set; } = new();
-        public List<SelectListItem> AssigneeOptions { get; set; } = new();
 
         [TempData]
         public string? SuccessMessage { get; set; }
@@ -48,8 +46,6 @@ namespace BMWMS.Web.Pages.OutboundOrders
                             (!long.TryParse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var userId) ||
                              Order.AssignedToUserId != userId))
                             return Forbid();
-                        if ((User.IsInRole("SYSTEM_ADMIN") || User.IsInRole("WAREHOUSE_MANAGER")) && Order.Status == "DRAFT")
-                            await LoadAssigneesAsync(client);
                         return Page();
                     }
                 }
@@ -62,15 +58,6 @@ namespace BMWMS.Web.Pages.OutboundOrders
                 ErrorMessage = "Không thể kết nối để tải phiếu xuất kho. Vui lòng thử lại.";
                 return RedirectToPage("./Index");
             }
-        }
-
-        // POST: Xử lý Hủy lệnh xuất kho ngay từ trang Chi tiết
-        public async Task<IActionResult> OnPostApproveAsync(long id, long assignedToUserId)
-        {
-            var response = await _httpClientFactory.CreateClient("ApiClient")
-                .PostAsJsonAsync($"api/OutboundOrders/{id}/approve", new { assignedToUserId });
-            await SetResultMessageAsync(response, "Đã duyệt và phân công phiếu xuất.");
-            return RedirectToPage("./Details", new { id });
         }
 
         public async Task<IActionResult> OnPostStartAsync(long id)
@@ -109,15 +96,6 @@ namespace BMWMS.Web.Pages.OutboundOrders
             return RedirectToPage("./Details", new { id });
         }
 
-        public async Task<IActionResult> OnPostCloseSalesRemainderAsync(long id, string reason)
-        {
-            if (!User.IsInRole("SYSTEM_ADMIN") && !User.IsInRole("WAREHOUSE_MANAGER")) return Forbid();
-            var response = await _httpClientFactory.CreateClient("ApiClient")
-                .PostAsJsonAsync($"api/OutboundOrders/{id}/close-sales-remainder", new { reason });
-            await SetResultMessageAsync(response, "Đã đóng phần nhu cầu còn lại của SO.");
-            return RedirectToPage("./Details", new { id });
-        }
-
         public async Task<IActionResult> OnPostReviewCompletionAsync(long id, string? remainderAction, string? reason)
         {
             if (!User.IsInRole("SYSTEM_ADMIN") && !User.IsInRole("WAREHOUSE_MANAGER")) return Forbid();
@@ -125,21 +103,6 @@ namespace BMWMS.Web.Pages.OutboundOrders
                 .PostAsJsonAsync($"api/OutboundOrders/{id}/review-completion", new { remainderAction, reason });
             await SetResultMessageAsync(response, "Đã duyệt chốt đợt xuất.");
             return RedirectToPage("./Details", new { id });
-        }
-
-        private async Task LoadAssigneesAsync(HttpClient client)
-        {
-            try
-            {
-                var users = await client.GetFromJsonAsync<List<UserOptionDto>>("api/OutboundOrders/staff") ?? new();
-                AssigneeOptions = users.Select(user => new SelectListItem(user.FullName, user.UserId.ToString())).ToList();
-                AssigneeOptions.Insert(0, new SelectListItem(
-                    AssigneeOptions.Count == 0 ? "-- Không có nhân viên kho đang rảnh --" : "-- Chọn nhân viên kho --", ""));
-            }
-            catch
-            {
-                AssigneeOptions = new() { new SelectListItem("-- Không tải được danh sách nhân viên --", "") };
-            }
         }
 
         private async Task SetResultMessageAsync(HttpResponseMessage response, string successMessage)

@@ -121,23 +121,11 @@ namespace BMWMS.Business.DTOs.Inventory
         public long ProductLotId { get; set; }
         public decimal Quantity { get; set; }
     }
-    // Request Cập nhật trạng thái lệnh xuất kho
-    public class UpdateOutboundOrderStatusRequest
-    {
-        public long OutboundOrderId { get; set; }
-        public string Status { get; set; } = null!; // "Nháp", "Chờ xử lý", "Đang picking", "Đã xuất", "Đã hủy"
-    }
-
     public class UpdateOutboundOrderRequest
     {
         public DateOnly ExpectedIssueDate { get; set; }
         public string? Notes { get; set; }
         public List<CreateOutboundOrderItemRequest> Items { get; set; } = new();
-    }
-
-    public class ApproveOutboundOrderRequest
-    {
-        public long AssignedToUserId { get; set; }
     }
 
     public class CompleteOutboundOrderRequest
