@@ -121,8 +121,6 @@
                             </td>
                             <td>
                                 <a href="/PurchaseOrders/Detail?id=@po.PurchaseOrderId" style="color:var(--ink-2); text-decoration:underline;">Chi tiết</a>
-                                @if (po.CanExternalCancel && (User.IsInRole("WAREHOUSE_MANAGER") || User.IsInRole("SYSTEM_ADMIN")))
-                                { <a asp-page="/Orders/CancelApproved" asp-route-Type="PO" asp-route-Id="@po.PurchaseOrderId" class="btn btn-sm btn-outline-danger ms-2">Ghi nhận NCC yêu cầu hủy</a> }
                             </td>
                         </tr>
                     }

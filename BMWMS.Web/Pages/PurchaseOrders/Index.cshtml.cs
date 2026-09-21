@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace BMWMS.Web.Pages.PurchaseOrders;
 
-[Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF,ACCOUNTANT,DIRECTOR")]
+[Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,PURCHASING_STAFF")]
 public class IndexModel : PageModel
 {
     private readonly PurchaseOrderApiService _apiService;

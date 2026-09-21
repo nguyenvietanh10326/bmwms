@@ -94,6 +94,12 @@
                         <i class="bi bi-x-circle me-1"></i>Hủy PO
                     </button>
                 }
+                @if (Model.Order.CanExternalCancel && (User.IsInRole("WAREHOUSE_MANAGER") || User.IsInRole("SYSTEM_ADMIN")))
+                {
+                    <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#cancelPoModal">
+                        <i class="bi bi-x-circle me-1"></i>Ghi nhận NCC hủy đơn
+                    </button>
+                }
                 @if (canCloseLegacyPartial)
                 {
                     <form method="post" asp-page-handler="ClosePartial" asp-route-id="@Model.Id"
@@ -127,7 +133,7 @@
         {
             <div class="alert alert-primary d-flex gap-2 align-items-start">
                 <i class="bi bi-lock mt-1"></i>
-                <div>Đơn đã được duyệt và gửi email. Có thể sửa/hủy khi chưa có phiếu nhập/xuất; sửa nội dung sẽ yêu cầu duyệt lại.</div>
+                <div>Đơn đã được duyệt và gửi email. Nhân viên mua hàng chỉ được xem; Manager chỉ ghi nhận hủy khi NCC liên hệ hủy và chưa phát sinh phiếu nhập/xuất.</div>
             </div>
         }
 
@@ -322,20 +328,21 @@
             </div>
         </div>
 
-        @if (Model.Order.CanCancel && Model.Order.Status == "DRAFT" && canProcessSupplierEmail)
+        @if ((Model.Order.CanCancel && Model.Order.Status == "DRAFT" && canProcessSupplierEmail) ||
+             (Model.Order.CanExternalCancel && (User.IsInRole("WAREHOUSE_MANAGER") || User.IsInRole("SYSTEM_ADMIN"))))
         {
             <div class="modal fade no-print" id="cancelPoModal" tabindex="-1" aria-labelledby="cancelPoModalLabel" aria-hidden="true">
                 <div class="modal-dialog">
                     <div class="modal-content">
                         <form method="post" asp-page-handler="Cancel" asp-route-id="@Model.Id">
                             <div class="modal-header">
-                                <h2 class="modal-title h5" id="cancelPoModalLabel">Hủy đơn mua hàng</h2>
+                                <h2 class="modal-title h5" id="cancelPoModalLabel">@(Model.Order.Status == "DRAFT" ? "Hủy đơn mua hàng nháp" : "Ghi nhận NCC hủy đơn")</h2>
                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
                             </div>
                             <div class="modal-body">
                                 <label for="cancelReason" class="form-label fw-semibold">Lý do hủy <span class="text-danger">*</span></label>
                                 <textarea id="cancelReason" name="reason" class="form-control" rows="3" minlength="5" maxlength="500" required></textarea>
-                                <div class="form-text">Nhập từ 5 đến 500 ký tự. Lý do được lưu trong lịch sử PO.</div>
+                                <div class="form-text">Nhập từ 5 đến 500 ký tự. Hệ thống chỉ cho phép khi chưa phát sinh phiếu nhập/xuất.</div>
                             </div>
                             <div class="modal-footer">
                                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Đóng</button>
