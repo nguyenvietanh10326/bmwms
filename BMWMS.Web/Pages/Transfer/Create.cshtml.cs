@@ -34,7 +34,7 @@ namespace BMWMS.Web.Pages.Transfer
             Warehouses = await _warehouseSvc.GetWarehousesAsync();
             if (IsEditMode)
             {
-                EditingOrder = await _transferSvc.GetOrderByIdAsync(Id.Value);
+                EditingOrder = await _transferSvc.GetOrderByIdAsync(Id.GetValueOrDefault());
                 if (EditingOrder == null || EditingOrder.Status != "DRAFT")
                 {
                     ErrorMessage = "Phiếu không tồn tại hoặc không ở trạng thái có thể sửa.";
@@ -124,7 +124,7 @@ namespace BMWMS.Web.Pages.Transfer
             }
 
             var result = IsEditMode
-                ? await _transferSvc.UpdateDraftOrderAsync(Id.Value, request)
+                ? await _transferSvc.UpdateDraftOrderAsync(Id.GetValueOrDefault(), request)
                 : await _transferSvc.CreatePendingOrderAsync(request);
 
             if (result.Success)

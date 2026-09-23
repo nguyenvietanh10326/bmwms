@@ -2717,7 +2717,7 @@ ALTER TABLE [dbo].[CustomerReturnRequestItems]  WITH CHECK ADD  CONSTRAINT [CK_C
 GO
 ALTER TABLE [dbo].[CustomerReturnRequestItems] CHECK CONSTRAINT [CK_CustomerReturnRequestItems_Qty]
 GO
-ALTER TABLE [dbo].[CustomerReturnRequests]  WITH CHECK ADD  CONSTRAINT [CK_CustomerReturnRequests_Status] CHECK  (([Status]='CANCELLED' OR [Status]='REJECTED' OR [Status]='COMPLETED' OR [Status]='PARTIALLY_RECEIVED' OR [Status]='APPROVED' OR [Status]='SUBMITTED'))
+ALTER TABLE [dbo].[CustomerReturnRequests]  WITH CHECK ADD  CONSTRAINT [CK_CustomerReturnRequests_Status] CHECK  (([Status]='CANCELLED' OR [Status]='REJECTED' OR [Status]='COMPLETED' OR [Status]='PENDING_REMAINDER_REVIEW' OR [Status]='PARTIALLY_RECEIVED' OR [Status]='APPROVED' OR [Status]='SUBMITTED'))
 GO
 ALTER TABLE [dbo].[CustomerReturnRequests] CHECK CONSTRAINT [CK_CustomerReturnRequests_Status]
 GO
@@ -3963,7 +3963,7 @@ CREATE   TRIGGER [dbo].[trg_InboundOrderItems_ValidateSource]
    OR (io.SourceType='SALES_RETURN' AND io.ReturnRequestID IS NOT NULL AND NOT EXISTS
     (SELECT 1 FROM dbo.CustomerReturnRequestItems ri JOIN dbo.CustomerReturnRequests r ON r.CustomerReturnRequestId=ri.CustomerReturnRequestId
      WHERE ri.CustomerReturnRequestItemId=item.ReturnRequestItemID AND ri.CustomerReturnRequestId=io.ReturnRequestID AND ri.ProductId=item.ProductID
-       AND item.ExpectedQuantity<=ri.RequestedQuantity AND r.Status IN ('APPROVED','PARTIALLY_RECEIVED','COMPLETED')))
+       AND item.ExpectedQuantity<=ri.RequestedQuantity AND r.Status IN ('APPROVED','PARTIALLY_RECEIVED','PENDING_REMAINDER_REVIEW','COMPLETED')))
    OR (io.SourceType='TRANSFER_ORDER' AND (item.ReturnRequestItemID IS NOT NULL OR NOT EXISTS
     (SELECT 1 FROM dbo.TransferOrderDetails d WHERE d.TransferOrderID=io.TransferOrderID AND d.ProductID=item.ProductID)))
  ) THROW 51008,N'Sản phẩm/nguồn nhận hàng không khớp chứng từ được duyệt.',1;
@@ -4452,6 +4452,43 @@ CREATE   TRIGGER [dbo].[trg_WarehouseZones_RequiredQuantityCapacity] ON [dbo].[W
     END;
 GO
 ALTER TABLE [dbo].[WarehouseZones] ENABLE TRIGGER [trg_WarehouseZones_RequiredQuantityCapacity]
+GO
+/* Normalize legacy account/role labels to the five canonical actors. */
+DECLARE @PurchasingRoleID INT = (SELECT TOP (1) RoleID FROM dbo.Roles WHERE RoleCode = 'PURCHASING_STAFF');
+DECLARE @AccountantRoleID INT = (SELECT TOP (1) RoleID FROM dbo.Roles WHERE RoleCode = 'ACCOUNTANT');
+IF @PurchasingRoleID IS NULL AND @AccountantRoleID IS NOT NULL
+BEGIN
+    UPDATE dbo.Roles SET RoleCode = 'PURCHASING_STAFF', RoleName = N'Purchasing Staff',
+        Description = N'Nhân viên mua hàng và quản lý nhà cung cấp.', IsActive = 1
+    WHERE RoleID = @AccountantRoleID;
+    SET @PurchasingRoleID = @AccountantRoleID;
+    SET @AccountantRoleID = NULL;
+END;
+IF @PurchasingRoleID IS NOT NULL AND @AccountantRoleID IS NOT NULL
+BEGIN
+    UPDATE dbo.Users SET RoleID = @PurchasingRoleID WHERE RoleID = @AccountantRoleID;
+    UPDATE dbo.Roles SET IsActive = 0,
+        Description = N'Legacy alias of PURCHASING_STAFF; retained for historical compatibility.'
+    WHERE RoleID = @AccountantRoleID AND NOT EXISTS (SELECT 1 FROM dbo.Users WHERE RoleID = @AccountantRoleID);
+END;
+
+DECLARE @SalesRoleID INT = (SELECT TOP (1) RoleID FROM dbo.Roles WHERE RoleCode = 'SALES_STAFF');
+DECLARE @DirectorRoleID INT = (SELECT TOP (1) RoleID FROM dbo.Roles WHERE RoleCode = 'DIRECTOR');
+IF @SalesRoleID IS NULL AND @DirectorRoleID IS NOT NULL
+BEGIN
+    UPDATE dbo.Roles SET RoleCode = 'SALES_STAFF', RoleName = N'Sales Staff',
+        Description = N'Nhân viên bán hàng và quản lý khách hàng.', IsActive = 1
+    WHERE RoleID = @DirectorRoleID;
+    SET @SalesRoleID = @DirectorRoleID;
+    SET @DirectorRoleID = NULL;
+END;
+IF @SalesRoleID IS NOT NULL AND @DirectorRoleID IS NOT NULL
+BEGIN
+    UPDATE dbo.Users SET RoleID = @SalesRoleID WHERE RoleID = @DirectorRoleID;
+    UPDATE dbo.Roles SET IsActive = 0,
+        Description = N'Legacy alias of SALES_STAFF; retained for historical compatibility.'
+    WHERE RoleID = @DirectorRoleID AND NOT EXISTS (SELECT 1 FROM dbo.Users WHERE RoleID = @DirectorRoleID);
+END;
 GO
 EXEC [BMWMS].sys.sp_addextendedproperty @name=N'BMWMS_PO_RECEIPT_REVIEW_MIGRATED_20260909', @value=N'Legacy PARTIALLY_RECEIVED rows migrated once on 2026-09-09' 
 GO

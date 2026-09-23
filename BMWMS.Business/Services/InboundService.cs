@@ -345,8 +345,8 @@ public class InboundService : IInboundService
                     remaining -= take;
                 }
                 if (remaining > 0) throw new ArgumentException("Số nhận trả vượt ngân sách yêu cầu đã duyệt.");
-                order.ReturnRequest!.Status = "PARTIALLY_RECEIVED";
-                _context.Entry(order.ReturnRequest).Property(r => r.Status).IsModified = true;
+                // The final state is decided after putaway. Until then this receipt remains
+                // the only active batch and no follow-up receipt may be created.
             }
             isShort |= row.ActualQuantity < item.ExpectedQuantity;
             item.ReceivedQuantity = row.ActualQuantity;
@@ -1968,7 +1968,7 @@ public class InboundService : IInboundService
                 var r = await _context.CustomerReturnRequests.Include(x => x.Items).ThenInclude(x => x.Allocations)
                     .SingleAsync(x => x.CustomerReturnRequestId == order.ReturnRequestId.Value);
                 r.Status = r.Items.All(i => i.Allocations.Sum(a => a.ReceivedQuantity) >= i.RequestedQuantity)
-                    ? "COMPLETED" : "PARTIALLY_RECEIVED";
+                    ? "COMPLETED" : "PENDING_REMAINDER_REVIEW";
                 _context.Entry(r).Property(x => x.Status).IsModified = true;
             }
             await _auditLogService.StageAsync(new AuditEventDto

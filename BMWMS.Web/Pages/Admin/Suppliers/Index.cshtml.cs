@@ -22,7 +22,7 @@ public class IndexModel : PageModel
     public async Task<IActionResult> OnGetAsync()
     {
         var roleCode = HttpContext.Session.GetString("RoleCode");
-        if (roleCode != "SYSTEM_ADMIN" && roleCode != "WAREHOUSE_MANAGER" && roleCode != "PURCHASING_STAFF" && roleCode != "ACCOUNTANT" && roleCode != "DIRECTOR")
+        if (roleCode != "SYSTEM_ADMIN" && roleCode != "WAREHOUSE_MANAGER" && roleCode != "PURCHASING_STAFF")
         {
             return Forbid();
         }

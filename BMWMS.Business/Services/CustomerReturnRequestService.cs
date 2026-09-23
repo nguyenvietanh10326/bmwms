@@ -20,7 +20,7 @@ public class CustomerReturnRequestService(BmwmsContext context, IAuditLogService
     private async Task<User> ActorAsync(long id, params string[] roles)
     {
         var u = await context.Users.Include(x => x.Role).SingleOrDefaultAsync(x => x.UserId == id && x.Status == "ACTIVE");
-        if (u?.Role == null || !roles.Contains(u.Role.RoleCode)) throw new UnauthorizedAccessException();
+        if (u?.Role == null || !roles.Contains(BusinessRoleCodes.Normalize(u.Role.RoleCode))) throw new UnauthorizedAccessException();
         return u;
     }
 
@@ -46,7 +46,9 @@ public class CustomerReturnRequestService(BmwmsContext context, IAuditLogService
             var delivered = issued.Where(x => x.SalesOrderId == line.SalesOrderId && x.ProductId == line.ProductId).Sum(x => x.Quantity);
             var old = SalesOrderReturnRules.CalculateLine(delivered, legacy.Where(x => x.InboundOrder.SalesOrderId == line.SalesOrderId && x.ProductId == line.ProductId));
             var used = allocations.Where(a => a.SalesOrderDetailId == line.SalesOrderDetailId).Sum(a =>
-                a.RequestItem.Request.Status is "SUBMITTED" or "APPROVED" or "PARTIALLY_RECEIVED" ? a.AllocatedQuantity : a.ReceivedQuantity);
+                a.RequestItem.Request.Status is "SUBMITTED" or "APPROVED" or "PARTIALLY_RECEIVED" or "PENDING_REMAINDER_REVIEW"
+                    ? a.AllocatedQuantity
+                    : a.ReceivedQuantity);
             return (line, delivered, old.AvailableToPlanQuantity - used);
         }).ToList();
     }
@@ -78,7 +80,7 @@ public class CustomerReturnRequestService(BmwmsContext context, IAuditLogService
             var actor = await ActorAsync(userId.Value, "SALES_STAFF", "SYSTEM_ADMIN");
             var r = await GetAsync(editingRequestId.Value) ?? throw new KeyNotFoundException("Phiếu trả không tồn tại.");
             if (!r.CanEdit || r.SalesOrderId != salesOrderId ||
-                (actor.Role.RoleCode != "SYSTEM_ADMIN" && r.CreatedByUserId != userId)) throw new UnauthorizedAccessException();
+                (BusinessRoleCodes.Normalize(actor.Role.RoleCode) != "SYSTEM_ADMIN" && r.CreatedByUserId != userId)) throw new UnauthorizedAccessException();
         }
         return MapSources((await SourcesAsync(so.CustomerId, editingRequestId)).Where(s => s.Line.SalesOrderId == salesOrderId));
     }
@@ -158,7 +160,7 @@ public class CustomerReturnRequestService(BmwmsContext context, IAuditLogService
         var r = await context.CustomerReturnRequests.Include(x => x.Items).ThenInclude(x => x.Allocations)
             .ThenInclude(x => x.SalesOrderDetail).SingleOrDefaultAsync(x => x.CustomerReturnRequestId == id)
             ?? throw new KeyNotFoundException("Phiếu trả không tồn tại.");
-        if (actor.Role.RoleCode != "SYSTEM_ADMIN" && r.CreatedByUserId != userId) throw new UnauthorizedAccessException();
+        if (BusinessRoleCodes.Normalize(actor.Role.RoleCode) != "SYSTEM_ADMIN" && r.CreatedByUserId != userId) throw new UnauthorizedAccessException();
         if (r.Status != "SUBMITTED" || await context.InboundOrders.AnyAsync(o => o.ReturnRequestId == id) ||
             r.Items.SelectMany(i => i.Allocations).Any(a => a.ReceivedQuantity > 0))
             throw new InvalidOperationException("Chỉ sửa phiếu chưa duyệt và chưa có đợt nhận hàng.");
@@ -185,7 +187,9 @@ public class CustomerReturnRequestService(BmwmsContext context, IAuditLogService
     }
 
     public async Task<List<CustomerReturnRequestDto>> GetListAsync() =>
-        await context.CustomerReturnRequests.AsNoTracking().OrderBy(x => x.Status == "SUBMITTED" ? 0 : x.Status == "APPROVED" || x.Status == "PARTIALLY_RECEIVED" ? 1 : 2)
+        await context.CustomerReturnRequests.AsNoTracking().OrderBy(x =>
+                x.Status == "SUBMITTED" || x.Status == "PENDING_REMAINDER_REVIEW" ? 0 :
+                x.Status == "APPROVED" || x.Status == "PARTIALLY_RECEIVED" ? 1 : 2)
             .ThenByDescending(x => x.CreatedAt).Take(200).Select(x => new CustomerReturnRequestDto { Id = x.CustomerReturnRequestId,
                 SalesOrderId = x.Items.SelectMany(i => i.Allocations).Select(a => a.SalesOrderDetail.SalesOrderId).Distinct().Count() == 1
                     ? x.Items.SelectMany(i => i.Allocations).Select(a => (long?)a.SalesOrderDetail.SalesOrderId).FirstOrDefault() : null,
@@ -226,7 +230,8 @@ public class CustomerReturnRequestService(BmwmsContext context, IAuditLogService
             ?? throw new KeyNotFoundException("Yêu cầu trả hàng không còn tồn tại. Vui lòng kiểm tra lại danh sách.");
         if (dto.RowVersion != Convert.ToBase64String(r.RowVersion)) throw new InvalidOperationException("Yêu cầu đã thay đổi. Vui lòng tải lại.");
         var action = dto.Action?.Trim().ToUpperInvariant() ?? "";
-        if (actor.Role.RoleCode == "SALES_STAFF" && (action != "CANCEL" || r.CreatedByUserId != userId)) throw new UnauthorizedAccessException();
+        var actorRole = BusinessRoleCodes.Normalize(actor.Role.RoleCode);
+        if (actorRole == "SALES_STAFF" && (action != "CANCEL" || r.CreatedByUserId != userId)) throw new UnauthorizedAccessException();
         if (action == "APPROVE")
         {
             if (r.Status != "SUBMITTED") throw new InvalidOperationException("Chỉ duyệt yêu cầu đang chờ duyệt.");
@@ -247,20 +252,24 @@ public class CustomerReturnRequestService(BmwmsContext context, IAuditLogService
         }
         else if (action is "REJECT" or "CANCEL")
         {
-            if (action == "CANCEL" && actor.Role.RoleCode == "WAREHOUSE_MANAGER")
+            if (action == "CANCEL" && actorRole == "WAREHOUSE_MANAGER")
                 throw new InvalidOperationException("Phiếu đang chờ duyệt; Manager dùng chức năng từ chối.");
             if (r.Status != "SUBMITTED" || await context.InboundOrders.AnyAsync(o => o.ReturnRequestId == id)) throw new InvalidOperationException("Chỉ từ chối/hủy yêu cầu chưa duyệt và chưa có phiếu nhập.");
             if ((dto.Reason?.Trim().Length ?? 0) is < 5 or > 500) throw new ArgumentException("Nhập lý do từ 5 đến 500 ký tự.");
             r.Status = action == "REJECT" ? "REJECTED" : "CANCELLED"; r.DecisionReason = dto.Reason!.Trim();
         }
-        else if (action == "CLOSE")
+        else if (action is "CONTINUE" or "CLOSE")
         {
-            if (r.Status is not ("APPROVED" or "PARTIALLY_RECEIVED")) throw new InvalidOperationException("Yêu cầu không còn mở để kết thúc.");
-            if ((dto.Reason?.Trim().Length ?? 0) is < 10 or > 500) throw new ArgumentException("Lý do kết thúc phải từ 10 đến 500 ký tự.");
+            if (actorRole is not ("WAREHOUSE_MANAGER" or "SYSTEM_ADMIN")) throw new UnauthorizedAccessException();
+            if (r.Status != "PENDING_REMAINDER_REVIEW")
+                throw new InvalidOperationException("Chỉ quyết định phần còn lại sau khi một đợt nhận trả đã hoàn tất nhưng còn thiếu.");
+            if ((dto.Reason?.Trim().Length ?? 0) is < 10 or > 500)
+                throw new ArgumentException("Căn cứ quyết định phải từ 10 đến 500 ký tự.");
             if (await context.InboundOrders.AnyAsync(o => o.ReturnRequestId == id && o.Status != "CANCELLED" &&
                 (o.Status != "COMPLETED" || o.InboundOrderItems.SelectMany(i => i.InboundOrderDetails).Any(d => d.ConditionStatus == "GOOD" && d.InventoryTransaction == null))))
                 throw new InvalidOperationException("Còn phiếu nhận trả đang xử lý/chờ cất.");
-            r.Status = "COMPLETED"; r.DecisionReason = dto.Reason!.Trim();
+            r.Status = action == "CONTINUE" ? "PARTIALLY_RECEIVED" : "COMPLETED";
+            r.DecisionReason = dto.Reason!.Trim();
         }
         else throw new ArgumentException("Thao tác không hợp lệ.");
         await audit.StageAsync(new AuditEventDto { UserId = userId, ActionType = "DECIDE_CUSTOMER_RETURN_REQUEST", EntityName = "CustomerReturnRequest",

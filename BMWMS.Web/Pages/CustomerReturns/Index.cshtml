@@ -15,7 +15,7 @@
     <form method="get" class="row g-3 align-items-end">
         <div class="col-lg-5"><label asp-for="Keyword" class="form-label">Tìm kiếm</label><input asp-for="Keyword" class="form-control" placeholder="Mã yêu cầu, mã SO hoặc tên khách hàng" /></div>
         <div class="col-lg-3"><label asp-for="Status" class="form-label">Trạng thái</label><select asp-for="Status" class="form-select">
-            <option value="">Tất cả trạng thái</option><option value="SUBMITTED">Chờ duyệt</option><option value="APPROVED">Đã duyệt</option><option value="PARTIALLY_RECEIVED">Đã nhận trả một phần</option><option value="COMPLETED">Hoàn tất</option><option value="REJECTED">Từ chối</option><option value="CANCELLED">Đã hủy</option>
+            <option value="">Tất cả trạng thái</option><option value="SUBMITTED">Chờ duyệt</option><option value="APPROVED">Đã duyệt</option><option value="PARTIALLY_RECEIVED">Được nhận tiếp</option><option value="PENDING_REMAINDER_REVIEW">Chờ duyệt phần còn lại</option><option value="COMPLETED">Hoàn tất</option><option value="REJECTED">Từ chối</option><option value="CANCELLED">Đã hủy</option>
         </select></div>
         <div class="col-lg-2"><label asp-for="Sort" class="form-label">Sắp xếp</label><select asp-for="Sort" class="form-select">
             @if (User.IsInRole("WAREHOUSE_MANAGER") || User.IsInRole("SYSTEM_ADMIN")) { <option value="priority">Cần duyệt trước</option> }

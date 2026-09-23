@@ -38,7 +38,7 @@ public sealed class ProductGroupCapacityEvaluationService : ICapacityEvaluationS
 
         var requested = await _context.StorageLocations.AsNoTracking()
             .Include(bin => bin.StorageRack)!
-                .ThenInclude(rack => rack.WarehouseZone)
+                .ThenInclude(rack => rack!.WarehouseZone)
             .Where(bin => requestedIds.Contains(bin.StorageLocationId))
             .ToListAsync();
         if (requested.Count != requestedIds.Distinct().Count())
@@ -68,7 +68,7 @@ public sealed class ProductGroupCapacityEvaluationService : ICapacityEvaluationS
 
         var hierarchyBins = await _context.StorageLocations.AsNoTracking()
             .Include(bin => bin.StorageRack)!
-                .ThenInclude(rack => rack.WarehouseZone)
+                .ThenInclude(rack => rack!.WarehouseZone)
             .Where(bin => bin.RackId.HasValue &&
                 (rackIds.Contains(bin.RackId.Value) ||
                  zoneIds.Contains(bin.StorageRack!.ZoneId)))

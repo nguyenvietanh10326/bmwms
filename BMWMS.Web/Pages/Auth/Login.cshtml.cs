@@ -62,7 +62,13 @@ public class LoginModel : PageModel
         HttpContext.Session.SetString("Username",  user.Username);
         HttpContext.Session.SetString("FullName",  user.FullName);
         HttpContext.Session.SetString("Email",     user.Email);
-        HttpContext.Session.SetString("RoleCode",  user.RoleCode);
+        var canonicalRoleCode = user.RoleCode?.Trim().ToUpperInvariant() switch
+        {
+            "ACCOUNTANT" => "PURCHASING_STAFF",
+            "DIRECTOR" => "SALES_STAFF",
+            var roleCode => roleCode ?? string.Empty
+        };
+        HttpContext.Session.SetString("RoleCode", canonicalRoleCode);
         HttpContext.Session.SetString("RoleName",  user.RoleName);
         HttpContext.Session.SetString("LoginAt",   user.LoginAt.ToString("o"));
         HttpContext.Session.SetString("SessionId", user.SessionId.ToString());
@@ -76,7 +82,7 @@ public class LoginModel : PageModel
         {
             new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
             new Claim(ClaimTypes.Name, user.Username),
-            new Claim(ClaimTypes.Role, user.RoleCode),
+            new Claim(ClaimTypes.Role, canonicalRoleCode),
             new Claim("FullName", user.FullName),
             new Claim("SessionId", user.SessionId.ToString())
         };

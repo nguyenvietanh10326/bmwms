@@ -8,7 +8,7 @@ namespace BMWMS.API.Controllers.Inventory;
 
 [Route("api/[controller]")]
 [ApiController]
-[Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF,SALES_STAFF,PURCHASING_STAFF,ACCOUNTANT,DIRECTOR")]
+[Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER,WAREHOUSE_STAFF,SALES_STAFF,PURCHASING_STAFF")]
 public class OutboundOrdersController : ControllerBase
 {
     private readonly IOutboundOrderService _outboundOrderService;
@@ -60,26 +60,6 @@ public class OutboundOrdersController : ControllerBase
         catch (ArgumentException ex) { return BadRequest(new { message = ex.Message }); }
         catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
         catch { return StatusCode(500, new { message = "Không thể tạo phiếu xuất. Vui lòng thử lại hoặc kiểm tra dữ liệu hệ thống." }); }
-    }
-
-    [HttpPut("{id:long}")]
-    [Authorize(Roles = "SYSTEM_ADMIN")]
-    public async Task<IActionResult> UpdateDraft(long id, [FromBody] UpdateOutboundOrderRequest request)
-    {
-        if (!ModelState.IsValid) return BadRequest(ModelState);
-        if (!TryGetCurrentUserId(out var currentUserId)) return Unauthorized();
-        var (success, message) = await _outboundOrderService.UpdateDraftAsync(id, request, currentUserId);
-        return success ? Ok(new { message }) : BadRequest(new { message });
-    }
-
-    [HttpPost("{id:long}/approve")]
-    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
-    public async Task<IActionResult> ApproveAndAssign(long id, [FromBody] ApproveOutboundOrderRequest request)
-    {
-        if (request.AssignedToUserId <= 0) return BadRequest(new { message = "Phải chọn nhân viên kho để phân công." });
-        if (!TryGetCurrentUserId(out var currentUserId)) return Unauthorized();
-        var (success, message) = await _outboundOrderService.ApproveAndAssignAsync(id, request.AssignedToUserId, currentUserId);
-        return success ? Ok(new { message }) : BadRequest(new { message });
     }
 
     [HttpPost("{id:long}/start")]
@@ -163,15 +143,6 @@ public class OutboundOrdersController : ControllerBase
         return success ? Ok(new { message }) : BadRequest(new { message });
     }
 
-    [HttpPost("{id:long}/close-sales-remainder")]
-    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
-    public async Task<IActionResult> CloseSalesRemainder(long id, [FromBody] CompleteOutboundOrderRequest request)
-    {
-        if (!TryGetCurrentUserId(out var currentUserId)) return Unauthorized();
-        var (success, message) = await _outboundOrderService.CloseRemainingSalesDemandAsync(id, currentUserId, request.Reason ?? string.Empty);
-        return success ? Ok(new { message }) : BadRequest(new { message });
-    }
-
     [HttpPost("{id:long}/review-completion")]
     [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
     public async Task<IActionResult> ReviewCompletion(long id, [FromBody] ReviewOutboundCompletionRequest request)
@@ -181,7 +152,7 @@ public class OutboundOrdersController : ControllerBase
         return success ? Ok(new { message }) : BadRequest(new { message });
     }
 
-    private bool CanReadAllOrders => User.IsInRole("SYSTEM_ADMIN") || User.IsInRole("WAREHOUSE_MANAGER") || User.IsInRole("ACCOUNTANT") || User.IsInRole("DIRECTOR");
+    private bool CanReadAllOrders => User.IsInRole("SYSTEM_ADMIN") || User.IsInRole("WAREHOUSE_MANAGER");
 
     private bool CanAccessOrder(OutboundOrderDetailDto order)
     {

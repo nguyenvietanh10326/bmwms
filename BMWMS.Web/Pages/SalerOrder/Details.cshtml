@@ -21,7 +21,7 @@
         <div class="d-flex align-items-center gap-2">
             <h2 class="mb-0">@order?.SalesOrderNumber</h2>
             <span class="badge @StatusClass(order?.Status)">@StatusLabel(order?.Status)</span>
-            @if (pendingBatches.Any()) { <span class="badge bg-warning text-dark">Có phiếu dữ liệu cũ cần xử lý</span> }
+            @if (pendingBatches.Any()) { <span class="badge bg-warning text-dark">Chờ Manager quyết định phần còn lại</span> }
         </div>
         <div class="text-muted mt-1">Theo dõi giữ tồn và lượng hàng đã xuất; không bao gồm giá bán hoặc hóa đơn.</div>
     </div>
@@ -47,9 +47,24 @@
                   <button class="btn btn-outline-danger">Từ chối SO</button>
               </form>
           }
+          @if (order?.CanExternalCancel == true && (User.IsInRole("WAREHOUSE_MANAGER") || User.IsInRole("SYSTEM_ADMIN")))
+          {
+              <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#cancelApprovedSoModal">Ghi nhận khách hủy đơn</button>
+          }
           <button type="button" class="btn btn-outline-primary" onclick="window.print()"><i class="bi bi-printer me-1"></i>In phiếu</button>
       </div>
 </div>
+
+@if (order?.CanExternalCancel == true && (User.IsInRole("WAREHOUSE_MANAGER") || User.IsInRole("SYSTEM_ADMIN")))
+{
+    <div class="modal fade" id="cancelApprovedSoModal" tabindex="-1" aria-hidden="true"><div class="modal-dialog"><div class="modal-content">
+        <form method="post" asp-page-handler="Cancel" asp-route-id="@order.SalesOrderId">
+            <div class="modal-header"><h2 class="modal-title h5">Ghi nhận khách hàng hủy đơn</h2><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body"><label class="form-label">Lý do hủy <span class="text-danger">*</span></label><textarea name="reason" class="form-control" minlength="5" maxlength="500" required></textarea><div class="form-text">Chỉ áp dụng khi SO đã duyệt nhưng chưa phát sinh phiếu nhập/xuất.</div></div>
+            <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Đóng</button><button class="btn btn-danger">Xác nhận hủy</button></div>
+        </form>
+    </div></div></div>
+}
 
 <div class="card border-0 shadow-sm mb-4">
     @if (TempData["ErrorMessage"] is string error) { <div class="alert alert-danger">@error</div> }
@@ -68,13 +83,26 @@
 
 @foreach (var batch in pendingBatches)
 {
-    <section class="card border-warning shadow-sm mb-4" aria-label="Phiếu xuất dữ liệu cũ">
+    <section class="card border-warning shadow-sm mb-4" aria-label="Duyệt kết quả xuất một phần">
         <div class="card-header bg-warning-subtle d-flex justify-content-between align-items-center">
-            <strong>Phiếu dữ liệu cũ · @batch.OutboundOrderNumber</strong>
+            <strong>Đợt xuất một phần · @batch.OutboundOrderNumber</strong>
             <a asp-page="/OutboundOrders/Details" asp-route-id="@batch.OutboundOrderId" class="btn btn-sm btn-outline-primary">Xem phiếu xuất</a>
         </div>
         <div class="card-body">
-            <p class="mb-0">Luồng mới tự động hoàn tất sau khi nhân viên kho xác nhận thực xuất. Mở phiếu xuất để xử lý dữ liệu còn lại của phiên bản cũ.</p>
+            <p class="text-muted">Nhân viên kho đã chốt số thực xuất nhưng khách vẫn còn lượng chưa nhận. Manager ghi nhận quyết định đã thống nhất ngoài hệ thống.</p>
+            @if (canReview)
+            {
+                <form method="post" asp-page-handler="ReviewOutboundCompletion" asp-route-id="@order!.SalesOrderId" class="row g-3">
+                    <input type="hidden" name="outboundOrderId" value="@batch.OutboundOrderId" />
+                    <div class="col-md-4"><label class="form-label">Quyết định phần còn lại</label><select name="remainderAction" class="form-select" required><option value="">Chọn quyết định</option><option value="CONTINUE">Cho phép xuất đợt tiếp theo</option><option value="CLOSE">Đóng SO theo số thực giao</option></select></div>
+                    <div class="col-md-8"><label class="form-label">Căn cứ đã thống nhất với khách hàng</label><textarea name="reason" class="form-control" minlength="10" maxlength="500" rows="2" required></textarea></div>
+                    <div class="col-12 text-end"><button class="btn btn-primary">Xác nhận quyết định</button></div>
+                </form>
+            }
+            else
+            {
+                <div class="alert alert-info mb-0">Đang chờ Manager duyệt xuất tiếp hoặc đóng SO.</div>
+            }
         </div>
     </section>
 }
@@ -160,7 +188,7 @@
     string FormatQuantity(decimal value, byte scale) => FormatHelper.FormatQuantity(value, scale);
     string BatchStatusLabel(string status) => status switch
     {
-        "PENDING_APPROVAL" => "Chờ xử lý dữ liệu cũ", "COMPLETED" => "Đã xuất",
+        "PENDING_APPROVAL" => "Chờ Manager duyệt phần còn lại", "COMPLETED" => "Đã xuất",
         "ASSIGNED" or "READY" => "Sẵn sàng xuất", "IN_PROGRESS" or "ISSUING" => "Đang xuất hàng",
         "CANCELLED" => "Đã hủy", "DRAFT" => "Nháp", _ => status
     };

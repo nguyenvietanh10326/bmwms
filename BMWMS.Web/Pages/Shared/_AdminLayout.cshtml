@@ -29,7 +29,6 @@
                 var isSales = currentRole == "SALES_STAFF";
                 var isWhManager = currentRole == "WAREHOUSE_MANAGER";
                 var isWhStaff = currentRole == "WAREHOUSE_STAFF";
-                var isReadOnly = currentRole is "ACCOUNTANT" or "DIRECTOR";
             }
             <!-- 1. TỔNG QUAN -->
             <div class="nav-section">
@@ -94,7 +93,7 @@
             <div class="nav-section">
                 <div class="nav-section-label">ĐƠN HÀNG</div>
 
-                @if (isSysAdmin || isWhManager || isPurchasing || isReadOnly)
+                @if (isSysAdmin || isWhManager || isPurchasing)
                 {
                     var isPurchaseOrderActive = Context.Request.Path.StartsWithSegments("/PurchaseOrders");
                     <div class="nav-item nav-item-has-sub @(isPurchaseOrderActive ? "expanded active" : "")" onclick="toggleSubmenu(this)">
@@ -113,7 +112,7 @@
                     </div>
                 }
 
-                @if (isSysAdmin || isWhManager || isSales || isReadOnly)
+                @if (isSysAdmin || isWhManager || isSales)
                 {
                     var isSalesOrderActive = Context.Request.Path.StartsWithSegments("/sales-orders");
                     <div class="nav-item nav-item-has-sub @(isSalesOrderActive ? "expanded active" : "")" onclick="toggleSubmenu(this)">
@@ -169,7 +168,7 @@
                         <a href="/Admin/Inbound/Create" class="nav-sub-item @(Context.Request.Path == "/Admin/Inbound/Create" ? "active" : "")">Ghi nhận đợt nhập</a>
                     }
                 </div>
-                @if (isWhManager || isSysAdmin || isSales || isWhStaff || isReadOnly) { <a href="/CustomerReturns" class="nav-sub-item">Khách trả hàng theo SO</a> }
+                @if (isWhManager || isSysAdmin || isSales || isWhStaff) { <a href="/CustomerReturns" class="nav-sub-item">Khách trả hàng theo SO</a> }
                 @{
                     var isOutboundActive = Context.Request.Path.StartsWithSegments("/OutboundOrders");
                 }

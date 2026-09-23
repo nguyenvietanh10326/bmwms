@@ -139,8 +139,6 @@
                                     <span class="text-muted small">@item.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
                                 </td>
                                 <td class="text-end pe-4">
-                                    @if (item.CanExternalCancel && (User.IsInRole("WAREHOUSE_MANAGER") || User.IsInRole("SYSTEM_ADMIN")))
-                                    { <a asp-page="/Orders/CancelApproved" asp-route-Type="SO" asp-route-Id="@item.SalesOrderId" class="btn btn-sm btn-outline-danger">Ghi nhận khách yêu cầu hủy</a> }
                                     <a href="/sales-orders/details/@item.SalesOrderId" class="btn btn-sm btn-outline-primary"
                                        aria-label="Xem chi tiết đơn @item.SalesOrderNumber">
                                         <i class="bi bi-eye me-1"></i>Xem chi tiết

@@ -31,6 +31,7 @@ namespace BMWMS.Web.Models.Inventory
 
     public class PurchaseOrderDetailDto
     {
+        public bool CanExternalCancel { get; set; }
         public string RowVersion { get; set; } = string.Empty;
         public bool CanEdit { get; set; }
         public bool CanApprove { get; set; }

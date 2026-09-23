@@ -6,6 +6,7 @@ using BMWMS.Repository.Interfaces.Inventory;
 using BMWMS.Repository.Models;
 using QuantityRules = BMWMS.Business.Common.QuantityRules;
 using PurchaseOrderReceiptRules = BMWMS.Business.Common.PurchaseOrderReceiptRules;
+using BusinessRoleCodes = BMWMS.Business.Common.BusinessRoleCodes;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System.Data;
@@ -136,6 +137,8 @@ namespace BMWMS.Business.Services.Inventory
 
             return new PurchaseOrderDetailDto
             {
+                CanExternalCancel = (status is "APPROVED" or "CONFIRMED") && !po.InboundOrders.Any() &&
+                    !await _context.OutboundOrders.AnyAsync(o => o.PurchaseOrderId == po.PurchaseOrderId),
                 RowVersion = Convert.ToBase64String(po.RowVersion),
                 ApprovedAt = po.ApprovedAt,
                 CanApprove = status == "DRAFT",
@@ -231,8 +234,9 @@ namespace BMWMS.Business.Services.Inventory
 
             var status = NormalizePurchaseOrderStatus(po.Status);
             var actor = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == currentUserId && u.Status == "ACTIVE");
-            if (actor?.Role.RoleCode is not ("PURCHASING_STAFF" or "SYSTEM_ADMIN") ||
-                (actor.Role.RoleCode == "PURCHASING_STAFF" && po.CreatedByUserId != currentUserId))
+            var actorRole = BusinessRoleCodes.Normalize(actor?.Role?.RoleCode);
+            if (actorRole is not ("PURCHASING_STAFF" or "SYSTEM_ADMIN") ||
+                (actorRole == "PURCHASING_STAFF" && po.CreatedByUserId != currentUserId))
                 return (false, "Bạn không có quyền gửi đơn mua hàng này.");
             if (status == "CONFIRMED")
                 return (true, "PO đã được xác nhận trước đó; hệ thống không gửi trùng.");
@@ -304,12 +308,13 @@ namespace BMWMS.Business.Services.Inventory
             }
 
             var actor = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == currentUserId && u.Status == "ACTIVE");
-            if (actor?.Role.RoleCode is not ("PURCHASING_STAFF" or "WAREHOUSE_MANAGER" or "SYSTEM_ADMIN") ||
-                (actor.Role.RoleCode == "PURCHASING_STAFF" && po.CreatedByUserId != currentUserId))
+            var actorRole = BusinessRoleCodes.Normalize(actor?.Role?.RoleCode);
+            if (actorRole is not ("PURCHASING_STAFF" or "WAREHOUSE_MANAGER" or "SYSTEM_ADMIN") ||
+                (actorRole == "PURCHASING_STAFF" && po.CreatedByUserId != currentUserId))
                 return (false, "Bạn không có quyền hủy PO này.");
-            if (actor.Role.RoleCode == "PURCHASING_STAFF" && status != "DRAFT")
+            if (actorRole == "PURCHASING_STAFF" && status != "DRAFT")
                 return (false, "PO đã được Manager duyệt; nhân viên mua hàng không được hủy.");
-            if (actor.Role.RoleCode == "WAREHOUSE_MANAGER" && status == "DRAFT")
+            if (actorRole == "WAREHOUSE_MANAGER" && status == "DRAFT")
                 return (false, "PO đang nháp; hãy dùng chức năng từ chối đơn hàng.");
             if (po.InboundOrders.Any() || await _context.OutboundOrders.AnyAsync(o => o.PurchaseOrderId == purchaseOrderId))
                 return (false, "Không thể hủy PO vì đã có phiếu nhập/xuất.");
@@ -555,8 +560,9 @@ namespace BMWMS.Business.Services.Inventory
             if (po == null || NormalizePurchaseOrderStatus(po.Status) != "DRAFT") return (false, "Chỉ được sửa PO nháp trước khi Manager duyệt.");
             if (request.ExpectedDeliveryDate.HasValue && request.ExpectedDeliveryDate.Value < po.OrderDate)
                 return (false, "Ngày giao dự kiến không được trước ngày đặt hàng.");
-            if (actor?.Role.RoleCode is not ("PURCHASING_STAFF" or "SYSTEM_ADMIN") ||
-                (actor.Role.RoleCode == "PURCHASING_STAFF" && po.CreatedByUserId != userId)) return (false, "Bạn không được sửa PO này.");
+            var actorRole = BusinessRoleCodes.Normalize(actor?.Role?.RoleCode);
+            if (actorRole is not ("PURCHASING_STAFF" or "SYSTEM_ADMIN") ||
+                (actorRole == "PURCHASING_STAFF" && po.CreatedByUserId != userId)) return (false, "Bạn không được sửa PO này.");
             if (request.RowVersion != Convert.ToBase64String(po.RowVersion)) return (false, "PO đã thay đổi. Vui lòng tải lại trước khi sửa.");
             if (await _context.InboundOrders.AnyAsync(o => o.PurchaseOrderId == id) || await _context.OutboundOrders.AnyAsync(o => o.PurchaseOrderId == id))
                 return (false, "PO đã có phiếu nhập/xuất; không được sửa.");
@@ -596,7 +602,7 @@ namespace BMWMS.Business.Services.Inventory
         public async Task<(bool Success, string Message)> CreatePurchaseOrderAsync(PurchaseOrderCreateDto request, long userId)
         {
             var actor = await _context.Users.Include(u => u.Role).SingleOrDefaultAsync(u => u.UserId == userId && u.Status == "ACTIVE");
-            if (actor?.Role.RoleCode is not ("PURCHASING_STAFF" or "SYSTEM_ADMIN"))
+            if (BusinessRoleCodes.Normalize(actor?.Role?.RoleCode) is not ("PURCHASING_STAFF" or "SYSTEM_ADMIN"))
                 return (false, "Chỉ Purchasing Staff được tạo đơn mua hàng.");
             if (request.OrderDetails == null || (request.Notes?.Length ?? 0) > 2000 || request.OrderDetails.Any(d => (d.Notes?.Length ?? 0) > 1000))
                 return (false, "Danh sách vật tư hoặc ghi chú không hợp lệ.");
